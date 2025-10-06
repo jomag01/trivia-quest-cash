@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Game from "./pages/Game";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
 import { CustomerSupportChat } from "./components/CustomerSupportChat";
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/game" element={<Game />} />
             <Route path="/game/:category" element={<Game />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/admin" element={<Admin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

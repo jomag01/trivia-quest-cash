@@ -1,0 +1,446 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { 
+  DollarSign, 
+  CreditCard, 
+  CheckCircle, 
+  XCircle,
+  Clock,
+  Shield,
+  Eye
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+interface CreditPurchase {
+  id: string;
+  user_id: string;
+  amount: number;
+  credits: number;
+  payment_method: string;
+  proof_image_url: string | null;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+  profiles: {
+    full_name: string | null;
+    email: string | null;
+  };
+}
+
+interface PayoutRequest {
+  id: string;
+  user_id: string;
+  amount: number;
+  payout_method: string;
+  account_name: string;
+  account_number: string;
+  bank_name: string | null;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+  profiles: {
+    full_name: string | null;
+    email: string | null;
+  };
+}
+
+const Admin = () => {
+  const navigate = useNavigate();
+  const { isAdmin, loading } = useAuth();
+  const [creditPurchases, setCreditPurchases] = useState<CreditPurchase[]>([]);
+  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
+  const [selectedProof, setSelectedProof] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [adminNotes, setAdminNotes] = useState("");
+
+  useEffect(() => {
+    if (!loading && !isAdmin) {
+      navigate("/");
+      toast.error("Access denied. Admin only.");
+    }
+  }, [isAdmin, loading, navigate]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchCreditPurchases();
+      fetchPayoutRequests();
+    }
+  }, [isAdmin]);
+
+  const fetchCreditPurchases = async () => {
+    const { data, error } = await supabase
+      .from("credit_purchases")
+      .select(`
+        *,
+        profiles:user_id (full_name, email)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast.error("Failed to load credit purchases");
+      return;
+    }
+
+    setCreditPurchases(data || []);
+  };
+
+  const fetchPayoutRequests = async () => {
+    const { data, error } = await supabase
+      .from("payout_requests")
+      .select(`
+        *,
+        profiles:user_id (full_name, email)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast.error("Failed to load payout requests");
+      return;
+    }
+
+    setPayoutRequests(data || []);
+  };
+
+  const handleApproveCreditPurchase = async (id: string) => {
+    const purchase = creditPurchases.find(p => p.id === id);
+    if (!purchase) return;
+
+    const { error: updateError } = await supabase
+      .from("credit_purchases")
+      .update({
+        status: "approved",
+        admin_notes: adminNotes,
+        processed_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (updateError) {
+      toast.error("Failed to approve purchase");
+      return;
+    }
+
+    // Add credits to user wallet
+    const { error: walletError } = await supabase.rpc("increment_credits", {
+      user_id: purchase.user_id,
+      amount: purchase.credits,
+    });
+
+    if (walletError) {
+      toast.error("Failed to add credits to wallet");
+      return;
+    }
+
+    toast.success("Credit purchase approved!");
+    setAdminNotes("");
+    setProcessingId(null);
+    fetchCreditPurchases();
+  };
+
+  const handleRejectCreditPurchase = async (id: string) => {
+    const { error } = await supabase
+      .from("credit_purchases")
+      .update({
+        status: "rejected",
+        admin_notes: adminNotes,
+        processed_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) {
+      toast.error("Failed to reject purchase");
+      return;
+    }
+
+    toast.success("Credit purchase rejected");
+    setAdminNotes("");
+    setProcessingId(null);
+    fetchCreditPurchases();
+  };
+
+  const handleApprovePayoutRequest = async (id: string) => {
+    const { error } = await supabase
+      .from("payout_requests")
+      .update({
+        status: "approved",
+        admin_notes: adminNotes,
+        processed_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) {
+      toast.error("Failed to approve payout");
+      return;
+    }
+
+    toast.success("Payout request approved!");
+    setAdminNotes("");
+    setProcessingId(null);
+    fetchPayoutRequests();
+  };
+
+  const handleRejectPayoutRequest = async (id: string) => {
+    const { error } = await supabase
+      .from("payout_requests")
+      .update({
+        status: "rejected",
+        admin_notes: adminNotes,
+        processed_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) {
+      toast.error("Failed to reject payout");
+      return;
+    }
+
+    toast.success("Payout request rejected");
+    setAdminNotes("");
+    setProcessingId(null);
+    fetchPayoutRequests();
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
+      pending: { variant: "secondary", icon: Clock },
+      approved: { variant: "default", icon: CheckCircle },
+      rejected: { variant: "destructive", icon: XCircle },
+      completed: { variant: "default", icon: CheckCircle },
+    };
+
+    const config = variants[status] || variants.pending;
+    const Icon = config.icon;
+
+    return (
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <Icon className="w-3 h-3" />
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return null;
+  }
+
+  return (
+    <div className="container mx-auto py-8 px-4 min-h-screen">
+      <div className="flex items-center gap-3 mb-8">
+        <Shield className="w-8 h-8 text-primary" />
+        <h1 className="text-3xl font-bold text-gradient-gold">Admin Panel</h1>
+      </div>
+
+      <Tabs defaultValue="credits" className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="credits" className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4" />
+            Credit Purchases
+          </TabsTrigger>
+          <TabsTrigger value="payouts" className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4" />
+            Payout Requests
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="credits" className="space-y-4">
+          {creditPurchases.map((purchase) => (
+            <Card key={purchase.id} className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg font-semibold">
+                      {purchase.profiles?.full_name || "Unknown User"}
+                    </h3>
+                    {getStatusBadge(purchase.status)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {purchase.profiles?.email}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <p><strong>Amount:</strong> ₱{purchase.amount.toFixed(2)}</p>
+                    <p><strong>Credits:</strong> {purchase.credits}</p>
+                    <p><strong>Method:</strong> {purchase.payment_method}</p>
+                    <p><strong>Date:</strong> {new Date(purchase.created_at).toLocaleDateString()}</p>
+                  </div>
+                  {purchase.admin_notes && (
+                    <div className="mt-2 p-2 bg-muted rounded">
+                      <p className="text-xs font-semibold">Admin Notes:</p>
+                      <p className="text-sm">{purchase.admin_notes}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  {purchase.proof_image_url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedProof(purchase.proof_image_url)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Proof
+                    </Button>
+                  )}
+                  {purchase.status === "pending" && (
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={() => setProcessingId(purchase.id)}
+                        variant="default"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Process
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+          {creditPurchases.length === 0 && (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No credit purchases yet</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="payouts" className="space-y-4">
+          {payoutRequests.map((payout) => (
+            <Card key={payout.id} className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg font-semibold">
+                      {payout.profiles?.full_name || "Unknown User"}
+                    </h3>
+                    {getStatusBadge(payout.status)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {payout.profiles?.email}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <p><strong>Amount:</strong> ₱{payout.amount.toFixed(2)}</p>
+                    <p><strong>Method:</strong> {payout.payout_method}</p>
+                    <p><strong>Account Name:</strong> {payout.account_name}</p>
+                    <p><strong>Account Number:</strong> {payout.account_number}</p>
+                    {payout.bank_name && <p><strong>Bank:</strong> {payout.bank_name}</p>}
+                    <p><strong>Date:</strong> {new Date(payout.created_at).toLocaleDateString()}</p>
+                  </div>
+                  {payout.admin_notes && (
+                    <div className="mt-2 p-2 bg-muted rounded">
+                      <p className="text-xs font-semibold">Admin Notes:</p>
+                      <p className="text-sm">{payout.admin_notes}</p>
+                    </div>
+                  )}
+                </div>
+                {payout.status === "pending" && (
+                  <Button
+                    size="sm"
+                    onClick={() => setProcessingId(payout.id)}
+                    variant="default"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Process
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))}
+          {payoutRequests.length === 0 && (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No payout requests yet</p>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Processing Dialog */}
+      <Dialog open={!!processingId} onOpenChange={() => { setProcessingId(null); setAdminNotes(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Process Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Admin Notes (optional)</label>
+              <Textarea
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                placeholder="Add notes about this transaction..."
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  const isCreditPurchase = creditPurchases.some(p => p.id === processingId);
+                  if (isCreditPurchase) {
+                    handleApproveCreditPurchase(processingId!);
+                  } else {
+                    handleApprovePayoutRequest(processingId!);
+                  }
+                }}
+                className="flex-1"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Approve
+              </Button>
+              <Button
+                onClick={() => {
+                  const isCreditPurchase = creditPurchases.some(p => p.id === processingId);
+                  if (isCreditPurchase) {
+                    handleRejectCreditPurchase(processingId!);
+                  } else {
+                    handleRejectPayoutRequest(processingId!);
+                  }
+                }}
+                variant="destructive"
+                className="flex-1"
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                Reject
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Proof Image Dialog */}
+      <Dialog open={!!selectedProof} onOpenChange={() => setSelectedProof(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Payment Proof</DialogTitle>
+          </DialogHeader>
+          {selectedProof && (
+            <img 
+              src={selectedProof} 
+              alt="Payment proof" 
+              className="w-full h-auto rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Admin;

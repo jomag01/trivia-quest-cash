@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
   Menu, Home, Gamepad2, 
-  LayoutDashboard, LogIn, LogOut, Trophy
+  LayoutDashboard, LogIn, LogOut, Trophy, Shield
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -12,7 +12,7 @@ const Navigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
 
   const navLinks = [
     { to: "/", label: "Home", icon: Home },
@@ -58,6 +58,20 @@ const Navigation = () => {
                     </Button>
                   );
                 })}
+
+                {isAdmin && (
+                  <Button
+                    variant={isActive("/admin") ? "default" : "ghost"}
+                    asChild
+                    className="justify-start transition-smooth"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <Link to="/admin">
+                      <Shield className="w-4 h-4 mr-2" />
+                      Admin Panel
+                    </Link>
+                  </Button>
+                )}
 
                 <div className="border-t border-primary/20 pt-4 mt-4">
                   {user ? (
