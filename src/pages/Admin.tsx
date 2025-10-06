@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransactionManager } from "@/components/TransactionManager";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowUp, ArrowDown } from "lucide-react";
+import { ProductVariations } from "@/components/ProductVariations";
 
 interface ShopItem {
   id: string;
@@ -45,6 +46,7 @@ const Admin = () => {
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [currentItemId, setCurrentItemId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -142,19 +144,32 @@ const Admin = () => {
         toast.error("Failed to update item");
         return;
       }
+      setCurrentItemId(editingItem.id);
       toast.success(isDraft ? "Draft saved successfully" : "Item updated successfully");
     } else {
-      const { error } = await supabase.from("shop_items").insert(itemData);
+      const { data, error } = await supabase
+        .from("shop_items")
+        .insert(itemData)
+        .select()
+        .single();
 
       if (error) {
         toast.error("Failed to create item");
         return;
       }
+      
+      if (data) {
+        setCurrentItemId(data.id);
+        setEditingItem(data as ShopItem);
+      }
       toast.success(isDraft ? "Draft saved successfully" : "Item created successfully");
     }
 
-    setIsDialogOpen(false);
-    resetForm();
+    // Don't close dialog or reset form if it's a draft - allow adding variations
+    if (!isDraft) {
+      setIsDialogOpen(false);
+      resetForm();
+    }
     fetchShopItems();
   };
 
@@ -184,10 +199,12 @@ const Admin = () => {
     setEditingItem(null);
     setImageFile(null);
     setImagePreview("");
+    setCurrentItemId(null);
   };
 
   const openEditDialog = (item: ShopItem) => {
     setEditingItem(item);
+    setCurrentItemId(item.id);
     setFormData({
       name: item.name,
       description: item.description || "",
@@ -335,6 +352,14 @@ const Admin = () => {
                       <Label htmlFor="is_active">Active</Label>
                     </div>
                   </form>
+                  
+                  {/* Product Variations Section */}
+                  <div className="mt-6 pt-6 border-t">
+                    <ProductVariations 
+                      shopItemId={currentItemId} 
+                      onVariationsChange={fetchShopItems}
+                    />
+                  </div>
                 </div>
               </ScrollArea>
               

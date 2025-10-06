@@ -50,6 +50,53 @@ export type Database = {
         }
         Relationships: []
       }
+      product_variations: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          price_adjustment: number | null
+          shop_item_id: string
+          size: string | null
+          sku: string | null
+          stock_quantity: number | null
+          updated_at: string
+          weight: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          price_adjustment?: number | null
+          shop_item_id: string
+          size?: string | null
+          sku?: string | null
+          stock_quantity?: number | null
+          updated_at?: string
+          weight?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          price_adjustment?: number | null
+          shop_item_id?: string
+          size?: string | null
+          sku?: string | null
+          stock_quantity?: number | null
+          updated_at?: string
+          weight?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variations_shop_item_id_fkey"
+            columns: ["shop_item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           country: string | null
