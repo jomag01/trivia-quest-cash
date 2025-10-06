@@ -142,6 +142,7 @@ export type Database = {
           payment_method: string | null
           payment_provider_id: string | null
           payout_account_id: string | null
+          receipt_url: string | null
           status: string
           type: string
           updated_at: string | null
@@ -155,6 +156,7 @@ export type Database = {
           payment_method?: string | null
           payment_provider_id?: string | null
           payout_account_id?: string | null
+          receipt_url?: string | null
           status?: string
           type: string
           updated_at?: string | null
@@ -168,6 +170,7 @@ export type Database = {
           payment_method?: string | null
           payment_provider_id?: string | null
           payout_account_id?: string | null
+          receipt_url?: string | null
           status?: string
           type?: string
           updated_at?: string | null

@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Wallet, CreditCard, Building2 } from "lucide-react";
+import { Wallet, Building2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
 
 interface BuyCreditsDialogProps {
   open: boolean;
@@ -17,8 +18,28 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
   const [amount, setAmount] = useState("100");
   const [paymentMethod, setPaymentMethod] = useState("gcash");
   const [loading, setLoading] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   const credits = Math.floor(Number(amount) / 10);
+
+  // Payment details - Update these with your actual account details
+  const paymentDetails = {
+    gcash: {
+      name: "Your Name",
+      number: "09XX XXX XXXX",
+    },
+    bank: {
+      name: "Your Name",
+      accountNumber: "XXXX XXXX XXXX",
+      bankName: "Your Bank Name",
+    },
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setReceiptFile(e.target.files[0]);
+    }
+  };
 
   const handlePurchase = async () => {
     if (!amount || Number(amount) < 10) {
@@ -26,34 +47,53 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
       return;
     }
 
+    if (!receiptFile) {
+      toast.error("Please upload a payment receipt");
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-payment", {
-        body: {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Upload receipt to storage
+      const fileExt = receiptFile.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('receipts')
+        .upload(fileName, receiptFile);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('receipts')
+        .getPublicUrl(fileName);
+
+      // Create transaction record
+      const { error: transactionError } = await supabase
+        .from("transactions")
+        .insert({
+          user_id: user.id,
+          type: "credit_purchase",
           amount: Number(amount),
-          paymentMethod,
-        },
-      });
+          status: "pending",
+          payment_method: paymentMethod,
+          receipt_url: publicUrl,
+          metadata: { credits: Math.floor(Number(amount) / 10) },
+        });
 
-      if (error) throw error;
+      if (transactionError) throw transactionError;
 
-      if (data.checkout_url) {
-        window.open(data.checkout_url, "_blank");
-        toast.success("Payment window opened. Complete payment to receive credits.");
-      } else {
-        toast.success("Payment initiated. Please complete the payment.");
-      }
-
+      toast.success("Payment receipt submitted! Waiting for admin approval.");
       onOpenChange(false);
+      setReceiptFile(null);
     } catch (error: any) {
       console.error("Payment error:", error);
-      const errorMessage = error.message || "Failed to initiate payment";
-      toast.error(errorMessage, {
-        duration: 6000,
-        description: errorMessage.includes("activate") 
-          ? "Visit PayMongo dashboard to activate your account" 
-          : undefined,
-      });
+      toast.error(error.message || "Failed to submit payment");
     } finally {
       setLoading(false);
     }
@@ -98,22 +138,6 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
               </div>
 
               <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer">
-                <RadioGroupItem value="paymaya" id="paymaya" />
-                <Label htmlFor="paymaya" className="flex items-center gap-2 cursor-pointer flex-1">
-                  <Wallet className="w-5 h-5 text-primary" />
-                  <span>Maya (PayMaya)</span>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer">
-                <RadioGroupItem value="card" id="card" />
-                <Label htmlFor="card" className="flex items-center gap-2 cursor-pointer flex-1">
-                  <CreditCard className="w-5 h-5 text-primary" />
-                  <span>Credit/Debit Card</span>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer">
                 <RadioGroupItem value="bank" id="bank" />
                 <Label htmlFor="bank" className="flex items-center gap-2 cursor-pointer flex-1">
                   <Building2 className="w-5 h-5 text-primary" />
@@ -123,12 +147,53 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
             </RadioGroup>
           </div>
 
+          {/* Payment Details */}
+          <Card className="p-4 bg-accent/50">
+            <h4 className="font-semibold mb-2">Payment Details</h4>
+            {paymentMethod === "gcash" && (
+              <div className="space-y-1 text-sm">
+                <p><strong>Name:</strong> {paymentDetails.gcash.name}</p>
+                <p><strong>Number:</strong> {paymentDetails.gcash.number}</p>
+              </div>
+            )}
+            {paymentMethod === "bank" && (
+              <div className="space-y-1 text-sm">
+                <p><strong>Bank:</strong> {paymentDetails.bank.bankName}</p>
+                <p><strong>Account Name:</strong> {paymentDetails.bank.name}</p>
+                <p><strong>Account Number:</strong> {paymentDetails.bank.accountNumber}</p>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground mt-2">
+              Please send ₱{amount} to the above details
+            </p>
+          </Card>
+
+          {/* Receipt Upload */}
+          <div className="space-y-2">
+            <Label htmlFor="receipt">Upload Payment Receipt *</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="receipt"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="flex-1"
+              />
+              {receiptFile && (
+                <Upload className="w-5 h-5 text-primary" />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Upload a screenshot of your payment confirmation
+            </p>
+          </div>
+
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
               Cancel
             </Button>
-            <Button onClick={handlePurchase} disabled={loading} className="flex-1">
-              {loading ? "Processing..." : "Continue to Payment"}
+            <Button onClick={handlePurchase} disabled={loading || !receiptFile} className="flex-1">
+              {loading ? "Submitting..." : "Submit for Approval"}
             </Button>
           </div>
         </div>

@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ShoppingBag } from "lucide-react";
+import { Plus, Pencil, Trash2, ShoppingBag, Receipt } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TransactionManager } from "@/components/TransactionManager";
 
 interface ShopItem {
   id: string;
@@ -160,6 +162,22 @@ const Admin = () => {
           <ShoppingBag className="w-8 h-8 text-primary" />
           <h1 className="text-3xl font-bold text-gradient-gold">Admin Panel</h1>
         </div>
+      </div>
+
+      <Tabs defaultValue="shop" className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="shop" className="flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4" />
+            Shop Items
+          </TabsTrigger>
+          <TabsTrigger value="transactions" className="flex items-center gap-2">
+            <Receipt className="w-4 h-4" />
+            Transactions
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="shop" className="space-y-4">
+          <div className="flex justify-end">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
@@ -255,9 +273,9 @@ const Admin = () => {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+          </div>
 
-      <div className="grid gap-4">
+          <div className="grid gap-4">
         {shopItems.map((item) => (
           <Card key={item.id} className="p-6">
             <div className="flex items-start gap-4">
@@ -314,15 +332,21 @@ const Admin = () => {
             </div>
           </Card>
         ))}
-        {shopItems.length === 0 && (
-          <Card className="p-8 text-center">
-            <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">
-              No shop items yet. Create your first item!
-            </p>
-          </Card>
-        )}
-      </div>
+            {shopItems.length === 0 && (
+              <Card className="p-8 text-center">
+                <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  No shop items yet. Create your first item!
+                </p>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="transactions">
+          <TransactionManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
