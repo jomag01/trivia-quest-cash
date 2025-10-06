@@ -16,6 +16,7 @@ import Cart from "./pages/Cart";
 import MyOrders from "./pages/MyOrders";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
+import { CustomerSupportChat } from "./components/CustomerSupportChat";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Navigation />
+          <CustomerSupportChat />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/auth" element={<Auth />} />

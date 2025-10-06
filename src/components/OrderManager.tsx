@@ -7,6 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -20,7 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Package, Truck, CheckCircle, XCircle, Clock, Pencil } from "lucide-react";
+import { Package, Truck, CheckCircle, XCircle, Clock, Pencil, Trash2 } from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -163,6 +173,27 @@ export const OrderManager = () => {
     }
   };
 
+  const handleDeleteOrder = async (orderId: string, orderNumber: string) => {
+    if (!confirm(`Are you sure you want to delete order ${orderNumber}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      toast.success("Order deleted successfully");
+      fetchOrders();
+    } catch (error: any) {
+      console.error("Error deleting order:", error);
+      toast.error("Failed to delete order");
+    }
+  };
+
   const getStatusIcon = (status: OrderWithProfile['status']) => {
     switch (status) {
       case 'pending':
@@ -251,13 +282,22 @@ export const OrderManager = () => {
                     ${order.total_amount.toFixed(2)}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => openEditDialog(order)}
-                >
-                  <Pencil className="w-4 h-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => openEditDialog(order)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleDeleteOrder(order.id, order.order_number)}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
               </div>
             </div>
 
