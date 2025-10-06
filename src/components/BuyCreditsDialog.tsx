@@ -72,23 +72,22 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('receipts')
-        .getPublicUrl(fileName);
+        .from('payment-proofs')
+        .getPublicUrl(`${user.id}/${fileName}`);
 
-      // Create transaction record
-      const { error: transactionError } = await supabase
-        .from("transactions")
+      // Create credit purchase record
+      const { error: purchaseError } = await supabase
+        .from("credit_purchases")
         .insert({
           user_id: user.id,
-          type: "credit_purchase",
           amount: Number(amount),
-          status: "pending",
+          credits: Math.floor(Number(amount) / 10),
           payment_method: paymentMethod,
-          receipt_url: publicUrl,
-          metadata: { credits: Math.floor(Number(amount) / 10) },
+          proof_image_url: publicUrl,
+          status: "pending",
         });
 
-      if (transactionError) throw transactionError;
+      if (purchaseError) throw purchaseError;
 
       toast.success("Payment receipt submitted! Waiting for admin approval.");
       onOpenChange(false);

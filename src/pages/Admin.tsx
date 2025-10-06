@@ -34,10 +34,6 @@ interface CreditPurchase {
   status: string;
   admin_notes: string | null;
   created_at: string;
-  profiles: {
-    full_name: string | null;
-    email: string | null;
-  };
 }
 
 interface PayoutRequest {
@@ -51,10 +47,6 @@ interface PayoutRequest {
   status: string;
   admin_notes: string | null;
   created_at: string;
-  profiles: {
-    full_name: string | null;
-    email: string | null;
-  };
 }
 
 const Admin = () => {
@@ -81,12 +73,9 @@ const Admin = () => {
   }, [isAdmin]);
 
   const fetchCreditPurchases = async () => {
-    const { data, error } = await supabase
+    const { data, error} = await supabase
       .from("credit_purchases")
-      .select(`
-        *,
-        profiles:user_id (full_name, email)
-      `)
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -100,10 +89,7 @@ const Admin = () => {
   const fetchPayoutRequests = async () => {
     const { data, error } = await supabase
       .from("payout_requests")
-      .select(`
-        *,
-        profiles:user_id (full_name, email)
-      `)
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -269,13 +255,10 @@ const Admin = () => {
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold">
-                      {purchase.profiles?.full_name || "Unknown User"}
+                      User ID: {purchase.user_id.slice(0, 8)}...
                     </h3>
                     {getStatusBadge(purchase.status)}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {purchase.profiles?.email}
-                  </p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <p><strong>Amount:</strong> ₱{purchase.amount.toFixed(2)}</p>
                     <p><strong>Credits:</strong> {purchase.credits}</p>
@@ -330,13 +313,10 @@ const Admin = () => {
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold">
-                      {payout.profiles?.full_name || "Unknown User"}
+                      User ID: {payout.user_id.slice(0, 8)}...
                     </h3>
                     {getStatusBadge(payout.status)}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {payout.profiles?.email}
-                  </p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <p><strong>Amount:</strong> ₱{payout.amount.toFixed(2)}</p>
                     <p><strong>Method:</strong> {payout.payout_method}</p>
