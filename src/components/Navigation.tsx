@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
   Menu, Home, Gamepad2, ShoppingBag, 
-  LayoutDashboard, LogIn, LogOut, Trophy, Shield 
+  LayoutDashboard, LogIn, LogOut, Trophy, Shield, Heart, ShoppingCart 
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -18,6 +18,8 @@ const Navigation = () => {
     { to: "/", label: "Home", icon: Home },
     { to: "/game", label: "Play Game", icon: Gamepad2 },
     { to: "/shop", label: "Shop", icon: ShoppingBag },
+    { to: "/wishlist", label: "Wishlist", icon: Heart },
+    { to: "/cart", label: "Cart", icon: ShoppingCart },
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   ];
 
@@ -64,6 +66,17 @@ const Navigation = () => {
                 </Link>
               </Button>
             )}
+
+            <Button
+              variant={isActive("/admin/login") ? "default" : "ghost"}
+              asChild
+              className="transition-smooth"
+            >
+              <Link to="/admin/login">
+                <Shield className="w-4 h-4 mr-2" />
+                Admin Login
+              </Link>
+            </Button>
 
             {user ? (
               <Button variant="outline" className="ml-2" onClick={async () => {
@@ -121,6 +134,18 @@ const Navigation = () => {
                     </Link>
                   </Button>
                 )}
+
+                <Button
+                  variant={isActive("/admin/login") ? "default" : "ghost"}
+                  asChild
+                  className="justify-start transition-smooth"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Link to="/admin/login">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Admin Login
+                  </Link>
+                </Button>
 
                 <div className="border-t border-primary/20 pt-4 mt-4">
                   {user ? (
