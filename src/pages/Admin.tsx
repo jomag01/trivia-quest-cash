@@ -38,6 +38,9 @@ const Admin = () => {
     category: "",
     is_active: true,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -66,14 +69,60 @@ const Admin = () => {
     setShopItems(data || []);
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return formData.image_url || null;
+
+    setUploading(true);
+    try {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('shop-items')
+        .upload(filePath, imageFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('shop-items')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error(error.message || 'Failed to upload image');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const imageUrl = await uploadImage();
+    if (imageFile && !imageUrl) {
+      return; // Upload failed
+    }
 
     const itemData = {
       name: formData.name,
       description: formData.description || null,
       price: parseFloat(formData.price),
-      image_url: formData.image_url || null,
+      image_url: imageUrl,
       category: formData.category || null,
       is_active: formData.is_active,
     };
@@ -128,6 +177,8 @@ const Admin = () => {
       is_active: true,
     });
     setEditingItem(null);
+    setImageFile(null);
+    setImagePreview("");
   };
 
   const openEditDialog = (item: ShopItem) => {
@@ -140,6 +191,7 @@ const Admin = () => {
       category: item.category || "",
       is_active: item.is_active,
     });
+    setImagePreview(item.image_url || "");
     setIsDialogOpen(true);
   };
 
@@ -228,15 +280,23 @@ const Admin = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="image_url">Image URL</Label>
+                <Label htmlFor="image">Product Image</Label>
                 <Input
-                  id="image_url"
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, image_url: e.target.value })
-                  }
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
                 />
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="mt-2 w-32 h-32 object-cover rounded border"
+                  />
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Upload a product image (JPG, PNG, WEBP)
+                </p>
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
@@ -259,13 +319,14 @@ const Admin = () => {
                 <Label htmlFor="is_active">Active</Label>
               </div>
               <div className="flex gap-2 pt-4">
-                <Button type="submit" className="flex-1">
-                  {editingItem ? "Update" : "Create"}
+                <Button type="submit" className="flex-1" disabled={uploading}>
+                  {uploading ? "Uploading..." : editingItem ? "Update" : "Create"}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
+                  disabled={uploading}
                 >
                   Cancel
                 </Button>
