@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
 import { BuyCreditsDialog } from "@/components/BuyCreditsDialog";
 import { CashOutDialog } from "@/components/CashOutDialog";
+import { GenealogyDialog } from "@/components/GenealogyDialog";
 import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
@@ -20,6 +21,8 @@ const Dashboard = () => {
   const { user, profile, loading } = useAuth();
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [showCashOut, setShowCashOut] = useState(false);
+  const [showGenealogy, setShowGenealogy] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState(1);
   const [wallet, setWallet] = useState<any>(null);
 
   useEffect(() => {
@@ -97,6 +100,11 @@ const Dashboard = () => {
   const copyReferralCode = () => {
     navigator.clipboard.writeText(userStats.referralCode);
     toast.success("Referral code copied to clipboard!");
+  };
+
+  const openGenealogy = (level: number) => {
+    setSelectedLevel(level);
+    setShowGenealogy(true);
   };
 
   return (
@@ -200,7 +208,8 @@ const Dashboard = () => {
               {referralLevels.map((level) => (
                 <div
                   key={level.level}
-                  className="flex items-center justify-between p-4 bg-background/20 rounded-lg hover:bg-background/30 transition-smooth"
+                  className="flex items-center justify-between p-4 bg-background/20 rounded-lg hover:bg-background/30 transition-smooth cursor-pointer"
+                  onClick={() => openGenealogy(level.level)}
                 >
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className="w-16 justify-center border-primary/50">
@@ -293,6 +302,12 @@ const Dashboard = () => {
           open={showCashOut} 
           onOpenChange={setShowCashOut}
           currentBalance={wallet?.balance || 0}
+        />
+        <GenealogyDialog 
+          open={showGenealogy} 
+          onOpenChange={setShowGenealogy}
+          level={selectedLevel}
+          userId={user?.id || ''}
         />
       </div>
     </div>
