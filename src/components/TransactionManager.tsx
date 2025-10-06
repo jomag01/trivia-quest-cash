@@ -19,7 +19,7 @@ interface Transaction {
   profiles?: {
     full_name: string | null;
     email: string | null;
-  };
+  } | null;
 }
 
 export const TransactionManager = () => {
@@ -56,11 +56,11 @@ export const TransactionManager = () => {
       const enrichedData = data.map(t => ({
         ...t,
         profiles: profilesMap.get(t.user_id) || null
-      }));
+      })) as Transaction[];
 
-      setTransactions(enrichedData as any);
+      setTransactions(enrichedData);
     } else {
-      setTransactions(data || []);
+      setTransactions(data as Transaction[]);
     }
   };
 
@@ -80,17 +80,18 @@ export const TransactionManager = () => {
       // Update user credits
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("credits")
+        .select("*")
         .eq("id", transaction.user_id)
         .single();
 
       if (profileError) throw profileError;
 
-      const newCredits = (profile?.credits || 0) + (transaction.metadata?.credits || 0);
+      const currentCredits = (profile as any)?.credits || 0;
+      const newCredits = currentCredits + (transaction.metadata?.credits || 0);
 
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ credits: newCredits })
+        .update({ credits: newCredits } as any)
         .eq("id", transaction.user_id);
 
       if (updateError) throw updateError;
