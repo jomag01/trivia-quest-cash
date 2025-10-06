@@ -120,24 +120,25 @@ const Home = () => {
           
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { title: "General Knowledge", icon: "🌍", color: "from-blue-500 to-purple-600" },
-              { title: "Science & Tech", icon: "🔬", color: "from-green-500 to-teal-600" },
-              { title: "History", icon: "📚", color: "from-orange-500 to-red-600" },
-              { title: "Entertainment", icon: "🎬", color: "from-pink-500 to-rose-600" },
-              { title: "Sports", icon: "⚽", color: "from-indigo-500 to-blue-600" },
-              { title: "Geography", icon: "🗺️", color: "from-cyan-500 to-blue-600" },
+              { title: "General Knowledge", icon: "🌍", color: "from-blue-500 to-purple-600", slug: "general" },
+              { title: "Science & Tech", icon: "🔬", color: "from-green-500 to-teal-600", slug: "science" },
+              { title: "History", icon: "📚", color: "from-orange-500 to-red-600", slug: "history" },
+              { title: "Entertainment", icon: "🎬", color: "from-pink-500 to-rose-600", slug: "entertainment" },
+              { title: "Sports", icon: "⚽", color: "from-indigo-500 to-blue-600", slug: "sports" },
+              { title: "Geography", icon: "🗺️", color: "from-cyan-500 to-blue-600", slug: "geography" },
             ].map((category, index) => (
-              <Card 
-                key={index}
-                className="p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth cursor-pointer group"
-              >
-                <div className="text-center">
-                  <div className="text-5xl mb-4 group-hover:scale-110 transition-smooth">
-                    {category.icon}
+              <Link to={`/game/${category.slug}`} key={index}>
+                <Card 
+                  className="p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth cursor-pointer group"
+                >
+                  <div className="text-center">
+                    <div className="text-5xl mb-4 group-hover:scale-110 transition-smooth">
+                      {category.icon}
+                    </div>
+                    <h3 className="text-xl font-bold">{category.title}</h3>
                   </div>
-                  <h3 className="text-xl font-bold">{category.title}</h3>
-                </div>
-              </Card>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>

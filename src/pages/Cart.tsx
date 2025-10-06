@@ -5,6 +5,7 @@ import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { CheckoutDialog } from "@/components/CheckoutDialog";
 
 interface CartItem {
   id: string;
@@ -17,6 +18,7 @@ interface CartItem {
 const Cart = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [showCheckout, setShowCheckout] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([
     {
       id: "1",
@@ -63,8 +65,12 @@ const Cart = () => {
   );
 
   const handleCheckout = () => {
-    toast.success("Proceeding to checkout...");
-    // Implement checkout logic here
+    setShowCheckout(true);
+  };
+
+  const handleCheckoutComplete = () => {
+    setCartItems([]);
+    toast.success("Thank you for your order!");
   };
 
   return (
@@ -161,6 +167,13 @@ const Cart = () => {
           </div>
         </div>
       )}
+
+      <CheckoutDialog 
+        open={showCheckout}
+        onOpenChange={setShowCheckout}
+        cartTotal={total}
+        onCheckoutComplete={handleCheckoutComplete}
+      />
     </div>
   );
 };

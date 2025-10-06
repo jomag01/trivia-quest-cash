@@ -2,69 +2,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { useNavigate, useParams } from "react-router-dom";
 import { Phone, Users, Divide, Trophy, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useGameSounds } from "@/hooks/useGameSounds";
-
-interface Question {
-  question: string;
-  options: string[];
-  correctAnswer: number;
-}
-
-const questions: Question[] = [
-  {
-    question: "What is the capital of France?",
-    options: ["London", "Berlin", "Paris", "Madrid"],
-    correctAnswer: 2
-  },
-  {
-    question: "Which planet is known as the Red Planet?",
-    options: ["Venus", "Mars", "Jupiter", "Saturn"],
-    correctAnswer: 1
-  },
-  {
-    question: "Who painted the Mona Lisa?",
-    options: ["Vincent van Gogh", "Pablo Picasso", "Leonardo da Vinci", "Michelangelo"],
-    correctAnswer: 2
-  },
-  {
-    question: "What is the largest ocean on Earth?",
-    options: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
-    correctAnswer: 3
-  },
-  {
-    question: "In which year did World War II end?",
-    options: ["1943", "1944", "1945", "1946"],
-    correctAnswer: 2
-  },
-  {
-    question: "What is the chemical symbol for gold?",
-    options: ["Go", "Au", "Gd", "Ag"],
-    correctAnswer: 1
-  },
-  {
-    question: "Which country is home to the kangaroo?",
-    options: ["New Zealand", "South Africa", "Australia", "Brazil"],
-    correctAnswer: 2
-  },
-  {
-    question: "What is the smallest prime number?",
-    options: ["0", "1", "2", "3"],
-    correctAnswer: 2
-  },
-  {
-    question: "Who wrote 'Romeo and Juliet'?",
-    options: ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
-    correctAnswer: 1
-  },
-  {
-    question: "What is the speed of light in vacuum (approximately)?",
-    options: ["300,000 km/s", "150,000 km/s", "450,000 km/s", "200,000 km/s"],
-    correctAnswer: 0
-  }
-];
+import { getCategoryQuestions, getAllCategories, type Question } from "@/lib/questions";
 
 const prizes = [
   "₱100", "₱500", "₱1,000", "₱5,000", "₱10,000",
@@ -72,6 +15,8 @@ const prizes = [
 ];
 
 const Game = () => {
+  const { category = "general" } = useParams<{ category: string }>();
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentLevel, setCurrentLevel] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -84,6 +29,12 @@ const Game = () => {
   const [eliminatedOptions, setEliminatedOptions] = useState<number[]>([]);
   const navigate = useNavigate();
   const { playCorrectSound, playWrongSound, playTickSound, playUrgentTickSound } = useGameSounds();
+
+  const categoryInfo = getAllCategories().find(c => c.slug === category) || getAllCategories()[0];
+
+  useEffect(() => {
+    setQuestions(getCategoryQuestions(category));
+  }, [category]);
 
   useEffect(() => {
     if (timeLeft === 0) {
@@ -175,9 +126,20 @@ const Game = () => {
     return "outline";
   };
 
+  if (questions.length === 0) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-4xl mx-auto">
+        {/* Category Header */}
+        <div className="text-center mb-6">
+          <Badge className="text-2xl px-4 py-2 mb-2">
+            {categoryInfo.icon} {categoryInfo.title}
+          </Badge>
+        </div>
+
         {/* Prize Ladder */}
         <Card className="p-4 mb-6 gradient-accent border-primary/20 shadow-card">
           <div className="flex items-center justify-between mb-4">
