@@ -34,13 +34,7 @@ export const TransactionManager = () => {
   const fetchTransactions = async () => {
     const { data, error } = await supabase
       .from("transactions")
-      .select(`
-        *,
-        profiles:user_id (
-          full_name,
-          email
-        )
-      `)
+      .select("*")
       .eq("type", "credit_purchase")
       .order("created_at", { ascending: false });
 
@@ -49,7 +43,25 @@ export const TransactionManager = () => {
       return;
     }
 
-    setTransactions(data || []);
+    // Fetch user profiles separately
+    if (data && data.length > 0) {
+      const userIds = [...new Set(data.map(t => t.user_id))];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", userIds);
+
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+      
+      const enrichedData = data.map(t => ({
+        ...t,
+        profiles: profilesMap.get(t.user_id) || null
+      }));
+
+      setTransactions(enrichedData as any);
+    } else {
+      setTransactions(data || []);
+    }
   };
 
   const handleApprove = async (transaction: Transaction) => {
