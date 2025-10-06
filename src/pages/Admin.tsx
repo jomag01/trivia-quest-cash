@@ -111,24 +111,29 @@ const Admin = () => {
 
     setUploading(true);
     try {
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const ext = imageFile.name.split('.').pop()?.toLowerCase() || 'png';
+      const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const filePath = `items/${unique}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('shop-items')
-        .upload(filePath, imageFile);
+        .upload(filePath, imageFile, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: imageFile.type || `image/${ext}`,
+        });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data } = supabase.storage
         .from('shop-items')
         .getPublicUrl(filePath);
 
-      return publicUrl;
+      return data.publicUrl;
     } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error(error.message || 'Failed to upload image');
+      const msg = typeof error?.message === 'string' ? error.message : 'Failed to upload image';
+      toast.error(msg);
       return null;
     } finally {
       setUploading(false);
