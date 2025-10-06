@@ -30,7 +30,7 @@ const Navigation = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-smooth">
             <Trophy className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold text-gradient-gold">GameWin</span>
+            <span className="text-xl font-bold text-gradient-gold">quizb</span>
           </Link>
 
           {/* Desktop Navigation */}
