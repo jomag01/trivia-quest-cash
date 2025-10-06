@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransactionManager } from "@/components/TransactionManager";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import { ProductVariations } from "@/components/ProductVariations";
 
 interface ShopItem {
   id: string;
@@ -26,6 +25,16 @@ interface ShopItem {
   category: string | null;
   is_active: boolean;
   is_draft: boolean;
+}
+
+interface ProductVariation {
+  id?: string;
+  size?: string;
+  weight?: string;
+  color?: string;
+  price_adjustment: number;
+  stock_quantity: number;
+  sku?: string;
 }
 
 const Admin = () => {
@@ -46,6 +55,15 @@ const Admin = () => {
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [variations, setVariations] = useState<ProductVariation[]>([]);
+  const [currentVariation, setCurrentVariation] = useState<ProductVariation>({
+    size: "",
+    weight: "",
+    color: "",
+    price_adjustment: 0,
+    stock_quantity: 0,
+    sku: "",
+  });
   const [currentItemId, setCurrentItemId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -134,6 +152,8 @@ const Admin = () => {
       is_draft: isDraft,
     };
 
+    let shopItemId: string;
+
     if (editingItem) {
       const { error } = await supabase
         .from("shop_items")
@@ -144,7 +164,15 @@ const Admin = () => {
         toast.error("Failed to update item");
         return;
       }
+      shopItemId = editingItem.id;
       setCurrentItemId(editingItem.id);
+      
+      // Delete old variations and insert new ones
+      await supabase
+        .from("product_variations")
+        .delete()
+        .eq("shop_item_id", shopItemId);
+        
       toast.success(isDraft ? "Draft saved successfully" : "Item updated successfully");
     } else {
       const { data, error } = await supabase
@@ -159,10 +187,36 @@ const Admin = () => {
       }
       
       if (data) {
+        shopItemId = data.id;
         setCurrentItemId(data.id);
         setEditingItem(data as ShopItem);
+      } else {
+        toast.error("Failed to create item");
+        return;
       }
       toast.success(isDraft ? "Draft saved successfully" : "Item created successfully");
+    }
+
+    // Save variations if any
+    if (variations.length > 0) {
+      const variationsData = variations.map((v) => ({
+        shop_item_id: shopItemId,
+        size: v.size || null,
+        weight: v.weight || null,
+        color: v.color || null,
+        price_adjustment: v.price_adjustment,
+        stock_quantity: v.stock_quantity,
+        sku: v.sku || null,
+      }));
+
+      const { error: varError } = await supabase
+        .from("product_variations")
+        .insert(variationsData);
+
+      if (varError) {
+        toast.error("Failed to save variations");
+        console.error(varError);
+      }
     }
 
     // Don't close dialog or reset form if it's a draft - allow adding variations
@@ -200,9 +254,18 @@ const Admin = () => {
     setImageFile(null);
     setImagePreview("");
     setCurrentItemId(null);
+    setVariations([]);
+    setCurrentVariation({
+      size: "",
+      weight: "",
+      color: "",
+      price_adjustment: 0,
+      stock_quantity: 0,
+      sku: "",
+    });
   };
 
-  const openEditDialog = (item: ShopItem) => {
+  const openEditDialog = async (item: ShopItem) => {
     setEditingItem(item);
     setCurrentItemId(item.id);
     setFormData({
@@ -214,7 +277,40 @@ const Admin = () => {
       is_active: item.is_active,
     });
     setImagePreview(item.image_url || "");
+    
+    // Load existing variations
+    const { data: variationsData } = await supabase
+      .from("product_variations")
+      .select("*")
+      .eq("shop_item_id", item.id);
+    
+    if (variationsData) {
+      setVariations(variationsData);
+    }
+    
     setIsDialogOpen(true);
+  };
+
+  const addVariation = () => {
+    if (!currentVariation.size && !currentVariation.weight && !currentVariation.color) {
+      toast.error("Please fill in at least one variation field (size, weight, or color)");
+      return;
+    }
+    setVariations([...variations, { ...currentVariation }]);
+    setCurrentVariation({
+      size: "",
+      weight: "",
+      color: "",
+      price_adjustment: 0,
+      stock_quantity: 0,
+      sku: "",
+    });
+    toast.success("Variation added");
+  };
+
+  const removeVariation = (index: number) => {
+    setVariations(variations.filter((_, i) => i !== index));
+    toast.success("Variation removed");
   };
 
   const scrollToTop = () => {
@@ -351,15 +447,124 @@ const Admin = () => {
                       />
                       <Label htmlFor="is_active">Active</Label>
                     </div>
+
+                    {/* Product Variations Section */}
+                    <div className="border-t pt-4 mt-4">
+                      <h3 className="text-lg font-semibold mb-3">Product Variations</h3>
+                      
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <Label htmlFor="var_size">Size</Label>
+                          <Input
+                            id="var_size"
+                            value={currentVariation.size}
+                            onChange={(e) =>
+                              setCurrentVariation({ ...currentVariation, size: e.target.value })
+                            }
+                            placeholder="e.g., S, M, L, XL"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="var_weight">Weight</Label>
+                          <Input
+                            id="var_weight"
+                            value={currentVariation.weight}
+                            onChange={(e) =>
+                              setCurrentVariation({ ...currentVariation, weight: e.target.value })
+                            }
+                            placeholder="e.g., 100g, 1kg"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="var_color">Color</Label>
+                          <Input
+                            id="var_color"
+                            value={currentVariation.color}
+                            onChange={(e) =>
+                              setCurrentVariation({ ...currentVariation, color: e.target.value })
+                            }
+                            placeholder="e.g., Red, Blue"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="var_price">Price Adjustment</Label>
+                          <Input
+                            id="var_price"
+                            type="number"
+                            step="0.01"
+                            value={currentVariation.price_adjustment}
+                            onChange={(e) =>
+                              setCurrentVariation({ ...currentVariation, price_adjustment: parseFloat(e.target.value) || 0 })
+                            }
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="var_stock">Stock Quantity</Label>
+                          <Input
+                            id="var_stock"
+                            type="number"
+                            value={currentVariation.stock_quantity}
+                            onChange={(e) =>
+                              setCurrentVariation({ ...currentVariation, stock_quantity: parseInt(e.target.value) || 0 })
+                            }
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="var_sku">SKU</Label>
+                          <Input
+                            id="var_sku"
+                            value={currentVariation.sku}
+                            onChange={(e) =>
+                              setCurrentVariation({ ...currentVariation, sku: e.target.value })
+                            }
+                            placeholder="Optional SKU"
+                          />
+                        </div>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addVariation}
+                        className="w-full mb-3"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Variation
+                      </Button>
+
+                      {variations.length > 0 && (
+                        <div className="space-y-2">
+                          <Label>Added Variations ({variations.length})</Label>
+                          {variations.map((variation, index) => (
+                            <Card key={index} className="p-3">
+                              <div className="flex justify-between items-start">
+                                <div className="text-sm space-y-1">
+                                  {variation.size && <p><strong>Size:</strong> {variation.size}</p>}
+                                  {variation.weight && <p><strong>Weight:</strong> {variation.weight}</p>}
+                                  {variation.color && <p><strong>Color:</strong> {variation.color}</p>}
+                                  {variation.price_adjustment !== 0 && (
+                                    <p><strong>Price Adj:</strong> ${variation.price_adjustment.toFixed(2)}</p>
+                                  )}
+                                  <p><strong>Stock:</strong> {variation.stock_quantity}</p>
+                                  {variation.sku && <p><strong>SKU:</strong> {variation.sku}</p>}
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeVariation(index)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </form>
-                  
-                  {/* Product Variations Section */}
-                  <div className="mt-6 pt-6 border-t">
-                    <ProductVariations 
-                      shopItemId={currentItemId} 
-                      onVariationsChange={fetchShopItems}
-                    />
-                  </div>
                 </div>
               </ScrollArea>
               
