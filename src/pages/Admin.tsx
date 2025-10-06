@@ -116,7 +116,7 @@ const Admin = () => {
       const filePath = `items/${unique}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('shop-items')
+        .from('product_images')
         .upload(filePath, imageFile, {
           cacheControl: '3600',
           upsert: true,
@@ -126,7 +126,7 @@ const Admin = () => {
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
-        .from('shop-items')
+        .from('product_images')
         .getPublicUrl(filePath);
 
       return data.publicUrl;
