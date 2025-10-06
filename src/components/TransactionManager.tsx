@@ -163,18 +163,18 @@ export const TransactionManager = () => {
                   <p className="text-sm text-muted-foreground">
                     Method: {transaction.payment_method?.toUpperCase()}
                   </p>
-                  {transaction.receipt_url && (
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="p-0 h-auto"
-                      onClick={() => setSelectedReceipt(transaction.receipt_url)}
-                    >
-                      <ExternalLink className="w-4 h-4 mr-1" />
-                      View Receipt
-                    </Button>
-                  )}
                 </div>
+                {transaction.receipt_url && (
+                  <div className="flex-shrink-0">
+                    <p className="text-xs text-muted-foreground mb-2 font-medium">Proof of Payment:</p>
+                    <img
+                      src={transaction.receipt_url}
+                      alt="Payment receipt"
+                      className="w-48 h-auto rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setSelectedReceipt(transaction.receipt_url)}
+                    />
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button
                     size="sm"
