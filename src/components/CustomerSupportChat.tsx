@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
-import { MessageCircle, X, Send } from "lucide-react";
+import { MessageCircle, X, Send, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Message {
   role: "user" | "assistant";
@@ -12,6 +13,7 @@ interface Message {
 }
 
 export const CustomerSupportChat = () => {
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -22,6 +24,18 @@ export const CustomerSupportChat = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollToTop = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -142,7 +156,11 @@ export const CustomerSupportChat = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col">
+        <Card className={`fixed shadow-2xl z-50 flex flex-col ${
+          isMobile 
+            ? "inset-4 w-auto h-auto" 
+            : "bottom-6 right-6 w-96 h-[600px]"
+        }`}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b bg-primary text-primary-foreground rounded-t-lg">
             <div className="flex items-center gap-2">
@@ -160,8 +178,9 @@ export const CustomerSupportChat = () => {
           </div>
 
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div ref={scrollRef} className="space-y-4">
+          <div className="flex-1 relative">
+            <ScrollArea className="h-full p-4">
+              <div ref={scrollRef} className="space-y-4">
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -191,8 +210,29 @@ export const CustomerSupportChat = () => {
                   </div>
                 </div>
               )}
+              </div>
+            </ScrollArea>
+            
+            {/* Scroll Navigation Buttons */}
+            <div className="absolute right-4 bottom-4 flex flex-col gap-2">
+              <Button
+                onClick={scrollToTop}
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 rounded-full shadow-lg bg-background"
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={scrollToBottom}
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 rounded-full shadow-lg bg-background"
+              >
+                <ArrowDown className="h-4 w-4" />
+              </Button>
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Input */}
           <div className="p-4 border-t">
