@@ -3,8 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
-  Menu, Home, Gamepad2, ShoppingBag, 
-  LayoutDashboard, LogIn, LogOut, Trophy, Shield, Heart, ShoppingCart 
+  Menu, Home, Gamepad2, 
+  LayoutDashboard, LogIn, LogOut, Trophy
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -12,14 +12,11 @@ const Navigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
   const navLinks = [
     { to: "/", label: "Home", icon: Home },
     { to: "/game", label: "Play Game", icon: Gamepad2 },
-    { to: "/shop", label: "Shop", icon: ShoppingBag },
-    { to: "/wishlist", label: "Wishlist", icon: Heart },
-    { to: "/cart", label: "Cart", icon: ShoppingCart },
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   ];
 
@@ -61,32 +58,6 @@ const Navigation = () => {
                     </Button>
                   );
                 })}
-
-                {isAdmin && (
-                  <Button
-                    variant={isActive("/admin") ? "default" : "ghost"}
-                    asChild
-                    className="justify-start transition-smooth"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Link to="/admin">
-                      <Shield className="w-4 h-4 mr-2" />
-                      Admin
-                    </Link>
-                  </Button>
-                )}
-
-                <Button
-                  variant={isActive("/admin/login") ? "default" : "ghost"}
-                  asChild
-                  className="justify-start transition-smooth"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <Link to="/admin/login">
-                    <Shield className="w-4 h-4 mr-2" />
-                    Admin Login
-                  </Link>
-                </Button>
 
                 <div className="border-t border-primary/20 pt-4 mt-4">
                   {user ? (

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Trophy, ShoppingBag, Users, Gamepad2, Zap, Star } from "lucide-react";
+import { Trophy, Users, Gamepad2, Zap, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Home = () => {
@@ -27,45 +27,17 @@ const Home = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {user ? (
-              <>
-                <Button 
-                  variant="default" 
-                  size="lg" 
-                  className="text-lg shadow-gold"
-                  asChild
-                >
-                  <Link to="/game">
-                    <Gamepad2 className="mr-2 h-5 w-5" />
-                    Start Playing
-                  </Link>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="text-lg border-primary/50 hover:bg-primary/10"
-                  asChild
-                >
-                  <Link to="/shop">
-                    <ShoppingBag className="mr-2 h-5 w-5" />
-                    Visit Shop
-                  </Link>
-                </Button>
-              </>
-            ) : (
-              <Button 
-                variant="default" 
-                size="lg" 
-                className="text-lg shadow-gold"
-                asChild
-              >
-                <Link to="/auth">
-                  <Trophy className="mr-2 h-5 w-5" />
-                  Get Started
-                </Link>
-              </Button>
-            )}
+            <Button 
+              variant="default" 
+              size="lg" 
+              className="text-lg shadow-gold"
+              asChild
+            >
+              <Link to={user ? "/game" : "/auth"}>
+                <Gamepad2 className="mr-2 h-5 w-5" />
+                {user ? "Start Playing" : "Get Started"}
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
@@ -102,9 +74,9 @@ const Home = () => {
               <div className="mb-4">
                 <Star className="w-12 h-12 text-primary" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Shop & Profit</h3>
+              <h3 className="text-xl font-bold mb-3">Win Rewards</h3>
               <p className="text-foreground/80">
-                Unlock Level 10 for residual income from shop purchases and exclusive earning opportunities.
+                Unlock Level 10 for exclusive rewards and special achievements. Keep climbing!
               </p>
             </Card>
           </div>
