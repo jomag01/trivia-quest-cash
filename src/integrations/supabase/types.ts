@@ -14,13 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          country: string | null
+          created_at: string
+          currency: string
+          currency_symbol: string
+          email: string | null
+          full_name: string | null
+          id: string
+          referral_code: string
+          referred_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          currency?: string
+          currency_symbol?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          referral_code: string
+          referred_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          currency?: string
+          currency_symbol?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          referral_code?: string
+          referred_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_referral_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
