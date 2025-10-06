@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransactionManager } from "@/components/TransactionManager";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import { useRef } from "react";
 
 interface ShopItem {
   id: string;
