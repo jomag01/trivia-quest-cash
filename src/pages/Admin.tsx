@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ShoppingBag, Receipt } from "lucide-react";
+import { Plus, Pencil, Trash2, ShoppingBag, Receipt, Package } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransactionManager } from "@/components/TransactionManager";
+import { OrderManager } from "@/components/OrderManager";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowUp, ArrowDown } from "lucide-react";
 
@@ -347,6 +348,10 @@ const Admin = () => {
           <TabsTrigger value="shop" className="flex items-center gap-2">
             <ShoppingBag className="w-4 h-4" />
             Shop Items
+          </TabsTrigger>
+          <TabsTrigger value="orders" className="flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            Orders
           </TabsTrigger>
           <TabsTrigger value="transactions" className="flex items-center gap-2">
             <Receipt className="w-4 h-4" />
@@ -692,6 +697,10 @@ const Admin = () => {
               </Card>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="orders">
+          <OrderManager />
         </TabsContent>
 
         <TabsContent value="transactions">

@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { 
   Trophy, Users, DollarSign, Target, 
-  TrendingUp, Award, Copy, Clock 
+  TrendingUp, Award, Copy, Clock, Package
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -229,6 +229,20 @@ const Dashboard = () => {
                     <div className="text-left">
                       <div className="font-bold">Continue Game</div>
                       <div className="text-xs opacity-80">Resume from Level {userStats.currentLevel}</div>
+                    </div>
+                  </Link>
+                </Button>
+
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start h-auto py-4"
+                  asChild
+                >
+                  <Link to="/my-orders">
+                    <Package className="w-5 h-5 mr-3" />
+                    <div className="text-left">
+                      <div className="font-bold">My Orders</div>
+                      <div className="text-xs opacity-80">Track your order status</div>
                     </div>
                   </Link>
                 </Button>

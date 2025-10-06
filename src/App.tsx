@@ -13,6 +13,7 @@ import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import Wishlist from "./pages/Wishlist";
 import Cart from "./pages/Cart";
+import MyOrders from "./pages/MyOrders";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
 
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/my-orders" element={<MyOrders />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<Admin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
