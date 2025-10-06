@@ -2,8 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Trophy, ShoppingBag, Users, Gamepad2, Zap, Star } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Home = () => {
+  const { user } = useAuth();
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -25,29 +27,45 @@ const Home = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              variant="default" 
-              size="lg" 
-              className="text-lg shadow-gold"
-              asChild
-            >
-              <Link to="/game">
-                <Gamepad2 className="mr-2 h-5 w-5" />
-                Start Playing
-              </Link>
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              size="lg" 
-              className="text-lg border-primary/50 hover:bg-primary/10"
-              asChild
-            >
-              <Link to="/shop">
-                <ShoppingBag className="mr-2 h-5 w-5" />
-                Visit Shop
-              </Link>
-            </Button>
+            {user ? (
+              <>
+                <Button 
+                  variant="default" 
+                  size="lg" 
+                  className="text-lg shadow-gold"
+                  asChild
+                >
+                  <Link to="/game">
+                    <Gamepad2 className="mr-2 h-5 w-5" />
+                    Start Playing
+                  </Link>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="text-lg border-primary/50 hover:bg-primary/10"
+                  asChild
+                >
+                  <Link to="/shop">
+                    <ShoppingBag className="mr-2 h-5 w-5" />
+                    Visit Shop
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <Button 
+                variant="default" 
+                size="lg" 
+                className="text-lg shadow-gold"
+                asChild
+              >
+                <Link to="/auth">
+                  <Trophy className="mr-2 h-5 w-5" />
+                  Get Started
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </section>
@@ -140,9 +158,9 @@ const Home = () => {
             className="text-lg shadow-gold"
             asChild
           >
-            <Link to="/dashboard">
+            <Link to={user ? "/dashboard" : "/auth"}>
               <Trophy className="mr-2 h-5 w-5" />
-              View Dashboard
+              {user ? "View Dashboard" : "Join Now"}
             </Link>
           </Button>
         </div>

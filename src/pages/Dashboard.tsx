@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,9 +9,31 @@ import {
   TrendingUp, Award, Copy, Clock 
 } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { formatCurrency } from "@/lib/currencies";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { user, profile, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Trophy className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse" />
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Mock data - will be replaced with real data from database
   const userStats = {
     currentLevel: 5,
     credits: 150,
@@ -17,7 +41,7 @@ const Dashboard = () => {
     activeReferrals: 2,
     totalEarnings: 2500,
     pendingEarnings: 350,
-    referralCode: "GAME2024XYZ"
+    referralCode: profile.referral_code
   };
 
   const referralLevels = [
@@ -88,9 +112,9 @@ const Dashboard = () => {
               <DollarSign className="w-8 h-8 text-primary" />
               <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
-            <div className="text-3xl font-bold mb-2">₱{userStats.totalEarnings}</div>
+            <div className="text-3xl font-bold mb-2">{formatCurrency(userStats.totalEarnings, profile.currency)}</div>
             <p className="text-sm text-muted-foreground">Total Earnings</p>
-            <p className="text-xs text-primary mt-1">+₱{userStats.pendingEarnings} pending</p>
+            <p className="text-xs text-primary mt-1">+{formatCurrency(userStats.pendingEarnings, profile.currency)} pending</p>
           </Card>
         </div>
 
@@ -140,7 +164,7 @@ const Dashboard = () => {
                     <span className="font-semibold">{level.count} members</span>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-primary">₱{level.earnings}</div>
+                    <div className="font-bold text-primary">{formatCurrency(level.earnings, profile.currency)}</div>
                     <div className="text-xs text-muted-foreground">earned</div>
                   </div>
                 </div>

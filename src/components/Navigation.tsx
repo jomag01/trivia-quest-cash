@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
   Menu, Home, Gamepad2, ShoppingBag, 
   LayoutDashboard, LogIn, LogOut, Trophy 
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navigation = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const isAuthenticated = true; // This will be replaced with actual auth logic
+  const { user, signOut } = useAuth();
 
   const navLinks = [
     { to: "/", label: "Home", icon: Home },
@@ -50,13 +52,16 @@ const Navigation = () => {
               );
             })}
 
-            {isAuthenticated ? (
-              <Button variant="outline" className="ml-2">
+            {user ? (
+              <Button variant="outline" className="ml-2" onClick={async () => {
+                await signOut();
+                navigate("/");
+              }}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </Button>
             ) : (
-              <Button className="ml-2">
+              <Button className="ml-2" onClick={() => navigate("/auth")}>
                 <LogIn className="w-4 h-4 mr-2" />
                 Login
               </Button>
@@ -91,13 +96,27 @@ const Navigation = () => {
                 })}
 
                 <div className="border-t border-primary/20 pt-4 mt-4">
-                  {isAuthenticated ? (
-                    <Button variant="outline" className="w-full justify-start">
+                  {user ? (
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={async () => {
+                        await signOut();
+                        navigate("/");
+                        setIsOpen(false);
+                      }}
+                    >
                       <LogOut className="w-4 h-4 mr-2" />
                       Logout
                     </Button>
                   ) : (
-                    <Button className="w-full justify-start">
+                    <Button 
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigate("/auth");
+                        setIsOpen(false);
+                      }}
+                    >
                       <LogIn className="w-4 h-4 mr-2" />
                       Login
                     </Button>
