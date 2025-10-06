@@ -108,6 +108,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean | null
+          is_draft: boolean
           name: string
           price: number
           updated_at: string | null
@@ -119,6 +120,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_draft?: boolean
           name: string
           price: number
           updated_at?: string | null
@@ -130,6 +132,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_draft?: boolean
           name?: string
           price?: number
           updated_at?: string | null

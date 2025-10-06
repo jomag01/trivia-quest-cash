@@ -13,6 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransactionManager } from "@/components/TransactionManager";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ArrowUp, ArrowDown } from "lucide-react";
+import { useRef } from "react";
 
 interface ShopItem {
   id: string;
@@ -22,6 +25,7 @@ interface ShopItem {
   image_url: string | null;
   category: string | null;
   is_active: boolean;
+  is_draft: boolean;
 }
 
 const Admin = () => {
@@ -41,6 +45,7 @@ const Admin = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -110,7 +115,7 @@ const Admin = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, isDraft: boolean = false) => {
     e.preventDefault();
 
     const imageUrl = await uploadImage();
@@ -125,6 +130,7 @@ const Admin = () => {
       image_url: imageUrl,
       category: formData.category || null,
       is_active: formData.is_active,
+      is_draft: isDraft,
     };
 
     if (editingItem) {
@@ -137,7 +143,7 @@ const Admin = () => {
         toast.error("Failed to update item");
         return;
       }
-      toast.success("Item updated successfully");
+      toast.success(isDraft ? "Draft saved successfully" : "Item updated successfully");
     } else {
       const { error } = await supabase.from("shop_items").insert(itemData);
 
@@ -145,7 +151,7 @@ const Admin = () => {
         toast.error("Failed to create item");
         return;
       }
-      toast.success("Item created successfully");
+      toast.success(isDraft ? "Draft saved successfully" : "Item created successfully");
     }
 
     setIsDialogOpen(false);
@@ -195,6 +201,14 @@ const Admin = () => {
     setIsDialogOpen(true);
   };
 
+  const scrollToTop = () => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const scrollToBottom = () => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -237,101 +251,143 @@ const Admin = () => {
               Add Item
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl h-[80vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>
                 {editingItem ? "Edit Shop Item" : "Add New Shop Item"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label htmlFor="price">Price *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) =>
-                    setFormData({ ...formData, price: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="image">Product Image</Label>
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-                {imagePreview && (
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="mt-2 w-32 h-32 object-cover rounded border"
-                  />
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  Upload a product image (JPG, PNG, WEBP)
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
-                  }
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_active"
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, is_active: checked })
-                  }
-                />
-                <Label htmlFor="is_active">Active</Label>
-              </div>
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" className="flex-1" disabled={uploading}>
-                  {uploading ? "Uploading..." : editingItem ? "Update" : "Create"}
+            <div className="relative flex-1 flex flex-col min-h-0">
+              <ScrollArea className="flex-1 pr-4">
+                <div ref={scrollRef} className="space-y-4 pb-4">
+                  <form id="shop-item-form" onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
+                    <div>
+                      <Label htmlFor="name">Name *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) =>
+                          setFormData({ ...formData, description: e.target.value })
+                        }
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="price">Price *</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        value={formData.price}
+                        onChange={(e) =>
+                          setFormData({ ...formData, price: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="image">Product Image</Label>
+                      <Input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                      />
+                      {imagePreview && (
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="mt-2 w-32 h-32 object-cover rounded border"
+                        />
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Upload a product image (JPG, PNG, WEBP)
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="category">Category</Label>
+                      <Input
+                        id="category"
+                        value={formData.category}
+                        onChange={(e) =>
+                          setFormData({ ...formData, category: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="is_active"
+                        checked={formData.is_active}
+                        onCheckedChange={(checked) =>
+                          setFormData({ ...formData, is_active: checked })
+                        }
+                      />
+                      <Label htmlFor="is_active">Active</Label>
+                    </div>
+                  </form>
+                </div>
+              </ScrollArea>
+              
+              <div className="absolute right-6 bottom-20 flex flex-col gap-2">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="rounded-full shadow-lg"
+                  onClick={scrollToTop}
+                >
+                  <ArrowUp className="h-4 w-4" />
                 </Button>
                 <Button
                   type="button"
+                  size="icon"
                   variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  disabled={uploading}
+                  className="rounded-full shadow-lg"
+                  onClick={scrollToBottom}
                 >
-                  Cancel
+                  <ArrowDown className="h-4 w-4" />
                 </Button>
               </div>
-            </form>
+            </div>
+            
+            <div className="flex gap-2 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={(e) => handleSubmit(e as any, true)}
+                disabled={uploading}
+              >
+                Save as Draft
+              </Button>
+              <Button
+                type="submit"
+                form="shop-item-form"
+                className="flex-1"
+                disabled={uploading}
+              >
+                {uploading ? "Uploading..." : editingItem ? "Update" : "Create"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                disabled={uploading}
+              >
+                Cancel
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
           </div>
@@ -358,6 +414,11 @@ const Admin = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
+                    {item.is_draft && (
+                      <span className="px-2 py-1 rounded text-xs bg-yellow-500/20 text-yellow-600">
+                        Draft
+                      </span>
+                    )}
                     <span
                       className={`px-2 py-1 rounded text-xs ${
                         item.is_active
