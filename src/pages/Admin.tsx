@@ -31,6 +31,9 @@ interface CreditPurchase {
   credits: number;
   payment_method: string;
   proof_image_url: string | null;
+  reference_number: string | null;
+  sender_name: string | null;
+  referral_code: string | null;
   status: string;
   admin_notes: string | null;
   created_at: string;
@@ -264,6 +267,11 @@ const Admin = () => {
                     <p><strong>Credits:</strong> {purchase.credits}</p>
                     <p><strong>Method:</strong> {purchase.payment_method}</p>
                     <p><strong>Date:</strong> {new Date(purchase.created_at).toLocaleDateString()}</p>
+                    <p><strong>Reference:</strong> {purchase.reference_number || "N/A"}</p>
+                    <p><strong>Sender:</strong> {purchase.sender_name || "N/A"}</p>
+                    {purchase.referral_code && (
+                      <p className="col-span-2"><strong>Referral Code:</strong> {purchase.referral_code}</p>
+                    )}
                   </div>
                   {purchase.admin_notes && (
                     <div className="mt-2 p-2 bg-muted rounded">
@@ -273,16 +281,6 @@ const Admin = () => {
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  {purchase.proof_image_url && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedProof(purchase.proof_image_url)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Proof
-                    </Button>
-                  )}
                   {purchase.status === "pending" && (
                     <>
                       <Button

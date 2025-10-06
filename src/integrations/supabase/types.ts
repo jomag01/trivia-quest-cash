@@ -25,6 +25,9 @@ export type Database = {
           processed_at: string | null
           processed_by: string | null
           proof_image_url: string | null
+          reference_number: string | null
+          referral_code: string | null
+          sender_name: string | null
           status: string
           updated_at: string | null
           user_id: string
@@ -39,6 +42,9 @@ export type Database = {
           processed_at?: string | null
           processed_by?: string | null
           proof_image_url?: string | null
+          reference_number?: string | null
+          referral_code?: string | null
+          sender_name?: string | null
           status?: string
           updated_at?: string | null
           user_id: string
@@ -53,6 +59,9 @@ export type Database = {
           processed_at?: string | null
           processed_by?: string | null
           proof_image_url?: string | null
+          reference_number?: string | null
+          referral_code?: string | null
+          sender_name?: string | null
           status?: string
           updated_at?: string | null
           user_id?: string

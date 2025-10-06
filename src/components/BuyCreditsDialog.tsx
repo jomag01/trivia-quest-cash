@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Wallet, Building2, Upload, ArrowUp, ArrowDown } from "lucide-react";
+import { Wallet, Building2, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -19,7 +19,9 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
   const [amount, setAmount] = useState("100");
   const [paymentMethod, setPaymentMethod] = useState("gcash");
   const [loading, setLoading] = useState(false);
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [referenceNumber, setReferenceNumber] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const credits = Math.floor(Number(amount) / 10);
@@ -37,11 +39,6 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
     },
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setReceiptFile(e.target.files[0]);
-    }
-  };
 
   const handlePurchase = async () => {
     if (!amount || Number(amount) < 10) {
@@ -49,8 +46,13 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
       return;
     }
 
-    if (!receiptFile) {
-      toast.error("Please upload a payment receipt");
+    if (!referenceNumber.trim()) {
+      toast.error("Please enter payment reference number");
+      return;
+    }
+
+    if (!senderName.trim()) {
+      toast.error("Please enter sender name");
       return;
     }
 
@@ -60,21 +62,6 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Upload receipt to storage
-      const fileExt = receiptFile.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('receipts')
-        .upload(fileName, receiptFile);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('payment-proofs')
-        .getPublicUrl(`${user.id}/${fileName}`);
-
       // Create credit purchase record
       const { error: purchaseError } = await supabase
         .from("credit_purchases")
@@ -83,15 +70,20 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
           amount: Number(amount),
           credits: Math.floor(Number(amount) / 10),
           payment_method: paymentMethod,
-          proof_image_url: publicUrl,
+          reference_number: referenceNumber,
+          sender_name: senderName,
+          referral_code: referralCode || null,
           status: "pending",
         });
 
       if (purchaseError) throw purchaseError;
 
-      toast.success("Payment receipt submitted! Waiting for admin approval.");
+      toast.success("Payment details submitted! Waiting for admin approval.");
       onOpenChange(false);
-      setReceiptFile(null);
+      setAmount("100");
+      setReferenceNumber("");
+      setSenderName("");
+      setReferralCode("");
     } catch (error: any) {
       console.error("Payment error:", error);
       toast.error(error.message || "Failed to submit payment");
@@ -179,23 +171,48 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
                 </p>
               </Card>
 
-              {/* Receipt Upload */}
+              {/* Payment Reference */}
               <div className="space-y-2">
-                <Label htmlFor="receipt">Upload Payment Receipt *</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="receipt"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="flex-1"
-                  />
-                  {receiptFile && (
-                    <Upload className="w-5 h-5 text-primary" />
-                  )}
-                </div>
+                <Label htmlFor="reference">Payment Reference Number *</Label>
+                <Input
+                  id="reference"
+                  type="text"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  placeholder="Enter transaction/reference number"
+                />
                 <p className="text-xs text-muted-foreground">
-                  Upload a screenshot of your payment confirmation
+                  Enter the reference number from your payment confirmation
+                </p>
+              </div>
+
+              {/* Sender Name */}
+              <div className="space-y-2">
+                <Label htmlFor="sender">Sender Name *</Label>
+                <Input
+                  id="sender"
+                  type="text"
+                  value={senderName}
+                  onChange={(e) => setSenderName(e.target.value)}
+                  placeholder="Enter sender's full name"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the name used for the payment
+                </p>
+              </div>
+
+              {/* Referral Code */}
+              <div className="space-y-2">
+                <Label htmlFor="referral">Referral Code (Optional)</Label>
+                <Input
+                  id="referral"
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value)}
+                  placeholder="Enter referral code if you have one"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter a referral code to support your referrer
                 </p>
               </div>
             </div>
@@ -227,7 +244,7 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
           <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
             Cancel
           </Button>
-          <Button onClick={handlePurchase} disabled={loading || !receiptFile} className="flex-1">
+          <Button onClick={handlePurchase} disabled={loading} className="flex-1">
             {loading ? "Submitting..." : "Submit for Approval"}
           </Button>
         </div>
