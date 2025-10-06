@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      credit_purchases: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string | null
+          credits: number
+          id: string
+          payment_method: string
+          processed_at: string | null
+          processed_by: string | null
+          proof_image_url: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string | null
+          credits: number
+          id?: string
+          payment_method: string
+          processed_at?: string | null
+          processed_by?: string | null
+          proof_image_url?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string | null
+          credits?: number
+          id?: string
+          payment_method?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          proof_image_url?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payout_accounts: {
         Row: {
           account_name: string
@@ -45,6 +90,54 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_default?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payout_requests: {
+        Row: {
+          account_name: string
+          account_number: string
+          admin_notes: string | null
+          amount: number
+          bank_name: string | null
+          created_at: string | null
+          id: string
+          payout_method: string
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          admin_notes?: string | null
+          amount: number
+          bank_name?: string | null
+          created_at?: string | null
+          id?: string
+          payout_method: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          admin_notes?: string | null
+          amount?: number
+          bank_name?: string | null
+          created_at?: string | null
+          id?: string
+          payout_method?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -104,19 +197,19 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role: string
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: string
           user_id?: string
         }
         Relationships: []
@@ -166,10 +259,9 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
+        Args:
+          | { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
+          | { _role: string; _user_id: string }
         Returns: boolean
       }
     }
