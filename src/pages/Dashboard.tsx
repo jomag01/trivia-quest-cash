@@ -1,0 +1,203 @@
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Trophy, Users, DollarSign, Target, 
+  TrendingUp, Award, Copy, Clock 
+} from "lucide-react";
+import { toast } from "sonner";
+import { Link } from "react-router-dom";
+
+const Dashboard = () => {
+  const userStats = {
+    currentLevel: 5,
+    credits: 150,
+    referrals: 3,
+    activeReferrals: 2,
+    totalEarnings: 2500,
+    pendingEarnings: 350,
+    referralCode: "GAME2024XYZ"
+  };
+
+  const referralLevels = [
+    { level: 1, count: 3, earnings: 500 },
+    { level: 2, count: 8, earnings: 800 },
+    { level: 3, count: 15, earnings: 600 },
+    { level: 4, count: 25, earnings: 400 },
+    { level: 5, count: 12, earnings: 200 },
+    { level: 6, count: 5, earnings: 100 },
+    { level: 7, count: 2, earnings: 50 }
+  ];
+
+  const copyReferralCode = () => {
+    navigator.clipboard.writeText(userStats.referralCode);
+    toast.success("Referral code copied to clipboard!");
+  };
+
+  return (
+    <div className="min-h-screen py-8 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2 text-gradient-gold">
+            Player Dashboard
+          </h1>
+          <p className="text-muted-foreground">Track your progress and earnings</p>
+        </div>
+
+        {/* Main Stats Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+            <div className="flex items-center justify-between mb-4">
+              <Trophy className="w-8 h-8 text-primary" />
+              <Badge variant="outline" className="border-primary/50">
+                Level {userStats.currentLevel}
+              </Badge>
+            </div>
+            <div className="text-3xl font-bold mb-2">{userStats.currentLevel}/10</div>
+            <p className="text-sm text-muted-foreground">Current Level</p>
+            <Progress value={userStats.currentLevel * 10} className="mt-3 h-2" />
+          </Card>
+
+          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+            <div className="flex items-center justify-between mb-4">
+              <Target className="w-8 h-8 text-primary" />
+              <Clock className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="text-3xl font-bold mb-2">{userStats.credits}</div>
+            <p className="text-sm text-muted-foreground">Available Credits</p>
+            <Button variant="outline" size="sm" className="mt-3 w-full">
+              Buy More Credits
+            </Button>
+          </Card>
+
+          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+            <div className="flex items-center justify-between mb-4">
+              <Users className="w-8 h-8 text-primary" />
+              <Badge variant="outline" className="border-green-500 text-green-500">
+                {userStats.activeReferrals} Active
+              </Badge>
+            </div>
+            <div className="text-3xl font-bold mb-2">{userStats.referrals}</div>
+            <p className="text-sm text-muted-foreground">Total Referrals</p>
+          </Card>
+
+          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+            <div className="flex items-center justify-between mb-4">
+              <DollarSign className="w-8 h-8 text-primary" />
+              <TrendingUp className="w-5 h-5 text-green-500" />
+            </div>
+            <div className="text-3xl font-bold mb-2">₱{userStats.totalEarnings}</div>
+            <p className="text-sm text-muted-foreground">Total Earnings</p>
+            <p className="text-xs text-primary mt-1">+₱{userStats.pendingEarnings} pending</p>
+          </Card>
+        </div>
+
+        {/* Level Progress Alert */}
+        {userStats.currentLevel === 5 && (
+          <Card className="p-6 mb-8 gradient-primary border-primary/20 shadow-gold">
+            <div className="flex items-start gap-4">
+              <Award className="w-10 h-10 text-primary flex-shrink-0 animate-pulse" />
+              <div className="flex-1">
+                <h3 className="text-xl font-bold mb-2">Unlock Next Levels!</h3>
+                <p className="text-foreground/90 mb-4">
+                  You need {2 - userStats.activeReferrals} more active referral(s) to continue past Level 5.
+                  Share your referral code to unlock more levels!
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={copyReferralCode}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Referral Code
+                  </Button>
+                  <span className="flex items-center px-4 py-2 bg-background/20 rounded-lg font-mono font-bold">
+                    {userStats.referralCode}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Referral Network */}
+          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <Users className="w-6 h-6 text-primary" />
+              7-Level Network
+            </h2>
+
+            <div className="space-y-3">
+              {referralLevels.map((level) => (
+                <div
+                  key={level.level}
+                  className="flex items-center justify-between p-4 bg-background/20 rounded-lg hover:bg-background/30 transition-smooth"
+                >
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="w-16 justify-center border-primary/50">
+                      Level {level.level}
+                    </Badge>
+                    <span className="font-semibold">{level.count} members</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-primary">₱{level.earnings}</div>
+                    <div className="text-xs text-muted-foreground">earned</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Quick Actions */}
+          <div className="space-y-6">
+            <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+              <h2 className="text-2xl font-bold mb-6">Quick Actions</h2>
+              
+              <div className="space-y-3">
+                <Button className="w-full justify-start h-auto py-4" asChild>
+                  <Link to="/game">
+                    <Trophy className="w-5 h-5 mr-3" />
+                    <div className="text-left">
+                      <div className="font-bold">Continue Game</div>
+                      <div className="text-xs opacity-80">Resume from Level {userStats.currentLevel}</div>
+                    </div>
+                  </Link>
+                </Button>
+
+                <Button variant="outline" className="w-full justify-start h-auto py-4">
+                  <DollarSign className="w-5 h-5 mr-3" />
+                  <div className="text-left">
+                    <div className="font-bold">Cash Out</div>
+                    <div className="text-xs opacity-80">Withdraw to GCash or Bank</div>
+                  </div>
+                </Button>
+
+                <Button variant="outline" className="w-full justify-start h-auto py-4">
+                  <Target className="w-5 h-5 mr-3" />
+                  <div className="text-left">
+                    <div className="font-bold">Buy Credits</div>
+                    <div className="text-xs opacity-80">Top up your gaming credits</div>
+                  </div>
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="p-6 gradient-primary border-primary/20 shadow-card text-center">
+              <Trophy className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse-slow" />
+              <h3 className="text-xl font-bold mb-2">Level 10 Rewards</h3>
+              <p className="text-foreground/90 mb-4">
+                Reach Level 10 to unlock residual income from your entire network and shop commissions!
+              </p>
+              <Progress value={userStats.currentLevel * 10} className="h-2" />
+              <p className="text-sm text-muted-foreground mt-2">
+                {10 - userStats.currentLevel} levels to go
+              </p>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
