@@ -55,7 +55,7 @@ const Admin = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
   const [variations, setVariations] = useState<ProductVariation[]>([]);
   const [currentVariation, setCurrentVariation] = useState<ProductVariation>({
     size: "",
@@ -320,11 +320,18 @@ const Admin = () => {
   };
 
   const scrollToTop = () => {
-    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    if (scrollViewportRef.current) {
+      scrollViewportRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const scrollToBottom = () => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    if (scrollViewportRef.current) {
+      scrollViewportRef.current.scrollTo({ 
+        top: scrollViewportRef.current.scrollHeight, 
+        behavior: 'smooth' 
+      });
+    }
   };
 
   if (loading) {
@@ -380,8 +387,12 @@ const Admin = () => {
               </DialogTitle>
             </DialogHeader>
             <div className="relative flex-1 flex flex-col min-h-0">
-              <ScrollArea className="flex-1 pr-4">
-                <div ref={scrollRef} className="space-y-4 pb-4">
+              <div className="flex-1 overflow-hidden">
+                <div 
+                  ref={scrollViewportRef}
+                  className="h-full overflow-y-auto pr-4 scroll-smooth"
+                >
+                  <div className="space-y-4 pb-4">
                   <form id="shop-item-form" onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
                     <div>
                       <Label htmlFor="name">Name *</Label>
@@ -576,9 +587,10 @@ const Admin = () => {
                     </div>
                   </form>
                 </div>
-              </ScrollArea>
+                </div>
+              </div>
               
-              <div className="absolute right-6 bottom-20 flex flex-col gap-2">
+              <div className="absolute right-6 bottom-20 flex flex-col gap-2 z-10">
                 <Button
                   type="button"
                   size="icon"
@@ -596,11 +608,11 @@ const Admin = () => {
                   onClick={scrollToBottom}
                 >
                   <ArrowDown className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="flex gap-2 pt-4 border-t">
+                 </Button>
+               </div>
+             </div>
+             
+             <div className="flex gap-2 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
