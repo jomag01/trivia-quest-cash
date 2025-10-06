@@ -47,7 +47,13 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
       onOpenChange(false);
     } catch (error: any) {
       console.error("Payment error:", error);
-      toast.error(error.message || "Failed to initiate payment");
+      const errorMessage = error.message || "Failed to initiate payment";
+      toast.error(errorMessage, {
+        duration: 6000,
+        description: errorMessage.includes("activate") 
+          ? "Visit PayMongo dashboard to activate your account" 
+          : undefined,
+      });
     } finally {
       setLoading(false);
     }

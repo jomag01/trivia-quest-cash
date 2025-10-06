@@ -99,7 +99,24 @@ serve(async (req) => {
     if (!paymentResponse.ok) {
       const errorText = await paymentResponse.text();
       console.error("PayMongo API error:", errorText);
-      throw new Error(`PayMongo API error: ${errorText}`);
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.errors && errorData.errors[0]) {
+          const error = errorData.errors[0];
+          if (error.code === "account_not_activated") {
+            throw new Error("Payment provider account needs to be activated. Please activate your PayMongo account at https://dashboard.paymongo.com to enable payments.");
+          }
+          throw new Error(error.detail || error.code || "Payment processing failed");
+        }
+      } catch (parseError) {
+        // If we can't parse it, throw the original error
+        if (parseError instanceof Error && parseError.message.includes("Payment provider")) {
+          throw parseError;
+        }
+      }
+      
+      throw new Error("Payment processing failed. Please try again or contact support.");
     }
 
     const paymentIntent = await paymentResponse.json();
