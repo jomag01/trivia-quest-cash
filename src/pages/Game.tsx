@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { Phone, Users, Divide, Trophy, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { useGameSounds } from "@/hooks/useGameSounds";
 
 interface Question {
   question: string;
@@ -82,6 +83,7 @@ const Game = () => {
   });
   const [eliminatedOptions, setEliminatedOptions] = useState<number[]>([]);
   const navigate = useNavigate();
+  const { playCorrectSound, playWrongSound, playTickSound, playUrgentTickSound } = useGameSounds();
 
   useEffect(() => {
     if (timeLeft === 0) {
@@ -91,12 +93,19 @@ const Game = () => {
       return;
     }
 
+    // Play tick sound
+    if (timeLeft <= 10 && timeLeft > 0) {
+      playUrgentTickSound();
+    } else if (timeLeft > 10) {
+      playTickSound();
+    }
+
     const timer = setInterval(() => {
       setTimeLeft((prev) => prev - 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [timeLeft, playTickSound, playUrgentTickSound]);
 
   const handleAnswer = (index: number) => {
     if (showResult) return;
@@ -105,6 +114,7 @@ const Game = () => {
 
     setTimeout(() => {
       if (index === questions[currentLevel].correctAnswer) {
+        playCorrectSound();
         toast.success("Correct! Moving to next level.");
         if (currentLevel === 4) {
           toast("Unlock more levels by referring 2 friends!", {
@@ -122,6 +132,7 @@ const Game = () => {
           navigate("/dashboard");
         }
       } else {
+        playWrongSound();
         toast.error("Wrong answer! Game over.");
         navigate("/dashboard");
       }
