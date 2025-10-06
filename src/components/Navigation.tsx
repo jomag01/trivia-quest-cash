@@ -35,68 +35,9 @@ const Navigation = () => {
             <span className="text-xl font-bold text-gradient-gold">quizb</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-2">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              return (
-                <Button
-                  key={link.to}
-                  variant={isActive(link.to) ? "default" : "ghost"}
-                  asChild
-                  className="transition-smooth"
-                >
-                  <Link to={link.to}>
-                    <Icon className="w-4 h-4 mr-2" />
-                    {link.label}
-                  </Link>
-                </Button>
-              );
-            })}
-
-            {isAdmin && (
-              <Button
-                variant={isActive("/admin") ? "default" : "ghost"}
-                asChild
-                className="transition-smooth"
-              >
-                <Link to="/admin">
-                  <Shield className="w-4 h-4 mr-2" />
-                  Admin
-                </Link>
-              </Button>
-            )}
-
-            <Button
-              variant={isActive("/admin/login") ? "default" : "ghost"}
-              asChild
-              className="transition-smooth"
-            >
-              <Link to="/admin/login">
-                <Shield className="w-4 h-4 mr-2" />
-                Admin Login
-              </Link>
-            </Button>
-
-            {user ? (
-              <Button variant="outline" className="ml-2" onClick={async () => {
-                await signOut();
-                navigate("/");
-              }}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </Button>
-            ) : (
-              <Button className="ml-2" onClick={() => navigate("/auth")}>
-                <LogIn className="w-4 h-4 mr-2" />
-                Login
-              </Button>
-            )}
-          </div>
-
-          {/* Mobile Navigation */}
+          {/* Desktop Navigation - Now Burger Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild className="md:hidden">
+            <SheetTrigger asChild>
               <Button variant="outline" size="icon">
                 <Menu className="h-5 w-5" />
               </Button>
