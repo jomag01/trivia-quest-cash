@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,16 +11,56 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
+import { BuyCreditsDialog } from "@/components/BuyCreditsDialog";
+import { CashOutDialog } from "@/components/CashOutDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, profile, loading } = useAuth();
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
+  const [showCashOut, setShowCashOut] = useState(false);
+  const [wallet, setWallet] = useState<any>(null);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      fetchWallet();
+    }
+  }, [user]);
+
+  const fetchWallet = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("user_wallets")
+        .select("*")
+        .eq("user_id", user?.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (!data) {
+        // Create wallet if it doesn't exist
+        const { data: newWallet, error: createError } = await supabase
+          .from("user_wallets")
+          .insert([{ user_id: user?.id, balance: 0, credits: 0 }])
+          .select()
+          .single();
+        
+        if (createError) throw createError;
+        setWallet(newWallet);
+      } else {
+        setWallet(data);
+      }
+    } catch (error: any) {
+      console.error("Error fetching wallet:", error);
+    }
+  };
 
   if (loading || !profile) {
     return (
@@ -36,10 +76,10 @@ const Dashboard = () => {
   // Mock data - will be replaced with real data from database
   const userStats = {
     currentLevel: 5,
-    credits: 150,
+    credits: wallet?.credits || 0,
     referrals: 3,
     activeReferrals: 2,
-    totalEarnings: 2500,
+    totalEarnings: wallet?.balance || 0,
     pendingEarnings: 350,
     referralCode: profile.referral_code
   };
@@ -91,7 +131,12 @@ const Dashboard = () => {
             </div>
             <div className="text-3xl font-bold mb-2">{userStats.credits}</div>
             <p className="text-sm text-muted-foreground">Available Credits</p>
-            <Button variant="outline" size="sm" className="mt-3 w-full">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-3 w-full"
+              onClick={() => setShowBuyCredits(true)}
+            >
               Buy More Credits
             </Button>
           </Card>
@@ -188,7 +233,11 @@ const Dashboard = () => {
                   </Link>
                 </Button>
 
-                <Button variant="outline" className="w-full justify-start h-auto py-4">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start h-auto py-4"
+                  onClick={() => setShowCashOut(true)}
+                >
                   <DollarSign className="w-5 h-5 mr-3" />
                   <div className="text-left">
                     <div className="font-bold">Cash Out</div>
@@ -196,7 +245,11 @@ const Dashboard = () => {
                   </div>
                 </Button>
 
-                <Button variant="outline" className="w-full justify-start h-auto py-4">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start h-auto py-4"
+                  onClick={() => setShowBuyCredits(true)}
+                >
                   <Target className="w-5 h-5 mr-3" />
                   <div className="text-left">
                     <div className="font-bold">Buy Credits</div>
@@ -219,6 +272,14 @@ const Dashboard = () => {
             </Card>
           </div>
         </div>
+
+        {/* Dialogs */}
+        <BuyCreditsDialog open={showBuyCredits} onOpenChange={setShowBuyCredits} />
+        <CashOutDialog 
+          open={showCashOut} 
+          onOpenChange={setShowCashOut}
+          currentBalance={wallet?.balance || 0}
+        />
       </div>
     </div>
   );

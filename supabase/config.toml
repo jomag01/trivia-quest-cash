@@ -1,1 +1,10 @@
 project_id = "pcsancednuywpxvuruqb"
+
+[functions.create-payment]
+verify_jwt = true
+
+[functions.create-payout]
+verify_jwt = true
+
+[functions.payment-webhook]
+verify_jwt = false
