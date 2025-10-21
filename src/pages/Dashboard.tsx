@@ -4,10 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Trophy, Users, DollarSign, Target, 
-  TrendingUp, Award, Copy, Clock, Package
-} from "lucide-react";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
@@ -15,46 +12,45 @@ import { BuyCreditsDialog } from "@/components/BuyCreditsDialog";
 import { CashOutDialog } from "@/components/CashOutDialog";
 import { GenealogyDialog } from "@/components/GenealogyDialog";
 import { supabase } from "@/integrations/supabase/client";
-
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, profile, loading } = useAuth();
+  const {
+    user,
+    profile,
+    loading
+  } = useAuth();
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [showCashOut, setShowCashOut] = useState(false);
   const [showGenealogy, setShowGenealogy] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState(1);
   const [wallet, setWallet] = useState<any>(null);
-
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
-
   useEffect(() => {
     if (user) {
       fetchWallet();
     }
   }, [user]);
-
   const fetchWallet = async () => {
     try {
-      const { data, error } = await supabase
-        .from("user_wallets")
-        .select("*")
-        .eq("user_id", user?.id)
-        .maybeSingle();
-
+      const {
+        data,
+        error
+      } = await supabase.from("user_wallets").select("*").eq("user_id", user?.id).maybeSingle();
       if (error) throw error;
-      
       if (!data) {
         // Create wallet if it doesn't exist
-        const { data: newWallet, error: createError } = await supabase
-          .from("user_wallets")
-          .insert([{ user_id: user?.id, balance: 0, credits: 0 }])
-          .select()
-          .single();
-        
+        const {
+          data: newWallet,
+          error: createError
+        } = await supabase.from("user_wallets").insert([{
+          user_id: user?.id,
+          balance: 0,
+          credits: 0
+        }]).select().single();
         if (createError) throw createError;
         setWallet(newWallet);
       } else {
@@ -64,16 +60,13 @@ const Dashboard = () => {
       console.error("Error fetching wallet:", error);
     }
   };
-
   if (loading || !profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
+    return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Trophy className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse" />
           <p className="text-muted-foreground">Loading your dashboard...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
 
   // Mock data - will be replaced with real data from database
@@ -86,29 +79,44 @@ const Dashboard = () => {
     pendingEarnings: 350,
     referralCode: profile.referral_code
   };
-
-  const referralLevels = [
-    { level: 1, count: 3, earnings: 500 },
-    { level: 2, count: 8, earnings: 800 },
-    { level: 3, count: 15, earnings: 600 },
-    { level: 4, count: 25, earnings: 400 },
-    { level: 5, count: 12, earnings: 200 },
-    { level: 6, count: 5, earnings: 100 },
-    { level: 7, count: 2, earnings: 50 }
-  ];
-
+  const referralLevels = [{
+    level: 1,
+    count: 3,
+    earnings: 500
+  }, {
+    level: 2,
+    count: 8,
+    earnings: 800
+  }, {
+    level: 3,
+    count: 15,
+    earnings: 600
+  }, {
+    level: 4,
+    count: 25,
+    earnings: 400
+  }, {
+    level: 5,
+    count: 12,
+    earnings: 200
+  }, {
+    level: 6,
+    count: 5,
+    earnings: 100
+  }, {
+    level: 7,
+    count: 2,
+    earnings: 50
+  }];
   const copyReferralCode = () => {
     navigator.clipboard.writeText(userStats.referralCode);
     toast.success("Referral code copied to clipboard!");
   };
-
   const openGenealogy = (level: number) => {
     setSelectedLevel(level);
     setShowGenealogy(true);
   };
-
-  return (
-    <div className="min-h-screen py-8 px-4">
+  return <div className="min-h-screen py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -139,12 +147,7 @@ const Dashboard = () => {
             </div>
             <div className="text-3xl font-bold mb-2">{userStats.credits}</div>
             <p className="text-sm text-muted-foreground">Available Credits</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-3 w-full"
-              onClick={() => setShowBuyCredits(true)}
-            >
+            <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setShowBuyCredits(true)}>
               Buy More Credits
             </Button>
           </Card>
@@ -172,8 +175,7 @@ const Dashboard = () => {
         </div>
 
         {/* Level Progress Alert */}
-        {userStats.currentLevel === 5 && (
-          <Card className="p-6 mb-8 gradient-primary border-primary/20 shadow-gold">
+        {userStats.currentLevel === 5 && <Card className="p-6 mb-8 gradient-primary border-primary/20 shadow-gold">
             <div className="flex items-start gap-4">
               <Award className="w-10 h-10 text-primary flex-shrink-0 animate-pulse" />
               <div className="flex-1">
@@ -193,8 +195,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-          </Card>
-        )}
+          </Card>}
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Referral Network */}
@@ -205,12 +206,7 @@ const Dashboard = () => {
             </h2>
 
             <div className="space-y-3">
-              {referralLevels.map((level) => (
-                <div
-                  key={level.level}
-                  className="flex items-center justify-between p-4 bg-background/20 rounded-lg hover:bg-background/30 transition-smooth cursor-pointer"
-                  onClick={() => openGenealogy(level.level)}
-                >
+              {referralLevels.map(level => <div key={level.level} className="flex items-center justify-between p-4 bg-background/20 rounded-lg hover:bg-background/30 transition-smooth cursor-pointer" onClick={() => openGenealogy(level.level)}>
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className="w-16 justify-center border-primary/50">
                       Level {level.level}
@@ -221,8 +217,7 @@ const Dashboard = () => {
                     <div className="font-bold text-primary">{formatCurrency(level.earnings, profile.currency)}</div>
                     <div className="text-xs text-muted-foreground">earned</div>
                   </div>
-                </div>
-              ))}
+                </div>)}
             </div>
           </Card>
 
@@ -242,25 +237,11 @@ const Dashboard = () => {
                   </Link>
                 </Button>
 
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start h-auto py-4"
-                  asChild
-                >
-                  <Link to="/my-orders">
-                    <Package className="w-5 h-5 mr-3" />
-                    <div className="text-left">
-                      <div className="font-bold">My Orders</div>
-                      <div className="text-xs opacity-80">Track your order status</div>
-                    </div>
-                  </Link>
+                <Button variant="outline" className="w-full justify-start h-auto py-4" asChild>
+                  
                 </Button>
 
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start h-auto py-4"
-                  onClick={() => setShowCashOut(true)}
-                >
+                <Button variant="outline" className="w-full justify-start h-auto py-4" onClick={() => setShowCashOut(true)}>
                   <DollarSign className="w-5 h-5 mr-3" />
                   <div className="text-left">
                     <div className="font-bold">Cash Out</div>
@@ -268,11 +249,7 @@ const Dashboard = () => {
                   </div>
                 </Button>
 
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start h-auto py-4"
-                  onClick={() => setShowBuyCredits(true)}
-                >
+                <Button variant="outline" className="w-full justify-start h-auto py-4" onClick={() => setShowBuyCredits(true)}>
                   <Target className="w-5 h-5 mr-3" />
                   <div className="text-left">
                     <div className="font-bold">Buy Credits</div>
@@ -298,20 +275,9 @@ const Dashboard = () => {
 
         {/* Dialogs */}
         <BuyCreditsDialog open={showBuyCredits} onOpenChange={setShowBuyCredits} />
-        <CashOutDialog 
-          open={showCashOut} 
-          onOpenChange={setShowCashOut}
-          currentBalance={wallet?.balance || 0}
-        />
-        <GenealogyDialog 
-          open={showGenealogy} 
-          onOpenChange={setShowGenealogy}
-          level={selectedLevel}
-          userId={user?.id || ''}
-        />
+        <CashOutDialog open={showCashOut} onOpenChange={setShowCashOut} currentBalance={wallet?.balance || 0} />
+        <GenealogyDialog open={showGenealogy} onOpenChange={setShowGenealogy} level={selectedLevel} userId={user?.id || ''} />
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Dashboard;
