@@ -23,6 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CategoryManagement } from "@/components/CategoryManagement";
+import { Gamepad2 } from "lucide-react";
 
 interface CreditPurchase {
   id: string;
@@ -249,6 +251,10 @@ const Admin = () => {
             <DollarSign className="w-4 h-4" />
             Payout Requests
           </TabsTrigger>
+          <TabsTrigger value="categories" className="flex items-center gap-2">
+            <Gamepad2 className="w-4 h-4" />
+            Game Categories
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="credits" className="space-y-4">
@@ -348,6 +354,10 @@ const Admin = () => {
               <p className="text-muted-foreground">No payout requests yet</p>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="categories">
+          <CategoryManagement />
         </TabsContent>
       </Tabs>
 

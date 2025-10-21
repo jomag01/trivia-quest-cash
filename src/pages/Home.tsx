@@ -1,11 +1,43 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Trophy, Users, Gamepad2, Zap, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+
+interface GameCategory {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string;
+  description: string | null;
+  color_from: string;
+  color_to: string;
+  is_active: boolean;
+  min_level_required: number;
+}
 
 const Home = () => {
   const { user } = useAuth();
+  const [categories, setCategories] = useState<GameCategory[]>([]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    const { data, error } = await supabase
+      .from("game_categories")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: true });
+
+    if (!error && data) {
+      setCategories(data);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -91,15 +123,8 @@ const Home = () => {
           </h2>
           
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { title: "General Knowledge", icon: "🌍", color: "from-blue-500 to-purple-600", slug: "general" },
-              { title: "Science & Tech", icon: "🔬", color: "from-green-500 to-teal-600", slug: "science" },
-              { title: "History", icon: "📚", color: "from-orange-500 to-red-600", slug: "history" },
-              { title: "Entertainment", icon: "🎬", color: "from-pink-500 to-rose-600", slug: "entertainment" },
-              { title: "Sports", icon: "⚽", color: "from-indigo-500 to-blue-600", slug: "sports" },
-              { title: "Geography", icon: "🗺️", color: "from-cyan-500 to-blue-600", slug: "geography" },
-            ].map((category, index) => (
-              <Link to={`/game/${category.slug}`} key={index}>
+            {categories.map((category) => (
+              <Link to={`/game/${category.slug}`} key={category.id}>
                 <Card 
                   className="p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth cursor-pointer group"
                 >
@@ -107,12 +132,20 @@ const Home = () => {
                     <div className="text-5xl mb-4 group-hover:scale-110 transition-smooth">
                       {category.icon}
                     </div>
-                    <h3 className="text-xl font-bold">{category.title}</h3>
+                    <h3 className="text-xl font-bold">{category.name}</h3>
+                    {category.description && (
+                      <p className="text-sm text-muted-foreground mt-2">{category.description}</p>
+                    )}
                   </div>
                 </Card>
               </Link>
             ))}
           </div>
+          {categories.length === 0 && (
+            <div className="text-center text-muted-foreground py-8">
+              No game categories available yet.
+            </div>
+          )}
         </div>
       </section>
 

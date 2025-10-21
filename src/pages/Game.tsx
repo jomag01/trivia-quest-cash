@@ -8,6 +8,19 @@ import { Phone, Users, Divide, Trophy, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { getCategoryQuestions, getAllCategories, type Question } from "@/lib/questions";
+import { supabase } from "@/integrations/supabase/client";
+
+interface GameCategory {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string;
+  description: string | null;
+  color_from: string;
+  color_to: string;
+  is_active: boolean;
+  min_level_required: number;
+}
 
 const prizes = [
   "₱100", "₱500", "₱1,000", "₱5,000", "₱10,000",
@@ -27,14 +40,34 @@ const Game = () => {
     split: true
   });
   const [eliminatedOptions, setEliminatedOptions] = useState<number[]>([]);
+  const [categoryInfo, setCategoryInfo] = useState<GameCategory | null>(null);
   const navigate = useNavigate();
   const { playCorrectSound, playWrongSound, playTickSound, playUrgentTickSound } = useGameSounds();
 
-  const categoryInfo = getAllCategories().find(c => c.slug === category) || getAllCategories()[0];
+  useEffect(() => {
+    fetchCategoryInfo();
+  }, [category]);
 
   useEffect(() => {
     setQuestions(getCategoryQuestions(category));
   }, [category]);
+
+  const fetchCategoryInfo = async () => {
+    const { data, error } = await supabase
+      .from("game_categories")
+      .select("*")
+      .eq("slug", category)
+      .eq("is_active", true)
+      .single();
+
+    if (error || !data) {
+      toast.error("Category not found");
+      navigate("/");
+      return;
+    }
+
+    setCategoryInfo(data);
+  };
 
   useEffect(() => {
     if (timeLeft === 0) {
@@ -126,7 +159,7 @@ const Game = () => {
     return "outline";
   };
 
-  if (questions.length === 0) {
+  if (questions.length === 0 || !categoryInfo) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
@@ -136,8 +169,11 @@ const Game = () => {
         {/* Category Header */}
         <div className="text-center mb-6">
           <Badge className="text-2xl px-4 py-2 mb-2">
-            {categoryInfo.icon} {categoryInfo.title}
+            {categoryInfo.icon} {categoryInfo.name}
           </Badge>
+          {categoryInfo.description && (
+            <p className="text-muted-foreground mt-2">{categoryInfo.description}</p>
+          )}
         </div>
 
         {/* Prize Ladder */}
