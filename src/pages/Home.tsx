@@ -131,9 +131,9 @@ const Home = () => {
             className="text-lg shadow-gold"
             asChild
           >
-            <Link to={user ? "/dashboard" : "/auth"}>
+            <Link to="/auth">
               <Trophy className="mr-2 h-5 w-5" />
-              {user ? "View Dashboard" : "Join Now"}
+              Join Now
             </Link>
           </Button>
         </div>
