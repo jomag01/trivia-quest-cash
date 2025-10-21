@@ -51,7 +51,7 @@ export const CategoryManagement = () => {
   }, []);
 
   const fetchCategories = async () => {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("game_categories")
       .select("*")
       .order("created_at", { ascending: false });
@@ -68,7 +68,7 @@ export const CategoryManagement = () => {
     e.preventDefault();
 
     if (editingCategory) {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("game_categories")
         .update(formData)
         .eq("id", editingCategory.id);
@@ -80,7 +80,7 @@ export const CategoryManagement = () => {
 
       toast.success("Category updated successfully!");
     } else {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("game_categories")
         .insert([formData]);
 
@@ -100,7 +100,7 @@ export const CategoryManagement = () => {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this category?")) return;
 
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("game_categories")
       .delete()
       .eq("id", id);
@@ -115,7 +115,7 @@ export const CategoryManagement = () => {
   };
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("game_categories")
       .update({ is_active: !currentStatus })
       .eq("id", id);
