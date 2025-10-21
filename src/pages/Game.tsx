@@ -53,7 +53,7 @@ const Game = () => {
   }, [category]);
 
   const fetchCategoryInfo = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("game_categories")
       .select("*")
       .eq("slug", category)

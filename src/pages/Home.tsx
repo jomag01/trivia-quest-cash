@@ -27,7 +27,7 @@ const Home = () => {
   }, []);
 
   const fetchCategories = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("game_categories")
       .select("*")
       .eq("is_active", true)
