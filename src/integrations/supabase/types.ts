@@ -68,6 +68,48 @@ export type Database = {
         }
         Relationships: []
       }
+      game_categories: {
+        Row: {
+          color_from: string
+          color_to: string
+          created_at: string | null
+          description: string | null
+          icon: string
+          id: string
+          is_active: boolean | null
+          min_level_required: number | null
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          color_from: string
+          color_to: string
+          created_at?: string | null
+          description?: string | null
+          icon: string
+          id?: string
+          is_active?: boolean | null
+          min_level_required?: number | null
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          color_from?: string
+          color_to?: string
+          created_at?: string | null
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean | null
+          min_level_required?: number | null
+          name?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       payout_accounts: {
         Row: {
           account_name: string
@@ -255,22 +297,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_order_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_referral_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_order_number: { Args: never; Returns: string }
+      generate_referral_code: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
-      has_role: {
-        Args: { _role: string; _user_id: string }
-        Returns: boolean
-      }
+      has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       increment_credits: {
         Args: { amount: number; user_id: string }
         Returns: undefined
