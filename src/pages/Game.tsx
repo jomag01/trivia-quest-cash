@@ -7,8 +7,19 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Phone, Users, Divide, Trophy, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useGameSounds } from "@/hooks/useGameSounds";
-import { getCategoryQuestions, getAllCategories, type Question } from "@/lib/questions";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface Question {
+  id: string;
+  question: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_answer: number;
+  difficulty: number;
+}
 
 interface GameCategory {
   id: string;
@@ -29,6 +40,7 @@ const prizes = [
 
 const Game = () => {
   const { category = "general" } = useParams<{ category: string }>();
+  const { user } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentLevel, setCurrentLevel] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -49,8 +61,10 @@ const Game = () => {
   }, [category]);
 
   useEffect(() => {
-    setQuestions(getCategoryQuestions(category));
-  }, [category]);
+    if (categoryInfo?.id && user) {
+      fetchQuestions();
+    }
+  }, [categoryInfo, user]);
 
   const fetchCategoryInfo = async () => {
     const { data, error } = await (supabase as any)
@@ -67,6 +81,42 @@ const Game = () => {
     }
 
     setCategoryInfo(data);
+  };
+
+  const fetchQuestions = async () => {
+    if (!categoryInfo?.id || !user) return;
+
+    // Get questions user has already answered
+    const { data: answeredQuestions } = await (supabase as any)
+      .from('user_answered_questions')
+      .select('question_id')
+      .eq('user_id', user.id);
+
+    const answeredIds = answeredQuestions?.map((q: any) => q.question_id) || [];
+
+    // Fetch questions from database, excluding already answered ones
+    const { data, error } = await (supabase as any)
+      .from('questions')
+      .select('*')
+      .eq('category_id', categoryInfo.id)
+      .eq('is_active', true)
+      .not('id', 'in', answeredIds.length > 0 ? `(${answeredIds.join(',')})` : '(00000000-0000-0000-0000-000000000000)')
+      .order('difficulty', { ascending: true })
+      .limit(10);
+
+    if (error) {
+      toast.error("Failed to load questions");
+      console.error(error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      toast.error("No new questions available. All questions have been answered!");
+      navigate("/dashboard");
+      return;
+    }
+
+    setQuestions(data);
   };
 
   useEffect(() => {
@@ -91,13 +141,25 @@ const Game = () => {
     return () => clearInterval(timer);
   }, [timeLeft, playTickSound, playUrgentTickSound]);
 
-  const handleAnswer = (index: number) => {
-    if (showResult) return;
+  const handleAnswer = async (index: number) => {
+    if (showResult || !user) return;
     setSelectedAnswer(index);
     setShowResult(true);
 
+    const currentQuestion = questions[currentLevel];
+    const isCorrect = index === currentQuestion.correct_answer;
+
+    // Save answered question to database
+    await (supabase as any)
+      .from('user_answered_questions')
+      .insert({
+        user_id: user.id,
+        question_id: currentQuestion.id,
+        was_correct: isCorrect
+      });
+
     setTimeout(() => {
-      if (index === questions[currentLevel].correctAnswer) {
+      if (isCorrect) {
         playCorrectSound();
         toast.success("Correct! Moving to next level.");
         if (currentLevel === 4) {
@@ -117,7 +179,7 @@ const Game = () => {
         }
       } else {
         playWrongSound();
-        toast.error("Wrong answer! Game over.");
+        toast.error("Wrong answer! Try again with new questions.");
         navigate("/dashboard");
       }
     }, 2000);
@@ -126,7 +188,7 @@ const Game = () => {
   const useFiftyFifty = () => {
     if (!lifelines.fiftyFifty) return;
     
-    const correctAnswer = questions[currentLevel].correctAnswer;
+    const correctAnswer = questions[currentLevel].correct_answer;
     const wrongAnswers = [0, 1, 2, 3].filter(i => i !== correctAnswer);
     const toEliminate = wrongAnswers.slice(0, 2);
     
@@ -138,8 +200,14 @@ const Game = () => {
   const useCallFriend = () => {
     if (!lifelines.callFriend) return;
     
-    const correctAnswer = questions[currentLevel].correctAnswer;
-    toast.success(`Your friend suggests: ${questions[currentLevel].options[correctAnswer]}`);
+    const currentQuestion = questions[currentLevel];
+    const options = [
+      currentQuestion.option_a,
+      currentQuestion.option_b,
+      currentQuestion.option_c,
+      currentQuestion.option_d
+    ];
+    toast.success(`Your friend suggests: ${options[currentQuestion.correct_answer]}`);
     setLifelines({ ...lifelines, callFriend: false });
   };
 
@@ -154,7 +222,7 @@ const Game = () => {
 
   const getButtonVariant = (index: number) => {
     if (!showResult) return "outline";
-    if (index === questions[currentLevel].correctAnswer) return "default";
+    if (index === questions[currentLevel].correct_answer) return "default";
     if (index === selectedAnswer) return "destructive";
     return "outline";
   };
@@ -205,7 +273,12 @@ const Game = () => {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {questions[currentLevel].options.map((option, index) => (
+            {[
+              questions[currentLevel].option_a,
+              questions[currentLevel].option_b,
+              questions[currentLevel].option_c,
+              questions[currentLevel].option_d
+            ].map((option, index) => (
               <Button
                 key={index}
                 variant={getButtonVariant(index)}

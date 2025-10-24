@@ -244,6 +244,91 @@ export type Database = {
           },
         ]
       }
+      questions: {
+        Row: {
+          category_id: string | null
+          correct_answer: number
+          created_at: string | null
+          difficulty: number | null
+          id: string
+          is_active: boolean | null
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question: string
+          updated_at: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          correct_answer: number
+          created_at?: string | null
+          difficulty?: number | null
+          id?: string
+          is_active?: boolean | null
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question: string
+          updated_at?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          correct_answer?: number
+          created_at?: string | null
+          difficulty?: number | null
+          id?: string
+          is_active?: boolean | null
+          option_a?: string
+          option_b?: string
+          option_c?: string
+          option_d?: string
+          question?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "game_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_answered_questions: {
+        Row: {
+          answered_at: string | null
+          id: string
+          question_id: string
+          user_id: string
+          was_correct: boolean
+        }
+        Insert: {
+          answered_at?: string | null
+          id?: string
+          question_id: string
+          user_id: string
+          was_correct: boolean
+        }
+        Update: {
+          answered_at?: string | null
+          id?: string
+          question_id?: string
+          user_id?: string
+          was_correct?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_answered_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
