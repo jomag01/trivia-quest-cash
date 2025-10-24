@@ -22,6 +22,7 @@ const Auth = () => {
   const [country, setCountry] = useState<string>("PH");
   const [currency, setCurrency] = useState<CurrencyCode>("PHP");
   const [detectingCountry, setDetectingCountry] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -59,6 +60,21 @@ const Auth = () => {
         toast.success("Welcome back!");
         navigate("/dashboard");
       } else {
+        // Validate referral code if provided
+        if (referralCode.trim()) {
+          const { data: referrerProfile, error: referralError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('referral_code', referralCode.trim().toUpperCase())
+            .single();
+
+          if (referralError || !referrerProfile) {
+            toast.error("Invalid referral code");
+            setLoading(false);
+            return;
+          }
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -69,6 +85,7 @@ const Auth = () => {
               country: country,
               currency: currency,
               currency_symbol: CURRENCIES[currency].symbol,
+              referral_code: referralCode.trim().toUpperCase() || null,
             },
           },
         });
@@ -173,6 +190,24 @@ const Auth = () => {
                 {detectingCountry && (
                   <p className="text-xs text-muted-foreground">Detecting your location...</p>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="referralCode" className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Referral Code (Optional)
+                </Label>
+                <Input
+                  id="referralCode"
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  placeholder="Enter referrer's code"
+                  maxLength={10}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Have a referral code? Enter it to get bonus rewards!
+                </p>
               </div>
             </>
           )}
