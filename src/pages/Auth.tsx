@@ -60,19 +60,23 @@ const Auth = () => {
         toast.success("Welcome back!");
         navigate("/dashboard");
       } else {
-        // Validate referral code if provided
-        if (referralCode.trim()) {
-          const { data: referrerProfile, error: referralError } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('referral_code', referralCode.trim().toUpperCase())
-            .single();
+        // Validate referral code (now required)
+        if (!referralCode.trim()) {
+          toast.error("Referral code is required");
+          setLoading(false);
+          return;
+        }
 
-          if (referralError || !referrerProfile) {
-            toast.error("Invalid referral code");
-            setLoading(false);
-            return;
-          }
+        const { data: referrerProfile, error: referralError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('referral_code', referralCode.trim().toUpperCase())
+          .single();
+
+        if (referralError || !referrerProfile) {
+          toast.error("Invalid referral code. Please check and try again.");
+          setLoading(false);
+          return;
         }
 
         const { error } = await supabase.auth.signUp({
@@ -85,7 +89,7 @@ const Auth = () => {
               country: country,
               currency: currency,
               currency_symbol: CURRENCIES[currency].symbol,
-              referral_code: referralCode.trim().toUpperCase() || null,
+              referral_code: referralCode.trim().toUpperCase(),
             },
           },
         });
@@ -195,7 +199,7 @@ const Auth = () => {
               <div className="space-y-2">
                 <Label htmlFor="referralCode" className="flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  Referral Code (Optional)
+                  Referral Code *
                 </Label>
                 <Input
                   id="referralCode"
@@ -204,9 +208,10 @@ const Auth = () => {
                   onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                   placeholder="Enter referrer's code"
                   maxLength={10}
+                  required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Have a referral code? Enter it to get bonus rewards!
+                  Enter your referrer's code to create an account
                 </p>
               </div>
             </>
