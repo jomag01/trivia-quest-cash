@@ -176,9 +176,10 @@ const Game = () => {
 
             if (error) throw error;
 
-            if (data.success) {
+            const result = data as any;
+            if (result?.success) {
               toast.success(`🎉 Level ${nextLevel} Prize!`, {
-                description: `You won ${data.credits_awarded} credits! New balance: ${data.new_balance}`
+                description: `You won ${result.credits_awarded} credits! New balance: ${result.new_balance}`
               });
             }
           } catch (error) {
