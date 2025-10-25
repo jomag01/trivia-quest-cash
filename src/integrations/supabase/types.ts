@@ -194,6 +194,36 @@ export type Database = {
         }
         Relationships: []
       }
+      prize_config: {
+        Row: {
+          created_at: string | null
+          credits: number
+          description: string | null
+          id: string
+          is_active: boolean | null
+          level: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          level: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          level?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           country: string | null
@@ -329,6 +359,30 @@ export type Database = {
           },
         ]
       }
+      user_prize_claims: {
+        Row: {
+          claimed_at: string | null
+          credits_awarded: number
+          id: string
+          level: number
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          credits_awarded: number
+          id?: string
+          level: number
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          credits_awarded?: number
+          id?: string
+          level?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -382,6 +436,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_level_prize: {
+        Args: { _level: number; _user_id: string }
+        Returns: Json
+      }
       generate_order_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       get_user_role: {

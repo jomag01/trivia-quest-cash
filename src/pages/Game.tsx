@@ -35,8 +35,11 @@ interface GameCategory {
 
 const prizes = [
   "₱100", "₱500", "₱1,000", "₱5,000", "₱10,000",
-  "₱25,000", "₱50,000", "₱100,000", "₱500,000", "₱1,000,000"
+  "₱25,000", "₱50,000", "₱100,000", "₱500,000", "₱1,000,000",
+  "₱2,500,000", "₱5,000,000", "₱7,500,000", "₱10,000,000", "₱25,000,000"
 ];
+
+const MILESTONE_LEVELS = [5, 10, 15];
 
 const Game = () => {
   const { category = "general" } = useParams<{ category: string }>();
@@ -102,7 +105,7 @@ const Game = () => {
       .eq('is_active', true)
       .not('id', 'in', answeredIds.length > 0 ? `(${answeredIds.join(',')})` : '(00000000-0000-0000-0000-000000000000)')
       .order('difficulty', { ascending: true })
-      .limit(10);
+      .limit(15);
 
     if (error) {
       toast.error("Failed to load questions");
@@ -158,23 +161,41 @@ const Game = () => {
         was_correct: isCorrect
       });
 
-    setTimeout(() => {
+    setTimeout(async () => {
       if (isCorrect) {
         playCorrectSound();
-        toast.success("Correct! Moving to next level.");
-        if (currentLevel === 4) {
-          toast("Unlock more levels by referring 2 friends!", {
-            description: "Get your referral code from the dashboard"
-          });
+        const nextLevel = currentLevel + 1;
+        
+        // Check if this is a milestone level
+        if (MILESTONE_LEVELS.includes(nextLevel)) {
+          try {
+            const { data, error } = await supabase.rpc('claim_level_prize', {
+              _user_id: user.id,
+              _level: nextLevel
+            });
+
+            if (error) throw error;
+
+            if (data.success) {
+              toast.success(`🎉 Level ${nextLevel} Prize!`, {
+                description: `You won ${data.credits_awarded} credits! New balance: ${data.new_balance}`
+              });
+            }
+          } catch (error) {
+            console.error('Prize claim error:', error);
+          }
         }
+        
+        toast.success("Correct! Moving to next level.");
+        
         if (currentLevel < questions.length - 1) {
-          setCurrentLevel(currentLevel + 1);
+          setCurrentLevel(nextLevel);
           setSelectedAnswer(null);
           setShowResult(false);
           setTimeLeft(30);
           setEliminatedOptions([]);
         } else {
-          toast.success("Congratulations! You've completed all levels!");
+          toast.success("Congratulations! You've completed all 15 levels!");
           navigate("/dashboard");
         }
       } else {
@@ -249,13 +270,16 @@ const Game = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Trophy className="w-6 h-6 text-primary" />
-              <span className="font-bold">Level {currentLevel + 1}/10</span>
+              <span className="font-bold">Level {currentLevel + 1}/15</span>
+              {MILESTONE_LEVELS.includes(currentLevel + 1) && (
+                <Badge variant="default" className="ml-2 animate-pulse">Milestone!</Badge>
+              )}
             </div>
             <div className="flex items-center gap-2 text-primary font-bold text-xl">
               <span>{prizes[currentLevel]}</span>
             </div>
           </div>
-          <Progress value={(currentLevel + 1) * 10} className="h-2" />
+          <Progress value={((currentLevel + 1) / 15) * 100} className="h-2" />
         </Card>
 
         {/* Timer */}
