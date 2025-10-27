@@ -207,7 +207,7 @@ const Auth = () => {
                   value={referralCode}
                   onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                   placeholder="Enter referrer's code"
-                  maxLength={10}
+                  maxLength={50}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
