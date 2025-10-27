@@ -60,23 +60,19 @@ const Auth = () => {
         toast.success("Welcome back!");
         navigate("/dashboard");
       } else {
-        // Validate referral code (now required)
-        if (!referralCode.trim()) {
-          toast.error("Referral code is required");
-          setLoading(false);
-          return;
-        }
+        // Validate referral code if provided
+        if (referralCode.trim()) {
+          const { data: referrerProfile, error: referralError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('referral_code', referralCode.trim().toUpperCase())
+            .maybeSingle();
 
-        const { data: referrerProfile, error: referralError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('referral_code', referralCode.trim().toUpperCase())
-          .single();
-
-        if (referralError || !referrerProfile) {
-          toast.error("Invalid referral code. Please check and try again.");
-          setLoading(false);
-          return;
+          if (referralError || !referrerProfile) {
+            toast.error("Invalid referral code. Please check and try again.");
+            setLoading(false);
+            return;
+          }
         }
 
         const { error } = await supabase.auth.signUp({
@@ -199,19 +195,18 @@ const Auth = () => {
               <div className="space-y-2">
                 <Label htmlFor="referralCode" className="flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  Referral Code *
+                  Referral Code (Optional)
                 </Label>
                 <Input
                   id="referralCode"
                   type="text"
                   value={referralCode}
                   onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                  placeholder="Enter referrer's code"
+                  placeholder="Enter referrer's code (optional)"
                   maxLength={50}
-                  required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter your referrer's code to create an account
+                  Enter a referral code if you have one
                 </p>
               </div>
             </>
