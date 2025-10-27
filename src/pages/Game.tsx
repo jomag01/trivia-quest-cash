@@ -176,7 +176,7 @@ const Game = () => {
 
             if (error) throw error;
 
-            const result = data as any;
+            const result = data as { success: boolean; credits_awarded: number; new_balance: number } | null;
             if (result?.success) {
               toast.success(`🎉 Level ${nextLevel} Prize!`, {
                 description: `You won ${result.credits_awarded} credits! New balance: ${result.new_balance}`
