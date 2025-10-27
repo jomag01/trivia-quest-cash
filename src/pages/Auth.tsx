@@ -75,18 +75,25 @@ const Auth = () => {
           }
         }
 
+        // Prepare user metadata
+        const userData: any = {
+          full_name: fullName,
+          country: country,
+          currency: currency,
+          currency_symbol: CURRENCIES[currency].symbol,
+        };
+
+        // Only include referral_code if it was provided
+        if (referralCode.trim()) {
+          userData.referral_code = referralCode.trim().toUpperCase();
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              full_name: fullName,
-              country: country,
-              currency: currency,
-              currency_symbol: CURRENCIES[currency].symbol,
-              referral_code: referralCode.trim().toUpperCase(),
-            },
+            data: userData,
           },
         });
 
