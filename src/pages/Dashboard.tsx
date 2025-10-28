@@ -26,6 +26,7 @@ const Dashboard = () => {
   const [wallet, setWallet] = useState<any>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [completedCategories, setCompletedCategories] = useState<string[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -33,11 +34,25 @@ const Dashboard = () => {
   }, [user, loading, navigate]);
   useEffect(() => {
     if (user) {
-      fetchWallet();
-      fetchCategories();
-      fetchCompletedCategories();
+      fetchAllData();
     }
   }, [user]);
+
+  // Fetch all data in parallel for better performance
+  const fetchAllData = async () => {
+    setDataLoading(true);
+    try {
+      await Promise.all([
+        fetchWallet(),
+        fetchCategories(),
+        fetchCompletedCategories()
+      ]);
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
   const fetchWallet = async () => {
     try {
       const {
@@ -93,7 +108,7 @@ const Dashboard = () => {
       console.error("Error fetching completed categories:", error);
     }
   };
-  if (loading || !profile) {
+  if (loading || !profile || dataLoading) {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Trophy className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse" />
