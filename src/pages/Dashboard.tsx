@@ -24,6 +24,8 @@ const Dashboard = () => {
   const [showGenealogy, setShowGenealogy] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState(1);
   const [wallet, setWallet] = useState<any>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [completedCategories, setCompletedCategories] = useState<string[]>([]);
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -32,6 +34,8 @@ const Dashboard = () => {
   useEffect(() => {
     if (user) {
       fetchWallet();
+      fetchCategories();
+      fetchCompletedCategories();
     }
   }, [user]);
   const fetchWallet = async () => {
@@ -58,6 +62,35 @@ const Dashboard = () => {
       }
     } catch (error: any) {
       console.error("Error fetching wallet:", error);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('game_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('min_level_required', { ascending: true });
+      
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error: any) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  const fetchCompletedCategories = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('user_completed_categories')
+        .select('category_id')
+        .eq('user_id', user?.id);
+      
+      if (error) throw error;
+      setCompletedCategories(data?.map((c: any) => c.category_id) || []);
+    } catch (error: any) {
+      console.error("Error fetching completed categories:", error);
     }
   };
   if (loading || !profile) {
@@ -237,8 +270,14 @@ const Dashboard = () => {
                   </Link>
                 </Button>
 
-                <Button variant="outline" className="w-full justify-start h-auto py-4" asChild>
-                  
+                <Button className="w-full justify-start h-auto py-4" asChild>
+                  <Link to="/">
+                    <Package className="w-5 h-5 mr-3" />
+                    <div className="text-left">
+                      <div className="font-bold">Select Game Category</div>
+                      <div className="text-xs opacity-80">Choose from available games</div>
+                    </div>
+                  </Link>
                 </Button>
 
                 <Button variant="outline" className="w-full justify-start h-auto py-4" onClick={() => setShowCashOut(true)}>

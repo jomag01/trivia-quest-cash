@@ -200,8 +200,25 @@ const Game = () => {
           setTimeLeft(30);
           setEliminatedOptions([]);
         } else {
-          toast.success("Congratulations! You've completed all 15 levels!");
-          navigate("/dashboard");
+          // User completed all 15 levels - mark category as completed
+          if (categoryInfo?.id) {
+            await (supabase as any)
+              .from('user_completed_categories')
+              .insert({
+                user_id: user.id,
+                category_id: categoryInfo.id,
+                total_levels_completed: 15
+              });
+          }
+          
+          toast.success("🎉 Congratulations! You've completed all 15 levels!", {
+            description: "Redirecting to play another game..."
+          });
+          
+          // Redirect to dashboard to select next game
+          setTimeout(() => {
+            navigate("/dashboard");
+          }, 3000);
         }
       } else {
         playWrongSound();

@@ -359,6 +359,38 @@ export type Database = {
           },
         ]
       }
+      user_completed_categories: {
+        Row: {
+          category_id: string
+          completed_at: string
+          id: string
+          total_levels_completed: number
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          completed_at?: string
+          id?: string
+          total_levels_completed?: number
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          completed_at?: string
+          id?: string
+          total_levels_completed?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_completed_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "game_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_prize_claims: {
         Row: {
           claimed_at: string | null

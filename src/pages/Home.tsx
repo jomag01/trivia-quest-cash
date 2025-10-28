@@ -21,10 +21,14 @@ interface GameCategory {
 const Home = () => {
   const { user } = useAuth();
   const [categories, setCategories] = useState<GameCategory[]>([]);
+  const [completedCategories, setCompletedCategories] = useState<string[]>([]);
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+    if (user) {
+      fetchCompletedCategories();
+    }
+  }, [user]);
 
   const fetchCategories = async () => {
     const { data, error } = await (supabase as any)
@@ -35,6 +39,19 @@ const Home = () => {
 
     if (!error && data) {
       setCategories(data);
+    }
+  };
+
+  const fetchCompletedCategories = async () => {
+    if (!user) return;
+    
+    const { data, error } = await (supabase as any)
+      .from("user_completed_categories")
+      .select("category_id")
+      .eq("user_id", user.id);
+
+    if (!error && data) {
+      setCompletedCategories(data.map((c: any) => c.category_id));
     }
   };
 
@@ -123,23 +140,40 @@ const Home = () => {
           </h2>
           
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.map((category) => (
-              <Link to={`/game/${category.slug}`} key={category.id}>
-                <Card 
-                  className="p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth cursor-pointer group"
-                >
-                  <div className="text-center">
-                    <div className="text-5xl mb-4 group-hover:scale-110 transition-smooth">
-                      {category.icon}
-                    </div>
-                    <h3 className="text-xl font-bold">{category.name}</h3>
-                    {category.description && (
-                      <p className="text-sm text-muted-foreground mt-2">{category.description}</p>
+            {categories.map((category) => {
+              const isCompleted = completedCategories.includes(category.id);
+              
+              return (
+                <Link to={`/game/${category.slug}`} key={category.id}>
+                  <Card 
+                    className={`p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth cursor-pointer group relative ${
+                      isCompleted ? 'opacity-80' : ''
+                    }`}
+                  >
+                    {isCompleted && (
+                      <div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                        <Trophy className="w-3 h-3" />
+                        Completed
+                      </div>
                     )}
-                  </div>
-                </Card>
-              </Link>
-            ))}
+                    <div className="text-center">
+                      <div className="text-5xl mb-4 group-hover:scale-110 transition-smooth">
+                        {category.icon}
+                      </div>
+                      <h3 className="text-xl font-bold">{category.name}</h3>
+                      {category.description && (
+                        <p className="text-sm text-muted-foreground mt-2">{category.description}</p>
+                      )}
+                      {isCompleted && (
+                        <p className="text-xs text-green-500 mt-2 font-semibold">
+                          ✓ Play again to improve your score
+                        </p>
+                      )}
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
           {categories.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
