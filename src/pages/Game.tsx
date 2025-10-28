@@ -97,7 +97,8 @@ const Game = () => {
 
     const answeredIds = answeredQuestions?.map((q: any) => q.question_id) || [];
 
-    // Fetch questions from database, excluding already answered ones
+    // Fetch questions ordered by difficulty (1-15) to ensure progressive difficulty
+    // Each level gets a question matching its difficulty level
     const { data, error } = await (supabase as any)
       .from('questions')
       .select('*')
@@ -105,6 +106,7 @@ const Game = () => {
       .eq('is_active', true)
       .not('id', 'in', answeredIds.length > 0 ? `(${answeredIds.join(',')})` : '(00000000-0000-0000-0000-000000000000)')
       .order('difficulty', { ascending: true })
+      .order('created_at', { ascending: true })
       .limit(15);
 
     if (error) {
@@ -119,7 +121,9 @@ const Game = () => {
       return;
     }
 
-    setQuestions(data);
+    // Sort questions by difficulty to ensure level 1 gets easiest, level 15 gets hardest
+    const sortedQuestions = data.sort((a, b) => a.difficulty - b.difficulty);
+    setQuestions(sortedQuestions);
   };
 
   useEffect(() => {
