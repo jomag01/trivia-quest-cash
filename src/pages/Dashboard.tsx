@@ -168,6 +168,17 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+              <Trophy className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gradient-gold">
+                {profile.full_name || profile.email}
+              </h2>
+              <p className="text-sm text-muted-foreground">Player ID: {userStats.referralCode}</p>
+            </div>
+          </div>
           <h1 className="text-4xl font-bold mb-2 text-gradient-gold">
             Player Dashboard
           </h1>
