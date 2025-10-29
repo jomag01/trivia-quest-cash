@@ -41,10 +41,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (!error && data) {
       setProfile(data as Profile);
+    } else if (!data) {
+      console.error("No profile found for user:", userId);
     }
   };
 
@@ -53,10 +55,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (!error && data) {
       setUserRole(data.role as UserRole);
+    } else {
+      setUserRole('user'); // Default to 'user' role if no role found
     }
   };
 
