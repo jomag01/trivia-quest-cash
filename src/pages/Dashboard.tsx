@@ -211,16 +211,18 @@ const Dashboard = () => {
             </Button>
           </Card>
 
-          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
-            <div className="flex items-center justify-between mb-4">
-              <Users className="w-8 h-8 text-primary" />
-              <Badge variant="outline" className="border-green-500 text-green-500">
-                {userStats.activeReferrals} Active
-              </Badge>
-            </div>
-            <div className="text-3xl font-bold mb-2">{userStats.referrals}</div>
-            <p className="text-sm text-muted-foreground">Total Referrals</p>
-          </Card>
+          {userStats.referrals > 0 && (
+            <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+              <div className="flex items-center justify-between mb-4">
+                <Users className="w-8 h-8 text-primary" />
+                <Badge variant="outline" className="border-green-500 text-green-500">
+                  {userStats.activeReferrals} Active
+                </Badge>
+              </div>
+              <div className="text-3xl font-bold mb-2">{userStats.referrals}</div>
+              <p className="text-sm text-muted-foreground">Total Referrals</p>
+            </Card>
+          )}
 
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
             <div className="flex items-center justify-between mb-4">
