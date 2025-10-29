@@ -42,11 +42,7 @@ const Dashboard = () => {
   const fetchAllData = async () => {
     setDataLoading(true);
     try {
-      await Promise.all([
-        fetchWallet(),
-        fetchCategories(),
-        fetchCompletedCategories()
-      ]);
+      await Promise.all([fetchWallet(), fetchCategories(), fetchCompletedCategories()]);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {
@@ -79,29 +75,26 @@ const Dashboard = () => {
       console.error("Error fetching wallet:", error);
     }
   };
-
   const fetchCategories = async () => {
     try {
-      const { data, error } = await (supabase as any)
-        .from('game_categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('min_level_required', { ascending: true });
-      
+      const {
+        data,
+        error
+      } = await (supabase as any).from('game_categories').select('*').eq('is_active', true).order('min_level_required', {
+        ascending: true
+      });
       if (error) throw error;
       setCategories(data || []);
     } catch (error: any) {
       console.error("Error fetching categories:", error);
     }
   };
-
   const fetchCompletedCategories = async () => {
     try {
-      const { data, error } = await (supabase as any)
-        .from('user_completed_categories')
-        .select('category_id')
-        .eq('user_id', user?.id);
-      
+      const {
+        data,
+        error
+      } = await (supabase as any).from('user_completed_categories').select('category_id').eq('user_id', user?.id);
       if (error) throw error;
       setCompletedCategories(data?.map((c: any) => c.category_id) || []);
     } catch (error: any) {
@@ -211,8 +204,7 @@ const Dashboard = () => {
             </Button>
           </Card>
 
-          {userStats.referrals > 0 && (
-            <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+          {userStats.referrals > 0 && <Card className="p-6 gradient-accent border-primary/20 shadow-card">
               <div className="flex items-center justify-between mb-4">
                 <Users className="w-8 h-8 text-primary" />
                 <Badge variant="outline" className="border-green-500 text-green-500">
@@ -221,8 +213,7 @@ const Dashboard = () => {
               </div>
               <div className="text-3xl font-bold mb-2">{userStats.referrals}</div>
               <p className="text-sm text-muted-foreground">Total Referrals</p>
-            </Card>
-          )}
+            </Card>}
 
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
             <div className="flex items-center justify-between mb-4">
@@ -272,7 +263,7 @@ const Dashboard = () => {
                     <Badge variant="outline" className="w-16 justify-center border-primary/50">
                       Level {level.level}
                     </Badge>
-                    <span className="font-semibold">{level.count} members</span>
+                    
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-primary">{formatCurrency(level.earnings, profile.currency)}</div>
