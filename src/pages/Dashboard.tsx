@@ -204,7 +204,7 @@ const Dashboard = () => {
               <Target className="w-8 h-8 text-primary" />
               <Clock className="w-5 h-5 text-muted-foreground" />
             </div>
-            <div className="text-3xl font-bold mb-2">{userStats.credits}</div>
+            <div className="text-3xl font-bold mb-2">₱{userStats.credits}</div>
             <p className="text-sm text-muted-foreground">Available Credits</p>
             <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setShowBuyCredits(true)}>
               Buy More Credits
