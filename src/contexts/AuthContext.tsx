@@ -45,11 +45,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (!error && data) {
       setProfile(data as Profile);
-    } else if (!data) {
-      console.error("No profile found for user:", userId);
+      return;
+    }
+
+    // Auto-create profile if missing to prevent dashboard from stalling
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const authUser = userData?.user;
+
+      const generatedReferral = `GAME${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+
+      const insertPayload = {
+        id: userId,
+        email: authUser?.email ?? null,
+        full_name: (authUser?.user_metadata as any)?.full_name ?? (authUser?.user_metadata as any)?.name ?? null,
+        country: (authUser?.user_metadata as any)?.country ?? null,
+        currency: ((authUser?.user_metadata as any)?.currency as CurrencyCode) ?? 'PHP',
+        currency_symbol: (authUser?.user_metadata as any)?.currency_symbol ?? '₱',
+        referral_code: (authUser?.user_metadata as any)?.referral_code ?? generatedReferral,
+        referred_by: (authUser?.user_metadata as any)?.referred_by ?? null,
+      };
+      const { data: newProfile, error: insertError } = await supabase
+        .from('profiles')
+        .insert([insertPayload])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("Failed to create missing profile:", insertError);
+        return;
+      }
+
+      setProfile(newProfile as Profile);
+    } catch (e) {
+      console.error("Error handling missing profile:", e);
     }
   };
-
   const fetchUserRole = async (userId: string) => {
     const { data, error } = await supabase
       .from('user_roles')
