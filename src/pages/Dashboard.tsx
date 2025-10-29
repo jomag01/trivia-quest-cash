@@ -266,7 +266,7 @@ const Dashboard = () => {
                     
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-primary">{formatCurrency(level.earnings, profile.currency)}</div>
+                    
                     <div className="text-xs text-muted-foreground">earned</div>
                   </div>
                 </div>)}
