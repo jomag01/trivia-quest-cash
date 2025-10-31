@@ -38,18 +38,35 @@ export const GenealogyDialog = ({ open, onOpenChange, level, userId }: Genealogy
     try {
       setLoading(true);
       
-      // Fetch members at the specified level in the referral tree
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, email, created_at, referral_code, credits")
-        .eq("referred_by", userId)
-        .order("created_at", { ascending: false });
+      // Recursively fetch members at the specified level
+      let currentLevelIds = [userId];
+      
+      // Navigate down the tree to the requested level
+      for (let i = 0; i < level; i++) {
+        if (currentLevelIds.length === 0) break;
+        
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id")
+          .in("referred_by", currentLevelIds);
+          
+        if (error) throw error;
+        currentLevelIds = data?.map(p => p.id) || [];
+      }
+      
+      // Now fetch full details of members at this level
+      if (currentLevelIds.length > 0) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, created_at, referral_code, credits")
+          .in("id", currentLevelIds)
+          .order("created_at", { ascending: false });
 
-      if (error) throw error;
-
-      // For now, showing direct referrals (Level 1)
-      // In a full implementation, you'd need to recursively fetch based on level
-      setMembers(data || []);
+        if (error) throw error;
+        setMembers(data || []);
+      } else {
+        setMembers([]);
+      }
     } catch (error: any) {
       console.error("Error fetching members:", error);
       toast.error("Failed to load member list");
