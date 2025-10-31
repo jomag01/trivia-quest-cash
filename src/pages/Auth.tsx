@@ -64,24 +64,16 @@ const Auth = () => {
         let referrerId: string | null = null;
         const normalizedCode = referralCode.trim().toUpperCase();
         if (normalizedCode) {
-          const { data: referrerProfile, error: referralError } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('referral_code', normalizedCode)
-            .maybeSingle();
+          const { data, error } = await supabase.functions.invoke('validate-referral', {
+            body: { referralCode: normalizedCode }
+          });
 
-          if (referralError) {
-            console.error("Referral lookup error:", referralError);
-            toast.error("Unable to validate referral code. Please try again.");
+          if (error || !data?.valid) {
+            toast.error(data?.error || "Invalid referral code. Please check and try again.");
             setLoading(false);
             return;
           }
-          if (!referrerProfile) {
-            toast.error("Invalid referral code. Please check and try again.");
-            setLoading(false);
-            return;
-          }
-          referrerId = (referrerProfile as any).id as string;
+          referrerId = data.referrerId;
         }
 
         // Prepare user metadata
