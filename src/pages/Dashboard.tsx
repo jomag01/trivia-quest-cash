@@ -26,6 +26,7 @@ const Dashboard = () => {
   const [wallet, setWallet] = useState<any>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [completedCategories, setCompletedCategories] = useState<string[]>([]);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   useEffect(() => {
     if (!loading && !user) {
@@ -42,11 +43,30 @@ const Dashboard = () => {
   const fetchAllData = async () => {
     setDataLoading(true);
     try {
-      await Promise.all([fetchWallet(), fetchCategories(), fetchCompletedCategories()]);
+      await Promise.all([fetchWallet(), fetchCategories(), fetchCompletedCategories(), fetchReferrer()]);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {
       setDataLoading(false);
+    }
+  };
+  
+  const fetchReferrer = async () => {
+    try {
+      if (profile?.referred_by) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name, email")
+          .eq("id", profile.referred_by)
+          .maybeSingle();
+        
+        if (error) throw error;
+        if (data) {
+          setReferrerName(data.full_name || data.email);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error fetching referrer:", error);
     }
   };
   const fetchWallet = async () => {
@@ -169,7 +189,17 @@ const Dashboard = () => {
               <h2 className="text-2xl font-bold text-gradient-gold">
                 {profile.full_name || profile.email}
               </h2>
-              <p className="text-sm text-muted-foreground">Player ID: {userStats.referralCode}</p>
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-muted-foreground">Player ID: {userStats.referralCode}</p>
+                {referrerName && (
+                  <>
+                    <span className="text-sm text-muted-foreground">•</span>
+                    <p className="text-sm text-muted-foreground">
+                      Referred by: <span className="text-primary font-semibold">{referrerName}</span>
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           <h1 className="text-4xl font-bold mb-2 text-gradient-gold">
