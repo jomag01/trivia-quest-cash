@@ -22,6 +22,8 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
   const [referenceNumber, setReferenceNumber] = useState("");
   const [senderName, setSenderName] = useState("");
   const [referralCode, setReferralCode] = useState("");
+  const [receiverName, setReceiverName] = useState("");
+  const [receiverAccount, setReceiverAccount] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const credits = Math.floor(Number(amount) / 10);
@@ -56,6 +58,16 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
       return;
     }
 
+    if (!receiverName.trim()) {
+      toast.error("Please enter receiver name");
+      return;
+    }
+
+    if (!receiverAccount.trim()) {
+      toast.error("Please enter receiver account");
+      return;
+    }
+
     setLoading(true);
     try {
       // Get current user
@@ -72,6 +84,8 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
           payment_method: paymentMethod,
           reference_number: referenceNumber,
           sender_name: senderName,
+          receiver_name: receiverName,
+          receiver_account: receiverAccount,
           referral_code: referralCode || null,
           status: "pending",
         });
@@ -83,6 +97,8 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
       setAmount("100");
       setReferenceNumber("");
       setSenderName("");
+      setReceiverName("");
+      setReceiverAccount("");
       setReferralCode("");
     } catch (error: any) {
       console.error("Payment error:", error);
@@ -198,6 +214,36 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
                 />
                 <p className="text-xs text-muted-foreground">
                   Enter the name used for the payment
+                </p>
+              </div>
+
+              {/* Receiver Name */}
+              <div className="space-y-2">
+                <Label htmlFor="receiver-name">Receiver Name *</Label>
+                <Input
+                  id="receiver-name"
+                  type="text"
+                  value={receiverName}
+                  onChange={(e) => setReceiverName(e.target.value)}
+                  placeholder="Enter receiver's full name"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the name of the person receiving payment
+                </p>
+              </div>
+
+              {/* Receiver Account */}
+              <div className="space-y-2">
+                <Label htmlFor="receiver-account">Receiver Account (Bank/E-wallet) *</Label>
+                <Input
+                  id="receiver-account"
+                  type="text"
+                  value={receiverAccount}
+                  onChange={(e) => setReceiverAccount(e.target.value)}
+                  placeholder="Enter account number or e-wallet number"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the receiver's bank account or e-wallet number
                 </p>
               </div>
 
