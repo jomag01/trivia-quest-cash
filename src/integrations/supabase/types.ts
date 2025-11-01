@@ -14,6 +14,64 @@ export type Database = {
   }
   public: {
     Tables: {
+      commissions: {
+        Row: {
+          amount: number
+          commission_type: string
+          created_at: string
+          from_user_id: string
+          id: string
+          level: number
+          notes: string | null
+          purchase_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          commission_type: string
+          created_at?: string
+          from_user_id: string
+          id?: string
+          level: number
+          notes?: string | null
+          purchase_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          commission_type?: string
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          level?: number
+          notes?: string | null
+          purchase_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "credit_purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_purchases: {
         Row: {
           admin_notes: string | null
@@ -448,6 +506,8 @@ export type Database = {
           created_at: string | null
           credits: number
           id: string
+          pending_commissions: number | null
+          total_commissions: number | null
           updated_at: string | null
           user_id: string
         }
@@ -456,6 +516,8 @@ export type Database = {
           created_at?: string | null
           credits?: number
           id?: string
+          pending_commissions?: number | null
+          total_commissions?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -464,6 +526,8 @@ export type Database = {
           created_at?: string | null
           credits?: number
           id?: string
+          pending_commissions?: number | null
+          total_commissions?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -474,9 +538,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_level5_bonus: { Args: { player_id: string }; Returns: undefined }
       claim_level_prize: {
         Args: { _level: number; _user_id: string }
         Returns: Json
+      }
+      distribute_purchase_commissions: {
+        Args: {
+          amount_param: number
+          buyer_id: string
+          purchase_id_param: string
+        }
+        Returns: undefined
       }
       generate_order_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }

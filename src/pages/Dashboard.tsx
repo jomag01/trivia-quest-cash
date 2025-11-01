@@ -27,6 +27,8 @@ const Dashboard = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [completedCategories, setCompletedCategories] = useState<string[]>([]);
   const [referrerName, setReferrerName] = useState<string | null>(null);
+  const [referralLevelsData, setReferralLevelsData] = useState<any[]>([]);
+  const [commissions, setCommissions] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   useEffect(() => {
     if (!loading && !user) {
@@ -43,7 +45,14 @@ const Dashboard = () => {
   const fetchAllData = async () => {
     setDataLoading(true);
     try {
-      await Promise.all([fetchWallet(), fetchCategories(), fetchCompletedCategories(), fetchReferrer()]);
+      await Promise.all([
+        fetchWallet(), 
+        fetchCategories(), 
+        fetchCompletedCategories(), 
+        fetchReferrer(),
+        fetchReferralLevels(),
+        fetchCommissions()
+      ]);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {
@@ -121,6 +130,71 @@ const Dashboard = () => {
       console.error("Error fetching completed categories:", error);
     }
   };
+
+  const fetchReferralLevels = async () => {
+    try {
+      const levelsData = [];
+      let currentLevelIds = [user?.id];
+      
+      // Fetch counts and earnings for each of the 7 levels
+      for (let level = 1; level <= 7; level++) {
+        if (currentLevelIds.length === 0) {
+          levelsData.push({ level, count: 0, earnings: 0 });
+          continue;
+        }
+        
+        // Get members at this level
+        const { data: members, error: membersError } = await supabase
+          .from("profiles")
+          .select("id")
+          .in("referred_by", currentLevelIds);
+          
+        if (membersError) throw membersError;
+        
+        const memberIds = members?.map(m => m.id) || [];
+        
+        // Get earnings from this level
+        const { data: levelCommissions, error: commissionsError } = await supabase
+          .from("commissions")
+          .select("amount")
+          .eq("user_id", user?.id)
+          .eq("level", level);
+          
+        if (commissionsError) throw commissionsError;
+        
+        const earnings = levelCommissions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+        
+        levelsData.push({
+          level,
+          count: memberIds.length,
+          earnings
+        });
+        
+        // Move to next level
+        currentLevelIds = memberIds;
+      }
+      
+      setReferralLevelsData(levelsData);
+    } catch (error: any) {
+      console.error("Error fetching referral levels:", error);
+    }
+  };
+
+  const fetchCommissions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("commissions")
+        .select("*")
+        .eq("user_id", user?.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+        
+      if (error) throw error;
+      setCommissions(data || []);
+    } catch (error: any) {
+      console.error("Error fetching commissions:", error);
+    }
+  };
   if (loading || !profile || dataLoading) {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -130,45 +204,30 @@ const Dashboard = () => {
       </div>;
   }
 
-  // Mock data - will be replaced with real data from database
+  // Calculate user stats from real data
+  const totalReferrals = referralLevelsData.reduce((sum, level) => sum + level.count, 0);
+  const directReferrals = referralLevelsData.find(l => l.level === 1)?.count || 0;
+  
   const userStats = {
-    currentLevel: 5,
+    currentLevel: completedCategories.length,
     credits: wallet?.credits || 0,
-    referrals: 3,
-    activeReferrals: 2,
+    referrals: totalReferrals,
+    activeReferrals: directReferrals,
     totalEarnings: wallet?.balance || 0,
-    pendingEarnings: 350,
+    totalCommissions: wallet?.total_commissions || 0,
+    pendingCommissions: wallet?.pending_commissions || 0,
     referralCode: profile.referral_code
   };
-  const referralLevels = [{
-    level: 1,
-    count: 3,
-    earnings: 500
-  }, {
-    level: 2,
-    count: 8,
-    earnings: 800
-  }, {
-    level: 3,
-    count: 15,
-    earnings: 600
-  }, {
-    level: 4,
-    count: 25,
-    earnings: 400
-  }, {
-    level: 5,
-    count: 12,
-    earnings: 200
-  }, {
-    level: 6,
-    count: 5,
-    earnings: 100
-  }, {
-    level: 7,
-    count: 2,
-    earnings: 50
-  }];
+  
+  const referralLevels = referralLevelsData.length > 0 ? referralLevelsData : [
+    { level: 1, count: 0, earnings: 0 },
+    { level: 2, count: 0, earnings: 0 },
+    { level: 3, count: 0, earnings: 0 },
+    { level: 4, count: 0, earnings: 0 },
+    { level: 5, count: 0, earnings: 0 },
+    { level: 6, count: 0, earnings: 0 },
+    { level: 7, count: 0, earnings: 0 }
+  ];
   const copyReferralCode = () => {
     navigator.clipboard.writeText(userStats.referralCode);
     toast.success("Referral code copied to clipboard!");
@@ -247,12 +306,23 @@ const Dashboard = () => {
 
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
             <div className="flex items-center justify-between mb-4">
+              <TrendingUp className="w-8 h-8 text-primary" />
+              <Badge variant="outline" className="border-primary/50">
+                Commissions
+              </Badge>
+            </div>
+            <div className="text-3xl font-bold mb-2">₱{userStats.totalCommissions.toFixed(2)}</div>
+            <p className="text-sm text-muted-foreground">Total Commissions Earned</p>
+          </Card>
+
+          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+            <div className="flex items-center justify-between mb-4">
               <DollarSign className="w-8 h-8 text-primary" />
               <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
             <div className="text-3xl font-bold mb-2">{formatCurrency(userStats.totalEarnings, profile.currency)}</div>
             <p className="text-sm text-muted-foreground">Total Earnings</p>
-            <p className="text-xs text-primary mt-1">+{formatCurrency(userStats.pendingEarnings, profile.currency)} pending</p>
+            <p className="text-xs text-primary mt-1">+{formatCurrency(userStats.pendingCommissions, profile.currency)} pending</p>
           </Card>
         </div>
 
@@ -293,10 +363,13 @@ const Dashboard = () => {
                     <Badge variant="outline" className="w-16 justify-center border-primary/50">
                       Level {level.level}
                     </Badge>
-                    
+                    <div>
+                      <div className="font-semibold">{level.count} member{level.count !== 1 ? 's' : ''}</div>
+                      <div className="text-xs text-muted-foreground">in network</div>
+                    </div>
                   </div>
                   <div className="text-right">
-                    
+                    <div className="font-bold text-primary">₱{level.earnings.toFixed(2)}</div>
                     <div className="text-xs text-muted-foreground">earned</div>
                   </div>
                 </div>)}

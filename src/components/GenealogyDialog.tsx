@@ -41,8 +41,8 @@ export const GenealogyDialog = ({ open, onOpenChange, level, userId }: Genealogy
       // Recursively fetch members at the specified level
       let currentLevelIds = [userId];
       
-      // Navigate down the tree to the requested level
-      for (let i = 0; i < level; i++) {
+      // Navigate down the tree to the requested level (level 1 = direct referrals, so we navigate level-1 times)
+      for (let i = 0; i < level - 1; i++) {
         if (currentLevelIds.length === 0) break;
         
         const { data, error } = await supabase
