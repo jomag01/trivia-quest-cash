@@ -292,17 +292,25 @@ const Admin = () => {
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
+                  {purchase.proof_image_url && (
+                    <Button
+                      size="sm"
+                      onClick={() => setSelectedProof(purchase.proof_image_url)}
+                      variant="outline"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Proof
+                    </Button>
+                  )}
                   {purchase.status === "pending" && (
-                    <>
-                      <Button
-                        size="sm"
-                        onClick={() => setProcessingId(purchase.id)}
-                        variant="default"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Process
-                      </Button>
-                    </>
+                    <Button
+                      size="sm"
+                      onClick={() => setProcessingId(purchase.id)}
+                      variant="default"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Process
+                    </Button>
                   )}
                 </div>
               </div>

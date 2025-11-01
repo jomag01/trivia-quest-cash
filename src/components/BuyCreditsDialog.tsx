@@ -24,6 +24,8 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
   const [referralCode, setReferralCode] = useState("");
   const [receiverName, setReceiverName] = useState("");
   const [receiverAccount, setReceiverAccount] = useState("");
+  const [proofImage, setProofImage] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const credits = Math.floor(Number(amount) / 10);
@@ -74,6 +76,28 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      let proofImageUrl = null;
+
+      // Upload proof image if provided
+      if (proofImage) {
+        setUploading(true);
+        const fileExt = proofImage.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError, data: uploadData } = await supabase.storage
+          .from('payment-proofs')
+          .upload(fileName, proofImage);
+
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('payment-proofs')
+          .getPublicUrl(fileName);
+        
+        proofImageUrl = publicUrl;
+        setUploading(false);
+      }
+
       // Create credit purchase record
       const { error: purchaseError } = await supabase
         .from("credit_purchases")
@@ -87,6 +111,7 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
           receiver_name: receiverName,
           receiver_account: receiverAccount,
           referral_code: referralCode || null,
+          proof_image_url: proofImageUrl,
           status: "pending",
         });
 
@@ -100,6 +125,7 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
       setReceiverName("");
       setReceiverAccount("");
       setReferralCode("");
+      setProofImage(null);
     } catch (error: any) {
       console.error("Payment error:", error);
       toast.error(error.message || "Failed to submit payment");
@@ -247,6 +273,20 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
                 </p>
               </div>
 
+              {/* Payment Proof Image */}
+              <div className="space-y-2">
+                <Label htmlFor="proof">Payment Proof Image (Optional)</Label>
+                <Input
+                  id="proof"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setProofImage(e.target.files?.[0] || null)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload a screenshot of your payment confirmation
+                </p>
+              </div>
+
               {/* Referral Code */}
               <div className="space-y-2">
                 <Label htmlFor="referral">Referral Code (Optional)</Label>
@@ -290,8 +330,8 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
           <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
             Cancel
           </Button>
-          <Button onClick={handlePurchase} disabled={loading} className="flex-1">
-            {loading ? "Submitting..." : "Submit for Approval"}
+          <Button onClick={handlePurchase} disabled={loading || uploading} className="flex-1">
+            {uploading ? "Uploading..." : loading ? "Submitting..." : "Submit for Approval"}
           </Button>
         </div>
       </DialogContent>
