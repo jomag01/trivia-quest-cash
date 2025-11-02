@@ -77,6 +77,23 @@ export const questionsByCategory: Record<string, Question[]> = {
     { question: "Which ocean is the smallest?", options: ["Indian", "Atlantic", "Arctic", "Southern"], correctAnswer: 2, category: "geography" },
     { question: "In which continent is Egypt located?", options: ["Asia", "Africa", "Europe", "Middle East"], correctAnswer: 1, category: "geography" },
     { question: "What is the tallest waterfall in the world?", options: ["Niagara Falls", "Victoria Falls", "Angel Falls", "Iguazu Falls"], correctAnswer: 2, category: "geography" }
+  ],
+  scrambled: [
+    { question: "Unscramble: PELPA", options: ["APPLE", "APPLY", "PALPE", "PAPEL"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: TEWRA", options: ["WATER", "WEART", "TWARE", "REAWT"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: SOHEU", options: ["HOUSE", "HOCUS", "HUSEO", "SHOUT"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: KBOO", options: ["BOOK", "BOKO", "KOBO", "BOOB"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: EOHPN", options: ["PHONE", "HOPEN", "EPHON", "NOHEP"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: UMSCI", options: ["MUSIC", "SUMCI", "MICUS", "CUSIM"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: LEOWFR", options: ["FLOWER", "FOWLER", "WOLFER", "REFLWO"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: EMNOY", options: ["MONEY", "NOYME", "MEONY", "YENOM"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: NGARED", options: ["GARDEN", "DANGER", "GARNED", "NRAGED"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: CSHOOL", options: ["SCHOOL", "CHOLOS", "SOCHOL", "LOCHSO"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: DRIENF", options: ["FRIEND", "FINDER", "REDFIN", "KINDER"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: TMEHOR", options: ["MOTHER", "HERMIT", "THERMO", "HAMTER"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: TEWRIN", options: ["WINTER", "TWINER", "WRITEN", "INTREW"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: SUMERM", options: ["SUMMER", "RESUME", "MUNSER", "UNSMER"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: GNOINRM", options: ["MORNING", "NORMING", "IGNORING", "RONGING"], correctAnswer: 0, category: "scrambled" }
   ]
 };
 
@@ -91,6 +108,7 @@ export const getAllCategories = () => {
     { slug: "history", title: "History", icon: "📚" },
     { slug: "entertainment", title: "Entertainment", icon: "🎬" },
     { slug: "sports", title: "Sports", icon: "⚽" },
-    { slug: "geography", title: "Geography", icon: "🗺️" }
+    { slug: "geography", title: "Geography", icon: "🗺️" },
+    { slug: "scrambled", title: "Scrambled Words", icon: "🔀" }
   ];
 };
