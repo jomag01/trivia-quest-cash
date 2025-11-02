@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/currencies";
 import { BuyCreditsDialog } from "@/components/BuyCreditsDialog";
 import { CashOutDialog } from "@/components/CashOutDialog";
 import { GenealogyDialog } from "@/components/GenealogyDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -29,7 +30,9 @@ const Dashboard = () => {
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [referralLevelsData, setReferralLevelsData] = useState<any[]>([]);
   const [commissions, setCommissions] = useState<any[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [walletLoading, setWalletLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [referralLoading, setReferralLoading] = useState(true);
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -43,21 +46,13 @@ const Dashboard = () => {
 
   // Fetch all data in parallel for better performance
   const fetchAllData = async () => {
-    setDataLoading(true);
-    try {
-      await Promise.all([
-        fetchWallet(), 
-        fetchCategories(), 
-        fetchCompletedCategories(), 
-        fetchReferrer(),
-        fetchReferralLevels(),
-        fetchCommissions()
-      ]);
-    } catch (error) {
-      console.error("Error loading dashboard data:", error);
-    } finally {
-      setDataLoading(false);
-    }
+    // Fetch data independently without blocking UI
+    fetchWallet();
+    fetchCategories();
+    fetchCompletedCategories();
+    fetchReferrer();
+    fetchReferralLevels();
+    fetchCommissions();
   };
   
   const fetchReferrer = async () => {
@@ -102,6 +97,8 @@ const Dashboard = () => {
       }
     } catch (error: any) {
       console.error("Error fetching wallet:", error);
+    } finally {
+      setWalletLoading(false);
     }
   };
   const fetchCategories = async () => {
@@ -116,6 +113,8 @@ const Dashboard = () => {
       setCategories(data || []);
     } catch (error: any) {
       console.error("Error fetching categories:", error);
+    } finally {
+      setCategoriesLoading(false);
     }
   };
   const fetchCompletedCategories = async () => {
@@ -177,6 +176,8 @@ const Dashboard = () => {
       setReferralLevelsData(levelsData);
     } catch (error: any) {
       console.error("Error fetching referral levels:", error);
+    } finally {
+      setReferralLoading(false);
     }
   };
 
@@ -195,7 +196,7 @@ const Dashboard = () => {
       console.error("Error fetching commissions:", error);
     }
   };
-  if (loading || !profile || dataLoading) {
+  if (loading || !profile) {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Trophy className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse" />
@@ -272,13 +273,27 @@ const Dashboard = () => {
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
             <div className="flex items-center justify-between mb-4">
               <Trophy className="w-8 h-8 text-primary" />
-              <Badge variant="outline" className="border-primary/50">
-                Level {userStats.currentLevel}
-              </Badge>
+              {categoriesLoading ? (
+                <Skeleton className="h-6 w-16" />
+              ) : (
+                <Badge variant="outline" className="border-primary/50">
+                  Level {userStats.currentLevel}
+                </Badge>
+              )}
             </div>
-            <div className="text-3xl font-bold mb-2">{userStats.currentLevel}/10</div>
-            <p className="text-sm text-muted-foreground">Current Level</p>
-            <Progress value={userStats.currentLevel * 10} className="mt-3 h-2" />
+            {categoriesLoading ? (
+              <>
+                <Skeleton className="h-9 w-24 mb-2" />
+                <Skeleton className="h-4 w-32 mb-3" />
+                <Skeleton className="h-2 w-full" />
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-bold mb-2">{userStats.currentLevel}/10</div>
+                <p className="text-sm text-muted-foreground">Current Level</p>
+                <Progress value={userStats.currentLevel * 10} className="mt-3 h-2" />
+              </>
+            )}
           </Card>
 
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
@@ -286,14 +301,24 @@ const Dashboard = () => {
               <Target className="w-8 h-8 text-primary" />
               <Clock className="w-5 h-5 text-muted-foreground" />
             </div>
-            <div className="text-3xl font-bold mb-2">₱{userStats.credits}</div>
-            <p className="text-sm text-muted-foreground">Available Credits</p>
-            <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setShowBuyCredits(true)}>
-              Buy More Credits
-            </Button>
+            {walletLoading ? (
+              <>
+                <Skeleton className="h-9 w-24 mb-2" />
+                <Skeleton className="h-4 w-32 mb-3" />
+                <Skeleton className="h-9 w-full" />
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-bold mb-2">₱{userStats.credits}</div>
+                <p className="text-sm text-muted-foreground">Available Credits</p>
+                <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setShowBuyCredits(true)}>
+                  Buy More Credits
+                </Button>
+              </>
+            )}
           </Card>
 
-          {userStats.referrals > 0 && <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+          {!referralLoading && userStats.referrals > 0 && <Card className="p-6 gradient-accent border-primary/20 shadow-card">
               <div className="flex items-center justify-between mb-4">
                 <Users className="w-8 h-8 text-primary" />
                 <Badge variant="outline" className="border-green-500 text-green-500">
@@ -311,8 +336,17 @@ const Dashboard = () => {
                 Commissions
               </Badge>
             </div>
-            <div className="text-3xl font-bold mb-2">₱{userStats.totalCommissions.toFixed(2)}</div>
-            <p className="text-sm text-muted-foreground">Total Commissions Earned</p>
+            {walletLoading ? (
+              <>
+                <Skeleton className="h-9 w-24 mb-2" />
+                <Skeleton className="h-4 w-40" />
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-bold mb-2">₱{userStats.totalCommissions.toFixed(2)}</div>
+                <p className="text-sm text-muted-foreground">Total Commissions Earned</p>
+              </>
+            )}
           </Card>
 
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
@@ -320,9 +354,19 @@ const Dashboard = () => {
               <DollarSign className="w-8 h-8 text-primary" />
               <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
-            <div className="text-3xl font-bold mb-2">{formatCurrency(userStats.totalEarnings, profile.currency)}</div>
-            <p className="text-sm text-muted-foreground">Total Earnings</p>
-            <p className="text-xs text-primary mt-1">+{formatCurrency(userStats.pendingCommissions, profile.currency)} pending</p>
+            {walletLoading ? (
+              <>
+                <Skeleton className="h-9 w-32 mb-2" />
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-24 mt-1" />
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-bold mb-2">{formatCurrency(userStats.totalEarnings, profile.currency)}</div>
+                <p className="text-sm text-muted-foreground">Total Earnings</p>
+                <p className="text-xs text-primary mt-1">+{formatCurrency(userStats.pendingCommissions, profile.currency)} pending</p>
+              </>
+            )}
           </Card>
         </div>
 
@@ -358,21 +402,41 @@ const Dashboard = () => {
             </h2>
 
             <div className="space-y-3">
-              {referralLevels.map(level => <div key={level.level} className="flex items-center justify-between p-4 bg-background/20 rounded-lg hover:bg-background/30 transition-smooth cursor-pointer" onClick={() => openGenealogy(level.level)}>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="w-16 justify-center border-primary/50">
-                      Level {level.level}
-                    </Badge>
-                    <div>
-                      <div className="font-semibold">{level.count} member{level.count !== 1 ? 's' : ''}</div>
-                      <div className="text-xs text-muted-foreground">in network</div>
+              {referralLoading ? (
+                Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="p-4 bg-background/20 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-6 w-16" />
+                        <div>
+                          <Skeleton className="h-5 w-24 mb-1" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Skeleton className="h-5 w-16 mb-1" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-primary">₱{level.earnings.toFixed(2)}</div>
-                    <div className="text-xs text-muted-foreground">earned</div>
-                  </div>
-                </div>)}
+                ))
+              ) : (
+                referralLevels.map(level => <div key={level.level} className="flex items-center justify-between p-4 bg-background/20 rounded-lg hover:bg-background/30 transition-smooth cursor-pointer" onClick={() => openGenealogy(level.level)}>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="w-16 justify-center border-primary/50">
+                        Level {level.level}
+                      </Badge>
+                      <div>
+                        <div className="font-semibold">{level.count} member{level.count !== 1 ? 's' : ''}</div>
+                        <div className="text-xs text-muted-foreground">in network</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-primary">₱{level.earnings.toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">earned</div>
+                    </div>
+                  </div>)
+              )}
             </div>
           </Card>
 
