@@ -161,6 +161,7 @@ const Shop = () => {
   };
 
   const getEffectivePrice = (product: any) => {
+    if (!product) return 0;
     if (product.promo_active && product.promo_price) {
       return product.promo_price;
     }
