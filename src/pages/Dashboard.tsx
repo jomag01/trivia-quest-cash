@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +12,8 @@ import { formatCurrency } from "@/lib/currencies";
 import { BuyCreditsDialog } from "@/components/BuyCreditsDialog";
 import { CashOutDialog } from "@/components/CashOutDialog";
 import { GenealogyDialog } from "@/components/GenealogyDialog";
+import { CartView } from "@/components/CartView";
+import { WishlistView } from "@/components/WishlistView";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 const Dashboard = () => {
@@ -33,6 +36,7 @@ const Dashboard = () => {
   const [walletLoading, setWalletLoading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [referralLoading, setReferralLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -268,8 +272,17 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Track your progress and earnings</p>
         </div>
 
-        {/* Main Stats Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="cart">Shopping Cart</TabsTrigger>
+            <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-8">
+            {/* Main Stats Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
             <div className="flex items-center justify-between mb-4">
               <Trophy className="w-8 h-8 text-primary" />
@@ -502,7 +515,17 @@ const Dashboard = () => {
         <BuyCreditsDialog open={showBuyCredits} onOpenChange={setShowBuyCredits} />
         <CashOutDialog open={showCashOut} onOpenChange={setShowCashOut} currentBalance={wallet?.balance || 0} />
         <GenealogyDialog open={showGenealogy} onOpenChange={setShowGenealogy} level={selectedLevel} userId={user?.id || ''} />
-      </div>
-    </div>;
+      </TabsContent>
+
+      <TabsContent value="cart">
+        <CartView />
+      </TabsContent>
+
+      <TabsContent value="wishlist">
+        <WishlistView />
+      </TabsContent>
+    </Tabs>
+  </div>
+</div>;
 };
 export default Dashboard;

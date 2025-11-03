@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Package, Search, Filter } from "lucide-react";
+import { ShoppingCart, Package, Search, Filter, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,11 +40,17 @@ const Shop = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [inCart, setInCart] = useState<Set<string>>(new Set());
+  const [inWishlist, setInWishlist] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchProducts();
     fetchCategories();
-  }, []);
+    if (user) {
+      fetchCartStatus();
+      fetchWishlistStatus();
+    }
+  }, [user]);
 
   const fetchProducts = async () => {
     try {
@@ -75,6 +81,108 @@ const Shop = () => {
       setCategories(data || []);
     } catch (error: any) {
       console.error("Error fetching categories:", error);
+    }
+  };
+
+  const fetchCartStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("cart")
+        .select("product_id")
+        .eq("user_id", user?.id);
+
+      if (error) throw error;
+      setInCart(new Set(data?.map((item) => item.product_id) || []));
+    } catch (error: any) {
+      console.error("Error fetching cart status:", error);
+    }
+  };
+
+  const fetchWishlistStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("wishlist")
+        .select("product_id")
+        .eq("user_id", user?.id);
+
+      if (error) throw error;
+      setInWishlist(new Set(data?.map((item) => item.product_id) || []));
+    } catch (error: any) {
+      console.error("Error fetching wishlist status:", error);
+    }
+  };
+
+  const addToCart = async (productId: string) => {
+    if (!user) {
+      toast.error("Please login to add items to cart");
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      const { data: existing } = await supabase
+        .from("cart")
+        .select("id, quantity")
+        .eq("user_id", user.id)
+        .eq("product_id", productId)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase
+          .from("cart")
+          .update({ quantity: existing.quantity + 1 })
+          .eq("id", existing.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("cart").insert({
+          user_id: user.id,
+          product_id: productId,
+          quantity: 1,
+        });
+
+        if (error) throw error;
+      }
+
+      fetchCartStatus();
+      toast.success("Added to cart");
+    } catch (error: any) {
+      console.error("Error adding to cart:", error);
+      toast.error("Failed to add to cart");
+    }
+  };
+
+  const toggleWishlist = async (productId: string) => {
+    if (!user) {
+      toast.error("Please login to add items to wishlist");
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      if (inWishlist.has(productId)) {
+        const { error } = await supabase
+          .from("wishlist")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("product_id", productId);
+
+        if (error) throw error;
+        toast.success("Removed from wishlist");
+      } else {
+        const { error } = await supabase.from("wishlist").insert({
+          user_id: user.id,
+          product_id: productId,
+        });
+
+        if (error) throw error;
+        toast.success("Added to wishlist");
+      }
+
+      fetchWishlistStatus();
+    } catch (error: any) {
+      console.error("Error toggling wishlist:", error);
+      toast.error("Failed to update wishlist");
     }
   };
 
@@ -251,14 +359,35 @@ const Shop = () => {
                 </p>
               </div>
 
-              <Button
-                className="w-full"
-                onClick={() => handleBuyNow(product)}
-                disabled={!product.stock_quantity || product.stock_quantity === 0}
-              >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                {product.stock_quantity > 0 ? "Buy Now" : "Out of Stock"}
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  className="w-full"
+                  onClick={() => handleBuyNow(product)}
+                  disabled={!product.stock_quantity || product.stock_quantity === 0}
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  {product.stock_quantity > 0 ? "Buy Now" : "Out of Stock"}
+                </Button>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => addToCart(product.id)}
+                    disabled={!product.stock_quantity || product.stock_quantity === 0 || inCart.has(product.id)}
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    {inCart.has(product.id) ? "In Cart" : "Add to Cart"}
+                  </Button>
+                  
+                  <Button
+                    variant={inWishlist.has(product.id) ? "default" : "outline"}
+                    onClick={() => toggleWishlist(product.id)}
+                  >
+                    <Heart className={`w-4 h-4 mr-2 ${inWishlist.has(product.id) ? "fill-current" : ""}`} />
+                    {inWishlist.has(product.id) ? "Saved" : "Wishlist"}
+                  </Button>
+                </div>
+              </div>
             </Card>
           ))}
         </div>
