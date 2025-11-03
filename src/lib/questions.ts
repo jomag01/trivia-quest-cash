@@ -93,7 +93,27 @@ export const questionsByCategory: Record<string, Question[]> = {
     { question: "Unscramble: TMEHOR", options: ["MOTHER", "HERMIT", "THERMO", "HAMTER"], correctAnswer: 0, category: "scrambled" },
     { question: "Unscramble: TEWRIN", options: ["WINTER", "TWINER", "WRITEN", "INTREW"], correctAnswer: 0, category: "scrambled" },
     { question: "Unscramble: SUMERM", options: ["SUMMER", "RESUME", "MUNSER", "UNSMER"], correctAnswer: 0, category: "scrambled" },
-    { question: "Unscramble: GNOINRM", options: ["MORNING", "NORMING", "IGNORING", "RONGING"], correctAnswer: 0, category: "scrambled" }
+    { question: "Unscramble: GNOINRM", options: ["MORNING", "NORMING", "IGNORING", "RONGING"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: HOTOCALE", options: ["CHOCOLATE", "CHATOCOLE", "CHOTALECO", "TOLACHECO"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: POMEUCTR", options: ["COMPUTER", "COMPUTRE", "COMUPTER", "RECOMPUT"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: TUERPIC", options: ["PICTURE", "PICUTRE", "PRUETIC", "TRUCIPE"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: ANMLIA", options: ["ANIMAL", "MANILA", "ANMAIL", "MALINA"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: TNESUD", options: ["STUDENT", "DENTUS", "TUDENTS", "STUNTED"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: ITCPALE", options: ["CAPITAL", "PATICAL", "CAPILAT", "TALIPAC"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: EAFYRCT", options: ["FACTORY", "CRAFTEY", "FACTERY", "REFACTY"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: ANGHCIN", options: ["CHAINED", "CHANGED", "CHAINNG", "NACHING"], correctAnswer: 1, category: "scrambled" },
+    { question: "Unscramble: AIRTRPO", options: ["AIRPORT", "PATRIOR", "TRAIPOR", "ROPATIR"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: TCHIKNE", options: ["KITCHEN", "CHICKEN", "THICKEN", "KITCNEH"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: RHTWEEA", options: ["WEATHER", "HEATHER", "WREATHA", "WREATHE"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: LAEBSKT", options: ["BASKETS", "BLANKETS", "TABLETS", "STABLES"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: ONICAET", options: ["CAUTION", "AUCTION", "CAPTION", "CREATION"], correctAnswer: 3, category: "scrambled" },
+    { question: "Unscramble: WDNOWI", options: ["WINDOW", "WINDED", "WONDIR", "WIDNOW"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: EABTTYR", options: ["BATTERY", "BETRAY", "BATERRY", "TREYBAT"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: HCRAATE", options: ["CHAPTER", "TEACHER", "CHARTER", "CHATTER"], correctAnswer: 1, category: "scrambled" },
+    { question: "Unscramble: GSAEEMS", options: ["MESSAGE", "SAUSAGE", "PASSAGE", "MASSAGE"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: ORCEKB", options: ["BROKEN", "BROKER", "ROCKER", "CORNER"], correctAnswer: 1, category: "scrambled" },
+    { question: "Unscramble: GLUAGEN", options: ["LANGUAGE", "GANGUEL", "LEGAUNG", "GUANGLE"], correctAnswer: 0, category: "scrambled" },
+    { question: "Unscramble: AEFHTR", options: ["FATHER", "FEATHER", "RAFETH", "HAFERT"], correctAnswer: 0, category: "scrambled" }
   ]
 };
 
