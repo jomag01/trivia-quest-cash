@@ -21,6 +21,9 @@ interface Product {
   commission_percentage: number;
   category_id: string | null;
   is_active: boolean;
+  promo_price?: number;
+  discount_percentage?: number;
+  promo_active?: boolean;
 }
 
 interface ProductCategory {
@@ -66,7 +69,10 @@ export const ProductManagement = () => {
     base_price: "",
     commission_percentage: "10",
     category_id: "",
-    is_active: true
+    is_active: true,
+    promo_price: "",
+    discount_percentage: "0",
+    promo_active: false
   });
 
   // Variant form state
@@ -156,7 +162,10 @@ export const ProductManagement = () => {
       base_price: parseFloat(formData.base_price),
       commission_percentage: parseFloat(formData.commission_percentage),
       category_id: formData.category_id || null,
-      is_active: formData.is_active
+      is_active: formData.is_active,
+      promo_price: formData.promo_price ? parseFloat(formData.promo_price) : null,
+      discount_percentage: parseInt(formData.discount_percentage),
+      promo_active: formData.promo_active
     };
 
     if (editingProduct) {
@@ -305,7 +314,10 @@ export const ProductManagement = () => {
       base_price: "",
       commission_percentage: "10",
       category_id: "",
-      is_active: true
+      is_active: true,
+      promo_price: "",
+      discount_percentage: "0",
+      promo_active: false
     });
     setEditingProduct(null);
   };
@@ -318,7 +330,10 @@ export const ProductManagement = () => {
       base_price: product.base_price.toString(),
       commission_percentage: product.commission_percentage.toString(),
       category_id: product.category_id || "",
-      is_active: product.is_active
+      is_active: product.is_active,
+      promo_price: product.promo_price?.toString() || "",
+      discount_percentage: product.discount_percentage?.toString() || "0",
+      promo_active: product.promo_active || false
     });
     setIsDialogOpen(true);
   };
@@ -421,6 +436,46 @@ export const ProductManagement = () => {
                   />
                 </div>
               </div>
+              
+              <div className="border-t pt-4 mt-4">
+                <h3 className="font-semibold mb-3">Promotional Pricing</h3>
+                <div className="flex items-center space-x-2 mb-3">
+                  <Switch
+                    id="promo_active"
+                    checked={formData.promo_active}
+                    onCheckedChange={(checked) => setFormData({ ...formData, promo_active: checked })}
+                  />
+                  <Label htmlFor="promo_active">Enable Promo Price</Label>
+                </div>
+                {formData.promo_active && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="promo_price">Promo Price (₱)</Label>
+                      <Input
+                        id="promo_price"
+                        type="number"
+                        step="0.01"
+                        value={formData.promo_price}
+                        onChange={(e) => setFormData({ ...formData, promo_price: e.target.value })}
+                        placeholder="Enter promo price"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="discount_percentage">Discount (%)</Label>
+                      <Input
+                        id="discount_percentage"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={formData.discount_percentage}
+                        onChange={(e) => setFormData({ ...formData, discount_percentage: e.target.value })}
+                        placeholder="e.g., 20 for 20% off"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              
               <div className="flex items-center space-x-2">
                 <Switch
                   id="is_active"

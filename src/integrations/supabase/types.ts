@@ -174,6 +174,99 @@ export type Database = {
         }
         Relationships: []
       }
+      order_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          order_id: string
+          product_id: string
+          quantity: number
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          order_id: string
+          product_id: string
+          quantity: number
+          subtotal: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          order_id?: string
+          product_id?: string
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          notes: string | null
+          order_number: string
+          shipping_address: string
+          status: string
+          total_amount: number
+          tracking_number: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          order_number: string
+          shipping_address: string
+          status?: string
+          total_amount: number
+          tracking_number?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          order_number?: string
+          shipping_address?: string
+          status?: string
+          total_amount?: number
+          tracking_number?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payout_accounts: {
         Row: {
           account_name: string
@@ -407,9 +500,12 @@ export type Database = {
           commission_percentage: number
           created_at: string | null
           description: string
+          discount_percentage: number | null
           id: string
           is_active: boolean | null
           name: string
+          promo_active: boolean | null
+          promo_price: number | null
           updated_at: string | null
         }
         Insert: {
@@ -418,9 +514,12 @@ export type Database = {
           commission_percentage?: number
           created_at?: string | null
           description: string
+          discount_percentage?: number | null
           id?: string
           is_active?: boolean | null
           name: string
+          promo_active?: boolean | null
+          promo_price?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -429,9 +528,12 @@ export type Database = {
           commission_percentage?: number
           created_at?: string | null
           description?: string
+          discount_percentage?: number | null
           id?: string
           is_active?: boolean | null
           name?: string
+          promo_active?: boolean | null
+          promo_price?: number | null
           updated_at?: string | null
         }
         Relationships: [

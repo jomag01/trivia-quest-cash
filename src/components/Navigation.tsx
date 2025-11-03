@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
   Menu, Home, Gamepad2, 
-  LayoutDashboard, LogIn, LogOut, Trophy, Shield
+  LayoutDashboard, LogIn, LogOut, Trophy, Shield, ShoppingBag
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -17,6 +17,7 @@ const Navigation = () => {
   const navLinks = [
     { to: "/", label: "Home", icon: Home },
     { to: "/game", label: "Play Game", icon: Gamepad2 },
+    { to: "/shop", label: "Shop", icon: ShoppingBag },
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   ];
 
