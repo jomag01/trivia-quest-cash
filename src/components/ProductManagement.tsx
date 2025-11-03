@@ -51,12 +51,15 @@ export const ProductManagement = () => {
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [images, setImages] = useState<ProductImage[]>([]);
 
+  const [categories, setCategories] = useState<any[]>([]);
+
   // Form state
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     base_price: "",
     commission_percentage: "10",
+    category_id: "",
     is_active: true
   });
 
@@ -74,14 +77,32 @@ export const ProductManagement = () => {
   const [isPrimary, setIsPrimary] = useState(false);
 
   useEffect(() => {
+    fetchCategories();
     fetchProducts();
   }, []);
+
+  const fetchCategories = async () => {
+    const { data, error } = await supabase
+      .from("categories")
+      .select("*")
+      .eq("is_active", true)
+      .order("display_order");
+
+    if (error) {
+      console.error(error);
+    } else {
+      setCategories(data || []);
+    }
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("products")
-      .select("*")
+      .select(`
+        *,
+        categories (name)
+      `)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -131,6 +152,7 @@ export const ProductManagement = () => {
       description: formData.description,
       base_price: parseFloat(formData.base_price),
       commission_percentage: parseFloat(formData.commission_percentage),
+      category_id: formData.category_id || null,
       is_active: formData.is_active
     };
 
@@ -279,6 +301,7 @@ export const ProductManagement = () => {
       description: "",
       base_price: "",
       commission_percentage: "10",
+      category_id: "",
       is_active: true
     });
     setEditingProduct(null);
@@ -291,6 +314,7 @@ export const ProductManagement = () => {
       description: product.description,
       base_price: product.base_price.toString(),
       commission_percentage: product.commission_percentage.toString(),
+      category_id: (product as any).category_id || "",
       is_active: product.is_active
     });
     setIsDialogOpen(true);
@@ -350,6 +374,24 @@ export const ProductManagement = () => {
                   required
                 />
               </div>
+              <div>
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={formData.category_id}
+                  onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="base_price">Base Price (₱)</Label>
@@ -402,6 +444,7 @@ export const ProductManagement = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead>Base Price</TableHead>
               <TableHead>Commission</TableHead>
               <TableHead>Status</TableHead>
@@ -412,6 +455,9 @@ export const ProductManagement = () => {
             {products.map((product) => (
               <TableRow key={product.id}>
                 <TableCell className="font-medium">{product.name}</TableCell>
+                <TableCell>
+                  {(product as any).categories?.name || "Uncategorized"}
+                </TableCell>
                 <TableCell>₱{product.base_price.toFixed(2)}</TableCell>
                 <TableCell>{product.commission_percentage}%</TableCell>
                 <TableCell>
