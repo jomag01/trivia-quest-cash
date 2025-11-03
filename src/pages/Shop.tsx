@@ -164,7 +164,7 @@ const Shop = () => {
     if (product.promo_active && product.promo_price) {
       return product.promo_price;
     }
-    return product.price;
+    return product.base_price;
   };
 
   if (loading) {
@@ -241,7 +241,7 @@ const Shop = () => {
                   </span>
                   {product.promo_active && product.promo_price && (
                     <span className="text-sm text-muted-foreground line-through">
-                      ₱{product.price.toFixed(2)}
+                      ₱{product.base_price.toFixed(2)}
                     </span>
                   )}
                 </div>
@@ -275,6 +275,7 @@ const Shop = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Complete Your Order</DialogTitle>
+            <p className="text-sm text-muted-foreground">Fill in your shipping details to complete the purchase</p>
           </DialogHeader>
 
           <div className="space-y-4">
