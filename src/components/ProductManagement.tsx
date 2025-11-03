@@ -79,6 +79,8 @@ export const ProductManagement = () => {
     stock_quantity: "0"
   });
 
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   // Variant form state
   const [variantForm, setVariantForm] = useState({
     variant_type: "size" as 'size' | 'color' | 'weight',
@@ -463,17 +465,50 @@ export const ProductManagement = () => {
               </div>
               
               <div>
-                <Label htmlFor="image_url">Product Image URL</Label>
+                <Label htmlFor="image_upload">Product Image</Label>
                 <Input
-                  id="image_url"
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
+                  id="image_upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    setUploadingImage(true);
+                    try {
+                      const fileExt = file.name.split('.').pop();
+                      const fileName = `${Math.random()}.${fileExt}`;
+                      const filePath = `${fileName}`;
+
+                      const { error: uploadError } = await supabase.storage
+                        .from('product-images')
+                        .upload(filePath, file);
+
+                      if (uploadError) throw uploadError;
+
+                      const { data: { publicUrl } } = supabase.storage
+                        .from('product-images')
+                        .getPublicUrl(filePath);
+
+                      setFormData({ ...formData, image_url: publicUrl });
+                      toast.success("Image uploaded successfully");
+                    } catch (error) {
+                      console.error("Error uploading image:", error);
+                      toast.error("Failed to upload image");
+                    } finally {
+                      setUploadingImage(false);
+                    }
+                  }}
+                  disabled={uploadingImage}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Enter a direct link to product image
-                </p>
+                {uploadingImage && (
+                  <p className="text-xs text-muted-foreground mt-1">Uploading image...</p>
+                )}
+                {formData.image_url && !uploadingImage && (
+                  <div className="mt-2">
+                    <img src={formData.image_url} alt="Preview" className="w-32 h-32 object-cover rounded" />
+                  </div>
+                )}
               </div>
 
               <div>

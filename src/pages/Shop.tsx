@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { ProductDetailDialog } from "@/components/ProductDetailDialog";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +44,8 @@ const Shop = () => {
   const [shippingFee, setShippingFee] = useState(50); // Default shipping fee
   const [inCart, setInCart] = useState<Set<string>>(new Set());
   const [inWishlist, setInWishlist] = useState<Set<string>>(new Set());
+  const [detailDialog, setDetailDialog] = useState(false);
+  const [detailProduct, setDetailProduct] = useState<any>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -327,7 +330,11 @@ const Shop = () => {
           {filteredProducts.map((product) => (
             <Card
               key={product.id}
-              className="p-4 md:p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth flex flex-col"
+              className="p-4 md:p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth flex flex-col cursor-pointer"
+              onClick={() => {
+                setDetailProduct(product);
+                setDetailDialog(true);
+              }}
             >
               {/* Product Image */}
               <div className="mb-4 aspect-square rounded-lg overflow-hidden bg-background/20">
@@ -377,7 +384,10 @@ const Shop = () => {
               <div className="space-y-2">
                 <Button
                   className="w-full text-sm md:text-base"
-                  onClick={() => handleBuyNow(product)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleBuyNow(product);
+                  }}
                   disabled={!product.stock_quantity || product.stock_quantity === 0}
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
@@ -389,7 +399,10 @@ const Shop = () => {
                     variant="outline"
                     size="sm"
                     className="text-xs md:text-sm"
-                    onClick={() => addToCart(product.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToCart(product.id);
+                    }}
                     disabled={!product.stock_quantity || product.stock_quantity === 0 || inCart.has(product.id)}
                   >
                     <ShoppingCart className="w-3 h-3 md:w-4 md:h-4 mr-1" />
@@ -400,7 +413,10 @@ const Shop = () => {
                     variant={inWishlist.has(product.id) ? "default" : "outline"}
                     size="sm"
                     className="text-xs md:text-sm"
-                    onClick={() => toggleWishlist(product.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleWishlist(product.id);
+                    }}
                   >
                     <Heart className={`w-3 h-3 md:w-4 md:h-4 mr-1 ${inWishlist.has(product.id) ? "fill-current" : ""}`} />
                     {inWishlist.has(product.id) ? "Saved" : "Wishlist"}
@@ -522,6 +538,31 @@ const Shop = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Product Detail Dialog */}
+      <ProductDetailDialog
+        product={detailProduct}
+        open={detailDialog}
+        onOpenChange={setDetailDialog}
+        onBuyNow={() => {
+          if (detailProduct) {
+            setDetailDialog(false);
+            handleBuyNow(detailProduct);
+          }
+        }}
+        onAddToCart={() => {
+          if (detailProduct) {
+            addToCart(detailProduct.id);
+          }
+        }}
+        onToggleWishlist={() => {
+          if (detailProduct) {
+            toggleWishlist(detailProduct.id);
+          }
+        }}
+        inCart={detailProduct ? inCart.has(detailProduct.id) : false}
+        inWishlist={detailProduct ? inWishlist.has(detailProduct.id) : false}
+      />
     </div>
   );
 };
