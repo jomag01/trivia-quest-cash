@@ -288,6 +288,39 @@ export type Database = {
         }
         Relationships: []
       }
+      product_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       product_images: {
         Row: {
           created_at: string | null
@@ -370,6 +403,7 @@ export type Database = {
       products: {
         Row: {
           base_price: number
+          category_id: string | null
           commission_percentage: number
           created_at: string | null
           description: string
@@ -380,6 +414,7 @@ export type Database = {
         }
         Insert: {
           base_price: number
+          category_id?: string | null
           commission_percentage?: number
           created_at?: string | null
           description: string
@@ -390,6 +425,7 @@ export type Database = {
         }
         Update: {
           base_price?: number
+          category_id?: string | null
           commission_percentage?: number
           created_at?: string | null
           description?: string
@@ -398,7 +434,15 @@ export type Database = {
           name?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

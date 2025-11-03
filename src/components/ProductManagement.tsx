@@ -19,7 +19,14 @@ interface Product {
   description: string;
   base_price: number;
   commission_percentage: number;
+  category_id: string | null;
   is_active: boolean;
+}
+
+interface ProductCategory {
+  id: string;
+  name: string;
+  icon: string | null;
 }
 
 interface ProductVariant {
@@ -42,6 +49,7 @@ interface ProductImage {
 
 export const ProductManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -57,6 +65,7 @@ export const ProductManagement = () => {
     description: "",
     base_price: "",
     commission_percentage: "10",
+    category_id: "",
     is_active: true
   });
 
@@ -75,7 +84,22 @@ export const ProductManagement = () => {
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    const { data, error } = await supabase
+      .from("product_categories")
+      .select("id, name, icon")
+      .eq("is_active", true)
+      .order("display_order");
+
+    if (error) {
+      console.error("Failed to load categories", error);
+    } else {
+      setCategories(data || []);
+    }
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -131,6 +155,7 @@ export const ProductManagement = () => {
       description: formData.description,
       base_price: parseFloat(formData.base_price),
       commission_percentage: parseFloat(formData.commission_percentage),
+      category_id: formData.category_id || null,
       is_active: formData.is_active
     };
 
@@ -279,6 +304,7 @@ export const ProductManagement = () => {
       description: "",
       base_price: "",
       commission_percentage: "10",
+      category_id: "",
       is_active: true
     });
     setEditingProduct(null);
@@ -291,6 +317,7 @@ export const ProductManagement = () => {
       description: product.description,
       base_price: product.base_price.toString(),
       commission_percentage: product.commission_percentage.toString(),
+      category_id: product.category_id || "",
       is_active: product.is_active
     });
     setIsDialogOpen(true);
@@ -349,6 +376,24 @@ export const ProductManagement = () => {
                   rows={4}
                   required
                 />
+              </div>
+              <div>
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={formData.category_id}
+                  onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.icon} {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
