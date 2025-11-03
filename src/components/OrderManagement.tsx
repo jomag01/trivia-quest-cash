@@ -43,6 +43,7 @@ export const OrderManagement = () => {
     tracking_number: "",
     notes: "",
     shipping_address: "",
+    shipping_fee: 0,
   });
 
   useEffect(() => {
@@ -93,6 +94,7 @@ export const OrderManagement = () => {
       tracking_number: order.tracking_number || "",
       notes: order.notes || "",
       shipping_address: order.shipping_address || "",
+      shipping_fee: order.shipping_fee || 0,
     });
     await fetchOrderItems(order.id);
     setEditDialog(true);
@@ -109,6 +111,7 @@ export const OrderManagement = () => {
           tracking_number: editForm.tracking_number,
           notes: editForm.notes,
           shipping_address: editForm.shipping_address,
+          shipping_fee: editForm.shipping_fee,
         })
         .eq("id", selectedOrder.id);
 
@@ -410,6 +413,20 @@ export const OrderManagement = () => {
                     setEditForm({ ...editForm, shipping_address: e.target.value })
                   }
                   rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="shippingFee">Shipping Fee (₱)</Label>
+                <Input
+                  id="shippingFee"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editForm.shipping_fee}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, shipping_fee: parseFloat(e.target.value) || 0 })
+                  }
                 />
               </div>
 
