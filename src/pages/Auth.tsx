@@ -16,6 +16,10 @@ const Auth = () => {
   const { user } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetMethod, setResetMethod] = useState<'email' | 'phone'>('email');
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,17 +55,53 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/`,
+      if (resetMethod === 'email') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/`,
+        });
+
+        if (error) throw error;
+        
+        toast.success("Password reset email sent! Check your inbox.");
+        setIsForgotPassword(false);
+        setIsLogin(true);
+      } else {
+        // Send OTP to phone number
+        const { error } = await supabase.auth.signInWithOtp({
+          phone: phoneNumber,
+        });
+
+        if (error) throw error;
+        
+        toast.success("Verification code sent to your phone!");
+        setIsVerifying(true);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send reset code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        phone: phoneNumber,
+        token: verificationCode,
+        type: 'sms'
       });
 
       if (error) throw error;
       
-      toast.success("Password reset email sent! Check your inbox.");
+      toast.success("Phone verified! You can now set a new password.");
       setIsForgotPassword(false);
+      setIsVerifying(false);
       setIsLogin(true);
     } catch (error: any) {
-      toast.error(error.message || "Failed to send reset email");
+      toast.error(error.message || "Invalid verification code");
     } finally {
       setLoading(false);
     }
@@ -147,39 +187,124 @@ const Auth = () => {
         </div>
 
         {isForgotPassword ? (
-          <form onSubmit={handleForgotPassword} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="you@example.com"
-              />
-            </div>
+          isVerifying ? (
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="verificationCode">Verification Code</Label>
+                <Input
+                  id="verificationCode"
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  required
+                  placeholder="Enter 6-digit code"
+                  maxLength={6}
+                />
+              </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Sending..." : "Send Reset Link"}
-            </Button>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Verifying..." : "Verify Code"}
+              </Button>
 
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsForgotPassword(false);
-                  setIsLogin(true);
-                }}
-                className="text-sm text-primary hover:underline"
-              >
-                Back to Login
-              </button>
-            </div>
-          </form>
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsVerifying(false);
+                    setIsForgotPassword(false);
+                    setIsLogin(true);
+                  }}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Reset Method</Label>
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setResetMethod('email')}
+                    className={`flex-1 p-2 rounded border ${
+                      resetMethod === 'email' 
+                        ? 'border-primary bg-primary/10 text-primary' 
+                        : 'border-border'
+                    }`}
+                  >
+                    <Mail className="w-4 h-4 mx-auto mb-1" />
+                    Email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setResetMethod('phone')}
+                    className={`flex-1 p-2 rounded border ${
+                      resetMethod === 'phone' 
+                        ? 'border-primary bg-primary/10 text-primary' 
+                        : 'border-border'
+                    }`}
+                  >
+                    <User className="w-4 h-4 mx-auto mb-1" />
+                    Phone
+                  </button>
+                </div>
+              </div>
+
+              {resetMethod === 'email' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="you@example.com"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    required
+                    placeholder="+639123456789"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Include country code (e.g., +63 for Philippines)
+                  </p>
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Sending..." : resetMethod === 'email' ? "Send Reset Link" : "Send Code"}
+              </Button>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(false);
+                    setIsLogin(true);
+                  }}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </form>
+          )
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
