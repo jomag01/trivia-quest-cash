@@ -288,6 +288,118 @@ export type Database = {
         }
         Relationships: []
       }
+      product_images: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          image_url: string
+          is_primary: boolean | null
+          product_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_url: string
+          is_primary?: boolean | null
+          product_id: string
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          is_primary?: boolean | null
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_variants: {
+        Row: {
+          created_at: string | null
+          id: string
+          price_adjustment: number | null
+          product_id: string
+          sku: string | null
+          stock_quantity: number | null
+          updated_at: string | null
+          variant_type: Database["public"]["Enums"]["product_variant_type"]
+          variant_value: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          price_adjustment?: number | null
+          product_id: string
+          sku?: string | null
+          stock_quantity?: number | null
+          updated_at?: string | null
+          variant_type: Database["public"]["Enums"]["product_variant_type"]
+          variant_value: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          price_adjustment?: number | null
+          product_id?: string
+          sku?: string | null
+          stock_quantity?: number | null
+          updated_at?: string | null
+          variant_type?: Database["public"]["Enums"]["product_variant_type"]
+          variant_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          base_price: number
+          commission_percentage: number
+          created_at: string | null
+          description: string
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          base_price: number
+          commission_percentage?: number
+          created_at?: string | null
+          description: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          base_price?: number
+          commission_percentage?: number
+          created_at?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           country: string | null
@@ -571,6 +683,7 @@ export type Database = {
         | "in_transit"
         | "delivered"
         | "cancelled"
+      product_variant_type: "size" | "color" | "weight"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -706,6 +819,7 @@ export const Constants = {
         "delivered",
         "cancelled",
       ],
+      product_variant_type: ["size", "color", "weight"],
     },
   },
 } as const

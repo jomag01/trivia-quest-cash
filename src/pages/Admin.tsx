@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/dialog";
 import { CategoryManagement } from "@/components/CategoryManagement";
 import { PrizeManagement } from "@/components/PrizeManagement";
-import { Gamepad2, Trophy } from "lucide-react";
+import { ProductManagement } from "@/components/ProductManagement";
+import { Gamepad2, Trophy, ShoppingBag } from "lucide-react";
 
 interface CreditPurchase {
   id: string;
@@ -260,6 +261,10 @@ const Admin = () => {
             <Trophy className="w-4 h-4" />
             Prize Config
           </TabsTrigger>
+          <TabsTrigger value="products" className="flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4" />
+            Products
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="credits" className="space-y-4">
@@ -375,6 +380,10 @@ const Admin = () => {
 
         <TabsContent value="prizes">
           <PrizeManagement />
+        </TabsContent>
+
+        <TabsContent value="products">
+          <ProductManagement />
         </TabsContent>
       </Tabs>
 
