@@ -428,7 +428,22 @@ export const ProductManagement = () => {
                     type="number"
                     step="0.01"
                     value={formData.base_price}
-                    onChange={(e) => setFormData({ ...formData, base_price: e.target.value })}
+                    onChange={(e) => {
+                      const newBasePrice = e.target.value;
+                      setFormData({ ...formData, base_price: newBasePrice });
+                      
+                      // Auto-calculate promo price if discount is set
+                      if (formData.discount_percentage && parseFloat(formData.discount_percentage) > 0 && newBasePrice) {
+                        const basePrice = parseFloat(newBasePrice);
+                        const discount = parseFloat(formData.discount_percentage);
+                        const promoPrice = basePrice - (basePrice * discount / 100);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          base_price: newBasePrice,
+                          promo_price: promoPrice.toFixed(2)
+                        }));
+                      }
+                    }}
                     required
                   />
                 </div>
@@ -485,30 +500,89 @@ export const ProductManagement = () => {
                   <Label htmlFor="promo_active">Enable Promo Price</Label>
                 </div>
                 {formData.promo_active && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="promo_price">Promo Price (₱)</Label>
-                      <Input
-                        id="promo_price"
-                        type="number"
-                        step="0.01"
-                        value={formData.promo_price}
-                        onChange={(e) => setFormData({ ...formData, promo_price: e.target.value })}
-                        placeholder="Enter promo price"
-                      />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="discount_percentage">Discount (%)</Label>
+                        <Input
+                          id="discount_percentage"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={formData.discount_percentage}
+                          onChange={(e) => {
+                            const discount = e.target.value;
+                            const basePrice = parseFloat(formData.base_price);
+                            
+                            if (discount && basePrice) {
+                              const discountValue = parseFloat(discount);
+                              const promoPrice = basePrice - (basePrice * discountValue / 100);
+                              setFormData({ 
+                                ...formData, 
+                                discount_percentage: discount,
+                                promo_price: promoPrice.toFixed(2)
+                              });
+                            } else {
+                              setFormData({ ...formData, discount_percentage: discount });
+                            }
+                          }}
+                          placeholder="e.g., 20 for 20% off"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Promo price will be calculated automatically
+                        </p>
+                      </div>
+                      <div>
+                        <Label htmlFor="promo_price">Promo Price (₱)</Label>
+                        <Input
+                          id="promo_price"
+                          type="number"
+                          step="0.01"
+                          value={formData.promo_price}
+                          onChange={(e) => {
+                            const promoPrice = e.target.value;
+                            const basePrice = parseFloat(formData.base_price);
+                            
+                            if (promoPrice && basePrice) {
+                              const promoPriceValue = parseFloat(promoPrice);
+                              const discount = ((basePrice - promoPriceValue) / basePrice) * 100;
+                              setFormData({ 
+                                ...formData, 
+                                promo_price: promoPrice,
+                                discount_percentage: Math.max(0, discount).toFixed(0)
+                              });
+                            } else {
+                              setFormData({ ...formData, promo_price: promoPrice });
+                            }
+                          }}
+                          placeholder="Auto-calculated"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Or enter manually to calculate discount
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="discount_percentage">Discount (%)</Label>
-                      <Input
-                        id="discount_percentage"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={formData.discount_percentage}
-                        onChange={(e) => setFormData({ ...formData, discount_percentage: e.target.value })}
-                        placeholder="e.g., 20 for 20% off"
-                      />
-                    </div>
+                    
+                    {formData.base_price && formData.promo_price && (
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="flex justify-between text-sm">
+                          <span>Original Price:</span>
+                          <span className="font-semibold">₱{parseFloat(formData.base_price).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Discount:</span>
+                          <span className="font-semibold text-red-500">{formData.discount_percentage}% OFF</span>
+                        </div>
+                        <div className="flex justify-between text-sm border-t mt-2 pt-2">
+                          <span className="font-bold">Promo Price:</span>
+                          <span className="font-bold text-primary">₱{parseFloat(formData.promo_price).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>You save:</span>
+                          <span>₱{(parseFloat(formData.base_price) - parseFloat(formData.promo_price)).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
