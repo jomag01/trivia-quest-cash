@@ -25,6 +25,7 @@ export const CartView = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [shippingFee] = useState(50); // Default shipping fee
 
   useEffect(() => {
     if (user) {
@@ -107,7 +108,8 @@ export const CartView = () => {
 
       if (orderNumError) throw orderNumError;
 
-      const totalAmount = calculateTotal();
+      const subtotal = calculateTotal();
+      const totalAmount = subtotal + shippingFee;
 
       // Create order
       const { data: order, error: orderError } = await supabase
@@ -116,6 +118,7 @@ export const CartView = () => {
           user_id: user?.id,
           order_number: orderNumberData,
           total_amount: totalAmount,
+          shipping_fee: shippingFee,
           shipping_address: shippingAddress,
           customer_name: customerName,
           customer_email: customerEmail,
@@ -234,11 +237,21 @@ export const CartView = () => {
         ))}
 
         <Card className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-xl font-bold">Total:</span>
-            <span className="text-2xl font-bold text-primary">
-              ₱{calculateTotal().toFixed(2)}
-            </span>
+          <div className="space-y-2 mb-4">
+            <div className="flex justify-between text-sm">
+              <span>Subtotal:</span>
+              <span>₱{calculateTotal().toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Shipping Fee:</span>
+              <span>₱{shippingFee.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t">
+              <span className="text-xl font-bold">Total:</span>
+              <span className="text-2xl font-bold text-primary">
+                ₱{(calculateTotal() + shippingFee).toFixed(2)}
+              </span>
+            </div>
           </div>
           <Button className="w-full" size="lg" onClick={() => setCheckoutDialog(true)}>
             <ShoppingCart className="w-4 h-4 mr-2" />
@@ -306,10 +319,18 @@ export const CartView = () => {
               />
             </div>
 
-            <div className="pt-4 border-t">
-              <div className="flex justify-between text-lg font-bold">
+            <div className="pt-4 border-t space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal:</span>
+                <span>₱{calculateTotal().toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Shipping Fee:</span>
+                <span>₱{shippingFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>Total:</span>
-                <span className="text-primary">₱{calculateTotal().toFixed(2)}</span>
+                <span className="text-primary">₱{(calculateTotal() + shippingFee).toFixed(2)}</span>
               </div>
             </div>
           </div>

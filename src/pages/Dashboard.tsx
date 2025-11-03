@@ -15,6 +15,7 @@ import { GenealogyDialog } from "@/components/GenealogyDialog";
 import { CartView } from "@/components/CartView";
 import { WishlistView } from "@/components/WishlistView";
 import { CartWidget } from "@/components/CartWidget";
+import { OrderTracking } from "@/components/OrderTracking";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 const Dashboard = () => {
@@ -279,6 +280,7 @@ const Dashboard = () => {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="cart">Shopping Cart</TabsTrigger>
             <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
+            <TabsTrigger value="orders">My Orders</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
@@ -527,6 +529,10 @@ const Dashboard = () => {
 
       <TabsContent value="wishlist">
         <WishlistView />
+      </TabsContent>
+
+      <TabsContent value="orders">
+        <OrderTracking />
       </TabsContent>
     </Tabs>
   </div>

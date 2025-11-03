@@ -328,8 +328,16 @@ export const OrderManagement = () => {
                 </Table>
               </div>
 
-              <div className="pt-4 border-t">
-                <div className="flex justify-between text-lg font-bold">
+              <div className="pt-4 border-t space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span>₱{(selectedOrder.total_amount - (selectedOrder.shipping_fee || 0)).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Shipping Fee:</span>
+                  <span>₱{(selectedOrder.shipping_fee || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold border-t pt-2">
                   <span>Total:</span>
                   <span className="text-primary">
                     ₱{selectedOrder.total_amount.toFixed(2)}

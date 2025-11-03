@@ -40,6 +40,7 @@ const Shop = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [shippingFee, setShippingFee] = useState(50); // Default shipping fee
   const [inCart, setInCart] = useState<Set<string>>(new Set());
   const [inWishlist, setInWishlist] = useState<Set<string>>(new Set());
 
@@ -217,8 +218,9 @@ const Shop = () => {
     try {
       const price = selectedProduct.promo_active && selectedProduct.promo_price
         ? selectedProduct.promo_price
-        : selectedProduct.price;
-      const totalAmount = price * quantity;
+        : selectedProduct.base_price;
+      const subtotal = price * quantity;
+      const totalAmount = subtotal + shippingFee;
 
       // Generate order number
       const { data: orderNumberData, error: orderNumError } = await supabase
@@ -233,6 +235,7 @@ const Shop = () => {
           user_id: user.id,
           order_number: orderNumberData,
           total_amount: totalAmount,
+          shipping_fee: shippingFee,
           shipping_address: shippingAddress,
           customer_name: customerName,
           customer_email: customerEmail,
@@ -250,7 +253,7 @@ const Shop = () => {
         product_id: selectedProduct.id,
         quantity: quantity,
         unit_price: price,
-        subtotal: totalAmount,
+        subtotal: subtotal,
       });
 
       if (itemError) throw itemError;
@@ -495,11 +498,19 @@ const Shop = () => {
               />
             </div>
 
-            <div className="pt-4 border-t">
-              <div className="flex justify-between text-lg font-bold">
+            <div className="pt-4 border-t space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal:</span>
+                <span>₱{(getEffectivePrice(selectedProduct) * quantity).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Shipping Fee:</span>
+                <span>₱{shippingFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>Total:</span>
                 <span className="text-primary">
-                  ₱{(getEffectivePrice(selectedProduct) * quantity).toFixed(2)}
+                  ₱{(getEffectivePrice(selectedProduct) * quantity + shippingFee).toFixed(2)}
                 </span>
               </div>
             </div>
