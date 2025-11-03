@@ -14,6 +14,7 @@ import { CashOutDialog } from "@/components/CashOutDialog";
 import { GenealogyDialog } from "@/components/GenealogyDialog";
 import { CartView } from "@/components/CartView";
 import { WishlistView } from "@/components/WishlistView";
+import { CartWidget } from "@/components/CartWidget";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 const Dashboard = () => {
@@ -455,6 +456,9 @@ const Dashboard = () => {
 
           {/* Quick Actions */}
           <div className="space-y-6">
+            {/* Cart Widget */}
+            <CartWidget onViewCart={() => setActiveTab("cart")} />
+            
             <Card className="p-6 gradient-accent border-primary/20 shadow-card">
               <h2 className="text-2xl font-bold mb-6">Quick Actions</h2>
               

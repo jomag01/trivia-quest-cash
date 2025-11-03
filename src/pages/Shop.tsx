@@ -285,26 +285,26 @@ const Shop = () => {
   }
 
   return (
-    <div className="min-h-screen py-8 px-4">
+    <div className="min-h-screen py-4 md:py-8 px-3 md:px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 text-gradient-gold">Shop</h1>
-          <p className="text-muted-foreground">Browse our products</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2 text-gradient-gold">Shop</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Browse our products</p>
         </div>
 
         {/* Filters */}
-        <div className="mb-8 grid md:grid-cols-2 gap-4">
+        <div className="mb-6 md:mb-8 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 text-sm md:text-base"
             />
           </div>
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger>
+            <SelectTrigger className="text-sm md:text-base">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
@@ -320,36 +320,50 @@ const Shop = () => {
         </div>
 
         {/* Products Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {filteredProducts.map((product) => (
             <Card
               key={product.id}
-              className="p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth"
+              className="p-4 md:p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth flex flex-col"
             >
-              <div className="mb-4">
+              {/* Product Image */}
+              {product.image_url && (
+                <div className="mb-4 aspect-square rounded-lg overflow-hidden bg-background/20">
+                  <img
+                    src={product.image_url}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400";
+                    }}
+                  />
+                </div>
+              )}
+              
+              <div className="mb-4 flex-1">
                 {product.promo_active && product.promo_price && (
                   <Badge className="mb-2 bg-red-500">
                     {product.discount_percentage}% OFF
                   </Badge>
                 )}
-                <h3 className="text-xl font-bold mb-2">{product.name}</h3>
-                <p className="text-sm text-muted-foreground mb-4">
+                <h3 className="text-lg md:text-xl font-bold mb-2 line-clamp-2">{product.name}</h3>
+                <p className="text-xs md:text-sm text-muted-foreground mb-4 line-clamp-3">
                   {product.description}
                 </p>
                 {product.product_categories && (
-                  <Badge variant="outline" className="mb-2">
+                  <Badge variant="outline" className="mb-2 text-xs">
                     {product.product_categories.name}
                   </Badge>
                 )}
               </div>
 
               <div className="mb-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-primary">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-xl md:text-2xl font-bold text-primary">
                     ₱{getEffectivePrice(product).toFixed(2)}
                   </span>
                   {product.promo_active && product.promo_price && (
-                    <span className="text-sm text-muted-foreground line-through">
+                    <span className="text-xs md:text-sm text-muted-foreground line-through">
                       ₱{product.base_price.toFixed(2)}
                     </span>
                   )}
@@ -361,7 +375,7 @@ const Shop = () => {
 
               <div className="space-y-2">
                 <Button
-                  className="w-full"
+                  className="w-full text-sm md:text-base"
                   onClick={() => handleBuyNow(product)}
                   disabled={!product.stock_quantity || product.stock_quantity === 0}
                 >
@@ -372,18 +386,22 @@ const Shop = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant="outline"
+                    size="sm"
+                    className="text-xs md:text-sm"
                     onClick={() => addToCart(product.id)}
                     disabled={!product.stock_quantity || product.stock_quantity === 0 || inCart.has(product.id)}
                   >
-                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    <ShoppingCart className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                     {inCart.has(product.id) ? "In Cart" : "Add to Cart"}
                   </Button>
                   
                   <Button
                     variant={inWishlist.has(product.id) ? "default" : "outline"}
+                    size="sm"
+                    className="text-xs md:text-sm"
                     onClick={() => toggleWishlist(product.id)}
                   >
-                    <Heart className={`w-4 h-4 mr-2 ${inWishlist.has(product.id) ? "fill-current" : ""}`} />
+                    <Heart className={`w-3 h-3 md:w-4 md:h-4 mr-1 ${inWishlist.has(product.id) ? "fill-current" : ""}`} />
                     {inWishlist.has(product.id) ? "Saved" : "Wishlist"}
                   </Button>
                 </div>
@@ -402,7 +420,7 @@ const Shop = () => {
 
       {/* Checkout Dialog */}
       <Dialog open={checkoutDialog} onOpenChange={setCheckoutDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Complete Your Order</DialogTitle>
             <p className="text-sm text-muted-foreground">Fill in your shipping details to complete the purchase</p>

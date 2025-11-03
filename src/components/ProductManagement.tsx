@@ -24,6 +24,8 @@ interface Product {
   promo_price?: number;
   discount_percentage?: number;
   promo_active?: boolean;
+  image_url?: string;
+  stock_quantity?: number;
 }
 
 interface ProductCategory {
@@ -72,7 +74,9 @@ export const ProductManagement = () => {
     is_active: true,
     promo_price: "",
     discount_percentage: "0",
-    promo_active: false
+    promo_active: false,
+    image_url: "",
+    stock_quantity: "0"
   });
 
   // Variant form state
@@ -165,7 +169,9 @@ export const ProductManagement = () => {
       is_active: formData.is_active,
       promo_price: formData.promo_price ? parseFloat(formData.promo_price) : null,
       discount_percentage: parseInt(formData.discount_percentage),
-      promo_active: formData.promo_active
+      promo_active: formData.promo_active,
+      image_url: formData.image_url || null,
+      stock_quantity: parseInt(formData.stock_quantity)
     };
 
     if (editingProduct) {
@@ -317,7 +323,9 @@ export const ProductManagement = () => {
       is_active: true,
       promo_price: "",
       discount_percentage: "0",
-      promo_active: false
+      promo_active: false,
+      image_url: "",
+      stock_quantity: "0"
     });
     setEditingProduct(null);
   };
@@ -333,7 +341,9 @@ export const ProductManagement = () => {
       is_active: product.is_active,
       promo_price: product.promo_price?.toString() || "",
       discount_percentage: product.discount_percentage?.toString() || "0",
-      promo_active: product.promo_active || false
+      promo_active: product.promo_active || false,
+      image_url: product.image_url || "",
+      stock_quantity: product.stock_quantity?.toString() || "0"
     });
     setIsDialogOpen(true);
   };
@@ -435,6 +445,33 @@ export const ProductManagement = () => {
                     required
                   />
                 </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="image_url">Product Image URL</Label>
+                <Input
+                  id="image_url"
+                  type="url"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                  placeholder="https://example.com/image.jpg"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter a direct link to product image
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="stock_quantity">Stock Quantity</Label>
+                <Input
+                  id="stock_quantity"
+                  type="number"
+                  min="0"
+                  value={formData.stock_quantity}
+                  onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                  placeholder="0"
+                  required
+                />
               </div>
               
               <div className="border-t pt-4 mt-4">

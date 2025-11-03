@@ -537,6 +537,7 @@ export type Database = {
           description: string
           discount_percentage: number | null
           id: string
+          image_url: string | null
           is_active: boolean | null
           name: string
           promo_active: boolean | null
@@ -552,6 +553,7 @@ export type Database = {
           description: string
           discount_percentage?: number | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           name: string
           promo_active?: boolean | null
@@ -567,6 +569,7 @@ export type Database = {
           description?: string
           discount_percentage?: number | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           name?: string
           promo_active?: boolean | null
