@@ -495,7 +495,20 @@ export const ProductManagement = () => {
                       toast.success("Image uploaded successfully");
                     } catch (error) {
                       console.error("Error uploading image:", error);
-                      toast.error("Failed to upload image");
+                      // Fallback: embed image as data URL so it still displays
+                      try {
+                        const dataUrl: string = await new Promise((resolve, reject) => {
+                          const reader = new FileReader();
+                          reader.onload = () => resolve(reader.result as string);
+                          reader.onerror = reject;
+                          reader.readAsDataURL(file);
+                        });
+                        setFormData({ ...formData, image_url: dataUrl });
+                        toast.warning("Storage issue detected. Embedded image used instead.");
+                      } catch (readErr) {
+                        console.error("Failed to convert image to data URL:", readErr);
+                        toast.error("Failed to upload image");
+                      }
                     } finally {
                       setUploadingImage(false);
                     }

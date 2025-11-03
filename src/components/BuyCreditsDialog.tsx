@@ -84,18 +84,32 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
         const fileExt = proofImage.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         
-        const { error: uploadError, data: uploadData } = await supabase.storage
-          .from('payment-proofs')
-          .upload(fileName, proofImage);
+        try {
+          const { error: uploadError } = await supabase.storage
+            .from('payment-proofs')
+            .upload(fileName, proofImage);
 
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('payment-proofs')
-          .getPublicUrl(fileName);
-        
-        proofImageUrl = publicUrl;
-        setUploading(false);
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('payment-proofs')
+            .getPublicUrl(fileName);
+
+          proofImageUrl = publicUrl;
+        } catch (err) {
+          console.error("Payment proof upload failed, falling back to embedded data URL:", err);
+          // Fallback: store as data URL in DB so the image still shows up
+          const dataUrl: string = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(proofImage);
+          });
+          proofImageUrl = dataUrl;
+          toast.warning("Storage issue detected. We embedded the image so it still works.");
+        } finally {
+          setUploading(false);
+        }
       }
 
       // Create credit purchase record
@@ -279,7 +293,7 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
                 <Input
                   id="proof"
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
                   onChange={(e) => setProofImage(e.target.files?.[0] || null)}
                 />
                 <p className="text-xs text-muted-foreground">
