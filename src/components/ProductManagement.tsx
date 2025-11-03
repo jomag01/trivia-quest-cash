@@ -464,62 +464,97 @@ export const ProductManagement = () => {
                 </div>
               </div>
               
-              <div>
-                <Label htmlFor="image_upload">Product Image</Label>
-                <Input
-                  id="image_upload"
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                  disabled={uploadingImage}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
+              <div className="space-y-3">
+                <Label>Product Image</Label>
+                
+                {/* URL Input Option */}
+                <div className="space-y-2">
+                  <Label htmlFor="image_url" className="text-sm text-muted-foreground">Image URL</Label>
+                  <Input
+                    id="image_url"
+                    type="url"
+                    value={formData.image_url}
+                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                    placeholder="https://example.com/image.jpg"
+                    disabled={uploadingImage}
+                  />
+                </div>
 
-                    setUploadingImage(true);
-                    try {
-                      const fileExt = file.name.split('.').pop();
-                      const fileName = `${Math.random()}.${fileExt}`;
-                      const filePath = `${fileName}`;
+                {/* OR Divider */}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 border-t" />
+                  <span className="text-xs text-muted-foreground">OR</span>
+                  <div className="flex-1 border-t" />
+                </div>
 
-                      const { error: uploadError } = await supabase.storage
-                        .from('product-images')
-                        .upload(filePath, file);
+                {/* File Upload Option */}
+                <div className="space-y-2">
+                  <Label htmlFor="image_upload" className="text-sm text-muted-foreground">Upload Image</Label>
+                  <Input
+                    id="image_upload"
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    disabled={uploadingImage}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
 
-                      if (uploadError) throw uploadError;
-
-                      const { data: { publicUrl } } = supabase.storage
-                        .from('product-images')
-                        .getPublicUrl(filePath);
-
-                      setFormData({ ...formData, image_url: publicUrl });
-                      toast.success("Image uploaded successfully");
-                    } catch (error) {
-                      console.error("Error uploading image:", error);
-                      // Fallback: embed image as data URL so it still displays
+                      setUploadingImage(true);
                       try {
-                        const dataUrl: string = await new Promise((resolve, reject) => {
-                          const reader = new FileReader();
-                          reader.onload = () => resolve(reader.result as string);
-                          reader.onerror = reject;
-                          reader.readAsDataURL(file);
-                        });
-                        setFormData({ ...formData, image_url: dataUrl });
-                        toast.warning("Storage issue detected. Embedded image used instead.");
-                      } catch (readErr) {
-                        console.error("Failed to convert image to data URL:", readErr);
-                        toast.error("Failed to upload image");
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `${Math.random()}.${fileExt}`;
+                        const filePath = `${fileName}`;
+
+                        const { error: uploadError } = await supabase.storage
+                          .from('product-images')
+                          .upload(filePath, file);
+
+                        if (uploadError) throw uploadError;
+
+                        const { data: { publicUrl } } = supabase.storage
+                          .from('product-images')
+                          .getPublicUrl(filePath);
+
+                        setFormData({ ...formData, image_url: publicUrl });
+                        toast.success("Image uploaded successfully");
+                      } catch (error) {
+                        console.error("Error uploading image:", error);
+                        // Fallback: embed image as data URL so it still displays
+                        try {
+                          const dataUrl: string = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result as string);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(file);
+                          });
+                          setFormData({ ...formData, image_url: dataUrl });
+                          toast.warning("Storage issue detected. Embedded image used instead.");
+                        } catch (readErr) {
+                          console.error("Failed to convert image to data URL:", readErr);
+                          toast.error("Failed to upload image");
+                        }
+                      } finally {
+                        setUploadingImage(false);
                       }
-                    } finally {
-                      setUploadingImage(false);
-                    }
-                  }}
-                />
-                {uploadingImage && (
-                  <p className="text-xs text-muted-foreground mt-1">Uploading image...</p>
-                )}
+                    }}
+                  />
+                  {uploadingImage && (
+                    <p className="text-xs text-muted-foreground">Uploading image...</p>
+                  )}
+                </div>
+
+                {/* Image Preview */}
                 {formData.image_url && !uploadingImage && (
                   <div className="mt-2">
-                    <img src={formData.image_url} alt="Preview" className="w-32 h-32 object-cover rounded" />
+                    <Label className="text-sm text-muted-foreground mb-2 block">Preview</Label>
+                    <img 
+                      src={formData.image_url} 
+                      alt="Product preview" 
+                      className="w-32 h-32 object-cover rounded border"
+                      onError={(e) => {
+                        e.currentTarget.src = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400";
+                      }}
+                    />
                   </div>
                 )}
               </div>

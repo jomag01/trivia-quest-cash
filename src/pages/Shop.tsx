@@ -341,7 +341,7 @@ const Shop = () => {
                 <img
                   src={product.image_url || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400"}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform hover:scale-105"
                   onError={(e) => {
                     e.currentTarget.src = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400";
                   }}
