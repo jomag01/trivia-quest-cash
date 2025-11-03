@@ -15,6 +15,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,6 +45,27 @@ const Auth = () => {
       detectLocation();
     }
   }, [isLogin]);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`,
+      });
+
+      if (error) throw error;
+      
+      toast.success("Password reset email sent! Check your inbox.");
+      setIsForgotPassword(false);
+      setIsLogin(true);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send reset email");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,14 +135,53 @@ const Auth = () => {
         <div className="text-center mb-8">
           <Trophy className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse-slow" />
           <h1 className="text-3xl font-bold text-gradient-gold mb-2">
-            {isLogin ? "Welcome Back" : "Join GameWin"}
+            {isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Join GameWin"}
           </h1>
           <p className="text-muted-foreground">
-            {isLogin ? "Login to continue playing" : "Create your account and start earning"}
+            {isForgotPassword 
+              ? "Enter your email to receive reset instructions" 
+              : isLogin 
+                ? "Login to continue playing" 
+                : "Create your account and start earning"}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {isForgotPassword ? (
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Sending..." : "Send Reset Link"}
+            </Button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setIsLogin(true);
+                }}
+                className="text-sm text-primary hover:underline"
+              >
+                Back to Login
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <>
               <div className="space-y-2">
@@ -252,17 +313,32 @@ const Auth = () => {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
           </Button>
-        </form>
 
-        <div className="mt-6 text-center">
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-primary hover:underline"
-          >
-            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Login"}
-          </button>
-        </div>
+          {isLogin && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setIsForgotPassword(true)}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
+        </form>
+        )}
+
+        {!isForgotPassword && (
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-sm text-primary hover:underline"
+            >
+              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Login"}
+            </button>
+          </div>
+        )}
       </Card>
     </div>
   );
