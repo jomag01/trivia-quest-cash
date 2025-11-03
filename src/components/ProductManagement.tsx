@@ -469,7 +469,8 @@ export const ProductManagement = () => {
                 <Input
                   id="image_upload"
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  disabled={uploadingImage}
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
@@ -499,7 +500,6 @@ export const ProductManagement = () => {
                       setUploadingImage(false);
                     }
                   }}
-                  disabled={uploadingImage}
                 />
                 {uploadingImage && (
                   <p className="text-xs text-muted-foreground mt-1">Uploading image...</p>
