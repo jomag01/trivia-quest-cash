@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isAdmin } from "../_shared/adminAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,7 +38,10 @@ serve(async (req) => {
       throw new Error("Invalid amount");
     }
 
-    console.log("Creating payment for user:", user.id, "Amount:", amount);
+    // Check if user is admin (for logging/auditing purposes)
+    const userIsAdmin = await isAdmin(supabaseClient, user.id);
+
+    console.log("Creating payment for user:", user.id, "Amount:", amount, "Admin:", userIsAdmin);
 
     // Create transaction record
     const { data: transaction, error: transactionError } = await supabaseClient
