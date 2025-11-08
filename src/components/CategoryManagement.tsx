@@ -208,7 +208,11 @@ export const CategoryManagement = () => {
                   onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
                   placeholder="🌍"
                   required
+                  className="text-2xl"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Copy and paste an emoji here. Windows: Win + . | Mac: Cmd + Ctrl + Space
+                </p>
               </div>
 
               <div>

@@ -195,7 +195,11 @@ export const ProductCategoryManagement = () => {
                     value={formData.icon}
                     onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
                     placeholder="📱"
+                    className="text-2xl"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Copy/paste emoji. Win: Win + . | Mac: Cmd + Ctrl + Space
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="display_order">Display Order</Label>
