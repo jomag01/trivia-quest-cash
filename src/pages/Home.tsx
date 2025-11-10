@@ -157,8 +157,12 @@ const Home = () => {
                       </div>
                     )}
                     <div className="text-center">
-                      <div className="text-5xl mb-4 group-hover:scale-110 transition-smooth">
-                        {category.icon}
+                      <div className="text-5xl mb-4 group-hover:scale-110 transition-smooth flex items-center justify-center">
+                        {category.icon.startsWith('http') || category.icon.startsWith('data:') ? (
+                          <img src={category.icon} alt={category.name} className="w-16 h-16 object-cover rounded-lg" />
+                        ) : (
+                          category.icon
+                        )}
                       </div>
                       <h3 className="text-xl font-bold">{category.name}</h3>
                       {category.description && (
