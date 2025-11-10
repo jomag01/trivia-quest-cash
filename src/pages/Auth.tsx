@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trophy, Mail, Lock, User, Globe } from "lucide-react";
+import { Trophy, Mail, Lock, User, Globe, Eye, EyeOff } from "lucide-react";
 import { CURRENCIES, getCurrencyFromCountry, detectUserCountry, type CurrencyCode } from "@/lib/currencies";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -28,6 +28,7 @@ const Auth = () => {
   const [currency, setCurrency] = useState<CurrencyCode>("PHP");
   const [detectingCountry, setDetectingCountry] = useState(false);
   const [referralCode, setReferralCode] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -424,15 +425,26 @@ const Auth = () => {
               <Lock className="w-4 h-4" />
               Password
             </Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-              minLength={6}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                minLength={6}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
