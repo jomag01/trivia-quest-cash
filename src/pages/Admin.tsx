@@ -464,7 +464,7 @@ const Admin = () => {
 
       {/* Processing Dialog */}
       <Dialog open={!!processingId} onOpenChange={() => { setProcessingId(null); setAdminNotes(""); }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Process Request</DialogTitle>
           </DialogHeader>
@@ -476,9 +476,10 @@ const Admin = () => {
                 onChange={(e) => setAdminNotes(e.target.value)}
                 placeholder="Add notes about this transaction..."
                 rows={3}
+                className="mt-2"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={() => {
                   const isCreditPurchase = creditPurchases.some(p => p.id === processingId);
@@ -515,16 +516,18 @@ const Admin = () => {
 
       {/* Proof Image Dialog */}
       <Dialog open={!!selectedProof} onOpenChange={() => setSelectedProof(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
           <DialogHeader>
             <DialogTitle>Payment Proof</DialogTitle>
           </DialogHeader>
           {selectedProof && (
-            <img 
-              src={selectedProof} 
-              alt="Payment proof" 
-              className="w-full h-auto rounded-lg"
-            />
+            <div className="w-full overflow-auto">
+              <img 
+                src={selectedProof} 
+                alt="Payment proof" 
+                className="w-full h-auto rounded-lg object-contain max-h-[70vh]"
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>
