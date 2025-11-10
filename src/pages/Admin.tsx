@@ -28,7 +28,8 @@ import { PrizeManagement } from "@/components/PrizeManagement";
 import { ProductManagement } from "@/components/ProductManagement";
 import { ProductCategoryManagement } from "@/components/ProductCategoryManagement";
 import { OrderManagement } from "@/components/OrderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package } from "lucide-react";
+import { ImageMigrationTool } from "@/components/ImageMigrationTool";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload } from "lucide-react";
 
 interface CreditPurchase {
   id: string;
@@ -275,6 +276,10 @@ const Admin = () => {
             <Package className="w-4 h-4" />
             Orders
           </TabsTrigger>
+          <TabsTrigger value="migration" className="flex items-center gap-2">
+            <Upload className="w-4 h-4" />
+            Image Migration
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="credits" className="space-y-4">
@@ -402,6 +407,10 @@ const Admin = () => {
 
         <TabsContent value="orders">
           <OrderManagement />
+        </TabsContent>
+
+        <TabsContent value="migration">
+          <ImageMigrationTool />
         </TabsContent>
       </Tabs>
 
