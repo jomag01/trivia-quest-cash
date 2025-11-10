@@ -16,6 +16,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import { ImageUploadCrop } from "@/components/ImageUploadCrop";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface GameCategory {
   id: string;
@@ -45,6 +47,7 @@ export const CategoryManagement = () => {
     min_level_required: 1,
     is_active: true,
   });
+  const [iconType, setIconType] = useState<"emoji" | "image">("emoji");
 
   useEffect(() => {
     fetchCategories();
@@ -155,6 +158,12 @@ export const CategoryManagement = () => {
       min_level_required: category.min_level_required,
       is_active: category.is_active,
     });
+    // Detect if icon is an image URL or emoji
+    if (category.icon.startsWith("http") || category.icon.startsWith("data:")) {
+      setIconType("image");
+    } else {
+      setIconType("emoji");
+    }
     setIsDialogOpen(true);
   };
 
@@ -199,16 +208,34 @@ export const CategoryManagement = () => {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="icon">Icon</Label>
-                  <Input
-                    id="icon"
-                    value={formData.icon}
-                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                    placeholder="🌍"
-                    required
-                    className="text-xl"
-                  />
+                <div className="col-span-2">
+                  <Label>Icon Type</Label>
+                  <Tabs value={iconType} onValueChange={(v) => setIconType(v as "emoji" | "image")}>
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="emoji">Emoji</TabsTrigger>
+                      <TabsTrigger value="image">Upload Image</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="emoji" className="mt-3">
+                      <Input
+                        id="icon"
+                        value={formData.icon}
+                        onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                        placeholder="🌍"
+                        required
+                        className="text-xl"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Win: Win + . | Mac: Cmd + Ctrl + Space
+                      </p>
+                    </TabsContent>
+                    <TabsContent value="image" className="mt-3">
+                      <ImageUploadCrop
+                        onImageUploaded={(url) => setFormData({ ...formData, icon: url })}
+                        currentImage={formData.icon.startsWith("http") || formData.icon.startsWith("data:") ? formData.icon : undefined}
+                        maxSizeKB={200}
+                      />
+                    </TabsContent>
+                  </Tabs>
                 </div>
 
                 <div>
@@ -290,7 +317,11 @@ export const CategoryManagement = () => {
           <Card key={category.id} className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <span className="text-3xl">{category.icon}</span>
+                {category.icon.startsWith("http") || category.icon.startsWith("data:") ? (
+                  <img src={category.icon} alt={category.name} className="w-12 h-12 rounded object-cover" />
+                ) : (
+                  <span className="text-3xl">{category.icon}</span>
+                )}
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold">{category.name}</h3>
