@@ -31,6 +31,15 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
   const imgRef = useRef<HTMLImageElement>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
 
+  const fileOrBlobToDataUrl = (file: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const compressImage = async (file: File): Promise<File> => {
     const options = {
       maxSizeMB: maxSizeKB / 1024,
@@ -134,7 +143,7 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("product-images")
         .upload(filePath, compressedFile, {
           cacheControl: "3600",
@@ -142,7 +151,13 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
         });
 
       if (uploadError) {
-        throw uploadError;
+        // Fallback: store as data URL in DB fields
+        const dataUrl = await fileOrBlobToDataUrl(compressedFile);
+        onImageUploaded(dataUrl);
+        setCropDialogOpen(false);
+        setImageSrc("");
+        toast.warning("Storage offline. Used temporary in-DB image.");
+        return;
       }
 
       // Get public URL
@@ -183,7 +198,13 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
         });
 
       if (uploadError) {
-        throw uploadError;
+        // Fallback: store as data URL in DB fields
+        const dataUrl = await fileOrBlobToDataUrl(compressedFile);
+        onImageUploaded(dataUrl);
+        setCropDialogOpen(false);
+        setImageSrc("");
+        toast.warning("Storage offline. Used temporary in-DB image.");
+        return;
       }
 
       // Get public URL
