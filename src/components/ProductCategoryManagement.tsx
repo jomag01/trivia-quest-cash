@@ -160,49 +160,46 @@ export const ProductCategoryManagement = () => {
               Add Category
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>
-                {editingCategory ? "Edit Category" : "Add New Category"}
+                {editingCategory ? "Edit Category" : "Add Category"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Category Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label htmlFor="name">Category Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={2}
-                />
-              </div>
+                <div className="col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={2}
+                  />
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="icon">Icon (emoji)</Label>
+                  <Label htmlFor="icon">Icon</Label>
                   <Input
                     id="icon"
                     value={formData.icon}
                     onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
                     placeholder="📱"
-                    className="text-2xl"
+                    className="text-xl"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Copy/paste emoji. Win: Win + . | Mac: Cmd + Ctrl + Space
-                  </p>
                 </div>
                 <div>
-                  <Label htmlFor="display_order">Display Order</Label>
+                  <Label htmlFor="display_order">Order</Label>
                   <Input
                     id="display_order"
                     type="number"
@@ -213,18 +210,18 @@ export const ProductCategoryManagement = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between border-t pt-3">
+                <Label htmlFor="is_active">Active</Label>
                 <Switch
                   id="is_active"
                   checked={formData.is_active}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                 />
-                <Label htmlFor="is_active">Active</Label>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-2">
                 <Button type="submit" className="flex-1">
-                  {editingCategory ? "Update" : "Create"} Category
+                  {editingCategory ? "Update" : "Create"}
                 </Button>
                 <Button
                   type="button"

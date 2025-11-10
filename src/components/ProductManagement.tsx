@@ -378,52 +378,31 @@ export const ProductManagement = () => {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
-              <DialogDescription>
-                Fill in the product details below. Commission percentage determines affiliate earnings.
-              </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Product Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={4}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={formData.category_id}
-                  onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.icon} {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label htmlFor="name">Product Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={2}
+                    required
+                  />
+                </div>
                 <div>
                   <Label htmlFor="base_price">Base Price (₱)</Label>
                   <Input
@@ -435,7 +414,6 @@ export const ProductManagement = () => {
                       const newBasePrice = e.target.value;
                       setFormData({ ...formData, base_price: newBasePrice });
                       
-                      // Auto-calculate promo price if discount is set
                       if (formData.discount_percentage && parseFloat(formData.discount_percentage) > 0 && newBasePrice) {
                         const basePrice = parseFloat(newBasePrice);
                         const discount = parseFloat(formData.discount_percentage);
@@ -463,6 +441,36 @@ export const ProductManagement = () => {
                     required
                   />
                 </div>
+                <div>
+                  <Label htmlFor="stock_quantity">Stock</Label>
+                  <Input
+                    id="stock_quantity"
+                    type="number"
+                    min="0"
+                    value={formData.stock_quantity}
+                    onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                    placeholder="0"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Select
+                    value={formData.category_id}
+                    onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Optional" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.icon} {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               <ImageUploadCrop
@@ -470,33 +478,19 @@ export const ProductManagement = () => {
                 currentImage={formData.image_url}
                 maxSizeKB={500}
               />
-
-              <div>
-                <Label htmlFor="stock_quantity">Stock Quantity</Label>
-                <Input
-                  id="stock_quantity"
-                  type="number"
-                  min="0"
-                  value={formData.stock_quantity}
-                  onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
-                  placeholder="0"
-                  required
-                />
-              </div>
               
-              <div className="border-t pt-4 mt-4">
-                <h3 className="font-semibold mb-3">Promotional Pricing</h3>
-                <div className="flex items-center space-x-2 mb-3">
+              <div className="border-t pt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="promo_active" className="text-sm font-semibold">Promo Pricing</Label>
                   <Switch
                     id="promo_active"
                     checked={formData.promo_active}
                     onCheckedChange={(checked) => setFormData({ ...formData, promo_active: checked })}
                   />
-                  <Label htmlFor="promo_active">Enable Promo Price</Label>
                 </div>
                 {formData.promo_active && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
                         <Label htmlFor="discount_percentage">Discount (%)</Label>
                         <Input
@@ -521,11 +515,7 @@ export const ProductManagement = () => {
                               setFormData({ ...formData, discount_percentage: discount });
                             }
                           }}
-                          placeholder="e.g., 20 for 20% off"
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Promo price will be calculated automatically
-                        </p>
                       </div>
                       <div>
                         <Label htmlFor="promo_price">Promo Price (₱)</Label>
@@ -550,31 +540,23 @@ export const ProductManagement = () => {
                               setFormData({ ...formData, promo_price: promoPrice });
                             }
                           }}
-                          placeholder="Auto-calculated"
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Or enter manually to calculate discount
-                        </p>
                       </div>
                     </div>
                     
                     {formData.base_price && formData.promo_price && (
-                      <div className="p-3 bg-muted rounded-lg">
-                        <div className="flex justify-between text-sm">
-                          <span>Original Price:</span>
-                          <span className="font-semibold">₱{parseFloat(formData.base_price).toFixed(2)}</span>
+                      <div className="p-2 bg-muted rounded text-xs space-y-1">
+                        <div className="flex justify-between">
+                          <span>Original:</span>
+                          <span className="font-medium">₱{parseFloat(formData.base_price).toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between text-sm">
+                        <div className="flex justify-between text-destructive">
                           <span>Discount:</span>
-                          <span className="font-semibold text-red-500">{formData.discount_percentage}% OFF</span>
+                          <span className="font-medium">{formData.discount_percentage}% OFF</span>
                         </div>
-                        <div className="flex justify-between text-sm border-t mt-2 pt-2">
-                          <span className="font-bold">Promo Price:</span>
-                          <span className="font-bold text-primary">₱{parseFloat(formData.promo_price).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>You save:</span>
-                          <span>₱{(parseFloat(formData.base_price) - parseFloat(formData.promo_price)).toFixed(2)}</span>
+                        <div className="flex justify-between border-t pt-1">
+                          <span className="font-semibold">Promo:</span>
+                          <span className="font-semibold text-primary">₱{parseFloat(formData.promo_price).toFixed(2)}</span>
                         </div>
                       </div>
                     )}
@@ -582,20 +564,20 @@ export const ProductManagement = () => {
                 )}
               </div>
               
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between border-t pt-3">
+                <Label htmlFor="is_active">Product Active</Label>
                 <Switch
                   id="is_active"
                   checked={formData.is_active}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                 />
-                <Label htmlFor="is_active">Active</Label>
               </div>
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>
                 <Button type="submit">
-                  {editingProduct ? "Update" : "Create"} Product
+                  {editingProduct ? "Update" : "Create"}
                 </Button>
               </div>
             </form>
@@ -649,16 +631,13 @@ export const ProductManagement = () => {
 
       {/* Variants Dialog */}
       <Dialog open={variantsDialogOpen} onOpenChange={setVariantsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Product Variants - {selectedProduct?.name}</DialogTitle>
-            <DialogDescription>
-              Manage size, color, and weight variants for this product.
-            </DialogDescription>
+            <DialogTitle>Variants - {selectedProduct?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Card className="p-4">
-              <h3 className="font-semibold mb-4">Add New Variant</h3>
+            <Card className="p-3">
+              <h3 className="font-semibold mb-3 text-sm">Add New Variant</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Variant Type</Label>
@@ -753,31 +732,28 @@ export const ProductManagement = () => {
 
       {/* Images Dialog */}
       <Dialog open={imagesDialogOpen} onOpenChange={setImagesDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Product Image Gallery - {selectedProduct?.name}</DialogTitle>
-            <DialogDescription>
-              Upload and manage multiple product images. Mark one as primary for thumbnails.
-            </DialogDescription>
+            <DialogTitle>Images - {selectedProduct?.name}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-6">
-            <Card className="p-6">
-              <h3 className="font-semibold mb-4">Upload New Image</h3>
+          <div className="space-y-4">
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3 text-sm">Upload New Image</h3>
               <ImageUploadCrop
                 onImageUploaded={(url) => handleAddImage(url)}
                 maxSizeKB={300}
               />
-              <div className="flex items-center space-x-2 mt-4">
+              <div className="flex items-center justify-between mt-3">
+                <Label className="text-sm">Set as Primary</Label>
                 <Switch
                   checked={isPrimary}
                   onCheckedChange={setIsPrimary}
                 />
-                <Label>Set as Primary Image</Label>
               </div>
             </Card>
 
             <div>
-              <h3 className="font-semibold mb-4">Image Gallery ({images.length})</h3>
+              <h3 className="font-semibold mb-3 text-sm">Gallery ({images.length})</h3>
               {images.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />

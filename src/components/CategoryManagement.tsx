@@ -172,16 +172,16 @@ export const CategoryManagement = () => {
               Add Category
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>
-                {editingCategory ? "Edit Category" : "Add New Category"}
+                {editingCategory ? "Edit Category" : "Add Category"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="name">Category Name</Label>
+                  <Label htmlFor="name">Name</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -190,7 +190,7 @@ export const CategoryManagement = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="slug">Slug (URL-friendly)</Label>
+                  <Label htmlFor="slug">Slug</Label>
                   <Input
                     id="slug"
                     value={formData.slug}
@@ -198,36 +198,44 @@ export const CategoryManagement = () => {
                     required
                   />
                 </div>
-              </div>
 
-              <div>
-                <Label htmlFor="icon">Icon (emoji)</Label>
-                <Input
-                  id="icon"
-                  value={formData.icon}
-                  onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                  placeholder="🌍"
-                  required
-                  className="text-2xl"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Copy and paste an emoji here. Windows: Win + . | Mac: Cmd + Ctrl + Space
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={2}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="color_from">Gradient From</Label>
+                  <Label htmlFor="icon">Icon</Label>
+                  <Input
+                    id="icon"
+                    value={formData.icon}
+                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                    placeholder="🌍"
+                    required
+                    className="text-xl"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="min_level">Min Level</Label>
+                  <Input
+                    id="min_level"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={formData.min_level_required}
+                    onChange={(e) => setFormData({ ...formData, min_level_required: parseInt(e.target.value) })}
+                    required
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="color_from">From</Label>
                   <Input
                     id="color_from"
                     value={formData.color_from}
@@ -237,7 +245,7 @@ export const CategoryManagement = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="color_to">Gradient To</Label>
+                  <Label htmlFor="color_to">To</Label>
                   <Input
                     id="color_to"
                     value={formData.color_to}
@@ -248,31 +256,18 @@ export const CategoryManagement = () => {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="min_level">Minimum Level Required</Label>
-                <Input
-                  id="min_level"
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={formData.min_level_required}
-                  onChange={(e) => setFormData({ ...formData, min_level_required: parseInt(e.target.value) })}
-                  required
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between border-t pt-3">
+                <Label htmlFor="is_active">Active</Label>
                 <Switch
                   id="is_active"
                   checked={formData.is_active}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                 />
-                <Label htmlFor="is_active">Active</Label>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-2">
                 <Button type="submit" className="flex-1">
-                  {editingCategory ? "Update" : "Create"} Category
+                  {editingCategory ? "Update" : "Create"}
                 </Button>
                 <Button
                   type="button"
