@@ -14,6 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_current_rank: {
+        Row: {
+          created_at: string
+          current_step: number
+          is_fixed: boolean | null
+          last_qualified_at: string | null
+          qualification_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_step?: number
+          is_fixed?: boolean | null
+          last_qualified_at?: string | null
+          qualification_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_step?: number
+          is_fixed?: boolean | null
+          last_qualified_at?: string | null
+          qualification_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      affiliate_monthly_sales: {
+        Row: {
+          created_at: string
+          id: string
+          personal_sales: number
+          sales_month: string
+          team_sales: number
+          total_sales: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          personal_sales?: number
+          sales_month: string
+          team_sales?: number
+          total_sales?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          personal_sales?: number
+          sales_month?: string
+          team_sales?: number
+          total_sales?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      affiliate_rank_history: {
+        Row: {
+          created_at: string
+          id: string
+          is_fixed: boolean | null
+          qualification_count: number
+          qualified_month: string
+          reverted_at: string | null
+          sales_volume: number
+          step_number: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_fixed?: boolean | null
+          qualification_count?: number
+          qualified_month: string
+          reverted_at?: string | null
+          sales_volume?: number
+          step_number: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_fixed?: boolean | null
+          qualification_count?: number
+          qualified_month?: string
+          reverted_at?: string | null
+          sales_volume?: number
+          step_number?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cart: {
         Row: {
           created_at: string | null
@@ -725,6 +827,45 @@ export type Database = {
           },
         ]
       }
+      stair_step_config: {
+        Row: {
+          active: boolean | null
+          breakaway_percentage: number | null
+          commission_percentage: number
+          created_at: string
+          id: string
+          months_to_qualify: number
+          sales_quota: number
+          step_name: string
+          step_number: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          breakaway_percentage?: number | null
+          commission_percentage: number
+          created_at?: string
+          id?: string
+          months_to_qualify?: number
+          sales_quota: number
+          step_name: string
+          step_number: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          breakaway_percentage?: number | null
+          commission_percentage?: number
+          created_at?: string
+          id?: string
+          months_to_qualify?: number
+          sales_quota?: number
+          step_name?: string
+          step_number?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_answered_questions: {
         Row: {
           answered_at: string | null
@@ -901,6 +1042,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_and_update_affiliate_rank: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       check_level5_bonus: { Args: { player_id: string }; Returns: undefined }
       claim_level_prize: {
         Args: { _level: number; _user_id: string }
@@ -914,6 +1059,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      distribute_stair_step_commissions: {
+        Args: {
+          amount_param: number
+          buyer_id: string
+          is_credit_purchase?: boolean
+          purchase_id_param: string
+        }
+        Returns: undefined
+      }
       generate_order_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       get_user_role: {
@@ -923,6 +1077,11 @@ export type Database = {
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       increment_credits: {
         Args: { amount: number; user_id: string }
+        Returns: undefined
+      }
+      process_monthly_rank_reversion: { Args: never; Returns: undefined }
+      update_affiliate_monthly_sales: {
+        Args: { p_amount: number; p_is_personal?: boolean; p_user_id: string }
         Returns: undefined
       }
     }

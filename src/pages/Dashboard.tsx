@@ -16,6 +16,7 @@ import { CartView } from "@/components/CartView";
 import { WishlistView } from "@/components/WishlistView";
 import { CartWidget } from "@/components/CartWidget";
 import { OrderTracking } from "@/components/OrderTracking";
+import AffiliateRankCard from "@/components/AffiliateRankCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 const Dashboard = () => {
@@ -408,6 +409,9 @@ const Dashboard = () => {
               </div>
             </div>
           </Card>}
+
+        {/* Affiliate Rank Card - Full Width */}
+        <AffiliateRankCard />
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Referral Network */}

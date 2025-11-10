@@ -29,7 +29,8 @@ import { ProductManagement } from "@/components/ProductManagement";
 import { ProductCategoryManagement } from "@/components/ProductCategoryManagement";
 import { OrderManagement } from "@/components/OrderManagement";
 import { ImageMigrationTool } from "@/components/ImageMigrationTool";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload } from "lucide-react";
+import StairStepManagement from "@/components/StairStepManagement";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp } from "lucide-react";
 
 interface CreditPurchase {
   id: string;
@@ -280,6 +281,10 @@ const Admin = () => {
             <Upload className="w-4 h-4" />
             Image Migration
           </TabsTrigger>
+          <TabsTrigger value="stair-step" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            Stair Step MLM
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="credits" className="space-y-4">
@@ -411,6 +416,10 @@ const Admin = () => {
 
         <TabsContent value="migration">
           <ImageMigrationTool />
+        </TabsContent>
+
+        <TabsContent value="stair-step">
+          <StairStepManagement />
         </TabsContent>
       </Tabs>
 
