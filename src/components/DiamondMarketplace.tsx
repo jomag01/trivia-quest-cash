@@ -6,8 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Gem, ShoppingCart, Store, TrendingUp, Coins, History } from "lucide-react";
+import { Gem, ShoppingCart, Store, TrendingUp, Coins, History, Filter, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +62,12 @@ export default function DiamondMarketplace() {
   const [baseDiamondPrice, setBaseDiamondPrice] = useState(10);
   const [gemToDiamondRatio, setGemToDiamondRatio] = useState(100);
   const [convertGemAmount, setConvertGemAmount] = useState("");
+  
+  // Filter states
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
 
   useEffect(() => {
     if (user) {
@@ -297,6 +308,41 @@ export default function DiamondMarketplace() {
   }
 
   const currencySymbol = profile?.currency_symbol || "₱";
+
+  // Filter transactions
+  const filteredTransactions = transactions.filter((transaction) => {
+    // Filter by type
+    if (filterType !== "all") {
+      const isBuyer = transaction.buyer_id === user?.id;
+      if (filterType === "purchase" && !isBuyer) return false;
+      if (filterType === "sale" && isBuyer) return false;
+    }
+
+    // Filter by status
+    if (filterStatus !== "all" && transaction.status !== filterStatus) {
+      return false;
+    }
+
+    // Filter by date range
+    const transactionDate = new Date(transaction.created_at);
+    if (startDate && transactionDate < startDate) return false;
+    if (endDate) {
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      if (transactionDate > endOfDay) return false;
+    }
+
+    return true;
+  });
+
+  const clearFilters = () => {
+    setFilterType("all");
+    setFilterStatus("all");
+    setStartDate(undefined);
+    setEndDate(undefined);
+  };
+
+  const hasActiveFilters = filterType !== "all" || filterStatus !== "all" || startDate || endDate;
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-6">
@@ -543,17 +589,117 @@ export default function DiamondMarketplace() {
         <TabsContent value="history" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Transaction History</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span>Transaction History</span>
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    <X className="w-4 h-4 mr-2" />
+                    Clear Filters
+                  </Button>
+                )}
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              {transactions.length === 0 ? (
+            <CardContent className="space-y-4">
+              {/* Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-secondary/30 rounded-lg">
+                <div>
+                  <Label className="text-xs mb-2">Transaction Type</Label>
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="purchase">Purchases</SelectItem>
+                      <SelectItem value="sale">Sales</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs mb-2">Status</Label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs mb-2">Start Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        {startDate ? format(startDate, "PP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div>
+                  <Label className="text-xs mb-2">End Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        {endDate ? format(endDate, "PP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        disabled={(date) => startDate ? date < startDate : false}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              {/* Results count */}
+              <div className="text-sm text-muted-foreground">
+                Showing {filteredTransactions.length} of {transactions.length} transactions
+              </div>
+
+              {filteredTransactions.length === 0 ? (
                 <div className="text-center py-8">
                   <History className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-muted-foreground">No transactions yet</p>
+                  <p className="text-muted-foreground">
+                    {transactions.length === 0 ? "No transactions yet" : "No transactions match your filters"}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {transactions.map((transaction) => {
+                  {filteredTransactions.map((transaction) => {
                     const isBuyer = transaction.buyer_id === user?.id;
                     const isSeller = transaction.seller_id === user?.id;
                     return (
