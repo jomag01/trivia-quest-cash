@@ -27,6 +27,7 @@ interface Product {
   promo_active?: boolean;
   image_url?: string;
   stock_quantity?: number;
+  diamond_reward?: number;
 }
 
 interface ProductCategory {
@@ -74,6 +75,7 @@ export const ProductManagement = () => {
     stock_quantity: "",
     promo_price: "",
     discount_percentage: "",
+    diamond_reward: "",
     is_active: undefined as boolean | undefined
   });
 
@@ -89,7 +91,8 @@ export const ProductManagement = () => {
     discount_percentage: "0",
     promo_active: false,
     image_url: "",
-    stock_quantity: "0"
+    stock_quantity: "0",
+    diamond_reward: "0"
   });
 
   // Image form state
@@ -183,7 +186,8 @@ export const ProductManagement = () => {
       discount_percentage: parseInt(formData.discount_percentage),
       promo_active: formData.promo_active,
       image_url: formData.image_url || null,
-      stock_quantity: parseInt(formData.stock_quantity)
+      stock_quantity: parseInt(formData.stock_quantity),
+      diamond_reward: parseInt(formData.diamond_reward) || 0
     };
 
     if (editingProduct) {
@@ -340,7 +344,8 @@ export const ProductManagement = () => {
       discount_percentage: "0",
       promo_active: false,
       image_url: "",
-      stock_quantity: "0"
+      stock_quantity: "0",
+      diamond_reward: "0"
     });
     setEditingProduct(null);
   };
@@ -358,7 +363,8 @@ export const ProductManagement = () => {
       discount_percentage: product.discount_percentage?.toString() || "0",
       promo_active: product.promo_active || false,
       image_url: product.image_url || "",
-      stock_quantity: product.stock_quantity?.toString() || "0"
+      stock_quantity: product.stock_quantity?.toString() || "0",
+      diamond_reward: product.diamond_reward?.toString() || "0"
     });
     setIsDialogOpen(true);
   };
@@ -405,6 +411,7 @@ export const ProductManagement = () => {
     if (bulkEditData.stock_quantity) updates.stock_quantity = parseInt(bulkEditData.stock_quantity);
     if (bulkEditData.promo_price) updates.promo_price = parseFloat(bulkEditData.promo_price);
     if (bulkEditData.discount_percentage) updates.discount_percentage = parseInt(bulkEditData.discount_percentage);
+    if (bulkEditData.diamond_reward) updates.diamond_reward = parseInt(bulkEditData.diamond_reward);
     if (bulkEditData.is_active !== undefined) updates.is_active = bulkEditData.is_active;
 
     if (Object.keys(updates).length === 0) {
@@ -434,6 +441,7 @@ export const ProductManagement = () => {
       stock_quantity: "",
       promo_price: "",
       discount_percentage: "",
+      diamond_reward: "",
       is_active: undefined
     });
     fetchProducts();
@@ -530,6 +538,20 @@ export const ProductManagement = () => {
                   />
                 </div>
                 <div>
+                  <Label htmlFor="diamond_reward">💎 Diamond Reward</Label>
+                  <Input
+                    id="diamond_reward"
+                    type="number"
+                    min="0"
+                    value={formData.diamond_reward}
+                    onChange={(e) => setFormData({ ...formData, diamond_reward: e.target.value })}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Diamonds awarded when purchased
+                  </p>
+                </div>
+                <div className="col-span-2">
                   <Label htmlFor="category">Category</Label>
                   <Select
                     value={formData.category_id}
@@ -692,6 +714,7 @@ export const ProductManagement = () => {
               </TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Base Price</TableHead>
+              <TableHead>💎 Diamonds</TableHead>
               <TableHead>Commission</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
@@ -710,6 +733,11 @@ export const ProductManagement = () => {
                 </TableCell>
                 <TableCell className="font-medium">{product.name}</TableCell>
                 <TableCell>₱{product.base_price.toFixed(2)}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="bg-primary/10">
+                    💎 {product.diamond_reward || 0}
+                  </Badge>
+                </TableCell>
                 <TableCell>{product.commission_percentage}%</TableCell>
                 <TableCell>
                   <Badge variant={product.is_active ? "default" : "secondary"}>
@@ -768,6 +796,17 @@ export const ProductManagement = () => {
                   placeholder="Keep existing"
                   value={bulkEditData.stock_quantity}
                   onChange={(e) => setBulkEditData({ ...bulkEditData, stock_quantity: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="bulk_diamond_reward">💎 Diamond Reward</Label>
+                <Input
+                  id="bulk_diamond_reward"
+                  type="number"
+                  min="0"
+                  placeholder="Keep existing"
+                  value={bulkEditData.diamond_reward}
+                  onChange={(e) => setBulkEditData({ ...bulkEditData, diamond_reward: e.target.value })}
                 />
               </div>
             </div>

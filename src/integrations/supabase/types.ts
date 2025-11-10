@@ -752,6 +752,7 @@ export type Database = {
           commission_percentage: number
           created_at: string | null
           description: string
+          diamond_reward: number | null
           discount_percentage: number | null
           id: string
           image_url: string | null
@@ -768,6 +769,7 @@ export type Database = {
           commission_percentage?: number
           created_at?: string | null
           description: string
+          diamond_reward?: number | null
           discount_percentage?: number | null
           id?: string
           image_url?: string | null
@@ -784,6 +786,7 @@ export type Database = {
           commission_percentage?: number
           created_at?: string | null
           description?: string
+          diamond_reward?: number | null
           discount_percentage?: number | null
           id?: string
           image_url?: string | null
