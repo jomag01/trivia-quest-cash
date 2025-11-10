@@ -827,6 +827,27 @@ export type Database = {
           },
         ]
       }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
+      }
       stair_step_config: {
         Row: {
           active: boolean | null
@@ -863,6 +884,114 @@ export type Database = {
           step_name?: string
           step_number?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      treasure_hunt_completions: {
+        Row: {
+          completed_at: string
+          credits_earned: number
+          id: string
+          level_number: number
+          symbols_found: number
+          time_taken_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          credits_earned?: number
+          id?: string
+          level_number: number
+          symbols_found: number
+          time_taken_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          credits_earned?: number
+          id?: string
+          level_number?: number
+          symbols_found?: number
+          time_taken_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      treasure_hunt_levels: {
+        Row: {
+          created_at: string
+          credit_reward: number
+          description: string | null
+          difficulty_multiplier: number
+          id: string
+          is_active: boolean
+          level_number: number
+          map_image_url: string | null
+          name: string
+          required_symbols: number
+          time_limit_seconds: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credit_reward?: number
+          description?: string | null
+          difficulty_multiplier?: number
+          id?: string
+          is_active?: boolean
+          level_number: number
+          map_image_url?: string | null
+          name: string
+          required_symbols?: number
+          time_limit_seconds?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credit_reward?: number
+          description?: string | null
+          difficulty_multiplier?: number
+          id?: string
+          is_active?: boolean
+          level_number?: number
+          map_image_url?: string | null
+          name?: string
+          required_symbols?: number
+          time_limit_seconds?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      treasure_hunt_progress: {
+        Row: {
+          created_at: string
+          current_level: number
+          id: string
+          last_played_at: string
+          symbols_found: number
+          total_credits_earned: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_level?: number
+          id?: string
+          last_played_at?: string
+          symbols_found?: number
+          total_credits_earned?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_level?: number
+          id?: string
+          last_played_at?: string
+          symbols_found?: number
+          total_credits_earned?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1082,6 +1211,10 @@ export type Database = {
       process_monthly_rank_reversion: { Args: never; Returns: undefined }
       update_affiliate_monthly_sales: {
         Args: { p_amount: number; p_is_personal?: boolean; p_user_id: string }
+        Returns: undefined
+      }
+      update_credits: {
+        Args: { amount: number; user_id: string }
         Returns: undefined
       }
     }

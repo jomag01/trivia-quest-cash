@@ -31,7 +31,8 @@ import { ProductCategoryManagement } from "@/components/ProductCategoryManagemen
 import { OrderManagement } from "@/components/OrderManagement";
 import { ImageMigrationTool } from "@/components/ImageMigrationTool";
 import StairStepManagement from "@/components/StairStepManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp } from "lucide-react";
+import { TreasureHuntManagement } from "@/components/TreasureHuntManagement";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -77,6 +78,7 @@ const Admin = () => {
     { id: "credits", label: "Credit Purchases", icon: CreditCard },
     { id: "payouts", label: "Payout Requests", icon: DollarSign },
     { id: "categories", label: "Game Categories", icon: Gamepad2 },
+    { id: "treasure-hunt", label: "Treasure Hunt", icon: MapPin },
     { id: "prizes", label: "Prize Config", icon: Trophy },
     { id: "product-categories", label: "Product Categories", icon: FolderOpen },
     { id: "products", label: "Products", icon: ShoppingBag },
@@ -446,6 +448,7 @@ const Admin = () => {
           )}
 
           {activeTab === "categories" && <CategoryManagement />}
+          {activeTab === "treasure-hunt" && <TreasureHuntManagement />}
           {activeTab === "prizes" && <PrizeManagement />}
           {activeTab === "product-categories" && <ProductCategoryManagement />}
           {activeTab === "products" && <ProductManagement />}

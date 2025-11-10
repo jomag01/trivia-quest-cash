@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import Shop from "./pages/Shop";
+import TreasureHunt from "./pages/TreasureHunt";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
 import { CustomerSupportChat } from "./components/CustomerSupportChat";
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/game" element={<Game />} />
             <Route path="/game/:category" element={<Game />} />
+            <Route path="/treasure-hunt" element={<TreasureHunt />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
