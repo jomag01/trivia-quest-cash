@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Edit, Trash2, Image as ImageIcon, PackagePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ImageUploadCrop } from "@/components/ImageUploadCrop";
 
 interface Product {
   id: string;
@@ -79,8 +80,9 @@ export const ProductManagement = () => {
     stock_quantity: "0"
   });
 
-  const [uploadingImage, setUploadingImage] = useState(false);
-
+  // Image form state
+  const [imageUrl, setImageUrl] = useState("");
+  const [isPrimary, setIsPrimary] = useState(false);
   // Variant form state
   const [variantForm, setVariantForm] = useState({
     variant_type: "size" as 'size' | 'color' | 'weight',
@@ -89,10 +91,6 @@ export const ProductManagement = () => {
     stock_quantity: "0",
     sku: ""
   });
-
-  // Image form state
-  const [imageUrl, setImageUrl] = useState("");
-  const [isPrimary, setIsPrimary] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -239,12 +237,15 @@ export const ProductManagement = () => {
     fetchVariants(selectedProduct.id);
   };
 
-  const handleAddImage = async () => {
-    if (!selectedProduct || !imageUrl) return;
+  const handleAddImage = async (url?: string) => {
+    if (!selectedProduct) return;
+    
+    const finalUrl = url || imageUrl;
+    if (!finalUrl) return;
 
     const imageData = {
       product_id: selectedProduct.id,
-      image_url: imageUrl,
+      image_url: finalUrl,
       display_order: images.length,
       is_primary: isPrimary
     };
@@ -464,107 +465,11 @@ export const ProductManagement = () => {
                 </div>
               </div>
               
-              <div className="space-y-3">
-                <Label>Product Image</Label>
-                
-                {/* URL Input Option */}
-                <div className="space-y-2">
-                  <Label htmlFor="image_url" className="text-sm text-muted-foreground">Image URL</Label>
-                  <Input
-                    id="image_url"
-                    type="url"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
-                    disabled={uploadingImage}
-                  />
-                </div>
-
-                {/* OR Divider */}
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 border-t" />
-                  <span className="text-xs text-muted-foreground">OR</span>
-                  <div className="flex-1 border-t" />
-                </div>
-
-                {/* File Upload Option */}
-                <div className="space-y-2">
-                  <Label htmlFor="image_upload" className="text-sm text-muted-foreground">Upload Image</Label>
-                  <Input
-                    id="image_upload"
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                    disabled={uploadingImage}
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-
-                      setUploadingImage(true);
-                      try {
-                        const fileExt = file.name.split('.').pop();
-                        const fileName = `${Math.random()}.${fileExt}`;
-                        const filePath = `${fileName}`;
-
-                        const { error: uploadError } = await supabase.storage
-                          .from('product-images')
-                          .upload(filePath, file);
-
-                        if (uploadError) throw uploadError;
-
-                        const { data: { publicUrl } } = supabase.storage
-                          .from('product-images')
-                          .getPublicUrl(filePath);
-
-                        setFormData({ ...formData, image_url: publicUrl });
-                        toast.success("Image uploaded successfully");
-                      } catch (error) {
-                        console.error("Error uploading image:", error);
-                        // Fallback: embed image as data URL so it still displays
-                        try {
-                          const dataUrl: string = await new Promise((resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.onload = () => resolve(reader.result as string);
-                            reader.onerror = reject;
-                            reader.readAsDataURL(file);
-                          });
-                          setFormData({ ...formData, image_url: dataUrl });
-                          toast.warning("Storage issue detected. Embedded image used instead.");
-                        } catch (readErr) {
-                          console.error("Failed to convert image to data URL:", readErr);
-                          toast.error("Failed to upload image");
-                        }
-                      } finally {
-                        setUploadingImage(false);
-                      }
-                    }}
-                  />
-                  {uploadingImage && (
-                    <p className="text-xs text-muted-foreground">Uploading image...</p>
-                  )}
-                </div>
-
-                {/* Image Preview */}
-                {formData.image_url && !uploadingImage && (
-                  <div className="mt-2">
-                    <Label className="text-sm text-muted-foreground mb-2 block">Preview</Label>
-                    <img 
-                      src={formData.image_url} 
-                      alt="Product preview" 
-                      className="w-32 h-32 object-cover rounded border"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const parent = e.currentTarget.parentElement;
-                        if (parent) {
-                          const errorMsg = document.createElement('div');
-                          errorMsg.className = 'text-sm text-destructive';
-                          errorMsg.textContent = 'Failed to load image';
-                          parent.appendChild(errorMsg);
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
+              <ImageUploadCrop
+                onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
+                currentImage={formData.image_url}
+                maxSizeKB={500}
+              />
 
               <div>
                 <Label htmlFor="stock_quantity">Stock Quantity</Label>
@@ -848,65 +753,69 @@ export const ProductManagement = () => {
 
       {/* Images Dialog */}
       <Dialog open={imagesDialogOpen} onOpenChange={setImagesDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Product Images - {selectedProduct?.name}</DialogTitle>
+            <DialogTitle>Product Image Gallery - {selectedProduct?.name}</DialogTitle>
             <DialogDescription>
-              Add and manage product images. Mark one as primary for thumbnails.
+              Upload and manage multiple product images. Mark one as primary for thumbnails.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <Card className="p-4">
-              <h3 className="font-semibold mb-4">Add New Image</h3>
-              <div className="space-y-4">
-                <div>
-                  <Label>Image URL</Label>
-                  <Input
-                    placeholder="https://example.com/image.jpg"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={isPrimary}
-                    onCheckedChange={setIsPrimary}
-                  />
-                  <Label>Set as Primary Image</Label>
-                </div>
-                <Button onClick={handleAddImage}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Image
-                </Button>
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4">Upload New Image</h3>
+              <ImageUploadCrop
+                onImageUploaded={(url) => handleAddImage(url)}
+                maxSizeKB={300}
+              />
+              <div className="flex items-center space-x-2 mt-4">
+                <Switch
+                  checked={isPrimary}
+                  onCheckedChange={setIsPrimary}
+                />
+                <Label>Set as Primary Image</Label>
               </div>
             </Card>
 
             <div>
-              <h3 className="font-semibold mb-2">Existing Images</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {images.map((image) => (
-                  <Card key={image.id} className="p-4">
-                    <img
-                      src={image.image_url}
-                      alt="Product"
-                      className="w-full h-48 object-cover rounded mb-2"
-                    />
-                    <div className="flex justify-between items-center">
-                      {image.is_primary && (
-                        <Badge variant="default">Primary</Badge>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteImage(image.id)}
-                        className="ml-auto"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+              <h3 className="font-semibold mb-4">Image Gallery ({images.length})</h3>
+              {images.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <ImageIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p>No images uploaded yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-4">
+                  {images
+                    .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
+                    .map((image) => (
+                      <Card key={image.id} className="group relative overflow-hidden">
+                        <div className="aspect-square">
+                          <img
+                            src={image.image_url}
+                            alt="Product"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                          />
+                        </div>
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors">
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteImage(image.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        {image.is_primary && (
+                          <Badge className="absolute top-2 left-2 bg-primary">
+                            Primary
+                          </Badge>
+                        )}
+                      </Card>
+                    ))}
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>

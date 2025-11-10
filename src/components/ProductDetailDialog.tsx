@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart } from "lucide-react";
+import { ShoppingCart, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
   id: string;
@@ -39,6 +41,58 @@ export const ProductDetailDialog = ({
   inCart,
   inWishlist,
 }: ProductDetailDialogProps) => {
+  const [images, setImages] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (product && open) {
+      fetchProductImages();
+    }
+  }, [product?.id, open]);
+
+  const fetchProductImages = async () => {
+    if (!product?.id) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("product_images")
+        .select("image_url, is_primary, display_order")
+        .eq("product_id", product.id)
+        .order("is_primary", { ascending: false })
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setImages(data.map(img => img.image_url));
+      } else if (product.image_url) {
+        setImages([product.image_url]);
+      } else {
+        setImages([]);
+      }
+      setCurrentImageIndex(0);
+    } catch (error) {
+      console.error("Error fetching product images:", error);
+      if (product.image_url) {
+        setImages([product.image_url]);
+      } else {
+        setImages([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
   if (!product) return null;
 
   const effectivePrice = product.promo_active && product.promo_price
@@ -53,23 +107,77 @@ export const ProductDetailDialog = ({
         </DialogHeader>
         
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Product Image */}
-          <div className="aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-            {product.image_url ? (
-              <img
-                src={product.image_url}
-                alt={product.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const parent = e.currentTarget.parentElement;
-                  if (parent) {
-                    parent.innerHTML = '<div class="text-muted-foreground">No image available</div>';
-                  }
-                }}
-              />
-            ) : (
-              <div className="text-muted-foreground">No image available</div>
+          {/* Product Image Gallery */}
+          <div className="relative">
+            <div className="aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+              {loading ? (
+                <div className="text-muted-foreground">Loading images...</div>
+              ) : images.length > 0 ? (
+                <img
+                  src={images[currentImageIndex]}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      parent.innerHTML = '<div class="text-muted-foreground">Failed to load image</div>';
+                    }
+                  }}
+                />
+              ) : (
+                <div className="text-muted-foreground">No image available</div>
+              )}
+            </div>
+
+            {/* Image Navigation */}
+            {images.length > 1 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+                  onClick={prevImage}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+                  onClick={nextImage}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                
+                {/* Image Counter */}
+                <div className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs">
+                  {currentImageIndex + 1} / {images.length}
+                </div>
+              </>
+            )}
+
+            {/* Thumbnail Gallery */}
+            {images.length > 1 && (
+              <div className="flex gap-2 mt-2 overflow-x-auto">
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentImageIndex(idx)}
+                    className={`flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden transition-all ${
+                      idx === currentImageIndex
+                        ? "border-primary"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`${product.name} ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
