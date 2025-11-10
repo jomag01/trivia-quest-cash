@@ -16,6 +16,7 @@ interface GameCategory {
   color_to: string;
   is_active: boolean;
   min_level_required: number;
+  game_type?: string;
 }
 
 const Home = () => {
@@ -143,8 +144,10 @@ const Home = () => {
             {categories.map((category) => {
               const isCompleted = completedCategories.includes(category.id);
               
+              const linkPath = category.game_type === 'treasure-hunt' ? '/treasure-hunt' : `/game/${category.slug}`;
+              
               return (
-                <Link to={`/game/${category.slug}`} key={category.id}>
+                <Link to={linkPath} key={category.id}>
                   <Card 
                     className={`p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth cursor-pointer group relative ${
                       isCompleted ? 'opacity-80' : ''

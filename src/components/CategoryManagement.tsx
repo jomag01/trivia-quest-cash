@@ -29,6 +29,7 @@ interface GameCategory {
   color_to: string;
   is_active: boolean;
   min_level_required: number;
+  game_type?: string;
   created_at: string;
   updated_at: string;
 }
@@ -46,6 +47,7 @@ export const CategoryManagement = () => {
     color_to: "to-purple-600",
     min_level_required: 1,
     is_active: true,
+    game_type: "quiz",
   });
   const [iconType, setIconType] = useState<"emoji" | "image">("emoji");
 
@@ -142,6 +144,7 @@ export const CategoryManagement = () => {
       color_to: "to-purple-600",
       min_level_required: 1,
       is_active: true,
+      game_type: "quiz",
     });
     setEditingCategory(null);
   };
@@ -157,6 +160,7 @@ export const CategoryManagement = () => {
       color_to: category.color_to,
       min_level_required: category.min_level_required,
       is_active: category.is_active,
+      game_type: category.game_type || "quiz",
     });
     // Detect if icon is an image URL or emoji
     if (category.icon.startsWith("http") || category.icon.startsWith("data:")) {
@@ -252,6 +256,22 @@ export const CategoryManagement = () => {
                     required
                     className="h-9"
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="game_type" className="text-sm">Game Type</Label>
+                  <select
+                    id="game_type"
+                    value={formData.game_type}
+                    onChange={(e) => setFormData({ ...formData, game_type: e.target.value })}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="quiz">Quiz Game</option>
+                    <option value="treasure-hunt">Treasure Hunt</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Quiz: Regular trivia game | Treasure Hunt: Symbol finding adventure
+                  </p>
                 </div>
 
                 <div>

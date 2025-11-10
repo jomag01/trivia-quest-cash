@@ -275,6 +275,7 @@ export type Database = {
           color_to: string
           created_at: string | null
           description: string | null
+          game_type: string
           icon: string
           id: string
           is_active: boolean | null
@@ -288,6 +289,7 @@ export type Database = {
           color_to: string
           created_at?: string | null
           description?: string | null
+          game_type?: string
           icon: string
           id?: string
           is_active?: boolean | null
@@ -301,6 +303,7 @@ export type Database = {
           color_to?: string
           created_at?: string | null
           description?: string | null
+          game_type?: string
           icon?: string
           id?: string
           is_active?: boolean | null
