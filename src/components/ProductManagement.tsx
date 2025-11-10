@@ -552,7 +552,14 @@ export const ProductManagement = () => {
                       alt="Product preview" 
                       className="w-32 h-32 object-cover rounded border"
                       onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400";
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          const errorMsg = document.createElement('div');
+                          errorMsg.className = 'text-sm text-destructive';
+                          errorMsg.textContent = 'Failed to load image';
+                          parent.appendChild(errorMsg);
+                        }
                       }}
                     />
                   </div>

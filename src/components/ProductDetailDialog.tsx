@@ -54,15 +54,23 @@ export const ProductDetailDialog = ({
         
         <div className="grid md:grid-cols-2 gap-6">
           {/* Product Image */}
-          <div className="aspect-square rounded-lg overflow-hidden bg-background/20">
-            <img
-              src={product.image_url || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400"}
-              alt={product.name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400";
-              }}
-            />
+          <div className="aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+            {product.image_url ? (
+              <img
+                src={product.image_url}
+                alt={product.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="text-muted-foreground">No image available</div>';
+                  }
+                }}
+              />
+            ) : (
+              <div className="text-muted-foreground">No image available</div>
+            )}
           </div>
 
           {/* Product Details */}

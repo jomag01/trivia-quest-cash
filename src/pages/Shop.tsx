@@ -337,15 +337,23 @@ const Shop = () => {
               }}
             >
               {/* Product Image */}
-              <div className="mb-4 aspect-square rounded-lg overflow-hidden bg-background/20">
-                <img
-                  src={product.image_url || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400"}
-                  alt={product.name}
-                  className="w-full h-full object-cover transition-transform hover:scale-105"
-                  onError={(e) => {
-                    e.currentTarget.src = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400";
-                  }}
-                />
+              <div className="mb-4 aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                {product.image_url ? (
+                  <img
+                    src={product.image_url}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        parent.innerHTML = '<div class="text-muted-foreground text-sm">No image</div>';
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="text-muted-foreground text-sm">No image</div>
+                )}
               </div>
               
               <div className="mb-4 flex-1">
