@@ -64,6 +64,18 @@ export const ProductManagement = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [images, setImages] = useState<ProductImage[]>([]);
+  
+  // Bulk edit state
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [bulkEditData, setBulkEditData] = useState({
+    base_price: "",
+    category_id: "",
+    stock_quantity: "",
+    promo_price: "",
+    discount_percentage: "",
+    is_active: undefined as boolean | undefined
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -363,6 +375,70 @@ export const ProductManagement = () => {
     setImagesDialogOpen(true);
   };
 
+  const toggleSelectProduct = (productId: string) => {
+    const newSelected = new Set(selectedProductIds);
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId);
+    } else {
+      newSelected.add(productId);
+    }
+    setSelectedProductIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProductIds.size === products.length) {
+      setSelectedProductIds(new Set());
+    } else {
+      setSelectedProductIds(new Set(products.map(p => p.id)));
+    }
+  };
+
+  const handleBulkEdit = async () => {
+    if (selectedProductIds.size === 0) {
+      toast.error("No products selected");
+      return;
+    }
+
+    const updates: any = {};
+    if (bulkEditData.base_price) updates.base_price = parseFloat(bulkEditData.base_price);
+    if (bulkEditData.category_id) updates.category_id = bulkEditData.category_id;
+    if (bulkEditData.stock_quantity) updates.stock_quantity = parseInt(bulkEditData.stock_quantity);
+    if (bulkEditData.promo_price) updates.promo_price = parseFloat(bulkEditData.promo_price);
+    if (bulkEditData.discount_percentage) updates.discount_percentage = parseInt(bulkEditData.discount_percentage);
+    if (bulkEditData.is_active !== undefined) updates.is_active = bulkEditData.is_active;
+
+    if (Object.keys(updates).length === 0) {
+      toast.error("No changes to apply");
+      return;
+    }
+
+    const productIds = Array.from(selectedProductIds);
+    
+    const { error } = await supabase
+      .from("products")
+      .update(updates)
+      .in("id", productIds);
+
+    if (error) {
+      toast.error("Failed to update products");
+      console.error(error);
+      return;
+    }
+
+    toast.success(`Updated ${productIds.length} product(s)`);
+    setSelectedProductIds(new Set());
+    setIsBulkEditOpen(false);
+    setBulkEditData({
+      base_price: "",
+      category_id: "",
+      stock_quantity: "",
+      promo_price: "",
+      discount_percentage: "",
+      is_active: undefined
+    });
+    fetchProducts();
+  };
+
   if (loading) {
     return <div>Loading products...</div>;
   }
@@ -585,10 +661,35 @@ export const ProductManagement = () => {
         </Dialog>
       </div>
 
+      {selectedProductIds.size > 0 && (
+        <Card className="p-4 bg-accent/10 border-accent">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="font-semibold">{selectedProductIds.size} product(s) selected</span>
+              <Button size="sm" variant="outline" onClick={() => setSelectedProductIds(new Set())}>
+                Clear Selection
+              </Button>
+            </div>
+            <Button onClick={() => setIsBulkEditOpen(true)}>
+              <Edit className="w-4 h-4 mr-2" />
+              Bulk Edit
+            </Button>
+          </div>
+        </Card>
+      )}
+
       <Card>
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <input
+                  type="checkbox"
+                  checked={selectedProductIds.size === products.length && products.length > 0}
+                  onChange={toggleSelectAll}
+                  className="cursor-pointer"
+                />
+              </TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Base Price</TableHead>
               <TableHead>Commission</TableHead>
@@ -599,6 +700,14 @@ export const ProductManagement = () => {
           <TableBody>
             {products.map((product) => (
               <TableRow key={product.id}>
+                <TableCell>
+                  <input
+                    type="checkbox"
+                    checked={selectedProductIds.has(product.id)}
+                    onChange={() => toggleSelectProduct(product.id)}
+                    className="cursor-pointer"
+                  />
+                </TableCell>
                 <TableCell className="font-medium">{product.name}</TableCell>
                 <TableCell>₱{product.base_price.toFixed(2)}</TableCell>
                 <TableCell>{product.commission_percentage}%</TableCell>
@@ -628,6 +737,131 @@ export const ProductManagement = () => {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Bulk Edit Dialog */}
+      <Dialog open={isBulkEditOpen} onOpenChange={setIsBulkEditOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Bulk Edit {selectedProductIds.size} Products</DialogTitle>
+            <DialogDescription>
+              Leave fields empty to keep existing values
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="bulk_base_price">Base Price (₱)</Label>
+                <Input
+                  id="bulk_base_price"
+                  type="number"
+                  step="0.01"
+                  placeholder="Keep existing"
+                  value={bulkEditData.base_price}
+                  onChange={(e) => setBulkEditData({ ...bulkEditData, base_price: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="bulk_stock">Stock Quantity</Label>
+                <Input
+                  id="bulk_stock"
+                  type="number"
+                  placeholder="Keep existing"
+                  value={bulkEditData.stock_quantity}
+                  onChange={(e) => setBulkEditData({ ...bulkEditData, stock_quantity: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="bulk_category">Category</Label>
+              <Select
+                value={bulkEditData.category_id}
+                onValueChange={(value) => setBulkEditData({ ...bulkEditData, category_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Keep existing" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Keep existing</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.icon} {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="border-t pt-3">
+              <Label className="text-sm font-semibold mb-2 block">Promotional Pricing</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="bulk_discount">Discount (%)</Label>
+                  <Input
+                    id="bulk_discount"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="Keep existing"
+                    value={bulkEditData.discount_percentage}
+                    onChange={(e) => setBulkEditData({ ...bulkEditData, discount_percentage: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bulk_promo_price">Promo Price (₱)</Label>
+                  <Input
+                    id="bulk_promo_price"
+                    type="number"
+                    step="0.01"
+                    placeholder="Keep existing"
+                    value={bulkEditData.promo_price}
+                    onChange={(e) => setBulkEditData({ ...bulkEditData, promo_price: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-3">
+              <Label className="text-sm font-semibold mb-2 block">Product Status</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={bulkEditData.is_active === true ? "default" : "outline"}
+                  onClick={() => setBulkEditData({ ...bulkEditData, is_active: true })}
+                >
+                  Set Active
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={bulkEditData.is_active === false ? "default" : "outline"}
+                  onClick={() => setBulkEditData({ ...bulkEditData, is_active: false })}
+                >
+                  Set Inactive
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={bulkEditData.is_active === undefined ? "default" : "outline"}
+                  onClick={() => setBulkEditData({ ...bulkEditData, is_active: undefined })}
+                >
+                  Keep Existing
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsBulkEditOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleBulkEdit}>
+                Apply Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Variants Dialog */}
       <Dialog open={variantsDialogOpen} onOpenChange={setVariantsDialogOpen}>
