@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -15,7 +14,9 @@ import {
   XCircle,
   Clock,
   Shield,
-  Eye
+  Eye,
+  Menu,
+  X
 } from "lucide-react";
 import {
   Dialog,
@@ -31,6 +32,7 @@ import { OrderManagement } from "@/components/OrderManagement";
 import { ImageMigrationTool } from "@/components/ImageMigrationTool";
 import StairStepManagement from "@/components/StairStepManagement";
 import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
   id: string;
@@ -68,6 +70,20 @@ const Admin = () => {
   const [selectedProof, setSelectedProof] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
+  const [activeTab, setActiveTab] = useState("credits");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const menuItems = [
+    { id: "credits", label: "Credit Purchases", icon: CreditCard },
+    { id: "payouts", label: "Payout Requests", icon: DollarSign },
+    { id: "categories", label: "Game Categories", icon: Gamepad2 },
+    { id: "prizes", label: "Prize Config", icon: Trophy },
+    { id: "product-categories", label: "Product Categories", icon: FolderOpen },
+    { id: "products", label: "Products", icon: ShoppingBag },
+    { id: "orders", label: "Orders", icon: Package },
+    { id: "migration", label: "Image Migration", icon: Upload },
+    { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
+  ];
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -241,187 +257,203 @@ const Admin = () => {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 min-h-screen">
-      <div className="flex items-center gap-3 mb-8">
-        <Shield className="w-8 h-8 text-primary" />
-        <h1 className="text-3xl font-bold text-gradient-gold">Admin Panel</h1>
-      </div>
+    <div className="min-h-screen flex">
+      {/* Sidebar */}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transition-transform duration-300 lg:translate-x-0",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-2">
+              <Shield className="w-6 h-6 text-primary" />
+              <h2 className="font-bold text-lg">Admin</h2>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          <nav className="flex-1 overflow-y-auto p-2">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setSidebarOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors mb-1",
+                    activeTab === item.id
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
 
-      <Tabs defaultValue="credits" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="credits" className="flex items-center gap-2">
-            <CreditCard className="w-4 h-4" />
-            Credit Purchases
-          </TabsTrigger>
-          <TabsTrigger value="payouts" className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4" />
-            Payout Requests
-          </TabsTrigger>
-          <TabsTrigger value="categories" className="flex items-center gap-2">
-            <Gamepad2 className="w-4 h-4" />
-            Game Categories
-          </TabsTrigger>
-          <TabsTrigger value="prizes" className="flex items-center gap-2">
-            <Trophy className="w-4 h-4" />
-            Prize Config
-          </TabsTrigger>
-          <TabsTrigger value="product-categories" className="flex items-center gap-2">
-            <FolderOpen className="w-4 h-4" />
-            Product Categories
-          </TabsTrigger>
-          <TabsTrigger value="products" className="flex items-center gap-2">
-            <ShoppingBag className="w-4 h-4" />
-            Products
-          </TabsTrigger>
-          <TabsTrigger value="orders" className="flex items-center gap-2">
-            <Package className="w-4 h-4" />
-            Orders
-          </TabsTrigger>
-          <TabsTrigger value="migration" className="flex items-center gap-2">
-            <Upload className="w-4 h-4" />
-            Image Migration
-          </TabsTrigger>
-          <TabsTrigger value="stair-step" className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Stair Step MLM
-          </TabsTrigger>
-        </TabsList>
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-        <TabsContent value="credits" className="space-y-4">
-          {creditPurchases.map((purchase) => (
-            <Card key={purchase.id} className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-semibold">
-                      User ID: {purchase.user_id.slice(0, 8)}...
-                    </h3>
-                    {getStatusBadge(purchase.status)}
+      {/* Main Content */}
+      <div className="flex-1 lg:ml-64">
+        {/* Header */}
+        <header className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+          <div className="flex items-center gap-3 p-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+            <Shield className="w-6 h-6 text-primary hidden lg:block" />
+            <h1 className="text-2xl font-bold text-gradient-gold">
+              {menuItems.find(item => item.id === activeTab)?.label || "Admin Panel"}
+            </h1>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="p-4 md:p-6">
+          {activeTab === "credits" && (
+            <div className="space-y-4">
+              {creditPurchases.map((purchase) => (
+                <Card key={purchase.id} className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold">
+                          User ID: {purchase.user_id.slice(0, 8)}...
+                        </h3>
+                        {getStatusBadge(purchase.status)}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <p><strong>Amount:</strong> ₱{purchase.amount.toFixed(2)}</p>
+                        <p><strong>Credits:</strong> {purchase.credits}</p>
+                        <p><strong>Method:</strong> {purchase.payment_method}</p>
+                        <p><strong>Date:</strong> {new Date(purchase.created_at).toLocaleDateString()}</p>
+                        <p><strong>Reference:</strong> {purchase.reference_number || "N/A"}</p>
+                        <p><strong>Sender:</strong> {purchase.sender_name || "N/A"}</p>
+                        {purchase.referral_code && (
+                          <p className="col-span-2"><strong>Referral Code:</strong> {purchase.referral_code}</p>
+                        )}
+                      </div>
+                      {purchase.admin_notes && (
+                        <div className="mt-2 p-2 bg-muted rounded">
+                          <p className="text-xs font-semibold">Admin Notes:</p>
+                          <p className="text-sm">{purchase.admin_notes}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {purchase.proof_image_url && (
+                        <Button
+                          size="sm"
+                          onClick={() => setSelectedProof(purchase.proof_image_url)}
+                          variant="outline"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Proof
+                        </Button>
+                      )}
+                      {purchase.status === "pending" && (
+                        <Button
+                          size="sm"
+                          onClick={() => setProcessingId(purchase.id)}
+                          variant="default"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Process
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <p><strong>Amount:</strong> ₱{purchase.amount.toFixed(2)}</p>
-                    <p><strong>Credits:</strong> {purchase.credits}</p>
-                    <p><strong>Method:</strong> {purchase.payment_method}</p>
-                    <p><strong>Date:</strong> {new Date(purchase.created_at).toLocaleDateString()}</p>
-                    <p><strong>Reference:</strong> {purchase.reference_number || "N/A"}</p>
-                    <p><strong>Sender:</strong> {purchase.sender_name || "N/A"}</p>
-                    {purchase.referral_code && (
-                      <p className="col-span-2"><strong>Referral Code:</strong> {purchase.referral_code}</p>
+                </Card>
+              ))}
+              {creditPurchases.length === 0 && (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No credit purchases yet</p>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {activeTab === "payouts" && (
+            <div className="space-y-4">
+              {payoutRequests.map((payout) => (
+                <Card key={payout.id} className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold">
+                          User ID: {payout.user_id.slice(0, 8)}...
+                        </h3>
+                        {getStatusBadge(payout.status)}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <p><strong>Amount:</strong> ₱{payout.amount.toFixed(2)}</p>
+                        <p><strong>Method:</strong> {payout.payout_method}</p>
+                        <p><strong>Account Name:</strong> {payout.account_name}</p>
+                        <p><strong>Account Number:</strong> {payout.account_number}</p>
+                        {payout.bank_name && <p><strong>Bank:</strong> {payout.bank_name}</p>}
+                        <p><strong>Date:</strong> {new Date(payout.created_at).toLocaleDateString()}</p>
+                      </div>
+                      {payout.admin_notes && (
+                        <div className="mt-2 p-2 bg-muted rounded">
+                          <p className="text-xs font-semibold">Admin Notes:</p>
+                          <p className="text-sm">{payout.admin_notes}</p>
+                        </div>
+                      )}
+                    </div>
+                    {payout.status === "pending" && (
+                      <Button
+                        size="sm"
+                        onClick={() => setProcessingId(payout.id)}
+                        variant="default"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Process
+                      </Button>
                     )}
                   </div>
-                  {purchase.admin_notes && (
-                    <div className="mt-2 p-2 bg-muted rounded">
-                      <p className="text-xs font-semibold">Admin Notes:</p>
-                      <p className="text-sm">{purchase.admin_notes}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2">
-                  {purchase.proof_image_url && (
-                    <Button
-                      size="sm"
-                      onClick={() => setSelectedProof(purchase.proof_image_url)}
-                      variant="outline"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Proof
-                    </Button>
-                  )}
-                  {purchase.status === "pending" && (
-                    <Button
-                      size="sm"
-                      onClick={() => setProcessingId(purchase.id)}
-                      variant="default"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Process
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
-          {creditPurchases.length === 0 && (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No credit purchases yet</p>
-            </Card>
+                </Card>
+              ))}
+              {payoutRequests.length === 0 && (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No payout requests yet</p>
+                </Card>
+              )}
+            </div>
           )}
-        </TabsContent>
 
-        <TabsContent value="payouts" className="space-y-4">
-          {payoutRequests.map((payout) => (
-            <Card key={payout.id} className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-semibold">
-                      User ID: {payout.user_id.slice(0, 8)}...
-                    </h3>
-                    {getStatusBadge(payout.status)}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <p><strong>Amount:</strong> ₱{payout.amount.toFixed(2)}</p>
-                    <p><strong>Method:</strong> {payout.payout_method}</p>
-                    <p><strong>Account Name:</strong> {payout.account_name}</p>
-                    <p><strong>Account Number:</strong> {payout.account_number}</p>
-                    {payout.bank_name && <p><strong>Bank:</strong> {payout.bank_name}</p>}
-                    <p><strong>Date:</strong> {new Date(payout.created_at).toLocaleDateString()}</p>
-                  </div>
-                  {payout.admin_notes && (
-                    <div className="mt-2 p-2 bg-muted rounded">
-                      <p className="text-xs font-semibold">Admin Notes:</p>
-                      <p className="text-sm">{payout.admin_notes}</p>
-                    </div>
-                  )}
-                </div>
-                {payout.status === "pending" && (
-                  <Button
-                    size="sm"
-                    onClick={() => setProcessingId(payout.id)}
-                    variant="default"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Process
-                  </Button>
-                )}
-              </div>
-            </Card>
-          ))}
-          {payoutRequests.length === 0 && (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No payout requests yet</p>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="categories">
-          <CategoryManagement />
-        </TabsContent>
-
-        <TabsContent value="prizes">
-          <PrizeManagement />
-        </TabsContent>
-
-        <TabsContent value="product-categories">
-          <ProductCategoryManagement />
-        </TabsContent>
-
-        <TabsContent value="products">
-          <ProductManagement />
-        </TabsContent>
-
-        <TabsContent value="orders">
-          <OrderManagement />
-        </TabsContent>
-
-        <TabsContent value="migration">
-          <ImageMigrationTool />
-        </TabsContent>
-
-        <TabsContent value="stair-step">
-          <StairStepManagement />
-        </TabsContent>
-      </Tabs>
+          {activeTab === "categories" && <CategoryManagement />}
+          {activeTab === "prizes" && <PrizeManagement />}
+          {activeTab === "product-categories" && <ProductCategoryManagement />}
+          {activeTab === "products" && <ProductManagement />}
+          {activeTab === "orders" && <OrderManagement />}
+          {activeTab === "migration" && <ImageMigrationTool />}
+          {activeTab === "stair-step" && <StairStepManagement />}
+        </main>
+      </div>
 
       {/* Processing Dialog */}
       <Dialog open={!!processingId} onOpenChange={() => { setProcessingId(null); setAdminNotes(""); }}>
