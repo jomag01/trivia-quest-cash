@@ -181,54 +181,56 @@ export const CategoryManagement = () => {
               Add Category
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-lg">
                 {editingCategory ? "Edit Category" : "Add Category"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="name">Name</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <Label htmlFor="name" className="text-sm">Name</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
+                    className="h-9"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="slug">Slug</Label>
+                <div className="sm:col-span-2">
+                  <Label htmlFor="slug" className="text-sm">Slug</Label>
                   <Input
                     id="slug"
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                     required
+                    className="h-9"
                   />
                 </div>
 
-                <div className="col-span-2">
-                  <Label>Icon Type</Label>
-                  <Tabs value={iconType} onValueChange={(v) => setIconType(v as "emoji" | "image")}>
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="emoji">Emoji</TabsTrigger>
-                      <TabsTrigger value="image">Upload Image</TabsTrigger>
+                <div className="sm:col-span-2">
+                  <Label className="text-sm">Icon Type</Label>
+                  <Tabs value={iconType} onValueChange={(v) => setIconType(v as "emoji" | "image")} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 h-8">
+                      <TabsTrigger value="emoji" className="text-xs">Emoji</TabsTrigger>
+                      <TabsTrigger value="image" className="text-xs">Upload Image</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="emoji" className="mt-3">
+                    <TabsContent value="emoji" className="mt-2">
                       <Input
                         id="icon"
                         value={formData.icon}
                         onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
                         placeholder="🌍"
                         required
-                        className="text-xl"
+                        className="text-lg h-9"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Win: Win + . | Mac: Cmd + Ctrl + Space
                       </p>
                     </TabsContent>
-                    <TabsContent value="image" className="mt-3">
+                    <TabsContent value="image" className="mt-2">
                       <ImageUploadCrop
                         onImageUploaded={(url) => setFormData({ ...formData, icon: url })}
                         currentImage={formData.icon.startsWith("http") || formData.icon.startsWith("data:") ? formData.icon : undefined}
@@ -239,7 +241,7 @@ export const CategoryManagement = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="min_level">Min Level</Label>
+                  <Label htmlFor="min_level" className="text-sm">Min Level</Label>
                   <Input
                     id="min_level"
                     type="number"
@@ -248,43 +250,59 @@ export const CategoryManagement = () => {
                     value={formData.min_level_required}
                     onChange={(e) => setFormData({ ...formData, min_level_required: parseInt(e.target.value) })}
                     required
+                    className="h-9"
                   />
                 </div>
 
-                <div className="col-span-2">
-                  <Label htmlFor="description">Description</Label>
+                <div>
+                  <Label htmlFor="display_order" className="text-sm">Order</Label>
+                  <Input
+                    id="display_order"
+                    type="number"
+                    min="0"
+                    value={formData.min_level_required}
+                    onChange={(e) => setFormData({ ...formData, min_level_required: parseInt(e.target.value) })}
+                    className="h-9"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <Label htmlFor="description" className="text-sm">Description</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={2}
+                    className="text-sm resize-none"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="color_from">From</Label>
+                  <Label htmlFor="color_from" className="text-sm">From</Label>
                   <Input
                     id="color_from"
                     value={formData.color_from}
                     onChange={(e) => setFormData({ ...formData, color_from: e.target.value })}
                     placeholder="from-blue-500"
                     required
+                    className="h-9 text-xs"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="color_to">To</Label>
+                  <Label htmlFor="color_to" className="text-sm">To</Label>
                   <Input
                     id="color_to"
                     value={formData.color_to}
                     onChange={(e) => setFormData({ ...formData, color_to: e.target.value })}
                     placeholder="to-purple-600"
                     required
+                    className="h-9 text-xs"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t pt-3">
-                <Label htmlFor="is_active">Active</Label>
+              <div className="flex items-center justify-between border-t pt-2">
+                <Label htmlFor="is_active" className="text-sm">Active</Label>
                 <Switch
                   id="is_active"
                   checked={formData.is_active}
@@ -293,7 +311,7 @@ export const CategoryManagement = () => {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button type="submit" className="flex-1">
+                <Button type="submit" className="flex-1 h-9">
                   {editingCategory ? "Update" : "Create"}
                 </Button>
                 <Button
@@ -303,6 +321,7 @@ export const CategoryManagement = () => {
                     setIsDialogOpen(false);
                     resetForm();
                   }}
+                  className="h-9"
                 >
                   Cancel
                 </Button>
@@ -312,50 +331,53 @@ export const CategoryManagement = () => {
         </Dialog>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-3 md:gap-4">
         {categories.map((category) => (
-          <Card key={category.id} className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+          <Card key={category.id} className="p-3 md:p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
                 {category.icon.startsWith("http") || category.icon.startsWith("data:") ? (
-                  <img src={category.icon} alt={category.name} className="w-12 h-12 rounded object-cover" />
+                  <img src={category.icon} alt={category.name} className="w-8 h-8 md:w-12 md:h-12 rounded object-cover flex-shrink-0" />
                 ) : (
-                  <span className="text-3xl">{category.icon}</span>
+                  <span className="text-2xl md:text-3xl flex-shrink-0">{category.icon}</span>
                 )}
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold">{category.name}</h3>
-                    <Badge variant={category.is_active ? "default" : "secondary"}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm md:text-lg font-semibold truncate">{category.name}</h3>
+                    <Badge variant={category.is_active ? "default" : "secondary"} className="text-xs">
                       {category.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{category.description}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground truncate">{category.description}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Slug: {category.slug} • Min Level: {category.min_level_required}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleToggleActive(category.id, category.is_active)}
+                  className="h-8 w-8 p-0"
                 >
-                  {category.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {category.is_active ? <EyeOff className="w-3 h-3 md:w-4 md:h-4" /> : <Eye className="w-3 h-3 md:w-4 md:h-4" />}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => openEditDialog(category)}
+                  className="h-8 w-8 p-0"
                 >
-                  <Edit className="w-4 h-4" />
+                  <Edit className="w-3 h-3 md:w-4 md:h-4" />
                 </Button>
                 <Button
                   size="sm"
                   variant="destructive"
                   onClick={() => handleDelete(category.id)}
+                  className="h-8 w-8 p-0"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                 </Button>
               </div>
             </div>
