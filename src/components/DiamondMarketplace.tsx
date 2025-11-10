@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Gem, ShoppingCart, Store, TrendingUp, Coins } from "lucide-react";
+import { Gem, ShoppingCart, Store, TrendingUp, Coins, History } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -32,10 +32,23 @@ interface TreasureWallet {
   diamonds: number;
 }
 
+interface Transaction {
+  id: string;
+  listing_id: string;
+  buyer_id: string;
+  seller_id: string;
+  diamond_amount: number;
+  total_price: number;
+  transaction_type: string;
+  status: string;
+  created_at: string;
+}
+
 export default function DiamondMarketplace() {
   const { user, profile } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [myListings, setMyListings] = useState<Listing[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [treasureWallet, setTreasureWallet] = useState<TreasureWallet>({ gems: 0, diamonds: 0 });
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -53,18 +66,21 @@ export default function DiamondMarketplace() {
 
   const fetchData = async () => {
     try {
-      const [listingsRes, myListingsRes, treasureWalletRes, settingsRes] = await Promise.all([
+      const [listingsRes, myListingsRes, transactionsRes, treasureWalletRes, settingsRes] = await Promise.all([
         supabase.from("diamond_marketplace").select("*").eq("status", "active").order("created_at", { ascending: false }),
         supabase.from("diamond_marketplace").select("*").eq("seller_id", user!.id).order("created_at", { ascending: false }),
+        supabase.from("diamond_transactions").select("*").or(`buyer_id.eq.${user!.id},seller_id.eq.${user!.id}`).order("created_at", { ascending: false }),
         supabase.from("treasure_wallet").select("*").eq("user_id", user!.id).maybeSingle(),
         supabase.from("treasure_admin_settings").select("*").in("setting_key", ["diamond_base_price", "gem_to_diamond_ratio"]),
       ]);
 
       if (listingsRes.error) throw listingsRes.error;
       if (myListingsRes.error) throw myListingsRes.error;
+      if (transactionsRes.error) throw transactionsRes.error;
 
       setListings(listingsRes.data || []);
       setMyListings(myListingsRes.data || []);
+      setTransactions(transactionsRes.data || []);
       
       // Fetch wallet separately with explicit type casting
       const walletQuery = await supabase
@@ -317,7 +333,7 @@ export default function DiamondMarketplace() {
       </Card>
 
       <Tabs defaultValue="marketplace" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="marketplace">
             <ShoppingCart className="w-4 h-4 mr-2" />
             Buy Diamonds
@@ -329,6 +345,10 @@ export default function DiamondMarketplace() {
           <TabsTrigger value="convert">
             <Coins className="w-4 h-4 mr-2" />
             Convert Gems
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <History className="w-4 h-4 mr-2" />
+            History
           </TabsTrigger>
         </TabsList>
 
@@ -516,6 +536,63 @@ export default function DiamondMarketplace() {
               <Button onClick={handleConvertGemsToDiamonds} className="w-full" disabled={!convertGemAmount}>
                 Convert to Diamonds
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Transaction History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {transactions.length === 0 ? (
+                <div className="text-center py-8">
+                  <History className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-muted-foreground">No transactions yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {transactions.map((transaction) => {
+                    const isBuyer = transaction.buyer_id === user?.id;
+                    const isSeller = transaction.seller_id === user?.id;
+                    return (
+                      <Card key={transaction.id} className={isBuyer ? "border-green-500/30" : "border-blue-500/30"}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                  isBuyer ? "bg-green-500/20 text-green-600" : "bg-blue-500/20 text-blue-600"
+                                }`}>
+                                  {isBuyer ? "Purchase" : "Sale"}
+                                </span>
+                                <span className="text-sm font-semibold">
+                                  💠 {transaction.diamond_amount} Diamonds
+                                </span>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {new Date(transaction.created_at).toLocaleString()}
+                              </div>
+                              <div className="text-xs">
+                                Status: <span className="capitalize font-semibold">{transaction.status}</span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className={`text-lg font-bold ${isBuyer ? "text-red-600" : "text-green-600"}`}>
+                                {isBuyer ? "-" : "+"}{currencySymbol}{transaction.total_price.toFixed(2)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {currencySymbol}{(transaction.total_price / transaction.diamond_amount).toFixed(2)}/diamond
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
