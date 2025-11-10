@@ -18,6 +18,7 @@ const Navigation = () => {
     { to: "/", label: "Home", icon: Home },
     { to: "/game", label: "Play Game", icon: Gamepad2 },
     { to: "/treasure-hunt", label: "Treasure Hunt", icon: MapPin },
+    { to: "/diamond-marketplace", label: "Marketplace", icon: Trophy },
     { to: "/shop", label: "Shop", icon: ShoppingBag },
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   ];

@@ -16,7 +16,8 @@ import {
   Shield,
   Eye,
   Menu,
-  X
+  X,
+  Gem
 } from "lucide-react";
 import {
   Dialog,
@@ -32,6 +33,7 @@ import { OrderManagement } from "@/components/OrderManagement";
 import { ImageMigrationTool } from "@/components/ImageMigrationTool";
 import StairStepManagement from "@/components/StairStepManagement";
 import { TreasureHuntManagement } from "@/components/TreasureHuntManagement";
+import TreasureAdminSettings from "@/components/TreasureAdminSettings";
 import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -79,6 +81,7 @@ const Admin = () => {
     { id: "payouts", label: "Payout Requests", icon: DollarSign },
     { id: "categories", label: "Game Categories", icon: Gamepad2 },
     { id: "treasure-hunt", label: "Treasure Hunt", icon: MapPin },
+    { id: "diamond-settings", label: "Diamond Settings", icon: Gem },
     { id: "prizes", label: "Prize Config", icon: Trophy },
     { id: "product-categories", label: "Product Categories", icon: FolderOpen },
     { id: "products", label: "Products", icon: ShoppingBag },
@@ -449,6 +452,7 @@ const Admin = () => {
 
           {activeTab === "categories" && <CategoryManagement />}
           {activeTab === "treasure-hunt" && <TreasureHuntManagement />}
+          {activeTab === "diamond-settings" && <TreasureAdminSettings />}
           {activeTab === "prizes" && <PrizeManagement />}
           {activeTab === "product-categories" && <ProductCategoryManagement />}
           {activeTab === "products" && <ProductManagement />}

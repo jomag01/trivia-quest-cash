@@ -26,6 +26,11 @@ interface PlayerProgress {
   total_credits_earned: number;
 }
 
+interface TreasureWallet {
+  gems: number;
+  diamonds: number;
+}
+
 interface Symbol {
   id: number;
   emoji: string;
@@ -45,11 +50,13 @@ export default function TreasureHunt() {
   const [playing, setPlaying] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [referralCount, setReferralCount] = useState(0);
+  const [treasureWallet, setTreasureWallet] = useState<TreasureWallet>({ gems: 0, diamonds: 0 });
 
   useEffect(() => {
     if (user) {
       fetchData();
       fetchReferralCount();
+      fetchTreasureWallet();
     }
   }, [user]);
 
@@ -114,6 +121,34 @@ export default function TreasureHunt() {
     }
   };
 
+  const fetchTreasureWallet = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("treasure_wallet")
+        .select("gems, diamonds")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setTreasureWallet(data);
+      } else {
+        // Create wallet if it doesn't exist
+        const { data: newWallet, error: insertError } = await supabase
+          .from("treasure_wallet")
+          .insert([{ user_id: user!.id, gems: 0, diamonds: 0 }])
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        setTreasureWallet({ gems: newWallet.gems, diamonds: newWallet.diamonds });
+      }
+    } catch (error) {
+      console.error("Error fetching treasure wallet:", error);
+    }
+  };
+
   const startLevel = (level: TreasureLevel) => {
     if (level.level_number === 5 && referralCount < 2) {
       toast.error("You need at least 2 referrals to unlock level 5!");
@@ -168,6 +203,14 @@ export default function TreasureHunt() {
         ? currentLevel.time_limit_seconds - (timeLeft || 0)
         : null;
 
+      // Determine reward type based on level
+      const isGemLevel = currentLevel.level_number < 10;
+      const isDiamondLevel = currentLevel.level_number >= 10;
+      
+      // Calculate rewards - base 10 gems for level 1, increases with level
+      const gemReward = isGemLevel ? 10 + (currentLevel.level_number * 5) : 0;
+      const diamondReward = isDiamondLevel ? currentLevel.level_number - 9 : 0;
+
       await supabase.from("treasure_hunt_completions").insert([
         {
           user_id: user!.id,
@@ -191,13 +234,28 @@ export default function TreasureHunt() {
         })
         .eq("user_id", user!.id);
 
+      // Update credits
       await supabase.rpc("update_credits", {
         user_id: user!.id,
         amount: currentLevel.credit_reward,
       });
 
+      // Update treasure wallet with gems or diamonds
+      await supabase.rpc("update_treasure_wallet", {
+        p_user_id: user!.id,
+        p_gems: gemReward,
+        p_diamonds: diamondReward,
+      });
+
+      // Fetch updated wallet
+      await fetchTreasureWallet();
+
+      const rewardMessage = isGemLevel 
+        ? `💎 +${gemReward} Gems` 
+        : `💠 +${diamondReward} Diamonds`;
+
       toast.success(
-        `🎉 Level ${currentLevel.level_number} Complete! +${currentLevel.credit_reward} credits`
+        `🎉 Level ${currentLevel.level_number} Complete! ${rewardMessage} & +${currentLevel.credit_reward} credits`
       );
 
       setProgress({
@@ -353,15 +411,23 @@ export default function TreasureHunt() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {progress && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {progress && (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="text-center p-3 bg-secondary/50 rounded-lg">
                   <div className="text-2xl font-bold">{progress.current_level}</div>
                   <div className="text-xs text-muted-foreground">Current Level</div>
                 </div>
-                <div className="text-center p-3 bg-secondary/50 rounded-lg">
-                  <div className="text-2xl font-bold">{progress.symbols_found}</div>
-                  <div className="text-xs text-muted-foreground">Total Symbols</div>
+                <div className="text-center p-3 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-lg border border-emerald-500/30">
+                  <div className="text-2xl font-bold flex items-center justify-center gap-1">
+                    💎 {treasureWallet.gems}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Gems</div>
+                </div>
+                <div className="text-center p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg border border-blue-500/30">
+                  <div className="text-2xl font-bold flex items-center justify-center gap-1">
+                    💠 {treasureWallet.diamonds}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Diamonds</div>
                 </div>
                 <div className="text-center p-3 bg-secondary/50 rounded-lg">
                   <div className="text-2xl font-bold">{progress.total_credits_earned}</div>

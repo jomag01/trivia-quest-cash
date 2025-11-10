@@ -269,6 +269,83 @@ export type Database = {
         }
         Relationships: []
       }
+      diamond_marketplace: {
+        Row: {
+          created_at: string
+          diamond_amount: number
+          id: string
+          price_per_diamond: number
+          seller_id: string
+          status: string
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          diamond_amount: number
+          id?: string
+          price_per_diamond: number
+          seller_id: string
+          status?: string
+          total_price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          diamond_amount?: number
+          id?: string
+          price_per_diamond?: number
+          seller_id?: string
+          status?: string
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      diamond_transactions: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          diamond_amount: number
+          id: string
+          listing_id: string
+          seller_id: string
+          status: string
+          total_price: number
+          transaction_type: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          diamond_amount: number
+          id?: string
+          listing_id: string
+          seller_id: string
+          status?: string
+          total_price: number
+          transaction_type?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          diamond_amount?: number
+          id?: string
+          listing_id?: string
+          seller_id?: string
+          status?: string
+          total_price?: number
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diamond_transactions_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "diamond_marketplace"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_categories: {
         Row: {
           color_from: string
@@ -890,6 +967,33 @@ export type Database = {
         }
         Relationships: []
       }
+      treasure_admin_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       treasure_hunt_completions: {
         Row: {
           completed_at: string
@@ -993,6 +1097,33 @@ export type Database = {
           last_played_at?: string
           symbols_found?: number
           total_credits_earned?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      treasure_wallet: {
+        Row: {
+          created_at: string
+          diamonds: number
+          gems: number
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          diamonds?: number
+          gems?: number
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          diamonds?: number
+          gems?: number
+          id?: string
           updated_at?: string
           user_id?: string
         }
@@ -1183,6 +1314,10 @@ export type Database = {
         Args: { _level: number; _user_id: string }
         Returns: Json
       }
+      convert_gems_to_diamonds: {
+        Args: { p_gem_amount: number; p_user_id: string }
+        Returns: Json
+      }
       distribute_purchase_commissions: {
         Args: {
           amount_param: number
@@ -1218,6 +1353,10 @@ export type Database = {
       }
       update_credits: {
         Args: { amount: number; user_id: string }
+        Returns: undefined
+      }
+      update_treasure_wallet: {
+        Args: { p_diamonds?: number; p_gems?: number; p_user_id: string }
         Returns: undefined
       }
     }
