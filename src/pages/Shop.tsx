@@ -200,18 +200,13 @@ const Shop = () => {
   });
 
   const handleBuyNow = (product: any) => {
-    if (!user) {
-      toast.error("Please login to place an order");
-      navigate("/auth");
-      return;
-    }
     setSelectedProduct(product);
     setQuantity(1);
     setCheckoutDialog(true);
   };
 
   const handleCheckout = async () => {
-    if (!selectedProduct || !user) return;
+    if (!selectedProduct) return;
 
     if (!shippingAddress || !customerName || !customerEmail) {
       toast.error("Please fill in all required fields");
@@ -231,11 +226,11 @@ const Shop = () => {
 
       if (orderNumError) throw orderNumError;
 
-      // Create order
+      // Create order (user_id will be null for guests)
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
-          user_id: user.id,
+          user_id: user?.id || null,
           order_number: orderNumberData,
           total_amount: totalAmount,
           shipping_fee: shippingFee,

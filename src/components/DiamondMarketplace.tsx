@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,7 @@ interface Transaction {
 
 export default function DiamondMarketplace() {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [listings, setListings] = useState<Listing[]>([]);
   const [myListings, setMyListings] = useState<Listing[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -68,6 +70,14 @@ export default function DiamondMarketplace() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!user) {
+      toast.error("Please create an account to access the marketplace");
+      navigate("/auth");
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     if (user) {
