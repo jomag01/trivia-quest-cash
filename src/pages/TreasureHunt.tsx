@@ -52,6 +52,14 @@ export default function TreasureHunt() {
   const [referralCount, setReferralCount] = useState(0);
   const [treasureWallet, setTreasureWallet] = useState<TreasureWallet>({ gems: 0, diamonds: 0 });
 
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!user) {
+      toast.error("Please create an account to play");
+      navigate("/auth");
+    }
+  }, [user, navigate]);
+
   useEffect(() => {
     if (user) {
       fetchData();

@@ -59,6 +59,14 @@ const Game = () => {
   const navigate = useNavigate();
   const { playCorrectSound, playWrongSound, playTickSound, playUrgentTickSound } = useGameSounds();
 
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!user) {
+      toast.error("Please create an account to play");
+      navigate("/auth");
+    }
+  }, [user, navigate]);
+
   useEffect(() => {
     fetchCategoryInfo();
   }, [category]);

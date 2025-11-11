@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Trophy, Users, Gamepad2, Zap, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface GameCategory {
   id: string;
@@ -21,8 +29,10 @@ interface GameCategory {
 
 const Home = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<GameCategory[]>([]);
   const [completedCategories, setCompletedCategories] = useState<string[]>([]);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -53,6 +63,13 @@ const Home = () => {
 
     if (!error && data) {
       setCompletedCategories(data.map((c: any) => c.category_id));
+    }
+  };
+
+  const handleCategoryClick = (e: React.MouseEvent, category: GameCategory) => {
+    if (!user) {
+      e.preventDefault();
+      setShowAuthDialog(true);
     }
   };
 
@@ -147,7 +164,7 @@ const Home = () => {
               const linkPath = category.game_type === 'treasure-hunt' ? '/treasure-hunt' : `/game/${category.slug}`;
               
               return (
-                <Link to={linkPath} key={category.id}>
+                <Link to={linkPath} key={category.id} onClick={(e) => handleCategoryClick(e, category)}>
                   <Card 
                     className={`p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth cursor-pointer group relative ${
                       isCompleted ? 'opacity-80' : ''
@@ -212,6 +229,26 @@ const Home = () => {
           </Button>
         </div>
       </section>
+
+      {/* Auth Required Dialog */}
+      <AlertDialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center">Create an Account First</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              You need to create an account to play the game and earn rewards. Sign up now to get started!
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowAuthDialog(false)} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button onClick={() => navigate("/auth")} className="w-full sm:w-auto">
+              Create Account
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
