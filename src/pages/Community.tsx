@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Users, Search as SearchIcon, Settings } from "lucide-react";
@@ -8,6 +9,7 @@ import { PrivateChats } from "@/components/community/PrivateChats";
 import { CreateGroupDialog } from "@/components/community/CreateGroupDialog";
 import { MessageSearch } from "@/components/community/MessageSearch";
 import { NotificationSettings } from "@/components/community/NotificationSettings";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sheet,
   SheetContent,
@@ -17,10 +19,22 @@ import {
 } from "@/components/ui/sheet";
 
 const Community = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/auth");
+    }
+  }, [user, navigate]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background p-4">

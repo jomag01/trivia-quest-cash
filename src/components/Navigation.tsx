@@ -29,11 +29,11 @@ const Navigation = () => {
     to: "/shop",
     label: "Merchandise",
     icon: ShoppingBag
-  }, {
+  }, ...(user ? [{
     to: "/community",
     label: "Community",
     icon: MessageSquare
-  }, {
+  }] : []), {
     to: "/dashboard",
     label: "Dashboard",
     icon: LayoutDashboard
