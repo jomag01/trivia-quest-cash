@@ -175,11 +175,14 @@ export default function TreasureHunt() {
   };
 
   const generateSymbols = (level: TreasureLevel) => {
-    // Level 1 uses specific Old Testament symbols
-    const level1Symbols = ["🏺", "🔦", "🎺"]; // Clay pitcher, torch, trumpet
     const generalSymbols = ["🗝️", "💎", "👑", "🏺", "📜", "⚱️", "🔱", "💰"];
+    // Level 1 adds specific Old Testament symbols to the pool
+    const level1ExtraSymbols = ["🔦", "🎺"]; // Torch, trumpet (pitcher already in general)
     
-    const symbolEmojis = level.level_number === 1 ? level1Symbols : generalSymbols;
+    const symbolEmojis = level.level_number === 1 
+      ? [...generalSymbols, ...level1ExtraSymbols] 
+      : generalSymbols;
+    
     const newSymbols: Symbol[] = [];
 
     for (let i = 0; i < level.required_symbols; i++) {
