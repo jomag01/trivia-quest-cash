@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Video, MoreVertical, Users, MessageSquare, Settings } from "lucide-react";
+import { Send, Video, MoreVertical, Users, MessageSquare, Settings, Pin, Trash2, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,7 @@ import { VideoCallDialog } from "./VideoCallDialog";
 import { MessageReactions } from "./MessageReactions";
 import { MessageThread } from "./MessageThread";
 import { GroupAdminPanel } from "./GroupAdminPanel";
+import { GroupMembersDialog } from "./GroupMembersDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,10 +27,14 @@ interface Message {
   content: string;
   user_id: string;
   created_at: string;
+  pinned?: boolean;
+  pinned_at?: string;
+  pinned_by?: string;
   profiles?: {
     id: string;
     full_name: string | null;
   };
+  read_count?: number;
 }
 
 interface GroupChatProps {
@@ -49,6 +54,7 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
   const [createdBy, setCreatedBy] = useState<string>("");
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showMembersDialog, setShowMembersDialog] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, any>>({});
   const [threadMessageId, setThreadMessageId] = useState<string | null>(null);
   const [threadMessageContent, setThreadMessageContent] = useState("");
@@ -102,22 +108,54 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
   const fetchMessages = async () => {
     try {
       const supabaseClient: any = supabase;
-      const { data, error } = await supabaseClient
+      
+      // First get messages
+      const { data: messagesData, error: messagesError } = await supabaseClient
         .from("group_messages")
-        .select(`
-          *,
-          profiles (
-            id,
-            full_name
-          )
-        `)
+        .select("*")
         .eq("group_id", groupId)
         .is("deleted_at", null)
         .order("created_at", { ascending: true })
         .limit(100);
 
-      if (error) throw error;
-      setMessages(data || []);
+      if (messagesError) throw messagesError;
+
+      // Then get profiles for all unique user IDs
+      const userIds = [...new Set(messagesData?.map((m: any) => m.user_id) || [])];
+      const { data: profilesData, error: profilesError } = await supabaseClient
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const profilesMap = new Map(profilesData?.map((p: any) => [p.id, p]) || []);
+      const messagesWithProfiles = messagesData?.map((msg: any) => ({
+        ...msg,
+        profiles: profilesMap.get(msg.user_id)
+      })) || [];
+
+      setMessages(messagesWithProfiles);
+      
+      // Mark messages as read
+      if (user && messagesData.length > 0) {
+        const unreadMessageIds = messagesData
+          .filter((m: any) => m.user_id !== user.id)
+          .map((m: any) => m.id);
+        
+        if (unreadMessageIds.length > 0) {
+          await Promise.all(
+            unreadMessageIds.map((msgId: string) =>
+              supabaseClient
+                .from("message_read_receipts")
+                .upsert({ message_id: msgId, user_id: user.id })
+                .then(() => {})
+                .catch(() => {})
+            )
+          );
+        }
+      }
     } catch (error) {
       console.error("Error fetching messages:", error);
       toast.error("Failed to load messages");
@@ -214,7 +252,21 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
     if (!newMessage.trim()) return;
 
     try {
+      // Check if user is muted
       const supabaseClient: any = supabase;
+      const { data: mutedData } = await supabaseClient
+        .from("muted_group_users")
+        .select("*")
+        .eq("group_id", groupId)
+        .eq("user_id", user?.id)
+        .or(`muted_until.is.null,muted_until.gt.${new Date().toISOString()}`)
+        .maybeSingle();
+
+      if (mutedData) {
+        toast.error("You are muted in this group");
+        return;
+      }
+
       const { error } = await supabaseClient
         .from("group_messages")
         .insert({
@@ -284,6 +336,47 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
     }
   };
 
+  const handlePinMessage = async (messageId: string, isPinned: boolean) => {
+    try {
+      const supabaseClient: any = supabase;
+      const { error } = await supabaseClient
+        .from("group_messages")
+        .update({
+          pinned: !isPinned,
+          pinned_at: !isPinned ? new Date().toISOString() : null,
+          pinned_by: !isPinned ? user?.id : null
+        })
+        .eq("id", messageId);
+
+      if (error) throw error;
+      toast.success(isPinned ? "Message unpinned" : "Message pinned");
+      fetchMessages();
+    } catch (error: any) {
+      console.error("Error pinning message:", error);
+      toast.error("Failed to pin message");
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      const supabaseClient: any = supabase;
+      const { error } = await supabaseClient
+        .from("group_messages")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", messageId);
+
+      if (error) throw error;
+      toast.success("Message deleted");
+      fetchMessages();
+    } catch (error: any) {
+      console.error("Error deleting message:", error);
+      toast.error("Failed to delete message");
+    }
+  };
+
+  const pinnedMessages = messages.filter(m => m.pinned);
+  const regularMessages = messages.filter(m => !m.pinned);
+
   return (
     <>
     <Card className="flex flex-col h-[600px]">
@@ -305,7 +398,7 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
               </Button>
             </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowMembersDialog(true)}>
               <Users className="w-4 h-4 mr-2" />
               View Members
             </DropdownMenuItem>
@@ -329,7 +422,52 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
           <p className="text-center text-muted-foreground">No messages yet. Start the conversation!</p>
         ) : (
           <div className="space-y-4">
-            {messages.map((msg) => {
+            {/* Pinned Messages Section */}
+            {pinnedMessages.length > 0 && (
+              <div className="bg-muted/30 border rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Pin className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold">Pinned Messages</span>
+                </div>
+                {pinnedMessages.map((msg) => {
+                  const isOwnMessage = msg.user_id === user?.id;
+                  return (
+                    <div
+                      key={msg.id}
+                      className="flex gap-3 mb-2 last:mb-0"
+                    >
+                      <Avatar className="w-6 h-6">
+                        <AvatarFallback className="text-xs">
+                          {getUserDisplayName(msg).charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-semibold">
+                            {isOwnMessage ? "You" : getUserDisplayName(msg)}
+                          </span>
+                        </div>
+                        <div className="bg-muted px-3 py-2 rounded-lg">
+                          <p className="text-sm">{msg.content}</p>
+                        </div>
+                      </div>
+                      {(isAdmin || isCreator) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePinMessage(msg.id, true)}
+                        >
+                          <Pin className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Regular Messages */}
+            {regularMessages.map((msg) => {
               const isOwnMessage = msg.user_id === user?.id;
               return (
                 <div
@@ -380,6 +518,34 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
                           <MessageSquare className="w-3 h-3 mr-1" />
                           Reply
                         </Button>
+                        {(isAdmin || isCreator) && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => handlePinMessage(msg.id, msg.pinned || false)}
+                            >
+                              <Pin className="w-3 h-3 mr-1" />
+                              {msg.pinned ? "Unpin" : "Pin"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-destructive"
+                              onClick={() => handleDeleteMessage(msg.id)}
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Delete
+                            </Button>
+                          </>
+                        )}
+                        {msg.read_count !== undefined && msg.read_count > 0 && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <CheckCheck className="w-3 h-3" />
+                            <span>{msg.read_count}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -438,6 +604,15 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
       isCreator={isCreator}
       createdBy={createdBy}
       onGroupUpdated={fetchGroupInfo}
+    />
+
+    <GroupMembersDialog
+      open={showMembersDialog}
+      onOpenChange={setShowMembersDialog}
+      groupId={groupId}
+      groupName={groupName}
+      isAdmin={isAdmin}
+      isCreator={isCreator}
     />
     </>
   );
