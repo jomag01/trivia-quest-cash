@@ -39,6 +39,7 @@ interface GroupAdminPanelProps {
   groupDescription: string | null;
   isPrivate: boolean;
   isCreator: boolean;
+  createdBy: string;
   onGroupUpdated: () => void;
 }
 
@@ -50,6 +51,7 @@ export const GroupAdminPanel = ({
   groupDescription: initialDescription,
   isPrivate: initialPrivate,
   isCreator,
+  createdBy,
   onGroupUpdated,
 }: GroupAdminPanelProps) => {
   const { user } = useAuth();
@@ -60,6 +62,8 @@ export const GroupAdminPanel = ({
   const [loading, setLoading] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [selectedNewOwner, setSelectedNewOwner] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -189,6 +193,48 @@ export const GroupAdminPanel = ({
     }
   };
 
+  const handleTransferOwnership = async () => {
+    if (!isCreator || !selectedNewOwner) {
+      toast.error("Cannot transfer ownership");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const supabaseClient: any = supabase;
+      
+      // Update the group's created_by to the new owner
+      const { error: groupError } = await supabaseClient
+        .from("groups")
+        .update({ created_by: selectedNewOwner })
+        .eq("id", groupId);
+
+      if (groupError) throw groupError;
+
+      // Ensure new owner is an admin
+      const { error: adminError } = await supabaseClient
+        .from("group_members")
+        .update({ is_admin: true })
+        .eq("group_id", groupId)
+        .eq("user_id", selectedNewOwner);
+
+      if (adminError) throw adminError;
+
+      toast.success("Ownership transferred successfully");
+      setShowTransferDialog(false);
+      setSelectedNewOwner(null);
+      onOpenChange(false);
+      onGroupUpdated();
+    } catch (error: any) {
+      console.error("Error transferring ownership:", error);
+      toast.error("Failed to transfer ownership");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const adminMembers = members.filter(m => m.is_admin && m.user_id !== createdBy);
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -313,9 +359,25 @@ export const GroupAdminPanel = ({
                 </div>
               </div>
 
-              {/* Delete Group Section - Only for Creator */}
+              {/* Transfer Ownership & Delete Group - Only for Creator */}
               {isCreator && (
                 <div className="space-y-4 pt-6 border-t">
+                  {adminMembers.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="font-semibold mb-2">Transfer Ownership</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Transfer group ownership to another admin before leaving.
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowTransferDialog(true)}
+                        disabled={loading}
+                      >
+                        Transfer Ownership
+                      </Button>
+                    </div>
+                  )}
+                  
                   <div>
                     <h3 className="font-semibold text-destructive mb-2">Danger Zone</h3>
                     <p className="text-sm text-muted-foreground mb-4">
@@ -374,6 +436,55 @@ export const GroupAdminPanel = ({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete Group
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Transfer Ownership</AlertDialogTitle>
+            <AlertDialogDescription>
+              Select an admin to transfer group ownership to. You will lose creator privileges.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <ScrollArea className="max-h-[300px]">
+              <div className="space-y-2">
+                {adminMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      selectedNewOwner === member.user_id
+                        ? "border-primary bg-primary/10"
+                        : "hover:bg-muted/50"
+                    }`}
+                    onClick={() => setSelectedNewOwner(member.user_id)}
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarFallback>
+                        {getMemberName(member).charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="font-medium">{getMemberName(member)}</p>
+                      <p className="text-xs text-muted-foreground">Admin</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedNewOwner(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleTransferOwnership}
+              disabled={!selectedNewOwner || loading}
+            >
+              Transfer Ownership
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

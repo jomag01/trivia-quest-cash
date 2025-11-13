@@ -46,6 +46,7 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
   const [isPrivate, setIsPrivate] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
+  const [createdBy, setCreatedBy] = useState<string>("");
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, any>>({});
@@ -81,6 +82,7 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
       setGroupName(data.name);
       setGroupDescription(data.description);
       setIsPrivate(data.is_private);
+      setCreatedBy(data.created_by);
       setIsCreator(data.created_by === user?.id);
 
       // Check if user is admin
@@ -104,7 +106,7 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
         .from("group_messages")
         .select(`
           *,
-          profiles:user_id (
+          profiles!group_messages_user_id_fkey (
             id,
             full_name
           )
@@ -425,6 +427,7 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
       groupDescription={groupDescription}
       isPrivate={isPrivate}
       isCreator={isCreator}
+      createdBy={createdBy}
       onGroupUpdated={fetchGroupInfo}
     />
     </>
