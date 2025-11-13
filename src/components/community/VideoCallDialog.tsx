@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Video, Phone, Mic, MicOff, VideoOff, Users } from "lucide-react";
+import { Video, Mic, MicOff, VideoOff, PhoneOff, Users } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface VideoCallDialogProps {
   open: boolean;
@@ -13,41 +15,79 @@ interface VideoCallDialogProps {
 }
 
 export const VideoCallDialog = ({ open, onOpenChange, groupId, conversationId, groupName }: VideoCallDialogProps) => {
+  const { user } = useAuth();
   const [isCallActive, setIsCallActive] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
-  const [participants, setParticipants] = useState<string[]>([]);
+  const [roomUrl, setRoomUrl] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && !isCallActive) {
+      initializeCall();
+    } else if (!open) {
+      endCall();
+    }
+  }, [open]);
+
+  const initializeCall = async () => {
+    setLoading(true);
+    try {
+      const supabaseClient: any = supabase;
+      
+      // Create a unique room ID
+      const roomId = `room-${groupId || conversationId}-${Date.now()}`;
+      
+      // Save call session to database
+      const { error } = await supabaseClient
+        .from("video_call_sessions")
+        .insert({
+          group_id: groupId || null,
+          conversation_id: conversationId || null,
+          started_by: user?.id,
+          room_id: roomId
+        });
+
+      if (error) throw error;
+
+      // Use Jitsi Meet as the WebRTC provider (free, open source, supports many participants)
+      const jitsiUrl = `https://meet.jit.si/${roomId}`;
+      setRoomUrl(jitsiUrl);
+      
+    } catch (error: any) {
+      console.error("Error initializing call:", error);
+      toast.error("Failed to initialize video call");
+      onOpenChange(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const startCall = async () => {
     try {
       // Request permissions
-      const stream = await navigator.mediaDevices.getUserMedia({
+      await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true
       });
 
-      // For now, we'll just show a placeholder
-      // In production, you'd integrate with a WebRTC service like Agora, Twilio, or Daily.co
       setIsCallActive(true);
       toast.success("Call started!");
-      
-      // Clean up stream
-      stream.getTracks().forEach(track => track.stop());
     } catch (error: any) {
       console.error("Error starting call:", error);
-      toast.error("Failed to access camera/microphone");
+      toast.error("Failed to access camera/microphone. Please allow permissions.");
     }
   };
 
   const endCall = () => {
     setIsCallActive(false);
-    onOpenChange(false);
+    setRoomUrl("");
     toast.success("Call ended");
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[600px]">
+      <DialogContent className="max-w-5xl h-[80vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Video className="w-5 h-5" />
@@ -55,15 +95,22 @@ export const VideoCallDialog = ({ open, onOpenChange, groupId, conversationId, g
           </DialogTitle>
         </DialogHeader>
 
-        {!isCallActive ? (
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-muted-foreground">Initializing video call...</p>
+          </div>
+        ) : !isCallActive ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-6">
             <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center">
               <Video className="w-16 h-16 text-primary" />
             </div>
             <div className="text-center">
               <h3 className="text-xl font-bold mb-2">Ready to start a video call?</h3>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-muted-foreground mb-2">
                 Make sure your camera and microphone are working
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Supports up to 200 participants
               </p>
             </div>
             <Button onClick={startCall} size="lg" className="px-8">
@@ -73,27 +120,23 @@ export const VideoCallDialog = ({ open, onOpenChange, groupId, conversationId, g
           </div>
         ) : (
           <div className="flex-1 flex flex-col">
-            {/* Video Grid */}
+            {/* Video Container */}
             <div className="flex-1 bg-muted rounded-lg mb-4 relative overflow-hidden">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">
-                    Video calling feature coming soon!
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Will support up to 200 participants with WebRTC
-                  </p>
+              {roomUrl ? (
+                <iframe
+                  src={roomUrl}
+                  allow="camera; microphone; fullscreen; display-capture; autoplay"
+                  className="w-full h-full border-0"
+                  title="Video Call"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Connecting to video call...</p>
+                  </div>
                 </div>
-              </div>
-              
-              {/* Participant count */}
-              <div className="absolute top-4 right-4 bg-background/80 backdrop-blur px-3 py-1 rounded-full">
-                <div className="flex items-center gap-2 text-sm">
-                  <Users className="w-4 h-4" />
-                  <span>{participants.length + 1}</span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Controls */}
@@ -120,9 +163,12 @@ export const VideoCallDialog = ({ open, onOpenChange, groupId, conversationId, g
                 size="lg"
                 variant="destructive"
                 className="rounded-full w-14 h-14"
-                onClick={endCall}
+                onClick={() => {
+                  endCall();
+                  onOpenChange(false);
+                }}
               >
-                <Phone className="w-6 h-6 rotate-135" />
+                <PhoneOff className="w-6 h-6" />
               </Button>
             </div>
           </div>
