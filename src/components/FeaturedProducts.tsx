@@ -18,6 +18,7 @@ interface FeaturedProduct {
   image_url: string | null;
   stock_quantity: number;
   diamond_reward: number;
+  [key: string]: any;
 }
 
 export const FeaturedProducts = () => {
@@ -30,17 +31,19 @@ export const FeaturedProducts = () => {
   }, []);
 
   const fetchFeaturedProducts = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
+      const supabaseClient: any = supabase;
+      const response = await supabaseClient
         .from("products")
-        .select("*")
+        .select("id, name, description, base_price, promo_price, promo_active, image_url, stock_quantity, diamond_reward")
         .eq("is_featured", true)
         .eq("is_active", true)
         .limit(10)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setProducts(data || []);
+      if (response.error) throw response.error;
+      setProducts(response.data || []);
     } catch (error) {
       console.error("Error fetching featured products:", error);
     } finally {

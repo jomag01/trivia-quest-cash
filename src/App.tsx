@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import Shop from "./pages/Shop";
 import TreasureHunt from "./pages/TreasureHunt";
+import Community from "./pages/Community";
 import DiamondMarketplace from "./components/DiamondMarketplace";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
@@ -32,8 +33,9 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/game" element={<Game />} />
             <Route path="/game/:category" element={<Game />} />
-          <Route path="/treasure-hunt" element={<TreasureHunt />} />
-          <Route path="/diamond-marketplace" element={<DiamondMarketplace />} />
+            <Route path="/treasure-hunt" element={<TreasureHunt />} />
+            <Route path="/diamond-marketplace" element={<DiamondMarketplace />} />
+            <Route path="/community" element={<Community />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
