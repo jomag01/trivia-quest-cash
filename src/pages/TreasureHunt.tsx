@@ -184,8 +184,20 @@ export default function TreasureHunt() {
     
     // Use custom symbols from database if available, otherwise use defaults
     let symbolEmojis: string[];
-    if (level.symbols && level.symbols.length > 0) {
-      symbolEmojis = level.symbols;
+    
+    // Check if level has custom symbols defined
+    if (level.symbols && Array.isArray(level.symbols) && level.symbols.length > 0) {
+      // Filter out any empty strings or invalid entries
+      const validSymbols = level.symbols.filter(s => s && s.trim().length > 0);
+      if (validSymbols.length > 0) {
+        symbolEmojis = validSymbols;
+        console.log(`Using ${validSymbols.length} custom symbols for level ${level.level_number}:`, validSymbols);
+      } else {
+        // Fallback if all custom symbols are invalid
+        symbolEmojis = level.level_number === 1 
+          ? [...generalSymbols, ...level1ExtraSymbols] 
+          : generalSymbols;
+      }
     } else if (level.level_number === 1) {
       symbolEmojis = [...generalSymbols, ...level1ExtraSymbols];
     } else {
@@ -195,9 +207,10 @@ export default function TreasureHunt() {
     const newSymbols: Symbol[] = [];
 
     for (let i = 0; i < level.required_symbols; i++) {
+      const randomEmoji = symbolEmojis[Math.floor(Math.random() * symbolEmojis.length)];
       newSymbols.push({
         id: i,
-        emoji: symbolEmojis[Math.floor(Math.random() * symbolEmojis.length)],
+        emoji: randomEmoji,
         x: Math.random() * 80 + 10,
         y: Math.random() * 70 + 15,
         found: false,

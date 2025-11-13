@@ -52,6 +52,12 @@ const Auth = () => {
     }
   }, [isLogin]);
 
+  const validatePhoneNumber = (phone: string): boolean => {
+    // E.164 format: +[country code][number]
+    const e164Regex = /^\+[1-9]\d{1,14}$/;
+    return e164Regex.test(phone);
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -68,6 +74,13 @@ const Auth = () => {
         setIsForgotPassword(false);
         setIsLogin(true);
       } else {
+        // Validate phone number format
+        if (!validatePhoneNumber(phoneNumber)) {
+          toast.error("Invalid phone format. Use E.164 format (e.g., +639123456789)");
+          setLoading(false);
+          return;
+        }
+
         // Send OTP to phone number
         const { error } = await supabase.auth.signInWithOtp({
           phone: phoneNumber,
@@ -90,6 +103,12 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      if (!validatePhoneNumber(phoneNumber)) {
+        toast.error("Invalid phone format. Use E.164 format (e.g., +639123456789)");
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.verifyOtp({
         phone: phoneNumber,
         token: verificationCode,
