@@ -286,33 +286,7 @@ const Dashboard = () => {
 
           <TabsContent value="overview" className="space-y-8">
             {/* Main Stats Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
-            <div className="flex items-center justify-between mb-4">
-              <Trophy className="w-8 h-8 text-primary" />
-              {categoriesLoading ? (
-                <Skeleton className="h-6 w-16" />
-              ) : (
-                <Badge variant="outline" className="border-primary/50">
-                  Level {userStats.currentLevel}
-                </Badge>
-              )}
-            </div>
-            {categoriesLoading ? (
-              <>
-                <Skeleton className="h-9 w-24 mb-2" />
-                <Skeleton className="h-4 w-32 mb-3" />
-                <Skeleton className="h-2 w-full" />
-              </>
-            ) : (
-              <>
-                <div className="text-3xl font-bold mb-2">{userStats.currentLevel}/10</div>
-                <p className="text-sm text-muted-foreground">Current Level</p>
-                <Progress value={userStats.currentLevel * 10} className="mt-3 h-2" />
-              </>
-            )}
-          </Card>
-
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
             <div className="flex items-center justify-between mb-4">
               <Target className="w-8 h-8 text-primary" />
