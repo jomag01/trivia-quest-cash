@@ -40,13 +40,17 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
   const [loading, setLoading] = useState(true);
   const [groupName, setGroupName] = useState("");
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Record<string, any>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (groupId) {
       fetchGroupInfo();
       fetchMessages();
-      subscribeToMessages();
+      const unsubscribe = subscribeToMessages();
+      subscribeToPresence();
+      return unsubscribe;
     }
   }, [groupId]);
 
@@ -135,6 +139,36 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
     };
   };
 
+  const subscribeToPresence = () => {
+    const channel = supabase.channel(`group-presence-${groupId}`);
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        setTypingUsers(state);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            user_id: user?.id,
+            typing: false,
+          });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const updateTypingStatus = async (typing: boolean) => {
+    const channel = supabase.channel(`group-presence-${groupId}`);
+    await channel.track({
+      user_id: user?.id,
+      typing,
+    });
+  };
+
   const scrollToBottom = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -157,10 +191,37 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
 
       if (error) throw error;
       setNewMessage("");
+      await updateTypingStatus(false);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(error.message || "Failed to send message");
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    
+    // Update typing status
+    updateTypingStatus(true);
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set new timeout to clear typing status after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      updateTypingStatus(false);
+    }, 2000);
+  };
+
+  const getTypingUsers = () => {
+    return Object.values(typingUsers)
+      .flatMap((presences: any) => presences)
+      .filter((presence: any) => presence.typing && presence.user_id !== user?.id);
   };
 
   const getUserDisplayName = (msg: Message) => {
@@ -263,6 +324,11 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
                 </div>
               );
             })}
+            {getTypingUsers().length > 0 && (
+              <div className="flex items-center gap-2 text-muted-foreground text-sm italic px-4">
+                <span className="animate-pulse">Someone is typing...</span>
+              </div>
+            )}
           </div>
         )}
       </ScrollArea>
@@ -273,7 +339,7 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
           <FileUpload onFileUploaded={handleFileUploaded} />
           <Input
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Type a message..."
             className="flex-1"
           />
