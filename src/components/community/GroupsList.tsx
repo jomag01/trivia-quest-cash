@@ -81,7 +81,7 @@ export const GroupsList = ({ onSelectGroup, selectedGroupId }: GroupsListProps) 
         .insert({
           group_id: groupId,
           user_id: user?.id,
-          role: "member"
+          is_admin: false
         });
 
       if (error) throw error;
