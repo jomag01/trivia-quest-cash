@@ -54,8 +54,8 @@ export const PrivateChatList = ({ onSelectConversation, selectedConversationId }
         .from("private_conversations")
         .select(`
           *,
-          user1:user1_id (id, full_name),
-          user2:user2_id (id, full_name),
+          user1:profiles!private_conversations_user1_id_fkey (id, full_name),
+          user2:profiles!private_conversations_user2_id_fkey (id, full_name),
           private_messages (content, created_at, sender_id)
         `)
         .or(`user1_id.eq.${user?.id},user2_id.eq.${user?.id}`)

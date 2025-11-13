@@ -106,7 +106,7 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
         .from("group_messages")
         .select(`
           *,
-          profiles!group_messages_user_id_fkey (
+          profiles (
             id,
             full_name
           )
@@ -164,10 +164,10 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
     };
   };
 
-  const subscribeToPresence = () => {
+  const subscribeToPresence = async () => {
     const channel = supabase.channel(`group-presence-${groupId}`);
 
-    channel
+    await channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
         setTypingUsers(state);
@@ -187,11 +187,20 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
   };
 
   const updateTypingStatus = async (typing: boolean) => {
-    const channel = supabase.channel(`group-presence-${groupId}`);
-    await channel.track({
-      user_id: user?.id,
-      typing,
-    });
+    try {
+      const channel = supabase.channel(`group-presence-${groupId}`);
+      const channelState = channel.state;
+      
+      // Only track if channel is subscribed
+      if (channelState === 'joined') {
+        await channel.track({
+          user_id: user?.id,
+          typing,
+        });
+      }
+    } catch (error) {
+      console.error("Error updating typing status:", error);
+    }
   };
 
   const scrollToBottom = () => {
