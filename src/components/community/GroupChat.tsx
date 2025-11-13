@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Video, MoreVertical, Users, MessageSquare } from "lucide-react";
+import { Send, Video, MoreVertical, Users, MessageSquare, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,7 @@ import { FileUpload } from "./FileUpload";
 import { VideoCallDialog } from "./VideoCallDialog";
 import { MessageReactions } from "./MessageReactions";
 import { MessageThread } from "./MessageThread";
+import { GroupAdminPanel } from "./GroupAdminPanel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,7 +42,12 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [groupName, setGroupName] = useState("");
+  const [groupDescription, setGroupDescription] = useState<string | null>(null);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, any>>({});
   const [threadMessageId, setThreadMessageId] = useState<string | null>(null);
   const [threadMessageContent, setThreadMessageContent] = useState("");
@@ -67,12 +73,25 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
       const supabaseClient: any = supabase;
       const { data, error } = await supabaseClient
         .from("groups")
-        .select("name")
+        .select("name, description, is_private, created_by")
         .eq("id", groupId)
         .single();
 
       if (error) throw error;
       setGroupName(data.name);
+      setGroupDescription(data.description);
+      setIsPrivate(data.is_private);
+      setIsCreator(data.created_by === user?.id);
+
+      // Check if user is admin
+      const { data: memberData } = await supabaseClient
+        .from("group_members")
+        .select("is_admin")
+        .eq("group_id", groupId)
+        .eq("user_id", user?.id)
+        .single();
+
+      setIsAdmin(memberData?.is_admin || false);
     } catch (error) {
       console.error("Error fetching group info:", error);
     }
@@ -274,14 +293,19 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <Users className="w-4 h-4 mr-2" />
-                View Members
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>
+              <Users className="w-4 h-4 mr-2" />
+              View Members
+            </DropdownMenuItem>
+            {(isAdmin || isCreator) && (
+              <DropdownMenuItem onClick={() => setShowAdminPanel(true)}>
+                <Settings className="w-4 h-4 mr-2" />
+                Group Settings
               </DropdownMenuItem>
-              <DropdownMenuItem>Group Settings</DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">Leave Group</DropdownMenuItem>
-            </DropdownMenuContent>
+            )}
+            <DropdownMenuItem className="text-destructive">Leave Group</DropdownMenuItem>
+          </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
@@ -391,6 +415,17 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
       groupId={groupId}
       open={!!threadMessageId}
       onOpenChange={(open) => !open && setThreadMessageId(null)}
+    />
+
+    <GroupAdminPanel
+      open={showAdminPanel}
+      onOpenChange={setShowAdminPanel}
+      groupId={groupId}
+      groupName={groupName}
+      groupDescription={groupDescription}
+      isPrivate={isPrivate}
+      isCreator={isCreator}
+      onGroupUpdated={fetchGroupInfo}
     />
     </>
   );

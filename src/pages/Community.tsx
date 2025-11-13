@@ -1,14 +1,26 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MessageSquare, Users, Search as SearchIcon, Settings } from "lucide-react";
 import { GroupsList } from "@/components/community/GroupsList";
 import { GroupChat } from "@/components/community/GroupChat";
 import { PrivateChats } from "@/components/community/PrivateChats";
 import { CreateGroupDialog } from "@/components/community/CreateGroupDialog";
+import { MessageSearch } from "@/components/community/MessageSearch";
+import { NotificationSettings } from "@/components/community/NotificationSettings";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const Community = () => {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -18,6 +30,30 @@ const Community = () => {
             <MessageSquare className="w-8 h-8 text-primary" />
             Community
           </h1>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowSearch(true)}
+            >
+              <SearchIcon className="w-5 h-5" />
+            </Button>
+            <Sheet open={showSettings} onOpenChange={setShowSettings}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Settings className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Settings</SheetTitle>
+                </SheetHeader>
+                <div className="mt-6">
+                  <NotificationSettings />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
 
         <Tabs defaultValue="groups" className="w-full">
@@ -61,6 +97,16 @@ const Community = () => {
         </Tabs>
 
         <CreateGroupDialog />
+
+        <MessageSearch
+          open={showSearch}
+          onOpenChange={setShowSearch}
+          onResultClick={(result) => {
+            if (result.type === "group" && result.group_id) {
+              setSelectedGroupId(result.group_id);
+            }
+          }}
+        />
       </div>
     </div>
   );
