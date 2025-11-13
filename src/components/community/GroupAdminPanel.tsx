@@ -59,6 +59,7 @@ export const GroupAdminPanel = ({
   const [isPrivate, setIsPrivate] = useState(initialPrivate);
   const [loading, setLoading] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -159,6 +160,33 @@ export const GroupAdminPanel = ({
 
   const getMemberName = (member: Member) => {
     return member.profiles?.full_name || `User ${member.user_id.slice(0, 8)}`;
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!isCreator) {
+      toast.error("Only the group creator can delete the group");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const supabaseClient: any = supabase;
+      const { error } = await supabaseClient
+        .from("groups")
+        .delete()
+        .eq("id", groupId);
+
+      if (error) throw error;
+      toast.success("Group deleted successfully");
+      setShowDeleteConfirm(false);
+      onOpenChange(false);
+      onGroupUpdated();
+    } catch (error: any) {
+      console.error("Error deleting group:", error);
+      toast.error("Failed to delete group");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -284,6 +312,25 @@ export const GroupAdminPanel = ({
                   })}
                 </div>
               </div>
+
+              {/* Delete Group Section - Only for Creator */}
+              {isCreator && (
+                <div className="space-y-4 pt-6 border-t">
+                  <div>
+                    <h3 className="font-semibold text-destructive mb-2">Danger Zone</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Deleting this group will remove all members and messages. This action cannot be undone.
+                    </p>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      disabled={loading}
+                    >
+                      Delete Group
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </ScrollArea>
         </DialogContent>
@@ -301,6 +348,32 @@ export const GroupAdminPanel = ({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => memberToRemove && handleRemoveMember(memberToRemove)}>
               Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this group? This will permanently remove:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>All group members</li>
+                <li>All messages and conversations</li>
+                <li>All group data</li>
+              </ul>
+              <p className="mt-2 font-semibold text-destructive">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteGroup}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Group
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
