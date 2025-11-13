@@ -60,7 +60,7 @@ export const CreateGroupDialog = ({ open, onOpenChange, onGroupCreated }: Create
         .insert({
           group_id: groupData.id,
           user_id: user?.id,
-          role: "admin"
+          is_admin: true
         });
 
       if (memberError) throw memberError;
