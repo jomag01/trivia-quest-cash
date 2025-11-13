@@ -58,20 +58,33 @@ export const MessageThread = ({
       const table = messageType === "group" ? "group_messages" : "private_messages";
       const userField = messageType === "group" ? "user_id" : "sender_id";
 
-      const { data, error } = await supabaseClient
+      // First get replies
+      const { data: repliesData, error: repliesError } = await supabaseClient
         .from(table)
-        .select(`
-          *,
-          profiles:${userField} (
-            full_name
-          )
-        `)
+        .select("*")
         .eq("parent_message_id", messageId)
         .is("deleted_at", null)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
-      setReplies(data || []);
+      if (repliesError) throw repliesError;
+
+      // Then get profiles for all unique user IDs
+      const userIds = [...new Set(repliesData?.map((m: any) => m[userField]) || [])];
+      const { data: profilesData, error: profilesError } = await supabaseClient
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const profilesMap = new Map(profilesData?.map((p: any) => [p.id, p]) || []);
+      const repliesWithProfiles = repliesData?.map((reply: any) => ({
+        ...reply,
+        profiles: profilesMap.get(reply[userField])
+      })) || [];
+
+      setReplies(repliesWithProfiles);
     } catch (error) {
       console.error("Error fetching replies:", error);
     }
@@ -93,19 +106,27 @@ export const MessageThread = ({
           const supabaseClient: any = supabase;
           const userField = messageType === "group" ? "user_id" : "sender_id";
           
-          const { data } = await supabaseClient
+          // Get the new reply
+          const { data: replyData } = await supabaseClient
             .from(table)
-            .select(`
-              *,
-              profiles:${userField} (
-                full_name
-              )
-            `)
+            .select("*")
             .eq("id", payload.new.id)
             .single();
 
-          if (data) {
-            setReplies((prev) => [...prev, data]);
+          if (replyData) {
+            // Get profile for the user
+            const { data: profileData } = await supabaseClient
+              .from("profiles")
+              .select("id, full_name")
+              .eq("id", replyData[userField])
+              .single();
+
+            const replyWithProfile = {
+              ...replyData,
+              profiles: profileData
+            };
+
+            setReplies((prev) => [...prev, replyWithProfile]);
           }
         }
       )

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Video, MoreVertical, Users, MessageSquare, Settings, Pin, Trash2, CheckCheck } from "lucide-react";
+import { Send, Video, MoreVertical, Users, MessageSquare, Settings, Pin, Trash2, CheckCheck, Edit2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,7 @@ import { MessageReactions } from "./MessageReactions";
 import { MessageThread } from "./MessageThread";
 import { GroupAdminPanel } from "./GroupAdminPanel";
 import { GroupMembersDialog } from "./GroupMembersDialog";
+import { EditMessageDialog } from "./EditMessageDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,7 @@ interface Message {
   pinned?: boolean;
   pinned_at?: string;
   pinned_by?: string;
+  edited_at?: string;
   profiles?: {
     id: string;
     full_name: string | null;
@@ -55,6 +57,8 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showMembersDialog, setShowMembersDialog] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingMessageContent, setEditingMessageContent] = useState("");
   const [typingUsers, setTypingUsers] = useState<Record<string, any>>({});
   const [threadMessageId, setThreadMessageId] = useState<string | null>(null);
   const [threadMessageContent, setThreadMessageContent] = useState("");
@@ -489,15 +493,20 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
                       </span>
                     </div>
                     <div className="space-y-2">
-                      <div
-                        className={`px-4 py-2 rounded-lg max-w-md ${
-                          isOwnMessage
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
-                        }`}
-                      >
-                        <p className="text-sm">{msg.content}</p>
-                      </div>
+                        <div
+                          className={`px-4 py-2 rounded-lg max-w-md ${
+                            isOwnMessage
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <p className="text-sm">{msg.content}</p>
+                          {msg.edited_at && (
+                            <span className="text-xs opacity-70 italic">
+                              (edited)
+                            </span>
+                          )}
+                        </div>
                       
                       <div className="flex items-center gap-2">
                         <MessageReactions
@@ -539,6 +548,20 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
                               Delete
                             </Button>
                           </>
+                        )}
+                        {isOwnMessage && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => {
+                              setEditingMessageId(msg.id);
+                              setEditingMessageContent(msg.content);
+                            }}
+                          >
+                            <Edit2 className="w-3 h-3 mr-1" />
+                            Edit
+                          </Button>
                         )}
                         {msg.read_count !== undefined && msg.read_count > 0 && (
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -613,6 +636,14 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
       groupName={groupName}
       isAdmin={isAdmin}
       isCreator={isCreator}
+    />
+
+    <EditMessageDialog
+      open={!!editingMessageId}
+      onOpenChange={(open) => !open && setEditingMessageId(null)}
+      messageId={editingMessageId || ""}
+      currentContent={editingMessageContent}
+      onSuccess={fetchMessages}
     />
     </>
   );
