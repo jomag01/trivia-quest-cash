@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Video, MoreVertical, Users } from "lucide-react";
+import { Send, Video, MoreVertical, Users, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { FileUpload } from "./FileUpload";
 import { VideoCallDialog } from "./VideoCallDialog";
+import { MessageReactions } from "./MessageReactions";
+import { MessageThread } from "./MessageThread";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +43,8 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
   const [groupName, setGroupName] = useState("");
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, any>>({});
+  const [threadMessageId, setThreadMessageId] = useState<string | null>(null);
+  const [threadMessageContent, setThreadMessageContent] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -311,14 +315,37 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
                         {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
                       </span>
                     </div>
-                    <div
-                      className={`px-4 py-2 rounded-lg max-w-md ${
-                        isOwnMessage
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
-                    >
-                      <p className="text-sm">{msg.content}</p>
+                    <div className="space-y-2">
+                      <div
+                        className={`px-4 py-2 rounded-lg max-w-md ${
+                          isOwnMessage
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
+                      >
+                        <p className="text-sm">{msg.content}</p>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <MessageReactions
+                          messageId={msg.id}
+                          messageType="group"
+                          reactions={[]}
+                          onReactionUpdate={() => fetchMessages()}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => {
+                            setThreadMessageId(msg.id);
+                            setThreadMessageContent(msg.content);
+                          }}
+                        >
+                          <MessageSquare className="w-3 h-3 mr-1" />
+                          Reply
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -355,6 +382,15 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
       onOpenChange={setShowVideoCall}
       groupId={groupId}
       groupName={groupName}
+    />
+
+    <MessageThread
+      messageId={threadMessageId || ""}
+      messageContent={threadMessageContent}
+      messageType="group"
+      groupId={groupId}
+      open={!!threadMessageId}
+      onOpenChange={(open) => !open && setThreadMessageId(null)}
     />
     </>
   );
