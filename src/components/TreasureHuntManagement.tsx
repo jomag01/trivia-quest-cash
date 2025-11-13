@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Pencil, Trash2, Plus, Trophy, MapPin } from "lucide-react";
+import { EmojiPicker } from "./EmojiPicker";
 
 interface TreasureLevel {
   id: string;
@@ -316,11 +317,14 @@ export const TreasureHuntManagement = () => {
               <div>
                 <Label>Custom Symbols (emojis)</Label>
                 <div className="flex gap-2 mb-2">
+                  <EmojiPicker onEmojiSelect={(emoji) => {
+                    setFormData({ ...formData, symbols: [...formData.symbols, emoji] });
+                  }} />
                   <Input
                     value={newSymbol}
                     onChange={(e) => setNewSymbol(e.target.value)}
-                    placeholder="Enter emoji (e.g., 🏺)"
-                    className="h-9"
+                    placeholder="Or type your own emoji"
+                    className="h-9 flex-1"
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSymbol())}
                   />
                   <Button type="button" onClick={addSymbol} size="sm">
