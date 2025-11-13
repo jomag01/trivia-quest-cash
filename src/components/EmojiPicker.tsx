@@ -33,22 +33,22 @@ export const EmojiPicker = ({ onEmojiSelect }: EmojiPickerProps) => {
           Pick Emoji
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
-        <ScrollArea className="h-[400px]">
-          <div className="p-4 space-y-4">
+      <PopoverContent className="w-72 p-0 bg-popover" align="start" sideOffset={5}>
+        <ScrollArea className="h-[320px]">
+          <div className="p-3 space-y-3">
             {Object.entries(emojiCategories).map(([category, emojis]) => (
               <div key={category}>
-                <h4 className="text-xs font-semibold text-muted-foreground mb-2">
+                <h4 className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                   {category}
                 </h4>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-6 gap-1">
                   {emojis.map((emoji) => (
                     <Button
                       key={emoji}
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-10 w-10 p-0 text-2xl hover:bg-accent"
+                      className="h-9 w-9 p-0 text-xl hover:bg-accent transition-colors"
                       onClick={() => onEmojiSelect(emoji)}
                     >
                       {emoji}
