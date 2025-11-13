@@ -29,6 +29,7 @@ const Auth = () => {
   const [detectingCountry, setDetectingCountry] = useState(false);
   const [referralCode, setReferralCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -111,6 +112,7 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setLoginError(false);
 
     try {
       if (isLogin) {
@@ -164,7 +166,12 @@ const Auth = () => {
         setIsLogin(true);
       }
     } catch (error: any) {
-      toast.error(error.message || "An error occurred");
+      if (isLogin && (error.message.includes("Invalid login credentials") || error.message.includes("Invalid"))) {
+        setLoginError(true);
+        toast.error("Incorrect email or password");
+      } else {
+        toast.error(error.message || "An error occurred");
+      }
     } finally {
       setLoading(false);
     }
@@ -455,10 +462,17 @@ const Auth = () => {
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => setIsForgotPassword(true)}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                onClick={() => {
+                  setIsForgotPassword(true);
+                  setLoginError(false);
+                }}
+                className={`text-sm transition-colors ${
+                  loginError 
+                    ? "text-primary font-semibold hover:underline animate-pulse" 
+                    : "text-muted-foreground hover:text-primary"
+                }`}
               >
-                Forgot password?
+                {loginError ? "Reset your password here" : "Forgot password?"}
               </button>
             </div>
           )}
