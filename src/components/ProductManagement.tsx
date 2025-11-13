@@ -22,7 +22,7 @@ interface Product {
   commission_percentage: number;
   category_id: string | null;
   is_active: boolean;
-  is_featured: boolean;
+  is_featured?: boolean;
   promo_price?: number;
   discount_percentage?: number;
   promo_active?: boolean;
@@ -139,7 +139,7 @@ export const ProductManagement = () => {
       toast.error("Failed to load products");
       console.error(error);
     } else {
-      setProducts(data || []);
+      setProducts(data as any || []);
     }
     setLoading(false);
   };
