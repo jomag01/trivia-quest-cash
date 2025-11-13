@@ -21,6 +21,7 @@ interface TreasureLevel {
   difficulty_multiplier: number;
   time_limit_seconds: number | null;
   is_active: boolean;
+  symbols: string[] | null;
 }
 
 export const TreasureHuntManagement = () => {
@@ -38,7 +39,9 @@ export const TreasureHuntManagement = () => {
     difficulty_multiplier: 1.0,
     time_limit_seconds: null as number | null,
     is_active: true,
+    symbols: [] as string[],
   });
+  const [newSymbol, setNewSymbol] = useState("");
 
   useEffect(() => {
     fetchLevels();
@@ -136,8 +139,24 @@ export const TreasureHuntManagement = () => {
       difficulty_multiplier: 1.0,
       time_limit_seconds: null,
       is_active: true,
+      symbols: [],
     });
     setEditingLevel(null);
+    setNewSymbol("");
+  };
+
+  const addSymbol = () => {
+    if (newSymbol.trim()) {
+      setFormData({ ...formData, symbols: [...formData.symbols, newSymbol.trim()] });
+      setNewSymbol("");
+    }
+  };
+
+  const removeSymbol = (index: number) => {
+    setFormData({ 
+      ...formData, 
+      symbols: formData.symbols.filter((_, i) => i !== index) 
+    });
   };
 
   const openEditDialog = (level: TreasureLevel) => {
@@ -152,6 +171,7 @@ export const TreasureHuntManagement = () => {
       difficulty_multiplier: level.difficulty_multiplier,
       time_limit_seconds: level.time_limit_seconds,
       is_active: level.is_active,
+      symbols: level.symbols || [],
     });
     setDialogOpen(true);
   };
@@ -291,6 +311,46 @@ export const TreasureHuntManagement = () => {
                   placeholder="https://..."
                   className="h-9"
                 />
+              </div>
+
+              <div>
+                <Label>Custom Symbols (emojis)</Label>
+                <div className="flex gap-2 mb-2">
+                  <Input
+                    value={newSymbol}
+                    onChange={(e) => setNewSymbol(e.target.value)}
+                    placeholder="Enter emoji (e.g., 🏺)"
+                    className="h-9"
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSymbol())}
+                  />
+                  <Button type="button" onClick={addSymbol} size="sm">
+                    Add
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.symbols.map((symbol, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-1 bg-muted px-2 py-1 rounded"
+                    >
+                      <span className="text-xl">{symbol}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeSymbol(index)}
+                        className="h-5 w-5 p-0"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                {formData.symbols.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    No custom symbols - will use default symbols
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center space-x-2">

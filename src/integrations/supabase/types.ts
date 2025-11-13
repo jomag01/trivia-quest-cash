@@ -1039,6 +1039,7 @@ export type Database = {
           map_image_url: string | null
           name: string
           required_symbols: number
+          symbols: string[] | null
           time_limit_seconds: number | null
           updated_at: string
         }
@@ -1053,6 +1054,7 @@ export type Database = {
           map_image_url?: string | null
           name: string
           required_symbols?: number
+          symbols?: string[] | null
           time_limit_seconds?: number | null
           updated_at?: string
         }
@@ -1067,6 +1069,7 @@ export type Database = {
           map_image_url?: string | null
           name?: string
           required_symbols?: number
+          symbols?: string[] | null
           time_limit_seconds?: number | null
           updated_at?: string
         }

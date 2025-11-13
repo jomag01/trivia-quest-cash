@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Trophy, MapPin, Clock, Star, Users, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useGameSounds } from "@/hooks/useGameSounds";
 
 interface TreasureLevel {
   id: string;
@@ -18,6 +19,7 @@ interface TreasureLevel {
   map_image_url: string | null;
   difficulty_multiplier: number;
   time_limit_seconds: number | null;
+  symbols: string[] | null;
 }
 
 interface PlayerProgress {
@@ -42,6 +44,7 @@ interface Symbol {
 export default function TreasureHunt() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { playCorrectSound } = useGameSounds();
   const [levels, setLevels] = useState<TreasureLevel[]>([]);
   const [progress, setProgress] = useState<PlayerProgress | null>(null);
   const [currentLevel, setCurrentLevel] = useState<TreasureLevel | null>(null);
@@ -179,9 +182,15 @@ export default function TreasureHunt() {
     // Level 1 adds specific Old Testament symbols to the pool
     const level1ExtraSymbols = ["🔦", "🎺"]; // Torch, trumpet (pitcher already in general)
     
-    const symbolEmojis = level.level_number === 1 
-      ? [...generalSymbols, ...level1ExtraSymbols] 
-      : generalSymbols;
+    // Use custom symbols from database if available, otherwise use defaults
+    let symbolEmojis: string[];
+    if (level.symbols && level.symbols.length > 0) {
+      symbolEmojis = level.symbols;
+    } else if (level.level_number === 1) {
+      symbolEmojis = [...generalSymbols, ...level1ExtraSymbols];
+    } else {
+      symbolEmojis = generalSymbols;
+    }
     
     const newSymbols: Symbol[] = [];
 
@@ -199,6 +208,8 @@ export default function TreasureHunt() {
   };
 
   const handleSymbolClick = (symbolId: number) => {
+    playCorrectSound(); // Play sound on symbol click
+    
     const updatedSymbols = symbols.map((s) =>
       s.id === symbolId ? { ...s, found: true } : s
     );
@@ -206,7 +217,8 @@ export default function TreasureHunt() {
 
     const foundCount = updatedSymbols.filter((s) => s.found).length;
     if (foundCount === currentLevel?.required_symbols) {
-      handleLevelComplete();
+      playCorrectSound(); // Play sound when all symbols found
+      setTimeout(() => handleLevelComplete(), 300);
     }
   };
 
