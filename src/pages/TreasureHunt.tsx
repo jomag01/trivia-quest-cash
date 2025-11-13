@@ -175,7 +175,11 @@ export default function TreasureHunt() {
   };
 
   const generateSymbols = (level: TreasureLevel) => {
-    const symbolEmojis = ["🗝️", "💎", "👑", "🏺", "📜", "⚱️", "🔱", "💰"];
+    // Level 1 uses specific Old Testament symbols
+    const level1Symbols = ["🏺", "🔦", "🎺"]; // Clay pitcher, torch, trumpet
+    const generalSymbols = ["🗝️", "💎", "👑", "🏺", "📜", "⚱️", "🔱", "💰"];
+    
+    const symbolEmojis = level.level_number === 1 ? level1Symbols : generalSymbols;
     const newSymbols: Symbol[] = [];
 
     for (let i = 0; i < level.required_symbols; i++) {
