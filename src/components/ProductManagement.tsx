@@ -22,6 +22,7 @@ interface Product {
   commission_percentage: number;
   category_id: string | null;
   is_active: boolean;
+  is_featured: boolean;
   promo_price?: number;
   discount_percentage?: number;
   promo_active?: boolean;
@@ -87,6 +88,7 @@ export const ProductManagement = () => {
     commission_percentage: "10",
     category_id: "",
     is_active: true,
+    is_featured: false,
     promo_price: "",
     discount_percentage: "0",
     promo_active: false,
@@ -340,6 +342,7 @@ export const ProductManagement = () => {
       commission_percentage: "10",
       category_id: "",
       is_active: true,
+      is_featured: false,
       promo_price: "",
       discount_percentage: "0",
       promo_active: false,
@@ -359,6 +362,7 @@ export const ProductManagement = () => {
       commission_percentage: product.commission_percentage.toString(),
       category_id: product.category_id || "",
       is_active: product.is_active,
+      is_featured: product.is_featured || false,
       promo_price: product.promo_price?.toString() || "",
       discount_percentage: product.discount_percentage?.toString() || "0",
       promo_active: product.promo_active || false,
@@ -670,6 +674,19 @@ export const ProductManagement = () => {
                   onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                 />
               </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <div>
+                  <Label htmlFor="is_featured">⭐ Featured Product</Label>
+                  <p className="text-xs text-muted-foreground">Display in featured section</p>
+                </div>
+                <Switch
+                  id="is_featured"
+                  checked={formData.is_featured}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
+                />
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel

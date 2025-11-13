@@ -89,33 +89,33 @@ export const CartWidget = ({ onViewCart }: CartWidgetProps) => {
   }
 
   return (
-    <Card className="p-6 gradient-accent border-primary/20 shadow-card">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-lg flex items-center gap-2">
-          <ShoppingCart className="w-5 h-5 text-primary" />
-          Shopping Cart
+    <Card className="p-4 gradient-accent border-primary/20 shadow-card">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-base flex items-center gap-2">
+          <ShoppingCart className="w-4 h-4 text-primary" />
+          Cart
         </h3>
-        <Badge>{cartItems.length} items</Badge>
+        <Badge className="text-xs">{cartItems.length}</Badge>
       </div>
 
-      <div className="space-y-3 mb-4">
+      <div className="space-y-2 mb-3 max-h-[180px] overflow-y-auto">
         {cartItems.map((item) => (
-          <div key={item.id} className="flex items-center justify-between gap-2 p-2 bg-background/20 rounded-lg">
+          <div key={item.id} className="flex items-center justify-between gap-2 p-2 bg-background/20 rounded text-xs">
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate">{item.products?.name}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="font-semibold truncate">{item.products?.name}</p>
+              <p className="text-[10px] text-muted-foreground">
                 {item.quantity} × ₱{getEffectivePrice(item.products).toFixed(2)}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-primary text-sm whitespace-nowrap">
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-primary text-xs whitespace-nowrap">
                 ₱{(getEffectivePrice(item.products) * item.quantity).toFixed(2)}
               </span>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => removeFromCart(item.id)}
-                className="h-6 w-6 p-0"
+                className="h-5 w-5 p-0"
               >
                 <Trash2 className="w-3 h-3 text-red-500" />
               </Button>
@@ -125,15 +125,15 @@ export const CartWidget = ({ onViewCart }: CartWidgetProps) => {
       </div>
 
       <div className="border-t pt-3 space-y-2">
-        <div className="flex justify-between items-center">
-          <span className="font-semibold">Total:</span>
-          <span className="text-xl font-bold text-primary">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-sm">Total:</span>
+          <span className="font-bold text-lg text-primary">
             ₱{calculateTotal().toFixed(2)}
           </span>
         </div>
-        <Button className="w-full" onClick={onViewCart}>
-          <ShoppingCart className="w-4 h-4 mr-2" />
-          View Cart & Checkout
+        <Button onClick={onViewCart} className="w-full h-8 text-xs">
+          <ShoppingCart className="w-3 h-3 mr-1" />
+          View Cart
         </Button>
       </div>
     </Card>
