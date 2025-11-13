@@ -16,6 +16,7 @@ import { CartView } from "@/components/CartView";
 import { WishlistView } from "@/components/WishlistView";
 import { CartWidget } from "@/components/CartWidget";
 import { OrderTracking } from "@/components/OrderTracking";
+import { FeaturedProducts } from "@/components/FeaturedProducts";
 import AffiliateRankCard from "@/components/AffiliateRankCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
@@ -285,6 +286,9 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
+            {/* Featured Products */}
+            <FeaturedProducts />
+
             {/* Main Stats Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
