@@ -32,13 +32,17 @@ export const PrivateChatView = ({ conversationId, otherUserId, otherUserName }: 
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (conversationId) {
       fetchMessages();
-      subscribeToMessages();
+      const unsubscribe = subscribeToMessages();
+      subscribeToPresence();
       markMessagesAsRead();
+      return unsubscribe;
     }
   }, [conversationId]);
 
@@ -89,6 +93,40 @@ export const PrivateChatView = ({ conversationId, otherUserId, otherUserName }: 
     };
   };
 
+  const subscribeToPresence = () => {
+    const channel = supabase.channel(`private-presence-${conversationId}`);
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const otherUserPresence = Object.values(state)
+          .flatMap((presences: any) => presences)
+          .find((presence: any) => presence.user_id === otherUserId);
+        
+        setIsOtherUserTyping(otherUserPresence?.typing || false);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            user_id: user?.id,
+            typing: false,
+          });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const updateTypingStatus = async (typing: boolean) => {
+    const channel = supabase.channel(`private-presence-${conversationId}`);
+    await channel.track({
+      user_id: user?.id,
+      typing,
+    });
+  };
+
   const markMessagesAsRead = async () => {
     try {
       const supabaseClient: any = supabase;
@@ -125,10 +163,31 @@ export const PrivateChatView = ({ conversationId, otherUserId, otherUserName }: 
 
       if (error) throw error;
       setNewMessage("");
+      await updateTypingStatus(false);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(error.message || "Failed to send message");
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    
+    // Update typing status
+    updateTypingStatus(true);
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set new timeout to clear typing status after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      updateTypingStatus(false);
+    }, 2000);
   };
 
   const handleFileUploaded = async (url: string, fileName: string, fileSize: number, fileType: string) => {
@@ -217,11 +276,16 @@ export const PrivateChatView = ({ conversationId, otherUserId, otherUserName }: 
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </ScrollArea>
+              );
+            })}
+            {isOtherUserTyping && (
+              <div className="flex items-center gap-2 text-muted-foreground text-sm italic px-4">
+                <span className="animate-pulse">{otherUserName} is typing...</span>
+              </div>
+            )}
+          </div>
+        )}
+      </ScrollArea>
 
         {/* Input */}
         <form onSubmit={handleSendMessage} className="p-4 border-t">
@@ -229,7 +293,7 @@ export const PrivateChatView = ({ conversationId, otherUserId, otherUserName }: 
             <FileUpload onFileUploaded={handleFileUploaded} />
             <Input
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleInputChange}
               placeholder="Type a message..."
               className="flex-1"
             />
