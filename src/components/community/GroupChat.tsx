@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Paperclip, Video, MoreVertical, Users } from "lucide-react";
+import { Send, Video, MoreVertical, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
+import { FileUpload } from "./FileUpload";
+import { VideoCallDialog } from "./VideoCallDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +39,7 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [groupName, setGroupName] = useState("");
+  const [showVideoCall, setShowVideoCall] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -164,7 +167,30 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
     return msg.profiles?.full_name || `User ${msg.user_id.slice(0, 8)}`;
   };
 
+  const handleFileUploaded = async (url: string, fileName: string, fileSize: number, fileType: string) => {
+    const fileMessage = fileType.startsWith("image/")
+      ? `📷 Image: ${fileName}`
+      : `📎 File: ${fileName}`;
+
+    try {
+      const supabaseClient: any = supabase;
+      const { error } = await supabaseClient
+        .from("group_messages")
+        .insert({
+          group_id: groupId,
+          user_id: user?.id,
+          content: fileMessage
+        });
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error("Error sending file message:", error);
+      toast.error("Failed to send file");
+    }
+  };
+
   return (
+    <>
     <Card className="flex flex-col h-[600px]">
       {/* Header */}
       <div className="p-4 border-b flex items-center justify-between">
@@ -173,7 +199,7 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
           <p className="text-xs text-muted-foreground">Group Chat</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={() => setShowVideoCall(true)}>
             <Video className="w-4 h-4 mr-1" />
             Call
           </Button>
@@ -244,9 +270,7 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
       {/* Input */}
       <form onSubmit={handleSendMessage} className="p-4 border-t">
         <div className="flex items-center gap-2">
-          <Button type="button" size="icon" variant="ghost">
-            <Paperclip className="w-5 h-5" />
-          </Button>
+          <FileUpload onFileUploaded={handleFileUploaded} />
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
@@ -259,5 +283,13 @@ export const GroupChat = ({ groupId }: GroupChatProps) => {
         </div>
       </form>
     </Card>
+
+    <VideoCallDialog
+      open={showVideoCall}
+      onOpenChange={setShowVideoCall}
+      groupId={groupId}
+      groupName={groupName}
+    />
+    </>
   );
 };
