@@ -1097,7 +1097,9 @@ export type Database = {
           created_at: string | null
           description: string
           diamond_reward: number | null
+          dimensions_cm: string | null
           discount_percentage: number | null
+          free_shipping: boolean | null
           id: string
           image_url: string | null
           is_active: boolean | null
@@ -1105,8 +1107,10 @@ export type Database = {
           name: string
           promo_active: boolean | null
           promo_price: number | null
+          shipping_fee: number | null
           stock_quantity: number | null
           updated_at: string | null
+          weight_kg: number | null
         }
         Insert: {
           base_price: number
@@ -1115,7 +1119,9 @@ export type Database = {
           created_at?: string | null
           description: string
           diamond_reward?: number | null
+          dimensions_cm?: string | null
           discount_percentage?: number | null
+          free_shipping?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -1123,8 +1129,10 @@ export type Database = {
           name: string
           promo_active?: boolean | null
           promo_price?: number | null
+          shipping_fee?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
+          weight_kg?: number | null
         }
         Update: {
           base_price?: number
@@ -1133,7 +1141,9 @@ export type Database = {
           created_at?: string | null
           description?: string
           diamond_reward?: number | null
+          dimensions_cm?: string | null
           discount_percentage?: number | null
+          free_shipping?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -1141,8 +1151,10 @@ export type Database = {
           name?: string
           promo_active?: boolean | null
           promo_price?: number | null
+          shipping_fee?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
+          weight_kg?: number | null
         }
         Relationships: [
           {

@@ -29,6 +29,10 @@ interface Product {
   image_url?: string;
   stock_quantity?: number;
   diamond_reward?: number;
+  shipping_fee?: number;
+  weight_kg?: number;
+  dimensions_cm?: string;
+  free_shipping?: boolean;
 }
 
 interface ProductCategory {
@@ -95,7 +99,11 @@ export const ProductManagement = () => {
     promo_active: false,
     image_url: "",
     stock_quantity: "0",
-    diamond_reward: "0"
+    diamond_reward: "0",
+    shipping_fee: "0",
+    weight_kg: "",
+    dimensions_cm: "",
+    free_shipping: false
   });
 
   // Image form state
@@ -186,12 +194,17 @@ export const ProductManagement = () => {
       commission_percentage: parseFloat(formData.commission_percentage),
       category_id: formData.category_id || null,
       is_active: formData.is_active,
+      is_featured: formData.is_featured,
       promo_price: formData.promo_price ? parseFloat(formData.promo_price) : null,
       discount_percentage: parseInt(formData.discount_percentage),
       promo_active: formData.promo_active,
       image_url: formData.image_url || null,
       stock_quantity: parseInt(formData.stock_quantity),
-      diamond_reward: parseInt(formData.diamond_reward) || 0
+      diamond_reward: parseInt(formData.diamond_reward) || 0,
+      shipping_fee: formData.free_shipping ? 0 : parseFloat(formData.shipping_fee) || 0,
+      weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
+      dimensions_cm: formData.dimensions_cm || null,
+      free_shipping: formData.free_shipping
     };
 
     if (editingProduct) {
@@ -370,7 +383,11 @@ export const ProductManagement = () => {
       promo_active: false,
       image_url: "",
       stock_quantity: "0",
-      diamond_reward: "0"
+      diamond_reward: "0",
+      shipping_fee: "0",
+      weight_kg: "",
+      dimensions_cm: "",
+      free_shipping: false
     });
     setEditingProduct(null);
   };
@@ -390,7 +407,11 @@ export const ProductManagement = () => {
       promo_active: product.promo_active || false,
       image_url: product.image_url || "",
       stock_quantity: product.stock_quantity?.toString() || "0",
-      diamond_reward: product.diamond_reward?.toString() || "0"
+      diamond_reward: product.diamond_reward?.toString() || "0",
+      shipping_fee: product.shipping_fee?.toString() || "0",
+      weight_kg: product.weight_kg?.toString() || "",
+      dimensions_cm: product.dimensions_cm || "",
+      free_shipping: product.free_shipping || false
     });
     setIsDialogOpen(true);
   };
@@ -707,6 +728,62 @@ export const ProductManagement = () => {
                   checked={formData.is_featured}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
                 />
+              </div>
+
+              <div className="border-t pt-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="free_shipping" className="text-sm font-semibold">📦 Shipping</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Free Shipping</span>
+                    <Switch
+                      id="free_shipping"
+                      checked={formData.free_shipping}
+                      onCheckedChange={(checked) => setFormData({ ...formData, free_shipping: checked })}
+                    />
+                  </div>
+                </div>
+                
+                {!formData.free_shipping && (
+                  <div>
+                    <Label htmlFor="shipping_fee">Shipping Fee (₱)</Label>
+                    <Input
+                      id="shipping_fee"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.shipping_fee}
+                      onChange={(e) => setFormData({ ...formData, shipping_fee: e.target.value })}
+                      placeholder="e.g. 50.00"
+                    />
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="weight_kg">Weight (kg)</Label>
+                    <Input
+                      id="weight_kg"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.weight_kg}
+                      onChange={(e) => setFormData({ ...formData, weight_kg: e.target.value })}
+                      placeholder="e.g. 0.5"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Product weight</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="dimensions_cm">Dimensions (cm)</Label>
+                    <Input
+                      id="dimensions_cm"
+                      type="text"
+                      value={formData.dimensions_cm}
+                      onChange={(e) => setFormData({ ...formData, dimensions_cm: e.target.value })}
+                      placeholder="20x15x10"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">L×W×H format</p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

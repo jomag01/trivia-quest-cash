@@ -239,7 +239,8 @@ const Shop = () => {
         ? selectedProduct.promo_price
         : selectedProduct.base_price;
       const subtotal = price * quantity;
-      const totalAmount = subtotal + shippingFee;
+      const productShippingFee = selectedProduct.free_shipping ? 0 : (selectedProduct.shipping_fee || 50);
+      const totalAmount = subtotal + productShippingFee;
 
       // Generate order number
       const { data: orderNumberData, error: orderNumError } = await supabase
@@ -254,7 +255,7 @@ const Shop = () => {
           user_id: user?.id || null,
           order_number: orderNumberData,
           total_amount: totalAmount,
-          shipping_fee: shippingFee,
+          shipping_fee: productShippingFee,
           shipping_address: shippingAddress,
           customer_name: customerName,
           customer_email: customerEmail,
@@ -549,12 +550,18 @@ const Shop = () => {
               </div>
               <div className="flex justify-between text-sm">
                 <span>Shipping Fee:</span>
-                <span>₱{shippingFee.toFixed(2)}</span>
+                <span>
+                  {selectedProduct?.free_shipping ? (
+                    <Badge variant="secondary" className="text-xs">FREE</Badge>
+                  ) : (
+                    `₱${(selectedProduct?.shipping_fee || 50).toFixed(2)}`
+                  )}
+                </span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>Total:</span>
                 <span className="text-primary">
-                  ₱{(getEffectivePrice(selectedProduct) * quantity + shippingFee).toFixed(2)}
+                  ₱{(getEffectivePrice(selectedProduct) * quantity + (selectedProduct?.free_shipping ? 0 : (selectedProduct?.shipping_fee || 50))).toFixed(2)}
                 </span>
               </div>
             </div>
