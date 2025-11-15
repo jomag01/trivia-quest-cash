@@ -44,22 +44,23 @@ export const FeaturedProducts = () => {
 
       if (response.error) throw response.error;
       
-      // Fetch primary images for products without image_url
+      // Fetch static and hover images for products
       const productsWithImages = await Promise.all(
         (response.data || []).map(async (product: FeaturedProduct) => {
-          if (!product.image_url) {
-            const { data: images } = await supabase
-              .from("product_images")
-              .select("image_url")
-              .eq("product_id", product.id)
-              .eq("is_primary", true)
-              .single();
-            
-            if (images?.image_url) {
-              product.image_url = images.image_url;
-            }
-          }
-          return product;
+          const { data: images } = await supabase
+            .from("product_images")
+            .select("image_url, image_type")
+            .eq("product_id", product.id)
+            .in("image_type", ["static", "hover"]);
+          
+          const staticImage = images?.find(img => img.image_type === "static")?.image_url || product.image_url;
+          const hoverImage = images?.find(img => img.image_type === "hover")?.image_url;
+          
+          return { 
+            ...product, 
+            image_url: staticImage,
+            hover_image_url: hoverImage
+          };
         })
       );
       
@@ -154,12 +155,24 @@ export const FeaturedProducts = () => {
             <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
               <div className="relative aspect-square bg-muted overflow-hidden">
                 {product.image_url ? (
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
+                  <>
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className={`w-full h-full object-cover transition-all duration-300 ${
+                        product.hover_image_url ? 'group-hover:opacity-0' : 'group-hover:scale-105'
+                      }`}
+                      loading="lazy"
+                    />
+                    {product.hover_image_url && (
+                      <img
+                        src={product.hover_image_url}
+                        alt={`${product.name} hover`}
+                        className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        loading="lazy"
+                      />
+                    )}
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <ShoppingCart className="w-12 h-12 text-muted-foreground/20" />

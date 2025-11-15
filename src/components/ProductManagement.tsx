@@ -53,6 +53,7 @@ interface ProductImage {
   image_url: string;
   display_order: number;
   is_primary: boolean;
+  image_type?: string | null;
 }
 
 export const ProductManagement = () => {
@@ -100,6 +101,7 @@ export const ProductManagement = () => {
   // Image form state
   const [imageUrl, setImageUrl] = useState("");
   const [isPrimary, setIsPrimary] = useState(false);
+  const [imageType, setImageType] = useState<"static" | "hover" | "gallery">("gallery");
   // Variant form state
   const [variantForm, setVariantForm] = useState({
     variant_type: "size" as 'size' | 'color' | 'weight',
@@ -265,7 +267,8 @@ export const ProductManagement = () => {
       product_id: selectedProduct.id,
       image_url: finalUrl,
       display_order: images.length,
-      is_primary: isPrimary
+      is_primary: isPrimary,
+      image_type: imageType
     };
 
     const { error } = await supabase
@@ -281,7 +284,26 @@ export const ProductManagement = () => {
     toast.success("Image added successfully");
     setImageUrl("");
     setIsPrimary(false);
+    setImageType("gallery");
     fetchImages(selectedProduct.id);
+  };
+
+  const handleUpdateImageType = async (imageId: string, newType: "static" | "hover" | "gallery") => {
+    const { error } = await supabase
+      .from("product_images")
+      .update({ image_type: newType })
+      .eq("id", imageId);
+
+    if (error) {
+      toast.error("Failed to update image type");
+      console.error(error);
+      return;
+    }
+
+    toast.success("Image type updated");
+    if (selectedProduct) {
+      fetchImages(selectedProduct.id);
+    }
   };
 
   const handleDeleteProduct = async (id: string) => {
@@ -1033,12 +1055,30 @@ export const ProductManagement = () => {
                 onImageUploaded={(url) => handleAddImage(url)}
                 maxSizeKB={300}
               />
-              <div className="flex items-center justify-between mt-3">
-                <Label className="text-sm">Set as Primary</Label>
-                <Switch
-                  checked={isPrimary}
-                  onCheckedChange={setIsPrimary}
-                />
+              <div className="space-y-3 mt-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Set as Primary</Label>
+                  <Switch
+                    checked={isPrimary}
+                    onCheckedChange={setIsPrimary}
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm mb-2 block">Image Type</Label>
+                  <Select
+                    value={imageType}
+                    onValueChange={(value: any) => setImageType(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="static">Static (Default Display)</SelectItem>
+                      <SelectItem value="hover">Hover Image</SelectItem>
+                      <SelectItem value="gallery">Gallery</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </Card>
 
@@ -1050,7 +1090,7 @@ export const ProductManagement = () => {
                   <p>No images uploaded yet</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   {images
                     .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
                     .map((image) => (
@@ -1063,7 +1103,7 @@ export const ProductManagement = () => {
                           />
                         </div>
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors">
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button
                               size="sm"
                               variant="destructive"
@@ -1073,11 +1113,39 @@ export const ProductManagement = () => {
                             </Button>
                           </div>
                         </div>
-                        {image.is_primary && (
-                          <Badge className="absolute top-2 left-2 bg-primary">
-                            Primary
+                        <div className="absolute top-2 left-2 flex flex-col gap-1">
+                          {image.is_primary && (
+                            <Badge className="bg-primary">
+                              Primary
+                            </Badge>
+                          )}
+                          <Badge 
+                            className={
+                              image.image_type === "static" 
+                                ? "bg-blue-500" 
+                                : image.image_type === "hover"
+                                ? "bg-purple-500"
+                                : "bg-slate-500"
+                            }
+                          >
+                            {image.image_type === "static" ? "Static" : image.image_type === "hover" ? "Hover" : "Gallery"}
                           </Badge>
-                        )}
+                        </div>
+                        <div className="absolute bottom-2 right-2">
+                          <Select
+                            value={image.image_type || "gallery"}
+                            onValueChange={(value: any) => handleUpdateImageType(image.id, value)}
+                          >
+                            <SelectTrigger className="h-7 text-xs bg-background/90 backdrop-blur">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="static">Static</SelectItem>
+                              <SelectItem value="hover">Hover</SelectItem>
+                              <SelectItem value="gallery">Gallery</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </Card>
                     ))}
                 </div>
