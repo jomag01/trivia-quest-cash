@@ -151,13 +151,14 @@ export const FeaturedProducts = () => {
           const hasDiscount = product.promo_active && product.promo_price;
 
           return (
-            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all group">
+            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
               <div className="relative aspect-square bg-muted overflow-hidden">
                 {product.image_url ? (
                   <img
                     src={product.image_url}
                     alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
