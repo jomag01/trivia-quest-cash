@@ -75,6 +75,7 @@ export const FeaturedProducts = () => {
   const addToCart = async (productId: string) => {
     if (!user) {
       toast.error("Please login to add items to cart");
+      window.location.href = "/auth";
       return;
     }
 
@@ -84,7 +85,7 @@ export const FeaturedProducts = () => {
         .select("*")
         .eq("user_id", user.id)
         .eq("product_id", productId)
-        .single();
+        .maybeSingle();
 
       if (existingItem) {
         const { error } = await supabase
