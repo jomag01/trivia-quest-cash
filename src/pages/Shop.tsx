@@ -350,29 +350,24 @@ const Shop = () => {
           {filteredProducts.map((product) => (
             <Card
               key={product.id}
-              className="p-4 md:p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth flex flex-col cursor-pointer"
+              className="p-4 md:p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth flex flex-col cursor-pointer group"
               onClick={() => {
                 setDetailProduct(product);
                 setDetailDialog(true);
               }}
             >
               {/* Product Image */}
-              <div className="mb-4 aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+              <div className="mb-4 aspect-square rounded-lg overflow-hidden bg-muted relative">
                 {product.image_url ? (
                   <img
                     src={product.image_url}
                     alt={product.name}
-                    className="w-full h-full object-cover transition-transform hover:scale-105"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const parent = e.currentTarget.parentElement;
-                      if (parent) {
-                        parent.innerHTML = '<div class="text-muted-foreground text-sm">No image</div>';
-                      }
-                    }}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 ) : (
-                  <div className="text-muted-foreground text-sm">No image</div>
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    <Package className="w-12 h-12 opacity-20" />
+                  </div>
                 )}
               </div>
               
