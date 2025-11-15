@@ -1126,6 +1126,20 @@ export const ProductManagement = () => {
             <DialogTitle>Images - {selectedProduct?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <Card className="p-4 bg-muted/50">
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />
+                  How Product Images Work
+                </h3>
+                <ul className="text-xs text-muted-foreground space-y-1 ml-6 list-disc">
+                  <li><strong>Static:</strong> Main product image shown by default</li>
+                  <li><strong>Hover:</strong> Image shown when customer hovers over product</li>
+                  <li><strong>Gallery:</strong> Additional images shown in product detail carousel</li>
+                </ul>
+              </div>
+            </Card>
+
             <Card className="p-4">
               <h3 className="font-semibold mb-3 text-sm">Upload New Image</h3>
               <ImageUploadCrop
@@ -1150,11 +1164,16 @@ export const ProductManagement = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="static">Static (Default Display)</SelectItem>
-                      <SelectItem value="hover">Hover Image</SelectItem>
-                      <SelectItem value="gallery">Gallery</SelectItem>
+                      <SelectItem value="static">📸 Static (Default Display)</SelectItem>
+                      <SelectItem value="hover">✨ Hover Image</SelectItem>
+                      <SelectItem value="gallery">🖼️ Gallery</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {imageType === "static" && "Main image displayed on product cards"}
+                    {imageType === "hover" && "Shown when customer hovers over product"}
+                    {imageType === "gallery" && "Displayed in product detail carousel"}
+                  </p>
                 </div>
               </div>
             </Card>
