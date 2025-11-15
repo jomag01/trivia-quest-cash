@@ -43,7 +43,27 @@ export const FeaturedProducts = () => {
         .order("created_at", { ascending: false });
 
       if (response.error) throw response.error;
-      setProducts(response.data || []);
+      
+      // Fetch primary images for products without image_url
+      const productsWithImages = await Promise.all(
+        (response.data || []).map(async (product: FeaturedProduct) => {
+          if (!product.image_url) {
+            const { data: images } = await supabase
+              .from("product_images")
+              .select("image_url")
+              .eq("product_id", product.id)
+              .eq("is_primary", true)
+              .single();
+            
+            if (images?.image_url) {
+              product.image_url = images.image_url;
+            }
+          }
+          return product;
+        })
+      );
+      
+      setProducts(productsWithImages);
     } catch (error) {
       console.error("Error fetching featured products:", error);
     } finally {
