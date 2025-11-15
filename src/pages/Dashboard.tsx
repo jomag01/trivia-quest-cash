@@ -20,6 +20,7 @@ import { FeaturedProducts } from "@/components/FeaturedProducts";
 import AffiliateRankCard from "@/components/AffiliateRankCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { ActiveUsersStats } from "@/components/ActiveUsersStats";
 const Dashboard = () => {
   const navigate = useNavigate();
   const {
@@ -291,6 +292,8 @@ const Dashboard = () => {
 
             {/* Main Stats Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Active Users */}
+              <ActiveUsersStats />
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
             <div className="flex items-center justify-between mb-4">
               <Target className="w-8 h-8 text-primary" />
