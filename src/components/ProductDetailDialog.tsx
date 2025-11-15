@@ -58,7 +58,7 @@ export const ProductDetailDialog = ({
     try {
       const { data, error } = await supabase
         .from("product_images")
-        .select("image_url, is_primary, display_order")
+        .select("image_url, is_primary, display_order, image_type")
         .eq("product_id", product.id)
         .order("is_primary", { ascending: false })
         .order("display_order", { ascending: true });
@@ -66,7 +66,20 @@ export const ProductDetailDialog = ({
       if (error) throw error;
 
       if (data && data.length > 0) {
-        setImages(data.map(img => img.image_url));
+        // Prioritize: primary first, then static, hover, then gallery images
+        const sortedImages = data.sort((a, b) => {
+          if (a.is_primary && !b.is_primary) return -1;
+          if (!a.is_primary && b.is_primary) return 1;
+          
+          const typeOrder: any = { static: 0, hover: 1, gallery: 2 };
+          const aOrder = typeOrder[a.image_type || 'gallery'] ?? 3;
+          const bOrder = typeOrder[b.image_type || 'gallery'] ?? 3;
+          
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return (a.display_order || 0) - (b.display_order || 0);
+        });
+        
+        setImages(sortedImages.map(img => img.image_url));
       } else if (product.image_url) {
         setImages([product.image_url]);
       } else {
