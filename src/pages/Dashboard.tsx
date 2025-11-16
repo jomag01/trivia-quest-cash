@@ -24,6 +24,7 @@ import { ActiveUsersStats } from "@/components/ActiveUsersStats";
 import { NotificationsList } from "@/components/NotificationsList";
 import { DiamondHistory } from "@/components/DiamondHistory";
 import { DiamondLeaderboard } from "@/components/DiamondLeaderboard";
+import { GenealogyTree } from "@/components/GenealogyTree";
 const Dashboard = () => {
   const navigate = useNavigate();
   const {
@@ -292,8 +293,9 @@ const Dashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:grid-cols-7">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="network">Network Tree</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="diamonds">Diamonds</TabsTrigger>
             <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
@@ -548,6 +550,10 @@ const Dashboard = () => {
         <BuyCreditsDialog open={showBuyCredits} onOpenChange={setShowBuyCredits} />
         <CashOutDialog open={showCashOut} onOpenChange={setShowCashOut} currentBalance={wallet?.balance || 0} />
         <GenealogyDialog open={showGenealogy} onOpenChange={setShowGenealogy} level={selectedLevel} userId={user?.id || ''} />
+      </TabsContent>
+
+      <TabsContent value="network">
+        <GenealogyTree userId={user?.id || ''} />
       </TabsContent>
 
       <TabsContent value="cart">
