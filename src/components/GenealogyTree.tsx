@@ -12,8 +12,11 @@ import {
   User, 
   DollarSign,
   Calendar,
-  Award
+  Award,
+  Search,
+  X
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/currencies";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -47,6 +50,8 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (userId) {
@@ -68,24 +73,25 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
   };
 
   const buildTree = async (nodeId: string, level: number): Promise<TreeNode> => {
-    // Fetch current node data with referrer info
+    // Fetch current node data
     const { data: nodeData, error: nodeError } = await supabase
       .from("profiles")
-      .select(`
-        id, 
-        full_name, 
-        email, 
-        referral_code, 
-        credits, 
-        created_at, 
-        is_verified,
-        referred_by,
-        referrer:profiles!profiles_referred_by_fkey(full_name, email)
-      `)
+      .select("id, full_name, email, referral_code, credits, created_at, is_verified, referred_by")
       .eq("id", nodeId)
       .single();
 
     if (nodeError) throw nodeError;
+
+    // Fetch referrer info if exists
+    let referrerData = null;
+    if (nodeData.referred_by) {
+      const { data: referrer } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", nodeData.referred_by)
+        .maybeSingle();
+      referrerData = referrer;
+    }
 
     const node: TreeNode = {
       id: nodeData.id,
@@ -96,9 +102,7 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
       created_at: nodeData.created_at,
       is_verified: nodeData.is_verified,
       referred_by: nodeData.referred_by,
-      referrer: Array.isArray(nodeData.referrer) && nodeData.referrer.length > 0 
-        ? nodeData.referrer[0] 
-        : null,
+      referrer: referrerData,
       level,
       children: [],
     };
@@ -146,6 +150,42 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
 
   const handleMouseUp = () => setIsDragging(false);
 
+  const searchNodes = (node: TreeNode, query: string): Set<string> => {
+    const matches = new Set<string>();
+    const lowerQuery = query.toLowerCase();
+    
+    const checkNode = (n: TreeNode) => {
+      const nameMatch = n.full_name?.toLowerCase().includes(lowerQuery);
+      const emailMatch = n.email?.toLowerCase().includes(lowerQuery);
+      const codeMatch = n.referral_code?.toLowerCase().includes(lowerQuery);
+      
+      if (nameMatch || emailMatch || codeMatch) {
+        matches.add(n.id);
+      }
+      
+      n.children.forEach(checkNode);
+    };
+    
+    checkNode(node);
+    return matches;
+  };
+
+  useEffect(() => {
+    if (!treeData || !searchQuery.trim()) {
+      setHighlightedNodes(new Set());
+      return;
+    }
+    
+    const matches = searchNodes(treeData, searchQuery);
+    setHighlightedNodes(matches);
+    
+    if (matches.size > 0) {
+      toast.success(`Found ${matches.size} matching member${matches.size !== 1 ? 's' : ''}`);
+    } else {
+      toast.info("No members found matching your search");
+    }
+  }, [searchQuery, treeData]);
+
   const renderTree = (node: TreeNode, x: number, y: number, level: number): JSX.Element[] => {
     const elements: JSX.Element[] = [];
     const nodeWidth = 180;
@@ -181,6 +221,7 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
 
     // Draw the node
     const isSelected = selectedNode?.id === node.id;
+    const isHighlighted = highlightedNodes.has(node.id);
     const levelColors = [
       "hsl(var(--primary))",
       "hsl(var(--secondary))",
@@ -202,9 +243,9 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
           width={nodeWidth}
           height={nodeHeight}
           rx="8"
-          fill={isSelected ? levelColors[level - 1] : "hsl(var(--card))"}
-          stroke={levelColors[level - 1]}
-          strokeWidth={isSelected ? "3" : "2"}
+          fill={isSelected ? levelColors[level - 1] : isHighlighted ? "#fbbf24" : "hsl(var(--card))"}
+          stroke={isHighlighted ? "#f59e0b" : levelColors[level - 1]}
+          strokeWidth={isSelected || isHighlighted ? "3" : "2"}
           className="transition-all duration-300"
         />
         
@@ -346,19 +387,41 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleZoomOut}>
-              <ZoomOut className="w-4 h-4" />
-            </Button>
-            <span className="text-sm font-medium min-w-[60px] text-center">
-              {Math.round(zoom * 100)}%
-            </span>
-            <Button variant="outline" size="sm" onClick={handleZoomIn}>
-              <ZoomIn className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleReset}>
-              <Maximize2 className="w-4 h-4" />
-            </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Search Box */}
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-2 border rounded-lg p-1">
+              <Button variant="ghost" size="sm" onClick={handleZoomOut}>
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-medium min-w-[60px] text-center">
+                {Math.round(zoom * 100)}%
+              </span>
+              <Button variant="ghost" size="sm" onClick={handleZoomIn}>
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleReset}>
+                <Maximize2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </Card>
