@@ -41,13 +41,13 @@ export const DiamondLeaderboard = () => {
         .from("treasure_wallet")
         .select(`
           user_id,
-          diamond_balance,
+          diamonds,
           profiles!inner (
             full_name,
             email
           )
         `)
-        .order("diamond_balance", { ascending: false })
+        .order("diamonds", { ascending: false })
         .limit(20);
 
       if (earnersError) throw earnersError;
@@ -79,7 +79,7 @@ export const DiamondLeaderboard = () => {
             user_id: earner.user_id,
             full_name: earner.profiles.full_name || "Anonymous",
             email: earner.profiles.email,
-            total_diamonds: earner.diamond_balance,
+            total_diamonds: earner.diamonds,
             total_earned: totalEarned,
             total_spent: totalSpent,
             referral_count: referralCount || 0,

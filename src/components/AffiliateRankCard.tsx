@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Target, Calendar, Award } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, Target, Calendar, Award, Copy, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface StairStepConfig {
   step_number: number;
@@ -28,11 +30,12 @@ interface MonthlySales {
 }
 
 export default function AffiliateRankCard() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [currentRank, setCurrentRank] = useState<CurrentRank | null>(null);
   const [monthlySales, setMonthlySales] = useState<MonthlySales | null>(null);
   const [stairSteps, setStairSteps] = useState<StairStepConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -96,6 +99,15 @@ export default function AffiliateRankCard() {
     ? Math.min(((monthlySales?.total_sales || 0) / nextStep.sales_quota) * 100, 100)
     : 100;
 
+  const referralLink = `${window.location.origin}/auth?ref=${profile?.referral_code || ''}`;
+
+  const copyReferralLink = () => {
+    navigator.clipboard.writeText(referralLink);
+    setCopied(true);
+    toast.success("Referral link copied to clipboard!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -132,6 +144,33 @@ export default function AffiliateRankCard() {
               </span>
             </div>
           )}
+        </div>
+
+        {/* Referral Link */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Your Referral Link</span>
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1 p-2 bg-muted rounded text-sm font-mono break-all">
+              {referralLink}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyReferralLink}
+              className="shrink-0"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 text-green-500" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Share this link to invite new members and earn commissions
+          </p>
         </div>
 
         {/* Qualification Progress */}
