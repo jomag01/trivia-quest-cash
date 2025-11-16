@@ -749,6 +749,7 @@ export type Database = {
           id: string
           notes: string | null
           order_number: string
+          payment_method: string | null
           shipping_address: string
           shipping_fee: number | null
           status: string
@@ -766,6 +767,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number: string
+          payment_method?: string | null
           shipping_address: string
           shipping_fee?: number | null
           status?: string
@@ -783,6 +785,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number?: string
+          payment_method?: string | null
           shipping_address?: string
           shipping_fee?: number | null
           status?: string
@@ -1179,6 +1182,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_verified: boolean | null
           referral_code: string
           referred_by: string | null
           updated_at: string
@@ -1192,6 +1196,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          is_verified?: boolean | null
           referral_code: string
           referred_by?: string | null
           updated_at?: string
@@ -1205,6 +1210,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_verified?: boolean | null
           referral_code?: string
           referred_by?: string | null
           updated_at?: string

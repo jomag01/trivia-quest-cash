@@ -25,13 +25,54 @@ export const CartView = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [shippingFee] = useState(50); // Default shipping fee
+  const [shippingFee] = useState(50);
+  const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [userCredits, setUserCredits] = useState(0);
+  const [userDiamonds, setUserDiamonds] = useState(0);
+  const [isVerified, setIsVerified] = useState(false);
+  const [checkingVerification, setCheckingVerification] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchCart();
+      fetchUserData();
     }
   }, [user]);
+
+  const fetchUserData = async () => {
+    try {
+      setCheckingVerification(true);
+      
+      // Fetch profile data (credits and verification status)
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("credits, is_verified")
+        .eq("id", user?.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      setUserCredits(profile?.credits || 0);
+      setIsVerified(profile?.is_verified || false);
+
+      // Fetch treasure wallet (diamonds)
+      const { data: wallet, error: walletError } = await supabase
+        .from("treasure_wallet")
+        .select("diamonds")
+        .eq("user_id", user?.id)
+        .single();
+
+      if (walletError && walletError.code !== "PGRST116") {
+        throw walletError;
+      }
+
+      setUserDiamonds(wallet?.diamonds || 0);
+    } catch (error: any) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setCheckingVerification(false);
+    }
+  };
 
   const fetchCart = async () => {
     try {
@@ -101,6 +142,38 @@ export const CartView = () => {
       return;
     }
 
+    if (!paymentMethod) {
+      toast.error("Please select a payment method");
+      return;
+    }
+
+    // Validate payment method for first-time users
+    if (!isVerified && paymentMethod === "cod") {
+      toast.error("First-time users must pay via GCash or Bank Transfer to become verified affiliates");
+      return;
+    }
+
+    const subtotal = calculateTotal();
+    const totalAmount = subtotal + shippingFee;
+    const diamondsRequired = Math.ceil(totalAmount / 10);
+
+    // Validate credits/diamonds if selected
+    if (paymentMethod === "credits" && userCredits < totalAmount) {
+      toast.error(`Insufficient credits. You need ₱${totalAmount} but have ₱${userCredits}`);
+      return;
+    }
+
+    if (paymentMethod === "diamonds") {
+      if (userDiamonds < diamondsRequired) {
+        toast.error(`Insufficient diamonds. You need ${diamondsRequired} diamonds (₱10 each) but have ${userDiamonds}`);
+        return;
+      }
+      if (totalAmount % 10 !== 0) {
+        toast.error("Diamond payments require amounts in multiples of ₱10");
+        return;
+      }
+    }
+
     try {
       const { data: orderNumberData, error: orderNumError } = await supabase.rpc(
         "generate_order_number"
@@ -124,6 +197,7 @@ export const CartView = () => {
           customer_email: customerEmail,
           customer_phone: customerPhone,
           status: "pending",
+          payment_method: paymentMethod,
         })
         .select()
         .single();
@@ -157,6 +231,23 @@ export const CartView = () => {
 
       if (updateError) throw updateError;
 
+      // Deduct credits or diamonds if used
+      if (paymentMethod === "credits") {
+        const { error: creditsError } = await supabase
+          .from("profiles")
+          .update({ credits: userCredits - totalAmount })
+          .eq("id", user?.id);
+
+        if (creditsError) throw creditsError;
+      } else if (paymentMethod === "diamonds") {
+        const { error: diamondsError } = await supabase
+          .from("treasure_wallet")
+          .update({ diamonds: userDiamonds - diamondsRequired })
+          .eq("user_id", user?.id);
+
+        if (diamondsError) throw diamondsError;
+      }
+
       // Clear cart
       const { error: clearError } = await supabase
         .from("cart")
@@ -165,17 +256,60 @@ export const CartView = () => {
 
       if (clearError) throw clearError;
 
-      toast.success("Order placed successfully! Order #" + orderNumberData);
+      toast.success(
+        `Order placed successfully! Order #${orderNumberData}. ${
+          paymentMethod === "credits"
+            ? `₱${totalAmount} deducted from credits`
+            : paymentMethod === "diamonds"
+            ? `${diamondsRequired} diamonds deducted`
+            : ""
+        }`
+      );
       setCheckoutDialog(false);
       fetchCart();
+      fetchUserData();
       setShippingAddress("");
       setCustomerName("");
       setCustomerEmail("");
       setCustomerPhone("");
+      setPaymentMethod("");
     } catch (error: any) {
       console.error("Error creating order:", error);
       toast.error("Failed to place order");
     }
+  };
+
+  const getAvailablePaymentMethods = () => {
+    const methods = [];
+    
+    if (isVerified) {
+      methods.push({ value: "cod", label: "Cash on Delivery" });
+    }
+    
+    methods.push(
+      { value: "gcash", label: "GCash" },
+      { value: "bank_transfer", label: "Bank Transfer" }
+    );
+
+    const subtotal = calculateTotal();
+    const totalAmount = subtotal + shippingFee;
+    const diamondsRequired = Math.ceil(totalAmount / 10);
+
+    if (userCredits >= totalAmount) {
+      methods.push({
+        value: "credits",
+        label: `Pay with Credits (Available: ₱${userCredits})`,
+      });
+    }
+
+    if (userDiamonds >= diamondsRequired && totalAmount % 10 === 0) {
+      methods.push({
+        value: "diamonds",
+        label: `Pay with Diamonds (Need: ${diamondsRequired}, Available: ${userDiamonds})`,
+      });
+    }
+
+    return methods;
   };
 
   if (loading) {
@@ -278,11 +412,32 @@ export const CartView = () => {
           <DialogHeader>
             <DialogTitle>Complete Your Order</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Fill in your details to complete checkout
+              {!isVerified && (
+                <span className="text-yellow-600 font-semibold">
+                  ⚠️ First-time users: Pay via GCash or Bank Transfer to become a verified affiliate
+                </span>
+              )}
             </p>
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* User Status Info */}
+            <div className="p-3 bg-secondary rounded-lg space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Status:</span>
+                <span className={isVerified ? "text-green-600" : "text-yellow-600"}>
+                  {isVerified ? "✓ Verified Affiliate" : "⚠ Unverified (First Order)"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Available Credits:</span>
+                <span>₱{userCredits}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Available Diamonds:</span>
+                <span>{userDiamonds} (₱10 each)</span>
+              </div>
+            </div>
             <div>
               <Label htmlFor="customerName">
                 Full Name <span className="text-red-500">*</span>
@@ -329,6 +484,37 @@ export const CartView = () => {
                 rows={3}
                 required
               />
+            </div>
+
+            {/* Payment Method Selection */}
+            <div>
+              <Label htmlFor="paymentMethod">
+                Payment Method <span className="text-red-500">*</span>
+              </Label>
+              <select
+                id="paymentMethod"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full p-2 border rounded-md bg-background"
+                required
+              >
+                <option value="">Select payment method</option>
+                {getAvailablePaymentMethods().map((method) => (
+                  <option key={method.value} value={method.value}>
+                    {method.label}
+                  </option>
+                ))}
+              </select>
+              {!isVerified && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  Note: Cash on Delivery is only available for verified users
+                </p>
+              )}
+              {paymentMethod === "diamonds" && calculateTotal() % 10 !== 0 && (
+                <p className="text-xs text-red-600 mt-1">
+                  Diamond payments require amounts in multiples of ₱10
+                </p>
+              )}
             </div>
 
             <div className="pt-4 border-t space-y-2">
