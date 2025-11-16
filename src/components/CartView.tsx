@@ -141,7 +141,6 @@ export const CartView = () => {
         quantity: item.quantity,
         unit_price: getEffectivePrice(item.products),
         subtotal: getEffectivePrice(item.products) * item.quantity,
-        diamond_reward: item.products?.diamond_reward || 0,
       }));
 
       const { error: itemsError } = await supabase
