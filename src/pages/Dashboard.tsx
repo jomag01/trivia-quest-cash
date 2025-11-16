@@ -25,6 +25,7 @@ import { NotificationsList } from "@/components/NotificationsList";
 import { DiamondHistory } from "@/components/DiamondHistory";
 import { DiamondLeaderboard } from "@/components/DiamondLeaderboard";
 import { GenealogyTree } from "@/components/GenealogyTree";
+import { UplineTransferRequest } from "@/components/UplineTransferRequest";
 const Dashboard = () => {
   const navigate = useNavigate();
   const {
@@ -552,8 +553,9 @@ const Dashboard = () => {
         <GenealogyDialog open={showGenealogy} onOpenChange={setShowGenealogy} level={selectedLevel} userId={user?.id || ''} />
       </TabsContent>
 
-      <TabsContent value="network">
+      <TabsContent value="network" className="space-y-6">
         <GenealogyTree userId={user?.id || ''} />
+        <UplineTransferRequest />
       </TabsContent>
 
       <TabsContent value="cart">

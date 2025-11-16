@@ -1605,6 +1605,60 @@ export type Database = {
         }
         Relationships: []
       }
+      upline_transfer_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          current_upline_id: string | null
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          reason: string | null
+          requested_upline_id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          current_upline_id?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          requested_upline_id: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          current_upline_id?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          requested_upline_id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upline_transfer_requests_current_upline_id_fkey"
+            columns: ["current_upline_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upline_transfer_requests_requested_upline_id_fkey"
+            columns: ["requested_upline_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_answered_questions: {
         Row: {
           answered_at: string | null
@@ -1877,6 +1931,15 @@ export type Database = {
       }
       is_public_group: { Args: { _group_id: string }; Returns: boolean }
       process_monthly_rank_reversion: { Args: never; Returns: undefined }
+      process_upline_transfer: {
+        Args: {
+          p_admin_id: string
+          p_admin_notes?: string
+          p_approve: boolean
+          p_request_id: string
+        }
+        Returns: Json
+      }
       update_affiliate_monthly_sales: {
         Args: { p_amount: number; p_is_personal?: boolean; p_user_id: string }
         Returns: undefined

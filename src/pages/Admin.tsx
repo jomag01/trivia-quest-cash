@@ -17,7 +17,8 @@ import {
   Eye,
   Menu,
   X,
-  Gem
+  Gem,
+  Users
 } from "lucide-react";
 import {
   Dialog,
@@ -34,6 +35,7 @@ import { ImageMigrationTool } from "@/components/ImageMigrationTool";
 import StairStepManagement from "@/components/StairStepManagement";
 import { TreasureHuntManagement } from "@/components/TreasureHuntManagement";
 import TreasureAdminSettings from "@/components/TreasureAdminSettings";
+import { UplineTransferManagement } from "@/components/UplineTransferManagement";
 import { ShippingZoneManagement } from "@/components/ShippingZoneManagement";
 import { BulkShippingManagement } from "@/components/BulkShippingManagement";
 import CourierSettingsManagement from "@/components/CourierSettingsManagement";
@@ -94,6 +96,7 @@ const Admin = () => {
     { id: "courier-settings", label: "Courier Settings", icon: Truck },
     { id: "migration", label: "Image Migration", icon: Upload },
     { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
+    { id: "transfers", label: "Upline Transfers", icon: Users },
   ];
 
   useEffect(() => {
@@ -468,6 +471,7 @@ const Admin = () => {
           {activeTab === "courier-settings" && <CourierSettingsManagement />}
           {activeTab === "migration" && <ImageMigrationTool />}
           {activeTab === "stair-step" && <StairStepManagement />}
+          {activeTab === "transfers" && <UplineTransferManagement />}
         </main>
       </div>
 

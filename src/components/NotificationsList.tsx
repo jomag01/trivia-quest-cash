@@ -109,6 +109,8 @@ export const NotificationsList = () => {
         return <Gift className="h-5 w-5 text-amber-500" />;
       case "signup":
         return <Users className="h-5 w-5 text-green-500" />;
+      case "upline_transfer":
+        return <Users className="h-5 w-5 text-purple-500" />;
       default:
         return <Info className="h-5 w-5" />;
     }
