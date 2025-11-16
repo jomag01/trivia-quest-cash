@@ -1317,6 +1317,42 @@ export type Database = {
         }
         Relationships: []
       }
+      shipping_zones: {
+        Row: {
+          base_rate: number
+          created_at: string | null
+          free_shipping_threshold: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          per_kg_rate: number
+          regions: string[]
+          updated_at: string | null
+        }
+        Insert: {
+          base_rate?: number
+          created_at?: string | null
+          free_shipping_threshold?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          per_kg_rate?: number
+          regions: string[]
+          updated_at?: string | null
+        }
+        Update: {
+          base_rate?: number
+          created_at?: string | null
+          free_shipping_threshold?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          per_kg_rate?: number
+          regions?: string[]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       stair_step_config: {
         Row: {
           active: boolean | null
