@@ -15,6 +15,7 @@ interface Product {
   promo_active?: boolean;
   image_url?: string;
   stock_quantity?: number;
+  diamond_reward?: number;
   product_categories?: {
     name: string;
   };
@@ -196,17 +197,23 @@ export const ProductDetailDialog = ({
 
           {/* Product Details */}
           <div className="space-y-4">
-            {product.promo_active && product.promo_price && (
-              <Badge className="bg-red-500">
-                {product.discount_percentage}% OFF
-              </Badge>
-            )}
-
-            {product.product_categories && (
-              <Badge variant="outline">
-                {product.product_categories.name}
-              </Badge>
-            )}
+            <div className="flex gap-2 flex-wrap">
+              {product.promo_active && product.promo_price && (
+                <Badge className="bg-red-500">
+                  {product.discount_percentage}% OFF
+                </Badge>
+              )}
+              {product.product_categories && (
+                <Badge variant="outline">
+                  {product.product_categories.name}
+                </Badge>
+              )}
+              {product.diamond_reward && product.diamond_reward > 0 && (
+                <Badge variant="secondary" className="bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
+                  💎 Earn {product.diamond_reward} {product.diamond_reward === 1 ? 'Diamond' : 'Diamonds'} on delivery
+                </Badge>
+              )}
+            </div>
 
             <div>
               <div className="flex items-baseline gap-3">
