@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ActiveUsersStats } from "@/components/ActiveUsersStats";
 import { NotificationsList } from "@/components/NotificationsList";
 import { DiamondHistory } from "@/components/DiamondHistory";
+import { DiamondLeaderboard } from "@/components/DiamondLeaderboard";
 const Dashboard = () => {
   const navigate = useNavigate();
   const {
@@ -281,13 +282,14 @@ const Dashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="diamonds">Diamonds</TabsTrigger>
-            <TabsTrigger value="cart">Shopping Cart</TabsTrigger>
+            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+            <TabsTrigger value="cart">Cart</TabsTrigger>
             <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
-            <TabsTrigger value="orders">My Orders</TabsTrigger>
+            <TabsTrigger value="orders">Orders</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
@@ -526,6 +528,10 @@ const Dashboard = () => {
 
       <TabsContent value="diamonds">
         <DiamondHistory />
+      </TabsContent>
+
+      <TabsContent value="leaderboard">
+        <DiamondLeaderboard />
       </TabsContent>
 
       <TabsContent value="orders">
