@@ -193,6 +193,11 @@ export const FeaturedProducts = () => {
               
               <div className="p-3 space-y-2">
                 <h3 className="font-semibold text-sm line-clamp-1">{product.name}</h3>
+                {product.diamond_reward && product.diamond_reward > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    💎 Earn {product.diamond_reward} {product.diamond_reward === 1 ? 'diamond' : 'diamonds'} on delivery
+                  </p>
+                )}
                 
                 <div className="flex items-center gap-2">
                   <span className="text-lg font-bold text-primary">

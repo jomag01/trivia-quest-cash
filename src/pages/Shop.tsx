@@ -389,11 +389,18 @@ const Shop = () => {
                 <p className="text-xs md:text-sm text-muted-foreground mb-4 line-clamp-3">
                   {product.description}
                 </p>
-                {product.product_categories && (
-                  <Badge variant="outline" className="mb-2 text-xs">
-                    {product.product_categories.name}
-                  </Badge>
-                )}
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {product.product_categories && (
+                    <Badge variant="outline" className="text-xs">
+                      {product.product_categories.name}
+                    </Badge>
+                  )}
+                  {product.diamond_reward && product.diamond_reward > 0 && (
+                    <Badge variant="secondary" className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
+                      💎 {product.diamond_reward} on delivery
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               <div className="mb-4">
