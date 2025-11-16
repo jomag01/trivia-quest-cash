@@ -41,8 +41,8 @@ export const GenealogyDialog = ({ open, onOpenChange, level, userId }: Genealogy
       // Recursively fetch members at the specified level
       let currentLevelIds = [userId];
       
-      // Navigate down the tree to the requested level (level 1 = direct referrals, so we navigate level-1 times)
-      for (let i = 0; i < level - 1; i++) {
+      // Navigate down the tree to the requested level
+      for (let i = 0; i < level; i++) {
         if (currentLevelIds.length === 0) break;
         
         const { data, error } = await supabase
@@ -59,7 +59,7 @@ export const GenealogyDialog = ({ open, onOpenChange, level, userId }: Genealogy
         const { data, error } = await supabase
           .from("profiles")
           .select("id, full_name, email, created_at, referral_code, credits")
-          .in("referred_by", currentLevelIds)
+          .in("id", currentLevelIds)
           .order("created_at", { ascending: false });
 
         if (error) throw error;
