@@ -48,7 +48,7 @@ export const CartView = () => {
         .from("profiles")
         .select("credits, is_verified")
         .eq("id", user?.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) throw profileError;
 

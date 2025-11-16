@@ -144,8 +144,7 @@ const Auth = () => {
         toast.success("Welcome back!");
         navigate("/dashboard");
       } else {
-        // Validate referral code if provided and capture referrer id
-        let referrerId: string | null = null;
+        // Validate referral code if provided
         const normalizedCode = referralCode.trim().toUpperCase();
         if (normalizedCode) {
           const { data, error } = await supabase.functions.invoke('validate-referral', {
@@ -157,16 +156,15 @@ const Auth = () => {
             setLoading(false);
             return;
           }
-          referrerId = data.referrerId;
         }
 
-        // Prepare user metadata with referrer_id for the trigger
+        // Prepare user metadata with referral_code for the trigger
         const userData: any = {
           full_name: fullName,
           country: country,
           currency: currency,
           currency_symbol: CURRENCIES[currency].symbol,
-          referrer_id: referrerId
+          referral_code: normalizedCode || undefined
         };
 
         const { error, data: signUpData } = await supabase.auth.signUp({
@@ -179,14 +177,6 @@ const Auth = () => {
         });
 
         if (error) throw error;
-        
-        // Update profile with referrer_id after signup
-        if (signUpData.user && referrerId) {
-          await (supabase as any)
-            .from('profiles')
-            .update({ referrer_id: referrerId })
-            .eq('id', signUpData.user.id);
-        }
         
         toast.success("Account created! You can now login.");
         setIsLogin(true);

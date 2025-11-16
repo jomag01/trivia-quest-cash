@@ -59,7 +59,7 @@ export const GenealogyDialog = ({ open, onOpenChange, level, userId }: Genealogy
         const { data, error } = await supabase
           .from("profiles")
           .select("id, full_name, email, created_at, referral_code, credits")
-          .in("id", currentLevelIds)
+          .in("referred_by", currentLevelIds)
           .order("created_at", { ascending: false });
 
         if (error) throw error;
