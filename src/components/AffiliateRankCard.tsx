@@ -100,7 +100,8 @@ export default function AffiliateRankCard() {
     : 100;
 
   const referralLink = `${window.location.origin}/auth?ref=${profile?.referral_code || ''}`;
-  const shareMessage = `Join me on this amazing platform! Use my referral link: ${referralLink}`;
+  const shortReferralCode = profile?.referral_code || '';
+  const shareMessage = `Join me on this amazing platform! Use my code: ${shortReferralCode} or visit: ${referralLink}`;
 
   const copyReferralLink = () => {
     navigator.clipboard.writeText(referralLink);
@@ -111,22 +112,38 @@ export default function AffiliateRankCard() {
 
   const shareOnFacebook = () => {
     const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`;
-    window.open(url, '_blank', 'width=600,height=400');
+    const newWindow = window.open(url, '_blank', 'noopener,noreferrer,width=600,height=400');
+    if (!newWindow) {
+      copyReferralLink();
+      toast.info("Please allow popups for sharing. Link copied to clipboard!");
+    }
   };
 
   const shareOnTwitter = () => {
     const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join me on this amazing platform!')}`;
-    window.open(url, '_blank', 'width=600,height=400');
+    const newWindow = window.open(url, '_blank', 'noopener,noreferrer,width=600,height=400');
+    if (!newWindow) {
+      copyReferralLink();
+      toast.info("Please allow popups for sharing. Link copied to clipboard!");
+    }
   };
 
   const shareOnWhatsApp = () => {
-    const url = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
-    window.open(url, '_blank');
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`;
+    const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!newWindow) {
+      copyReferralLink();
+      toast.info("Please allow popups for sharing. Link copied to clipboard!");
+    }
   };
 
   const shareOnTelegram = () => {
     const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join me on this amazing platform!')}`;
-    window.open(url, '_blank');
+    const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!newWindow) {
+      copyReferralLink();
+      toast.info("Please allow popups for sharing. Link copied to clipboard!");
+    }
   };
 
   const shareOnTikTok = () => {
@@ -180,30 +197,54 @@ export default function AffiliateRankCard() {
         </div>
 
         {/* Referral Link */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Your Referral Link</span>
+            <span className="text-sm font-medium">Your Referral Code</span>
           </div>
-          <div className="flex gap-2">
-            <div className="flex-1 p-2 bg-muted rounded text-sm font-mono break-all">
-              {referralLink}
+          
+          {/* Prominent Referral Code Display */}
+          <div className="p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-2">Share this code:</p>
+              <div className="text-2xl font-bold text-primary tracking-wider mb-2">
+                {shortReferralCode}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(shortReferralCode);
+                  toast.success("Referral code copied!");
+                }}
+                className="text-xs"
+              >
+                <Copy className="w-3 h-3 mr-1" />
+                Copy Code
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyReferralLink}
-              className="shrink-0"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-green-500" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </Button>
           </div>
-          <p className="text-xs text-muted-foreground mb-3">
-            Share this link to invite new members and earn commissions
-          </p>
+
+          {/* Full Link Display */}
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Or share the full link:</p>
+            <div className="flex gap-2">
+              <div className="flex-1 p-2 bg-muted rounded text-xs font-mono break-all">
+                {referralLink}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyReferralLink}
+                className="shrink-0"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </div>
           
           {/* Social Media Share Buttons */}
           <div className="space-y-2">
@@ -264,6 +305,9 @@ export default function AffiliateRankCard() {
                 <span className="text-xs">YouTube</span>
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              💡 Tip: If popups are blocked, the link will be copied automatically
+            </p>
           </div>
         </div>
 
