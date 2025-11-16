@@ -267,16 +267,28 @@ const Shop = () => {
 
       if (orderError) throw orderError;
 
-      // Create order item
+      // Calculate diamond credits
+      const diamondCredits = (selectedProduct.diamond_reward || 0) * quantity;
+
+      // Create order item with diamond reward
       const { error: itemError } = await supabase.from("order_items").insert({
         order_id: order.id,
         product_id: selectedProduct.id,
         quantity: quantity,
         unit_price: price,
         subtotal: subtotal,
+        diamond_reward: selectedProduct.diamond_reward || 0,
       });
 
       if (itemError) throw itemError;
+
+      // Update order with total diamond credits
+      const { error: updateError } = await supabase
+        .from("orders")
+        .update({ total_diamond_credits: diamondCredits })
+        .eq("id", order.id);
+
+      if (updateError) throw updateError;
 
       toast.success("Order placed successfully! Order #" + orderNumberData);
       setCheckoutDialog(false);

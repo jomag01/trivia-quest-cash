@@ -87,12 +87,16 @@ const Dashboard = () => {
   };
   const fetchWallet = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from("user_wallets").select("*").eq("user_id", user?.id).maybeSingle();
-      if (error) throw error;
-      if (!data) {
+      // Fetch both user wallet and treasure wallet
+      const [walletResult, treasureResult] = await Promise.all([
+        supabase.from("user_wallets").select("*").eq("user_id", user?.id).maybeSingle(),
+        supabase.from("treasure_wallet").select("*").eq("id", user?.id).maybeSingle()
+      ]);
+
+      if (walletResult.error) throw walletResult.error;
+      
+      let walletData = walletResult.data;
+      if (!walletData) {
         // Create wallet if it doesn't exist
         const {
           data: newWallet,
@@ -103,10 +107,17 @@ const Dashboard = () => {
           credits: 0
         }]).select().single();
         if (createError) throw createError;
-        setWallet(newWallet);
-      } else {
-        setWallet(data);
+        walletData = newWallet;
       }
+      
+      // Add treasure wallet data
+      const treasureBalance = (treasureResult.data as any)?.balance || 0;
+      const treasureEarned = (treasureResult.data as any)?.total_earned || 0;
+      setWallet({
+        ...walletData,
+        diamond_balance: treasureBalance,
+        diamond_earned: treasureEarned
+      });
     } catch (error: any) {
       console.error("Error fetching wallet:", error);
     } finally {
@@ -318,6 +329,32 @@ const Dashboard = () => {
                 <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setShowBuyCredits(true)}>
                   Buy More Credits
                 </Button>
+              </>
+            )}
+          </Card>
+
+          <Card className="p-6 gradient-accent border-amber-500/20 shadow-card">
+            <div className="flex items-center justify-between mb-4">
+              <Award className="w-8 h-8 text-amber-500" />
+              <Badge variant="outline" className="border-amber-500 text-amber-500">
+                💎 Diamonds
+              </Badge>
+            </div>
+            {walletLoading ? (
+              <>
+                <Skeleton className="h-9 w-24 mb-2" />
+                <Skeleton className="h-4 w-32 mb-3" />
+                <Skeleton className="h-9 w-full" />
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-bold mb-2 text-amber-500">
+                  💎 {wallet?.diamond_balance || 0}
+                </div>
+                <p className="text-sm text-muted-foreground">Diamond Balance</p>
+                <p className="text-xs text-amber-600 mt-1">
+                  Total Earned: 💎 {wallet?.diamond_earned || 0}
+                </p>
               </>
             )}
           </Card>
