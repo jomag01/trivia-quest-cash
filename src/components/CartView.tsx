@@ -130,13 +130,18 @@ export const CartView = () => {
 
       if (orderError) throw orderError;
 
-      // Create order items from cart
+      // Calculate total diamond credits and create order items from cart
+      const totalDiamondCredits = cartItems.reduce((total, item) => {
+        return total + ((item.products?.diamond_reward || 0) * item.quantity);
+      }, 0);
+
       const orderItems = cartItems.map((item) => ({
         order_id: order.id,
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: getEffectivePrice(item.products),
         subtotal: getEffectivePrice(item.products) * item.quantity,
+        diamond_reward: item.products?.diamond_reward || 0,
       }));
 
       const { error: itemsError } = await supabase
@@ -144,6 +149,14 @@ export const CartView = () => {
         .insert(orderItems);
 
       if (itemsError) throw itemsError;
+
+      // Update order with total diamond credits
+      const { error: updateError } = await supabase
+        .from("orders")
+        .update({ total_diamond_credits: totalDiamondCredits })
+        .eq("id", order.id);
+
+      if (updateError) throw updateError;
 
       // Clear cart
       const { error: clearError } = await supabase

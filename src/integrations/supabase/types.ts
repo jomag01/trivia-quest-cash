@@ -753,6 +753,7 @@ export type Database = {
           shipping_fee: number | null
           status: string
           total_amount: number
+          total_diamond_credits: number | null
           tracking_number: string | null
           updated_at: string | null
           user_id: string
@@ -769,6 +770,7 @@ export type Database = {
           shipping_fee?: number | null
           status?: string
           total_amount: number
+          total_diamond_credits?: number | null
           tracking_number?: string | null
           updated_at?: string | null
           user_id: string
@@ -785,6 +787,7 @@ export type Database = {
           shipping_fee?: number | null
           status?: string
           total_amount?: number
+          total_diamond_credits?: number | null
           tracking_number?: string | null
           updated_at?: string | null
           user_id?: string

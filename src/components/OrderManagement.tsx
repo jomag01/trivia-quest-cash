@@ -340,6 +340,10 @@ export const OrderManagement = () => {
                   <span>Shipping Fee:</span>
                   <span>₱{(selectedOrder.shipping_fee || 0).toFixed(2)}</span>
                 </div>
+                <div className="flex justify-between text-sm text-amber-600">
+                  <span>Diamond Credits:</span>
+                  <span className="font-semibold">💎 {selectedOrder.total_diamond_credits || 0} diamonds</span>
+                </div>
                 <div className="flex justify-between text-lg font-bold border-t pt-2">
                   <span>Total:</span>
                   <span className="text-primary">
