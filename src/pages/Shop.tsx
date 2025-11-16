@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { ProductDetailDialog } from "@/components/ProductDetailDialog";
-import { ShippingCalculator } from "@/components/ShippingCalculator";
+import ShippingCalculator from "@/components/ShippingCalculator";
 import {
   Dialog,
   DialogContent,
