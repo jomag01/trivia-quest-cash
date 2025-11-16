@@ -27,6 +27,11 @@ interface TreeNode {
   level: number;
   children: TreeNode[];
   is_verified: boolean | null;
+  referred_by: string | null;
+  referrer?: {
+    full_name: string | null;
+    email: string | null;
+  } | null;
 }
 
 interface GenealogyTreeProps {
@@ -63,17 +68,37 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
   };
 
   const buildTree = async (nodeId: string, level: number): Promise<TreeNode> => {
-    // Fetch current node data
+    // Fetch current node data with referrer info
     const { data: nodeData, error: nodeError } = await supabase
       .from("profiles")
-      .select("id, full_name, email, referral_code, credits, created_at, is_verified")
+      .select(`
+        id, 
+        full_name, 
+        email, 
+        referral_code, 
+        credits, 
+        created_at, 
+        is_verified,
+        referred_by,
+        referrer:profiles!profiles_referred_by_fkey(full_name, email)
+      `)
       .eq("id", nodeId)
       .single();
 
     if (nodeError) throw nodeError;
 
     const node: TreeNode = {
-      ...nodeData,
+      id: nodeData.id,
+      full_name: nodeData.full_name,
+      email: nodeData.email,
+      referral_code: nodeData.referral_code,
+      credits: nodeData.credits,
+      created_at: nodeData.created_at,
+      is_verified: nodeData.is_verified,
+      referred_by: nodeData.referred_by,
+      referrer: Array.isArray(nodeData.referrer) && nodeData.referrer.length > 0 
+        ? nodeData.referrer[0] 
+        : null,
       level,
       children: [],
     };
@@ -415,6 +440,15 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
                 </div>
 
                 <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                  {selectedNode.referrer && (
+                    <div className="flex items-center justify-between text-sm pb-2 border-b">
+                      <span className="text-muted-foreground">Referred By</span>
+                      <span className="font-medium text-primary">
+                        {selectedNode.referrer.full_name || selectedNode.referrer.email?.split('@')[0]}
+                      </span>
+                    </div>
+                  )}
+                  
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Referral Code</span>
                     <code className="font-mono font-semibold">
