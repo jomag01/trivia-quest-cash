@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, Package, Gift, Info } from "lucide-react";
+import { Bell, Package, Gift, Info, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -105,6 +105,10 @@ export const NotificationsList = () => {
         return <Package className="h-5 w-5" />;
       case "reward":
         return <Gift className="h-5 w-5" />;
+      case "referral":
+        return <Gift className="h-5 w-5 text-amber-500" />;
+      case "signup":
+        return <Users className="h-5 w-5 text-green-500" />;
       default:
         return <Info className="h-5 w-5" />;
     }
@@ -152,6 +156,8 @@ export const NotificationsList = () => {
                 <div className={`p-2 rounded-lg ${
                   notification.type === "order" ? "bg-blue-500/10 text-blue-500" :
                   notification.type === "reward" ? "bg-green-500/10 text-green-500" :
+                  notification.type === "referral" ? "bg-amber-500/10 text-amber-500" :
+                  notification.type === "signup" ? "bg-emerald-500/10 text-emerald-500" :
                   "bg-gray-500/10 text-gray-500"
                 }`}>
                   {getIcon(notification.type)}
