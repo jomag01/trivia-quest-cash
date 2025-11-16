@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Target, Calendar, Award, Copy, Check } from "lucide-react";
+import { TrendingUp, Target, Calendar, Award, Copy, Check, Facebook, Twitter, MessageCircle, Send, Music, Youtube } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -100,12 +100,45 @@ export default function AffiliateRankCard() {
     : 100;
 
   const referralLink = `${window.location.origin}/auth?ref=${profile?.referral_code || ''}`;
+  const shareMessage = `Join me on this amazing platform! Use my referral link: ${referralLink}`;
 
   const copyReferralLink = () => {
     navigator.clipboard.writeText(referralLink);
     setCopied(true);
     toast.success("Referral link copied to clipboard!");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareOnFacebook = () => {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`;
+    window.open(url, '_blank', 'width=600,height=400');
+  };
+
+  const shareOnTwitter = () => {
+    const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join me on this amazing platform!')}`;
+    window.open(url, '_blank', 'width=600,height=400');
+  };
+
+  const shareOnWhatsApp = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
+    window.open(url, '_blank');
+  };
+
+  const shareOnTelegram = () => {
+    const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join me on this amazing platform!')}`;
+    window.open(url, '_blank');
+  };
+
+  const shareOnTikTok = () => {
+    // TikTok doesn't have direct web sharing, so we copy the link
+    navigator.clipboard.writeText(referralLink);
+    toast.success("Link copied! Open TikTok to share it in your bio or posts");
+  };
+
+  const shareOnYouTube = () => {
+    // YouTube doesn't have direct sharing for external links
+    navigator.clipboard.writeText(referralLink);
+    toast.success("Link copied! Add it to your YouTube video description or community post");
   };
 
   return (
@@ -168,9 +201,70 @@ export default function AffiliateRankCard() {
               )}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mb-3">
             Share this link to invite new members and earn commissions
           </p>
+          
+          {/* Social Media Share Buttons */}
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-muted-foreground">Quick Share:</span>
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={shareOnFacebook}
+                className="flex items-center gap-2"
+              >
+                <Facebook className="w-4 h-4" />
+                <span className="text-xs">Facebook</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={shareOnTwitter}
+                className="flex items-center gap-2"
+              >
+                <Twitter className="w-4 h-4" />
+                <span className="text-xs">Twitter</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={shareOnWhatsApp}
+                className="flex items-center gap-2"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span className="text-xs">WhatsApp</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={shareOnTelegram}
+                className="flex items-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                <span className="text-xs">Telegram</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={shareOnTikTok}
+                className="flex items-center gap-2"
+              >
+                <Music className="w-4 h-4" />
+                <span className="text-xs">TikTok</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={shareOnYouTube}
+                className="flex items-center gap-2"
+              >
+                <Youtube className="w-4 h-4" />
+                <span className="text-xs">YouTube</span>
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Qualification Progress */}
