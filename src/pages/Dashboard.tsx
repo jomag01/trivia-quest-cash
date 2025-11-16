@@ -111,12 +111,11 @@ const Dashboard = () => {
       }
       
       // Add treasure wallet data
-      const treasureBalance = (treasureResult.data as any)?.balance || 0;
-      const treasureEarned = (treasureResult.data as any)?.total_earned || 0;
+      const treasureDiamonds = (treasureResult.data as any)?.diamonds || 0;
       setWallet({
         ...walletData,
-        diamond_balance: treasureBalance,
-        diamond_earned: treasureEarned
+        diamond_balance: treasureDiamonds,
+        diamond_earned: treasureDiamonds // Using diamonds as both balance and earned
       });
     } catch (error: any) {
       console.error("Error fetching wallet:", error);
