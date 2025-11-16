@@ -38,6 +38,17 @@ const Auth = () => {
   }, [user, navigate]);
 
   useEffect(() => {
+    // Check for referral code in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    
+    if (refCode) {
+      setReferralCode(refCode);
+      setIsLogin(false); // Switch to signup mode
+    }
+  }, []);
+
+  useEffect(() => {
     const detectLocation = async () => {
       setDetectingCountry(true);
       const detectedCountry = await detectUserCountry();
