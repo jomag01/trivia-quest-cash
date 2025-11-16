@@ -21,6 +21,8 @@ import AffiliateRankCard from "@/components/AffiliateRankCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { ActiveUsersStats } from "@/components/ActiveUsersStats";
+import { NotificationsList } from "@/components/NotificationsList";
+import { DiamondHistory } from "@/components/DiamondHistory";
 const Dashboard = () => {
   const navigate = useNavigate();
   const {
@@ -281,6 +283,8 @@ const Dashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="diamonds">Diamonds</TabsTrigger>
             <TabsTrigger value="cart">Shopping Cart</TabsTrigger>
             <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
             <TabsTrigger value="orders">My Orders</TabsTrigger>
@@ -514,6 +518,14 @@ const Dashboard = () => {
 
       <TabsContent value="wishlist">
         <WishlistView />
+      </TabsContent>
+
+      <TabsContent value="notifications">
+        <NotificationsList />
+      </TabsContent>
+
+      <TabsContent value="diamonds">
+        <DiamondHistory />
       </TabsContent>
 
       <TabsContent value="orders">
