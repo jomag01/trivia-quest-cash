@@ -36,6 +36,7 @@ import { TreasureHuntManagement } from "@/components/TreasureHuntManagement";
 import TreasureAdminSettings from "@/components/TreasureAdminSettings";
 import { ShippingZoneManagement } from "@/components/ShippingZoneManagement";
 import { BulkShippingManagement } from "@/components/BulkShippingManagement";
+import CourierSettingsManagement from "@/components/CourierSettingsManagement";
 import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +91,7 @@ const Admin = () => {
     { id: "orders", label: "Orders", icon: Package },
     { id: "shipping-zones", label: "Shipping Zones", icon: MapPin },
     { id: "bulk-shipping", label: "Bulk Shipping", icon: Truck },
+    { id: "courier-settings", label: "Courier Settings", icon: Truck },
     { id: "migration", label: "Image Migration", icon: Upload },
     { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
   ];
@@ -463,6 +465,7 @@ const Admin = () => {
           {activeTab === "orders" && <OrderManagement />}
           {activeTab === "shipping-zones" && <ShippingZoneManagement />}
           {activeTab === "bulk-shipping" && <BulkShippingManagement />}
+          {activeTab === "courier-settings" && <CourierSettingsManagement />}
           {activeTab === "migration" && <ImageMigrationTool />}
           {activeTab === "stair-step" && <StairStepManagement />}
         </main>
