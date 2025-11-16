@@ -34,7 +34,9 @@ import { ImageMigrationTool } from "@/components/ImageMigrationTool";
 import StairStepManagement from "@/components/StairStepManagement";
 import { TreasureHuntManagement } from "@/components/TreasureHuntManagement";
 import TreasureAdminSettings from "@/components/TreasureAdminSettings";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin } from "lucide-react";
+import { ShippingZoneManagement } from "@/components/ShippingZoneManagement";
+import { BulkShippingManagement } from "@/components/BulkShippingManagement";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -86,6 +88,8 @@ const Admin = () => {
     { id: "product-categories", label: "Product Categories", icon: FolderOpen },
     { id: "products", label: "Products", icon: ShoppingBag },
     { id: "orders", label: "Orders", icon: Package },
+    { id: "shipping-zones", label: "Shipping Zones", icon: MapPin },
+    { id: "bulk-shipping", label: "Bulk Shipping", icon: Truck },
     { id: "migration", label: "Image Migration", icon: Upload },
     { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
   ];
@@ -457,6 +461,8 @@ const Admin = () => {
           {activeTab === "product-categories" && <ProductCategoryManagement />}
           {activeTab === "products" && <ProductManagement />}
           {activeTab === "orders" && <OrderManagement />}
+          {activeTab === "shipping-zones" && <ShippingZoneManagement />}
+          {activeTab === "bulk-shipping" && <BulkShippingManagement />}
           {activeTab === "migration" && <ImageMigrationTool />}
           {activeTab === "stair-step" && <StairStepManagement />}
         </main>
