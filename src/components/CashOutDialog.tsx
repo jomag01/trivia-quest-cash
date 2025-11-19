@@ -167,18 +167,36 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
       return;
     }
 
-    // Calculate diamonds needed for this withdrawal
-    const diamondsNeeded = Math.ceil(Number(amount) / diamondPrice);
-    
-    if (diamondsNeeded > totalDiamonds) {
-      toast.error("Insufficient diamonds for this withdrawal");
-      return;
-    }
-
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      // Check referral count before allowing withdrawal
+      const { data: referralData, error: referralError } = await supabase.rpc('get_referral_count', {
+        p_user_id: user.id
+      });
+
+      if (referralError) throw referralError;
+
+      const referralCount = referralData || 0;
+      if (referralCount < 2) {
+        toast.error("🔒 Withdrawal Locked!", {
+          description: `You need 2 referrals to withdraw earnings. Current: ${referralCount}/2`,
+          duration: 5000
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Calculate diamonds needed for this withdrawal
+      const diamondsNeeded = Math.ceil(Number(amount) / diamondPrice);
+      
+      if (diamondsNeeded > totalDiamonds) {
+        toast.error("Insufficient diamonds for this withdrawal");
+        setLoading(false);
+        return;
+      }
 
       // Get selected account details
       const account = accounts.find(acc => acc.id === selectedAccount);

@@ -56,6 +56,8 @@ const Game = () => {
   });
   const [eliminatedOptions, setEliminatedOptions] = useState<number[]>([]);
   const [categoryInfo, setCategoryInfo] = useState<GameCategory | null>(null);
+  const [referralCount, setReferralCount] = useState(0);
+  const [completedLevels, setCompletedLevels] = useState<Set<number>>(new Set());
   const navigate = useNavigate();
   const { playCorrectSound, playWrongSound, playTickSound, playUrgentTickSound } = useGameSounds();
 
@@ -74,8 +76,40 @@ const Game = () => {
   useEffect(() => {
     if (categoryInfo?.id && user) {
       fetchQuestions();
+      fetchReferralCount();
+      fetchCompletedLevels();
     }
   }, [categoryInfo, user]);
+
+  const fetchReferralCount = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.rpc('get_referral_count', {
+        p_user_id: user.id
+      });
+      if (error) throw error;
+      setReferralCount(data || 0);
+    } catch (error: any) {
+      console.error("Error fetching referral count:", error);
+    }
+  };
+
+  const fetchCompletedLevels = async () => {
+    if (!user || !categoryInfo?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from("game_level_completions")
+        .select("level_number")
+        .eq("user_id", user.id)
+        .eq("category_id", categoryInfo.id);
+      
+      if (error) throw error;
+      const levels = new Set(data?.map(d => d.level_number) || []);
+      setCompletedLevels(levels);
+    } catch (error: any) {
+      console.error("Error fetching completed levels:", error);
+    }
+  };
 
   const fetchCategoryInfo = async () => {
     const { data, error } = await (supabase as any)
@@ -178,7 +212,50 @@ const Game = () => {
         playCorrectSound();
         const nextLevel = currentLevel + 1;
         
-        // Check if this is a milestone level
+        // Award diamonds for completing this level (1-based level number)
+        const completedLevel = nextLevel;
+        const alreadyCompleted = completedLevels.has(completedLevel);
+        
+        if (!alreadyCompleted && categoryInfo?.id) {
+          // Calculate diamonds based on level (e.g., level 1 = 10 diamonds, level 15 = 150 diamonds)
+          const diamondsEarned = completedLevel * 10;
+          
+          try {
+            // Record level completion and award diamonds
+            const { error: completionError } = await supabase
+              .from('game_level_completions')
+              .insert({
+                user_id: user.id,
+                category_id: categoryInfo.id,
+                level_number: completedLevel,
+                diamonds_earned: diamondsEarned
+              });
+
+            if (completionError) throw completionError;
+
+            // Credit diamonds to user's treasure wallet
+            await supabase.rpc('update_treasure_wallet', {
+              p_user_id: user.id,
+              p_gems: 0,
+              p_diamonds: diamondsEarned
+            });
+
+            // Update local state
+            setCompletedLevels(prev => new Set([...prev, completedLevel]));
+
+            toast.success(`🎉 Level ${completedLevel} Complete!`, {
+              description: `You earned ${diamondsEarned} diamonds! 💎`
+            });
+          } catch (error: any) {
+            console.error('Error recording level completion:', error);
+          }
+        } else if (alreadyCompleted) {
+          toast.info(`Level ${completedLevel} completed again!`, {
+            description: "Diamonds already earned for this level. Advance to earn more!"
+          });
+        }
+        
+        // Check milestone levels for additional rewards
         if (MILESTONE_LEVELS.includes(nextLevel)) {
           try {
             const { data, error } = await supabase.rpc('claim_level_prize', {
@@ -190,8 +267,8 @@ const Game = () => {
 
             const result = data as { success: boolean; credits_awarded: number; new_balance: number } | null;
             if (result?.success) {
-              toast.success(`🎉 Level ${nextLevel} Prize!`, {
-                description: `You won ${result.credits_awarded} credits! New balance: ${result.new_balance}`
+              toast.success(`🏆 Milestone Bonus!`, {
+                description: `You won ${result.credits_awarded} bonus credits!`
               });
             }
           } catch (error) {
@@ -199,9 +276,20 @@ const Game = () => {
           }
         }
         
-        toast.success("Correct! Moving to next level.");
-        
+        // Check if user can access next level (needs 2 referrals after level 5)
         if (currentLevel < questions.length - 1) {
+          if (nextLevel >= 6 && referralCount < 2) {
+            toast.error("🔒 Level 6+ Locked!", {
+              description: `You need 2 referrals to continue. Current: ${referralCount}/2`,
+              duration: 5000
+            });
+            setTimeout(() => {
+              navigate("/dashboard");
+            }, 3000);
+            return;
+          }
+
+          toast.success("Correct! Moving to next level.");
           setCurrentLevel(nextLevel);
           setSelectedAnswer(null);
           setShowResult(false);
@@ -301,6 +389,9 @@ const Game = () => {
             <div className="flex items-center gap-2">
               <Trophy className="w-6 h-6 text-primary" />
               <span className="font-bold">Level {currentLevel + 1}/15</span>
+              {completedLevels.has(currentLevel + 1) && (
+                <Badge variant="secondary" className="ml-2">✓ Completed</Badge>
+              )}
               {MILESTONE_LEVELS.includes(currentLevel + 1) && (
                 <Badge variant="default" className="ml-2 animate-pulse">Milestone!</Badge>
               )}
@@ -310,6 +401,26 @@ const Game = () => {
             </div>
           </div>
           <Progress value={((currentLevel + 1) / 15) * 100} className="h-2" />
+          
+          {/* Referral Progress Indicator */}
+          {currentLevel >= 5 && (
+            <div className="mt-3 pt-3 border-t border-primary/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium">Referrals for Level 6+:</span>
+                </div>
+                <Badge variant={referralCount >= 2 ? "default" : "destructive"}>
+                  {referralCount}/2 {referralCount >= 2 ? "✓" : "🔒"}
+                </Badge>
+              </div>
+              {referralCount < 2 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Invite 2 friends to unlock levels 6-15!
+                </p>
+              )}
+            </div>
+          )}
         </Card>
 
         {/* Timer */}

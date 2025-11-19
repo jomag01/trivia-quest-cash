@@ -391,6 +391,41 @@ export type Database = {
         }
         Relationships: []
       }
+      game_level_completions: {
+        Row: {
+          category_id: string
+          completed_at: string
+          diamonds_earned: number
+          id: string
+          level_number: number
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          completed_at?: string
+          diamonds_earned?: number
+          id?: string
+          level_number: number
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          completed_at?: string
+          diamonds_earned?: number
+          id?: string
+          level_number?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_level_completions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "game_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           group_id: string
@@ -1880,6 +1915,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_level: {
+        Args: { p_level: number; p_user_id: string }
+        Returns: boolean
+      }
       check_and_update_affiliate_rank: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -1912,6 +1951,7 @@ export type Database = {
       }
       generate_order_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
+      get_referral_count: { Args: { p_user_id: string }; Returns: number }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
