@@ -58,6 +58,8 @@ const Game = () => {
   const [categoryInfo, setCategoryInfo] = useState<GameCategory | null>(null);
   const [referralCount, setReferralCount] = useState(0);
   const [completedLevels, setCompletedLevels] = useState<Set<number>>(new Set());
+  const [isCategoryUnlocked, setIsCategoryUnlocked] = useState(false);
+  const [unlockedCategoriesCount, setUnlockedCategoriesCount] = useState(0);
   const navigate = useNavigate();
   const { playCorrectSound, playWrongSound, playTickSound, playUrgentTickSound } = useGameSounds();
 
@@ -78,8 +80,62 @@ const Game = () => {
       fetchQuestions();
       fetchReferralCount();
       fetchCompletedLevels();
+      checkCategoryUnlock();
     }
   }, [categoryInfo, user]);
+
+  const checkCategoryUnlock = async () => {
+    if (!user || !categoryInfo?.id) return;
+    try {
+      // Check if category is unlocked
+      const { data: unlocked, error: unlockError } = await supabase
+        .from("user_unlocked_categories")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("category_id", categoryInfo.id)
+        .maybeSingle();
+      
+      if (unlockError) throw unlockError;
+      setIsCategoryUnlocked(!!unlocked);
+
+      // Get count of unlocked categories
+      const { data: countData, error: countError } = await supabase.rpc('get_unlocked_categories_count', {
+        p_user_id: user.id
+      });
+      if (countError) throw countError;
+      setUnlockedCategoriesCount(countData || 0);
+    } catch (error: any) {
+      console.error("Error checking category unlock:", error);
+    }
+  };
+
+  const handleUnlockCategory = async () => {
+    if (!user || !categoryInfo?.id) return;
+    try {
+      const { data, error } = await supabase.rpc('unlock_category', {
+        p_user_id: user.id,
+        p_category_id: categoryInfo.id
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; message: string; referrals_needed?: number };
+      if (result.success) {
+        toast.success(result.message);
+        setIsCategoryUnlocked(true);
+        await checkCategoryUnlock();
+      } else {
+        toast.error(result.message, {
+          description: result.referrals_needed 
+            ? `You need ${result.referrals_needed} more referral${result.referrals_needed > 1 ? 's' : ''}.`
+            : undefined
+        });
+      }
+    } catch (error: any) {
+      console.error("Error unlocking category:", error);
+      toast.error("Failed to unlock category");
+    }
+  };
 
   const fetchReferralCount = async () => {
     if (!user) return;
@@ -276,11 +332,12 @@ const Game = () => {
           }
         }
         
-        // Check if user can access next level (needs 2 referrals after level 5)
+        // Check if user can access next level (needs category unlock for level 6+)
         if (currentLevel < questions.length - 1) {
-          if (nextLevel >= 6 && referralCount < 2) {
+          if (nextLevel >= 6 && !isCategoryUnlocked) {
+            const requiredReferrals = (unlockedCategoriesCount + 1) * 2;
             toast.error("🔒 Level 6+ Locked!", {
-              description: `You need 2 referrals to continue. Current: ${referralCount}/2`,
+              description: `Unlock this category first. Need ${requiredReferrals} total referrals (${referralCount}/${requiredReferrals}).`,
               duration: 5000
             });
             setTimeout(() => {
@@ -402,21 +459,35 @@ const Game = () => {
           </div>
           <Progress value={((currentLevel + 1) / 15) * 100} className="h-2" />
           
-          {/* Referral Progress Indicator */}
+          {/* Category Unlock Status */}
           {currentLevel >= 5 && (
             <div className="mt-3 pt-3 border-t border-primary/20">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium">Referrals for Level 6+:</span>
+                  <span className="text-sm font-medium">Category Status:</span>
                 </div>
-                <Badge variant={referralCount >= 2 ? "default" : "destructive"}>
-                  {referralCount}/2 {referralCount >= 2 ? "✓" : "🔒"}
+                <Badge variant={isCategoryUnlocked ? "default" : "destructive"}>
+                  {isCategoryUnlocked ? "✓ Unlocked" : "🔒 Locked"}
                 </Badge>
               </div>
-              {referralCount < 2 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Invite 2 friends to unlock levels 6-15!
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>Total Referrals: {referralCount}</p>
+                <p>Unlocked Categories: {unlockedCategoriesCount}</p>
+                <p>Required for this category: {(unlockedCategoriesCount + (isCategoryUnlocked ? 0 : 1)) * 2} referrals</p>
+              </div>
+              {!isCategoryUnlocked && referralCount >= (unlockedCategoriesCount + 1) * 2 && (
+                <Button 
+                  onClick={handleUnlockCategory}
+                  className="w-full mt-2"
+                  size="sm"
+                >
+                  Unlock This Category
+                </Button>
+              )}
+              {!isCategoryUnlocked && referralCount < (unlockedCategoriesCount + 1) * 2 && (
+                <p className="text-xs text-destructive mt-2">
+                  Need {(unlockedCategoriesCount + 1) * 2 - referralCount} more referral(s) to unlock!
                 </p>
               )}
             </div>

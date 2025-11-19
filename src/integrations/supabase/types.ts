@@ -1803,6 +1803,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_unlocked_categories: {
+        Row: {
+          category_id: string
+          id: string
+          unlocked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          id?: string
+          unlocked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          id?: string
+          unlocked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_unlocked_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "game_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_wallets: {
         Row: {
           balance: number
@@ -1915,6 +1944,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_category_level: {
+        Args: { p_category_id: string; p_level: number; p_user_id: string }
+        Returns: boolean
+      }
       can_access_level: {
         Args: { p_level: number; p_user_id: string }
         Returns: boolean
@@ -1952,6 +1985,10 @@ export type Database = {
       generate_order_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       get_referral_count: { Args: { p_user_id: string }; Returns: number }
+      get_unlocked_categories_count: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1978,6 +2015,10 @@ export type Database = {
           p_approve: boolean
           p_request_id: string
         }
+        Returns: Json
+      }
+      unlock_category: {
+        Args: { p_category_id: string; p_user_id: string }
         Returns: Json
       }
       update_affiliate_monthly_sales: {
