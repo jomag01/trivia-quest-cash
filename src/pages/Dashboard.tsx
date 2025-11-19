@@ -92,7 +92,7 @@ const Dashboard = () => {
       // Fetch both user wallet and treasure wallet
       const [walletResult, treasureResult] = await Promise.all([
         supabase.from("user_wallets").select("*").eq("user_id", user?.id).maybeSingle(),
-        supabase.from("treasure_wallet").select("*").eq("id", user?.id).maybeSingle()
+        supabase.from("treasure_wallet").select("*").eq("user_id", user?.id).maybeSingle()
       ]);
 
       if (walletResult.error) throw walletResult.error;
