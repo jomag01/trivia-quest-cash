@@ -26,25 +26,27 @@ interface DiamondTransaction {
 export const DiamondHistory = () => {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<DiamondTransaction[]>([]);
+  const [totalDiamonds, setTotalDiamonds] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchTransactions();
+      fetchTotalDiamonds();
       
-      // Subscribe to real-time updates
+      // Subscribe to real-time updates for treasure wallet
       const channel = supabase
-        .channel('diamond-transactions-channel')
+        .channel('treasure-wallet-channel')
         .on(
           'postgres_changes' as any,
           {
-            event: 'INSERT',
+            event: 'UPDATE',
             schema: 'public',
-            table: 'diamond_transactions',
+            table: 'treasure_wallet',
             filter: `user_id=eq.${user.id}`
           } as any,
           (payload: any) => {
-            setTransactions(prev => [payload.new as DiamondTransaction, ...prev]);
+            setTotalDiamonds(payload.new.diamonds || 0);
           }
         )
         .subscribe();
@@ -54,6 +56,21 @@ export const DiamondHistory = () => {
       };
     }
   }, [user]);
+
+  const fetchTotalDiamonds = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("treasure_wallet")
+        .select("diamonds")
+        .eq("user_id", user?.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      setTotalDiamonds(data?.diamonds || 0);
+    } catch (error: any) {
+      console.error("Error fetching total diamonds:", error);
+    }
+  };
 
   const fetchTransactions = async () => {
     try {
@@ -73,9 +90,7 @@ export const DiamondHistory = () => {
   };
 
   const getTotalCredits = () => {
-    return transactions
-      .filter(t => t.type === 'credit')
-      .reduce((sum, t) => sum + t.amount, 0);
+    return totalDiamonds;
   };
 
   const getTotalDebits = () => {
