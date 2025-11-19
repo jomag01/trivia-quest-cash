@@ -277,7 +277,6 @@ const Shop = () => {
         quantity: quantity,
         unit_price: price,
         subtotal: subtotal,
-        diamond_reward: selectedProduct.diamond_reward || 0,
       });
 
       if (itemError) throw itemError;
