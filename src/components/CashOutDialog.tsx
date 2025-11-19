@@ -28,6 +28,9 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
   const [accounts, setAccounts] = useState<PayoutAccount[]>([]);
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [totalDiamonds, setTotalDiamonds] = useState(0);
+  const [diamondPrice, setDiamondPrice] = useState(10);
   
   const [newAccount, setNewAccount] = useState({
     account_type: "gcash",
@@ -39,8 +42,44 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
   useEffect(() => {
     if (open) {
       fetchPayoutAccounts();
+      fetchDiamondBalance();
     }
   }, [open]);
+
+  const fetchDiamondBalance = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch user's diamonds from treasure_wallet
+      const { data: walletData, error: walletError } = await supabase
+        .from("treasure_wallet")
+        .select("diamonds")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (walletError) throw walletError;
+
+      // Fetch diamond base price from admin settings
+      const { data: settingsData, error: settingsError } = await supabase
+        .from("treasure_admin_settings")
+        .select("setting_value")
+        .eq("setting_key", "base_diamond_price")
+        .maybeSingle();
+
+      if (settingsError) throw settingsError;
+
+      const diamonds = walletData?.diamonds || 0;
+      const basePrice = settingsData?.setting_value ? parseFloat(settingsData.setting_value) : 10;
+
+      setTotalDiamonds(diamonds);
+      setDiamondPrice(basePrice);
+      setAvailableBalance(diamonds * basePrice);
+    } catch (error: any) {
+      console.error("Error fetching diamond balance:", error);
+      toast.error("Failed to load available balance");
+    }
+  };
 
   const fetchPayoutAccounts = async () => {
     try {
@@ -118,7 +157,7 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
       return;
     }
 
-    if (Number(amount) > currentBalance) {
+    if (Number(amount) > availableBalance) {
       toast.error("Insufficient balance");
       return;
     }
@@ -128,18 +167,39 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
       return;
     }
 
+    // Calculate diamonds needed for this withdrawal
+    const diamondsNeeded = Math.ceil(Number(amount) / diamondPrice);
+    
+    if (diamondsNeeded > totalDiamonds) {
+      toast.error("Insufficient diamonds for this withdrawal");
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-payout", {
-        body: {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Get selected account details
+      const account = accounts.find(acc => acc.id === selectedAccount);
+      if (!account) throw new Error("Account not found");
+
+      // Create payout request for admin approval
+      const { error: payoutError } = await supabase
+        .from("payout_requests")
+        .insert([{
+          user_id: user.id,
           amount: Number(amount),
-          payoutAccountId: selectedAccount,
-        },
-      });
+          payout_method: account.account_type,
+          account_name: account.account_name,
+          account_number: account.account_number,
+          bank_name: account.account_type === 'bank' ? account.bank_code : null,
+          status: 'pending'
+        }]);
 
-      if (error) throw error;
+      if (payoutError) throw payoutError;
 
-      toast.success(data.message || "Cash out request submitted successfully");
+      toast.success("Withdrawal request submitted! Admin will review your request.");
       onOpenChange(false);
       setAmount("");
     } catch (error: any) {
@@ -161,9 +221,14 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="p-4 bg-accent/50 rounded-lg">
-            <div className="text-sm text-muted-foreground mb-1">Available Balance</div>
-            <div className="text-2xl font-bold text-primary">₱{currentBalance.toFixed(2)}</div>
+          <div className="p-4 bg-accent/50 rounded-lg space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">Available Balance</div>
+              <div className="text-xs text-muted-foreground">
+                {totalDiamonds.toLocaleString()} 💎 × ₱{diamondPrice.toFixed(2)}
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-primary">₱{availableBalance.toFixed(2)}</div>
           </div>
 
           {!showAddAccount ? (
@@ -174,11 +239,15 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
                   id="amount"
                   type="number"
                   min="1"
-                  max={currentBalance}
+                  step="0.01"
+                  max={availableBalance}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="Enter amount"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Max: ₱{availableBalance.toFixed(2)} ({totalDiamonds} diamonds available)
+                </p>
               </div>
 
               <div className="space-y-2">
