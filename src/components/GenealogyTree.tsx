@@ -46,7 +46,7 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
   const [treeData, setTreeData] = useState<TreeNode | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.6); // Start more zoomed out for mobile
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -54,6 +54,19 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Detect mobile screen size
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (userId) {
@@ -197,10 +210,10 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
 
   const renderTree = (node: TreeNode, x: number, y: number, level: number): JSX.Element[] => {
     const elements: JSX.Element[] = [];
-    const nodeWidth = 180;
-    const nodeHeight = 100;
-    const verticalSpacing = 140;
-    const horizontalSpacing = 200;
+    const nodeWidth = isMobile ? 140 : 180;
+    const nodeHeight = isMobile ? 80 : 100;
+    const verticalSpacing = isMobile ? 100 : 140;
+    const horizontalSpacing = isMobile ? 160 : 200;
 
     // Calculate positions for children
     const childCount = node.children.length;
@@ -282,7 +295,7 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
           x={nodeWidth / 2}
           y={55}
           textAnchor="middle"
-          fontSize="12"
+          fontSize={isMobile ? "10" : "12"}
           fill={isSelected ? "white" : "hsl(var(--foreground))"}
           fontWeight="500"
           className="truncate"
@@ -323,9 +336,9 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
         {/* Credits */}
         <text
           x={nodeWidth / 2}
-          y={75}
+          y={isMobile ? 70 : 75}
           textAnchor="middle"
-          fontSize="11"
+          fontSize={isMobile ? "9" : "11"}
           fill={isSelected ? "white" : "hsl(var(--muted-foreground))"}
         >
           ₱{node.credits}
@@ -383,16 +396,16 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
     <div className="space-y-4">
       {/* Referrer/Upline Info Card */}
       {treeData?.referrer && (
-        <Card className="p-4 bg-primary/5 border-primary/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Your Referrer / Upline</p>
-              <p className="font-semibold text-lg">
+        <Card className="p-3 md:p-4 bg-primary/5 border-primary/20">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs md:text-sm text-muted-foreground mb-1">Your Referrer / Upline</p>
+              <p className="font-semibold text-base md:text-lg truncate">
                 {treeData.referrer.full_name || treeData.referrer.email?.split('@')[0] || 'Unknown'}
               </p>
-              <p className="text-xs text-muted-foreground">{treeData.referrer.email}</p>
+              <p className="text-xs text-muted-foreground truncate">{treeData.referrer.email}</p>
             </div>
-            <div className="text-right">
+            <div className="text-right flex-shrink-0">
               <Badge variant="outline" className="border-primary">
                 <User className="w-3 h-3 mr-1" />
                 Upline
@@ -403,16 +416,16 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
       )}
 
       {/* Header Controls */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4">
+      <Card className="p-3 md:p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <Users className="w-5 h-5 text-primary flex-shrink-0" />
             <div>
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" />
+              <h3 className="text-base md:text-lg font-semibold">
                 Network Genealogy Tree
               </h3>
-              <p className="text-sm text-muted-foreground">
-                {totalMembers} total members across 7 levels
+              <p className="text-xs md:text-sm text-muted-foreground">
+                {totalMembers} total members
               </p>
             </div>
           </div>
@@ -430,13 +443,13 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
             </Button>
 
             {/* Search Box */}
-            <div className="relative w-64">
+            <div className="relative w-full md:w-48 lg:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name or email..."
+                placeholder={isMobile ? "Search..." : "Search by name or email..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-9"
+                className="pl-9 pr-9 h-9 text-sm"
               />
               {searchQuery && (
                 <button
@@ -449,17 +462,17 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
             </div>
 
             {/* Zoom Controls */}
-            <div className="flex items-center gap-2 border rounded-lg p-1">
-              <Button variant="ghost" size="sm" onClick={handleZoomOut}>
+            <div className="flex items-center gap-1 border rounded-lg p-1">
+              <Button variant="ghost" size="sm" onClick={handleZoomOut} className="h-8 w-8 p-0">
                 <ZoomOut className="w-4 h-4" />
               </Button>
-              <span className="text-sm font-medium min-w-[60px] text-center">
+              <span className="text-xs md:text-sm font-medium min-w-[50px] md:min-w-[60px] text-center">
                 {Math.round(zoom * 100)}%
               </span>
-              <Button variant="ghost" size="sm" onClick={handleZoomIn}>
+              <Button variant="ghost" size="sm" onClick={handleZoomIn} className="h-8 w-8 p-0">
                 <ZoomIn className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleReset}>
+              <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 w-8 p-0">
                 <Maximize2 className="w-4 h-4" />
               </Button>
             </div>
@@ -469,81 +482,81 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
 
       {/* Tree Visualization */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 p-4 overflow-hidden">
+        <Card className="lg:col-span-2 p-2 md:p-4 overflow-hidden">
           <div
-            className="relative w-full h-[600px] overflow-hidden bg-gradient-to-br from-background to-muted/20 rounded-lg border"
+            className="relative w-full h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden bg-gradient-to-br from-background to-muted/20 rounded-lg border"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             style={{ cursor: isDragging ? "grabbing" : "grab" }}
           >
-            <svg
-              ref={svgRef}
-              className="w-full h-full"
-              style={{
-                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                transformOrigin: "center",
-                transition: isDragging ? "none" : "transform 0.3s ease-out",
-              }}
-            >
-              <g transform="translate(400, 80)">
-                {treeData && renderTree(treeData, 0, 0, 1)}
-              </g>
-            </svg>
+              <svg
+                ref={svgRef}
+                className="w-full h-full"
+                style={{
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                  transformOrigin: "center",
+                  transition: isDragging ? "none" : "transform 0.3s ease-out",
+                }}
+              >
+                <g transform={`translate(${isMobile ? 200 : 400}, ${isMobile ? 60 : 80})`}>
+                  {treeData && renderTree(treeData, 0, 0, 1)}
+                </g>
+              </svg>
 
             {/* Instructions */}
-            <div className="absolute bottom-4 left-4 bg-card/90 backdrop-blur-sm px-3 py-2 rounded-lg border text-xs text-muted-foreground">
-              💡 Click nodes for details • Drag to pan • Use controls to zoom
+            <div className="absolute bottom-2 left-2 md:bottom-4 md:left-4 bg-card/90 backdrop-blur-sm px-2 py-1.5 md:px-3 md:py-2 rounded-lg border text-xs text-muted-foreground max-w-[calc(100%-1rem)]">
+              {isMobile ? "💡 Tap node • Drag • Zoom" : "💡 Click nodes for details • Drag to pan • Use controls to zoom"}
             </div>
           </div>
         </Card>
 
         {/* Member Details Panel */}
-        <Card className="p-4">
+        <Card className="p-3 md:p-4">
           {selectedNode ? (
-            <div className="space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <h4 className="font-semibold flex items-center gap-2">
+            <div className="space-y-3 md:space-y-4 animate-fade-in">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h4 className="font-semibold flex items-center gap-2 text-sm md:text-base">
                   <User className="w-4 h-4 text-primary" />
                   Member Details
                 </h4>
-                <Badge variant="outline">Level {selectedNode.level}</Badge>
+                <Badge variant="outline" className="text-xs">Level {selectedNode.level}</Badge>
               </div>
 
-              <div className="space-y-3">
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm font-medium">
+              <div className="space-y-2 md:space-y-3">
+                <div className="p-2 md:p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium truncate">
                     {selectedNode.full_name || "Anonymous"}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground truncate">
                     {selectedNode.email}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-3 bg-primary/10 rounded-lg">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                  <div className="p-2 md:p-3 bg-primary/10 rounded-lg">
+                    <div className="flex items-center gap-1 md:gap-2 text-xs text-muted-foreground mb-1">
                       <DollarSign className="w-3 h-3" />
-                      Credits
+                      <span className="text-[10px] md:text-xs">Credits</span>
                     </div>
-                    <p className="text-lg font-bold text-primary">
+                    <p className="text-base md:text-lg font-bold text-primary truncate">
                       ₱{selectedNode.credits}
                     </p>
                   </div>
 
-                  <div className="p-3 bg-secondary/10 rounded-lg">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                  <div className="p-2 md:p-3 bg-secondary/10 rounded-lg">
+                    <div className="flex items-center gap-1 md:gap-2 text-xs text-muted-foreground mb-1">
                       <Users className="w-3 h-3" />
-                      Referrals
+                      <span className="text-[10px] md:text-xs">Referrals</span>
                     </div>
-                    <p className="text-lg font-bold text-secondary">
+                    <p className="text-base md:text-lg font-bold text-secondary">
                       {selectedNode.children.length}
                     </p>
                   </div>
                 </div>
 
-                <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                <div className="p-2 md:p-3 bg-muted/50 rounded-lg space-y-2">
                   {selectedNode.referrer && (
                     <div className="flex items-center justify-between text-sm pb-2 border-b">
                       <span className="text-muted-foreground">Referred By</span>
