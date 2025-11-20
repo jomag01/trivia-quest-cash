@@ -824,6 +824,7 @@ export type Database = {
           notes: string | null
           order_number: string
           payment_method: string | null
+          product_referrer_id: string | null
           shipping_address: string
           shipping_fee: number | null
           status: string
@@ -842,6 +843,7 @@ export type Database = {
           notes?: string | null
           order_number: string
           payment_method?: string | null
+          product_referrer_id?: string | null
           shipping_address: string
           shipping_fee?: number | null
           status?: string
@@ -860,6 +862,7 @@ export type Database = {
           notes?: string | null
           order_number?: string
           payment_method?: string | null
+          product_referrer_id?: string | null
           shipping_address?: string
           shipping_fee?: number | null
           status?: string
@@ -1125,6 +1128,57 @@ export type Database = {
           },
         ]
       }
+      product_referrals: {
+        Row: {
+          commission_diamonds: number
+          commission_paid: boolean | null
+          created_at: string | null
+          id: string
+          order_id: string | null
+          product_id: string
+          purchased_at: string | null
+          referred_user_id: string | null
+          referrer_id: string
+        }
+        Insert: {
+          commission_diamonds?: number
+          commission_paid?: boolean | null
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+          product_id: string
+          purchased_at?: string | null
+          referred_user_id?: string | null
+          referrer_id: string
+        }
+        Update: {
+          commission_diamonds?: number
+          commission_paid?: boolean | null
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+          product_id?: string
+          purchased_at?: string | null
+          referred_user_id?: string | null
+          referrer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_referrals_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_referrals_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           created_at: string | null
@@ -1187,6 +1241,7 @@ export type Database = {
           name: string
           promo_active: boolean | null
           promo_price: number | null
+          referral_commission_diamonds: number | null
           shipping_fee: number | null
           stock_quantity: number | null
           updated_at: string | null
@@ -1209,6 +1264,7 @@ export type Database = {
           name: string
           promo_active?: boolean | null
           promo_price?: number | null
+          referral_commission_diamonds?: number | null
           shipping_fee?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
@@ -1231,6 +1287,7 @@ export type Database = {
           name?: string
           promo_active?: boolean | null
           promo_price?: number | null
+          referral_commission_diamonds?: number | null
           shipping_fee?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
