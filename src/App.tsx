@@ -14,6 +14,7 @@ import TreasureHunt from "./pages/TreasureHunt";
 import Community from "./pages/Community";
 import DiamondMarketplace from "./components/DiamondMarketplace";
 import NotFound from "./pages/NotFound";
+import SellerDashboard from "./pages/SellerDashboard";
 import Navigation from "./components/Navigation";
 import { CustomerSupportChat } from "./components/CustomerSupportChat";
 
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/shop" element={<Shop />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/seller" element={<SellerDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
