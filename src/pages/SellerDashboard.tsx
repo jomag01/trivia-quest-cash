@@ -188,7 +188,7 @@ export default function SellerDashboard() {
               <div><Label>Wholesale Price *</Label><Input type="number" step="0.01" value={productForm.wholesale_price} onChange={(e) => setProductForm({ ...productForm, wholesale_price: e.target.value })} /></div>
               <div><Label>Stock</Label><Input type="number" value={productForm.stock_quantity} onChange={(e) => setProductForm({ ...productForm, stock_quantity: e.target.value })} /></div>
             </div>
-            <div><Label>Image</Label><ImageUploadCrop currentImage={productForm.image_url} onImageUploaded={(url) => setProductForm({ ...productForm, image_url: url })} bucketName="product-images" /></div>
+            <div><Label>Image</Label><ImageUploadCrop currentImage={productForm.image_url} onImageUploaded={(url) => setProductForm({ ...productForm, image_url: url })} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setShowProductDialog(false)}>Cancel</Button><Button onClick={handleSaveProduct} disabled={submitting}>{submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save</Button></DialogFooter>
         </DialogContent>
