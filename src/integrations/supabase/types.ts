@@ -352,6 +352,7 @@ export type Database = {
           color_to: string
           created_at: string | null
           description: string | null
+          entry_cost_diamonds: number | null
           game_type: string
           icon: string
           id: string
@@ -360,12 +361,14 @@ export type Database = {
           name: string
           slug: string
           updated_at: string | null
+          wrong_answer_penalty: number | null
         }
         Insert: {
           color_from: string
           color_to: string
           created_at?: string | null
           description?: string | null
+          entry_cost_diamonds?: number | null
           game_type?: string
           icon: string
           id?: string
@@ -374,12 +377,14 @@ export type Database = {
           name: string
           slug: string
           updated_at?: string | null
+          wrong_answer_penalty?: number | null
         }
         Update: {
           color_from?: string
           color_to?: string
           created_at?: string | null
           description?: string | null
+          entry_cost_diamonds?: number | null
           game_type?: string
           icon?: string
           id?: string
@@ -388,6 +393,7 @@ export type Database = {
           name?: string
           slug?: string
           updated_at?: string | null
+          wrong_answer_penalty?: number | null
         }
         Relationships: []
       }
@@ -1294,6 +1300,7 @@ export type Database = {
       products: {
         Row: {
           admin_markup_percentage: number | null
+          approval_status: string | null
           base_price: number
           category_id: string | null
           commission_percentage: number
@@ -1321,6 +1328,7 @@ export type Database = {
         }
         Insert: {
           admin_markup_percentage?: number | null
+          approval_status?: string | null
           base_price: number
           category_id?: string | null
           commission_percentage?: number
@@ -1348,6 +1356,7 @@ export type Database = {
         }
         Update: {
           admin_markup_percentage?: number | null
+          approval_status?: string | null
           base_price?: number
           category_id?: string | null
           commission_percentage?: number
@@ -2167,6 +2176,10 @@ export type Database = {
         Args: { p_gem_amount: number; p_user_id: string }
         Returns: Json
       }
+      deduct_wrong_answer_penalty: {
+        Args: { p_category_id: string; p_user_id: string }
+        Returns: undefined
+      }
       distribute_multivendor_commissions: {
         Args: {
           p_buyer_id: string
@@ -2243,6 +2256,10 @@ export type Database = {
       update_treasure_wallet: {
         Args: { p_diamonds?: number; p_gems?: number; p_user_id: string }
         Returns: undefined
+      }
+      user_meets_earning_requirements: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

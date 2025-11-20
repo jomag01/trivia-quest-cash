@@ -59,6 +59,28 @@ export default function MultivendorProductManagement() {
     setCommission(product.commission_percentage?.toString() || "0");
   };
 
+  const handleApproveProduct = async (product: any, approved: boolean) => {
+    setProcessing(true);
+    try {
+      const { error } = await supabase
+        .from("products")
+        .update({
+          approval_status: approved ? "approved" : "rejected",
+          is_active: approved, // Only active if approved
+        })
+        .eq("id", product.id);
+
+      if (error) throw error;
+
+      toast.success(`Product ${approved ? "approved" : "rejected"} successfully!`);
+      fetchProducts();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleSaveMarkup = async () => {
     if (!selectedProduct) return;
 
@@ -75,7 +97,6 @@ export default function MultivendorProductManagement() {
         .update({
           admin_markup_percentage: markupValue,
           commission_percentage: parseInt(commission),
-          is_active: true, // Activate product when markup is set
         })
         .eq("id", selectedProduct.id);
 
