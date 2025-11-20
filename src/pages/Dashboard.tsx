@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
@@ -47,6 +48,7 @@ const Dashboard = () => {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [referralLoading, setReferralLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   useEffect(() => {
     if (!loading && !user) {
@@ -301,9 +303,82 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Track your progress and earnings</p>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs - Desktop only, Hamburger for Mobile/Tablet */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-1">
+          {/* Mobile/Tablet Hamburger Menu */}
+          <div className="lg:hidden mb-4">
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  <Menu className="w-5 h-5" />
+                  <span className="capitalize">{activeTab.replace('-', ' ')}</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64 bg-background border-primary/20">
+                <div className="flex flex-col gap-2 mt-8">
+                  <Button
+                    variant={activeTab === "overview" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("overview"); setMobileMenuOpen(false); }}
+                  >
+                    Overview
+                  </Button>
+                  <Button
+                    variant={activeTab === "network" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("network"); setMobileMenuOpen(false); }}
+                  >
+                    Network Tree
+                  </Button>
+                  <Button
+                    variant={activeTab === "notifications" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("notifications"); setMobileMenuOpen(false); }}
+                  >
+                    Notifications
+                  </Button>
+                  <Button
+                    variant={activeTab === "diamonds" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("diamonds"); setMobileMenuOpen(false); }}
+                  >
+                    Diamonds
+                  </Button>
+                  <Button
+                    variant={activeTab === "leaderboard" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("leaderboard"); setMobileMenuOpen(false); }}
+                  >
+                    Leaderboard
+                  </Button>
+                  <Button
+                    variant={activeTab === "cart" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("cart"); setMobileMenuOpen(false); }}
+                  >
+                    Cart
+                  </Button>
+                  <Button
+                    variant={activeTab === "wishlist" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("wishlist"); setMobileMenuOpen(false); }}
+                  >
+                    Wishlist
+                  </Button>
+                  <Button
+                    variant={activeTab === "orders" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("orders"); setMobileMenuOpen(false); }}
+                  >
+                    Orders
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {/* Desktop Tabs */}
+          <TabsList className="hidden lg:grid w-full grid-cols-8 gap-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="network">Network Tree</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
