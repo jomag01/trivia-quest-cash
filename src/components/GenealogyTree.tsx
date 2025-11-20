@@ -14,7 +14,8 @@ import {
   Calendar,
   Award,
   Search,
-  X
+  X,
+  RefreshCw
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/currencies";
@@ -52,12 +53,20 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (userId) {
       fetchNetworkTree();
     }
   }, [userId]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchNetworkTree();
+    setIsRefreshing(false);
+    toast.success("Network tree refreshed");
+  };
 
   const fetchNetworkTree = async () => {
     try {
@@ -372,6 +381,27 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
 
   return (
     <div className="space-y-4">
+      {/* Referrer/Upline Info Card */}
+      {treeData?.referrer && (
+        <Card className="p-4 bg-primary/5 border-primary/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Your Referrer / Upline</p>
+              <p className="font-semibold text-lg">
+                {treeData.referrer.full_name || treeData.referrer.email?.split('@')[0] || 'Unknown'}
+              </p>
+              <p className="text-xs text-muted-foreground">{treeData.referrer.email}</p>
+            </div>
+            <div className="text-right">
+              <Badge variant="outline" className="border-primary">
+                <User className="w-3 h-3 mr-1" />
+                Upline
+              </Badge>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Header Controls */}
       <Card className="p-4">
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -388,6 +418,17 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Refresh Button */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+
             {/* Search Box */}
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

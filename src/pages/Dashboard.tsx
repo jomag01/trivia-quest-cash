@@ -47,16 +47,25 @@ const Dashboard = () => {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [referralLoading, setReferralLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+  
   useEffect(() => {
     if (user) {
       fetchAllData();
     }
   }, [user]);
+
+  // Refresh data when switching to network tab
+  useEffect(() => {
+    if (activeTab === "network" && user) {
+      fetchReferralLevels();
+    }
+  }, [activeTab, user]);
 
   // Fetch all data in parallel for better performance
   const fetchAllData = async () => {
