@@ -1179,6 +1179,74 @@ export type Database = {
           },
         ]
       }
+      product_reviews: {
+        Row: {
+          buyer_id: string
+          created_at: string | null
+          id: string
+          order_id: string | null
+          product_id: string
+          product_rating: number
+          review_text: string | null
+          seller_id: string | null
+          seller_rating: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+          product_id: string
+          product_rating: number
+          review_text?: string | null
+          seller_id?: string | null
+          seller_rating?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+          product_id?: string
+          product_rating?: number
+          review_text?: string | null
+          seller_id?: string | null
+          seller_rating?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           created_at: string | null
@@ -1225,6 +1293,7 @@ export type Database = {
       }
       products: {
         Row: {
+          admin_markup_percentage: number | null
           base_price: number
           category_id: string | null
           commission_percentage: number
@@ -1233,6 +1302,7 @@ export type Database = {
           diamond_reward: number | null
           dimensions_cm: string | null
           discount_percentage: number | null
+          final_price: number | null
           free_shipping: boolean | null
           id: string
           image_url: string | null
@@ -1242,12 +1312,15 @@ export type Database = {
           promo_active: boolean | null
           promo_price: number | null
           referral_commission_diamonds: number | null
+          seller_id: string | null
           shipping_fee: number | null
           stock_quantity: number | null
           updated_at: string | null
           weight_kg: number | null
+          wholesale_price: number | null
         }
         Insert: {
+          admin_markup_percentage?: number | null
           base_price: number
           category_id?: string | null
           commission_percentage?: number
@@ -1256,6 +1329,7 @@ export type Database = {
           diamond_reward?: number | null
           dimensions_cm?: string | null
           discount_percentage?: number | null
+          final_price?: number | null
           free_shipping?: boolean | null
           id?: string
           image_url?: string | null
@@ -1265,12 +1339,15 @@ export type Database = {
           promo_active?: boolean | null
           promo_price?: number | null
           referral_commission_diamonds?: number | null
+          seller_id?: string | null
           shipping_fee?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
           weight_kg?: number | null
+          wholesale_price?: number | null
         }
         Update: {
+          admin_markup_percentage?: number | null
           base_price?: number
           category_id?: string | null
           commission_percentage?: number
@@ -1279,6 +1356,7 @@ export type Database = {
           diamond_reward?: number | null
           dimensions_cm?: string | null
           discount_percentage?: number | null
+          final_price?: number | null
           free_shipping?: boolean | null
           id?: string
           image_url?: string | null
@@ -1288,10 +1366,12 @@ export type Database = {
           promo_active?: boolean | null
           promo_price?: number | null
           referral_commission_diamonds?: number | null
+          seller_id?: string | null
           shipping_fee?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
           weight_kg?: number | null
+          wholesale_price?: number | null
         }
         Relationships: [
           {
@@ -1299,6 +1379,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1314,8 +1401,11 @@ export type Database = {
           full_name: string | null
           id: string
           is_verified: boolean | null
+          is_verified_seller: boolean | null
           referral_code: string
           referred_by: string | null
+          seller_rating: number | null
+          total_reviews: number | null
           updated_at: string
         }
         Insert: {
@@ -1328,8 +1418,11 @@ export type Database = {
           full_name?: string | null
           id: string
           is_verified?: boolean | null
+          is_verified_seller?: boolean | null
           referral_code: string
           referred_by?: string | null
+          seller_rating?: number | null
+          total_reviews?: number | null
           updated_at?: string
         }
         Update: {
@@ -1342,8 +1435,11 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_verified?: boolean | null
+          is_verified_seller?: boolean | null
           referral_code?: string
           referred_by?: string | null
+          seller_rating?: number | null
+          total_reviews?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -1456,6 +1552,54 @@ export type Database = {
           referrer_id?: string
         }
         Relationships: []
+      }
+      seller_verification_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          requested_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_verification_requests_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_verification_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shipping_zones: {
         Row: {
@@ -2009,6 +2153,7 @@ export type Database = {
         Args: { p_level: number; p_user_id: string }
         Returns: boolean
       }
+      can_become_seller: { Args: { p_user_id: string }; Returns: boolean }
       check_and_update_affiliate_rank: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -2021,6 +2166,15 @@ export type Database = {
       convert_gems_to_diamonds: {
         Args: { p_gem_amount: number; p_user_id: string }
         Returns: Json
+      }
+      distribute_multivendor_commissions: {
+        Args: {
+          p_buyer_id: string
+          p_final_price: number
+          p_order_id: string
+          p_product_id: string
+        }
+        Returns: undefined
       }
       distribute_purchase_commissions: {
         Args: {

@@ -12,6 +12,9 @@ interface Profile {
   currency_symbol: string;
   referral_code: string;
   referred_by: string | null;
+  is_verified_seller: boolean;
+  seller_rating: number;
+  total_reviews: number;
 }
 
 type UserRole = 'admin' | 'user';

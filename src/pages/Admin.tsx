@@ -39,6 +39,8 @@ import { UplineTransferManagement } from "@/components/UplineTransferManagement"
 import { ShippingZoneManagement } from "@/components/ShippingZoneManagement";
 import { BulkShippingManagement } from "@/components/BulkShippingManagement";
 import CourierSettingsManagement from "@/components/CourierSettingsManagement";
+import SellerVerificationManagement from "@/components/SellerVerificationManagement";
+import MultivendorProductManagement from "@/components/MultivendorProductManagement";
 import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -97,6 +99,8 @@ const Admin = () => {
     { id: "migration", label: "Image Migration", icon: Upload },
     { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
     { id: "transfers", label: "Upline Transfers", icon: Users },
+    { id: "seller-verification", label: "Seller Verification", icon: CheckCircle },
+    { id: "multivendor-products", label: "User Products", icon: Package },
   ];
 
   useEffect(() => {
@@ -472,6 +476,8 @@ const Admin = () => {
           {activeTab === "migration" && <ImageMigrationTool />}
           {activeTab === "stair-step" && <StairStepManagement />}
           {activeTab === "transfers" && <UplineTransferManagement />}
+          {activeTab === "seller-verification" && <SellerVerificationManagement />}
+          {activeTab === "multivendor-products" && <MultivendorProductManagement />}
         </main>
       </div>
 
