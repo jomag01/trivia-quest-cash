@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useNavigate, useParams } from "react-router-dom";
 import { Phone, Users, Divide, Trophy, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -60,6 +61,7 @@ const Game = () => {
   const [completedLevels, setCompletedLevels] = useState<Set<number>>(new Set());
   const [isCategoryUnlocked, setIsCategoryUnlocked] = useState(false);
   const [unlockedCategoriesCount, setUnlockedCategoriesCount] = useState(0);
+  const [userAnswer, setUserAnswer] = useState("");
   const navigate = useNavigate();
   const { playCorrectSound, playWrongSound, playTickSound, playUrgentTickSound } = useGameSounds();
 
@@ -381,6 +383,104 @@ const Game = () => {
     }, 2000);
   };
 
+  const handleTextAnswer = async () => {
+    if (showResult || !user || !userAnswer.trim()) return;
+    
+    const currentQuestion = questions[currentLevel];
+    const correctAnswerText = [
+      currentQuestion.option_a,
+      currentQuestion.option_b,
+      currentQuestion.option_c,
+      currentQuestion.option_d
+    ][currentQuestion.correct_answer];
+    
+    const isCorrect = userAnswer.trim().toLowerCase() === correctAnswerText.toLowerCase();
+    setSelectedAnswer(isCorrect ? currentQuestion.correct_answer : -1);
+    setShowResult(true);
+
+    // Save answered question to database
+    await (supabase as any)
+      .from('user_answered_questions')
+      .insert({
+        user_id: user.id,
+        question_id: currentQuestion.id,
+        was_correct: isCorrect
+      });
+
+    setTimeout(async () => {
+      if (isCorrect) {
+        playCorrectSound();
+        const nextLevel = currentLevel + 1;
+        
+        const completedLevel = nextLevel;
+        const alreadyCompleted = completedLevels.has(completedLevel);
+        
+        if (!alreadyCompleted && categoryInfo?.id) {
+          const diamondsEarned = completedLevel * 10;
+          
+          try {
+            const { error: completionError } = await supabase
+              .from('game_level_completions')
+              .insert({
+                user_id: user.id,
+                category_id: categoryInfo.id,
+                level_number: completedLevel,
+                diamonds_earned: diamondsEarned
+              });
+
+            if (completionError) throw completionError;
+
+            await supabase.rpc('update_treasure_wallet', {
+              p_user_id: user.id,
+              p_gems: 0,
+              p_diamonds: diamondsEarned
+            });
+
+            setCompletedLevels(prev => new Set([...prev, completedLevel]));
+
+            toast.success(`🎉 Level ${completedLevel} Complete!`, {
+              description: `You earned ${diamondsEarned} diamonds! 💎`
+            });
+          } catch (error: any) {
+            console.error('Error recording level completion:', error);
+          }
+        } else if (alreadyCompleted) {
+          toast.info(`Level ${completedLevel} completed again!`, {
+            description: "Diamonds already earned for this level. Advance to earn more!"
+          });
+        }
+
+        if (currentLevel < questions.length - 1) {
+          if (nextLevel >= 6 && !isCategoryUnlocked) {
+            const requiredReferrals = (unlockedCategoriesCount + 1) * 2;
+            toast.error("🔒 Level 6+ Locked!", {
+              description: `Unlock this category first. Need ${requiredReferrals} total referrals (${referralCount}/${requiredReferrals}).`,
+              duration: 5000
+            });
+            navigate("/dashboard");
+            return;
+          }
+
+          setCurrentLevel(nextLevel);
+          setSelectedAnswer(null);
+          setShowResult(false);
+          setTimeLeft(30);
+          setEliminatedOptions([]);
+          setUserAnswer("");
+        } else {
+          toast.success("🎉 Congratulations! You completed all 15 levels!");
+          navigate("/dashboard");
+        }
+      } else {
+        playWrongSound();
+        toast.error("Wrong answer! Game Over.");
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 1500);
+      }
+    }, 1000);
+  };
+
   const useFiftyFifty = () => {
     if (!lifelines.fiftyFifty) return;
     
@@ -508,25 +608,56 @@ const Game = () => {
             {questions[currentLevel].question}
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              questions[currentLevel].option_a,
-              questions[currentLevel].option_b,
-              questions[currentLevel].option_c,
-              questions[currentLevel].option_d
-            ].map((option, index) => (
+          {categoryInfo?.slug === 'scrambled' ? (
+            <div className="space-y-4">
+              <Input
+                type="text"
+                placeholder="Type your answer here..."
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !showResult) {
+                    handleTextAnswer();
+                  }
+                }}
+                disabled={showResult}
+                className="text-lg py-6 text-center"
+              />
               <Button
-                key={index}
-                variant={getButtonVariant(index)}
-                className="h-auto py-4 px-6 text-lg transition-smooth hover:shadow-gold"
-                onClick={() => handleAnswer(index)}
-                disabled={showResult || eliminatedOptions.includes(index)}
+                variant="default"
+                className="w-full h-auto py-4 px-6 text-lg transition-smooth hover:shadow-gold"
+                onClick={handleTextAnswer}
+                disabled={showResult || !userAnswer.trim()}
               >
-                <span className="font-bold mr-2">{String.fromCharCode(65 + index)}:</span>
-                {option}
+                Submit Answer
               </Button>
-            ))}
-          </div>
+              {showResult && (
+                <p className={`text-center font-bold ${selectedAnswer === -1 ? 'text-destructive' : 'text-primary'}`}>
+                  {selectedAnswer === -1 ? '❌ Incorrect!' : '✓ Correct!'}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                questions[currentLevel].option_a,
+                questions[currentLevel].option_b,
+                questions[currentLevel].option_c,
+                questions[currentLevel].option_d
+              ].map((option, index) => (
+                <Button
+                  key={index}
+                  variant={getButtonVariant(index)}
+                  className="h-auto py-4 px-6 text-lg transition-smooth hover:shadow-gold"
+                  onClick={() => handleAnswer(index)}
+                  disabled={showResult || eliminatedOptions.includes(index)}
+                >
+                  <span className="font-bold mr-2">{String.fromCharCode(65 + index)}:</span>
+                  {option}
+                </Button>
+              ))}
+            </div>
+          )}
         </Card>
 
         {/* Lifelines */}
