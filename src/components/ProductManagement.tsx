@@ -33,6 +33,7 @@ interface Product {
   weight_kg?: number;
   dimensions_cm?: string;
   free_shipping?: boolean;
+  referral_commission_diamonds?: number;
 }
 
 interface ProductCategory {
@@ -100,6 +101,7 @@ export const ProductManagement = () => {
     image_url: "",
     stock_quantity: "0",
     diamond_reward: "0",
+    referral_commission_diamonds: "0",
     shipping_fee: "0",
     weight_kg: "",
     dimensions_cm: "",
@@ -201,6 +203,7 @@ export const ProductManagement = () => {
       image_url: formData.image_url || null,
       stock_quantity: parseInt(formData.stock_quantity),
       diamond_reward: parseInt(formData.diamond_reward) || 0,
+      referral_commission_diamonds: parseInt(formData.referral_commission_diamonds) || 0,
       shipping_fee: formData.free_shipping ? 0 : parseFloat(formData.shipping_fee) || 0,
       weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
       dimensions_cm: formData.dimensions_cm || null,
@@ -384,6 +387,7 @@ export const ProductManagement = () => {
       image_url: "",
       stock_quantity: "0",
       diamond_reward: "0",
+      referral_commission_diamonds: "0",
       shipping_fee: "0",
       weight_kg: "",
       dimensions_cm: "",
@@ -408,6 +412,7 @@ export const ProductManagement = () => {
       image_url: product.image_url || "",
       stock_quantity: product.stock_quantity?.toString() || "0",
       diamond_reward: product.diamond_reward?.toString() || "0",
+      referral_commission_diamonds: product.referral_commission_diamonds?.toString() || "0",
       shipping_fee: product.shipping_fee?.toString() || "0",
       weight_kg: product.weight_kg?.toString() || "",
       dimensions_cm: product.dimensions_cm || "",
@@ -596,6 +601,20 @@ export const ProductManagement = () => {
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Diamonds awarded when purchased
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="referral_commission_diamonds">💎 Referral Commission</Label>
+                  <Input
+                    id="referral_commission_diamonds"
+                    type="number"
+                    min="0"
+                    value={formData.referral_commission_diamonds}
+                    onChange={(e) => setFormData({ ...formData, referral_commission_diamonds: e.target.value })}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Diamonds earned by referrer when someone buys via share link
                   </p>
                 </div>
                 <div className="col-span-2">

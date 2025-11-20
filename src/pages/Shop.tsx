@@ -8,9 +8,10 @@ import { ShoppingCart, Package, Search, Filter, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ProductDetailDialog } from "@/components/ProductDetailDialog";
 import ShippingCalculator from "@/components/ShippingCalculator";
+import { ProductShareButton } from "@/components/ProductShareButton";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,7 @@ import {
 const Shop = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -55,7 +57,14 @@ const Shop = () => {
       fetchCartStatus();
       fetchWishlistStatus();
     }
-  }, [user]);
+    
+    // Track referral from URL
+    const ref = searchParams.get('ref');
+    const productId = searchParams.get('product');
+    if (ref && productId) {
+      localStorage.setItem('product_referrer', JSON.stringify({ ref, productId }));
+    }
+  }, [user, searchParams]);
 
   const fetchProducts = async () => {
     try {
@@ -242,6 +251,17 @@ const Shop = () => {
       const subtotal = price * quantity;
       const totalAmount = subtotal + shippingFee;
 
+      // Check for product referral
+      const referralData = localStorage.getItem('product_referrer');
+      let referrerId: string | null = null;
+      
+      if (referralData) {
+        const { ref, productId } = JSON.parse(referralData);
+        if (productId === selectedProduct.id) {
+          referrerId = ref;
+        }
+      }
+
       // Generate order number
       const { data: orderNumberData, error: orderNumError } = await supabase
         .rpc("generate_order_number");
@@ -261,6 +281,7 @@ const Shop = () => {
           customer_email: customerEmail,
           customer_phone: customerPhone,
           status: "pending",
+          product_referrer_id: referrerId,
         })
         .select()
         .single();
@@ -288,6 +309,52 @@ const Shop = () => {
         .eq("id", order.id);
 
       if (updateError) throw updateError;
+
+      // Create product referral record if there's a referrer
+      if (referrerId && selectedProduct.referral_commission_diamonds > 0) {
+        const { error: referralError } = await supabase
+          .from("product_referrals")
+          .insert({
+            product_id: selectedProduct.id,
+            referrer_id: referrerId,
+            referred_user_id: user?.id || null,
+            order_id: order.id,
+            commission_diamonds: selectedProduct.referral_commission_diamonds,
+            purchased_at: new Date().toISOString(),
+          });
+
+        if (referralError) {
+          console.error("Error creating referral record:", referralError);
+        }
+
+        // If user just signed up and has a referrer, add them to referrer's downline
+        if (user?.id && referrerId) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("referred_by")
+            .eq("id", user.id)
+            .single();
+
+          // Only set referrer if user doesn't already have one
+          if (profile && !profile.referred_by) {
+            await supabase
+              .from("profiles")
+              .update({ referred_by: referrerId })
+              .eq("id", user.id);
+
+            // Create referral record
+            await supabase
+              .from("referrals")
+              .insert({
+                referrer_id: referrerId,
+                referred_id: user.id,
+              });
+          }
+        }
+
+        // Clear referral data
+        localStorage.removeItem('product_referrer');
+      }
 
       toast.success("Order placed successfully! Order #" + orderNumberData);
       setCheckoutDialog(false);
@@ -408,80 +475,65 @@ const Shop = () => {
                     {product.discount_percentage}% OFF
                   </Badge>
                 )}
-                <h3 className="text-lg md:text-xl font-bold mb-2 line-clamp-2">{product.name}</h3>
-                <p className="text-xs md:text-sm text-muted-foreground mb-4 line-clamp-3">
-                  {product.description}
-                </p>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {product.product_categories && (
-                    <Badge variant="outline" className="text-xs">
-                      {product.product_categories.name}
-                    </Badge>
-                  )}
-                  {product.diamond_reward && product.diamond_reward > 0 && (
-                    <Badge variant="secondary" className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
-                      💎 {product.diamond_reward} on delivery
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-xl md:text-2xl font-bold text-primary">
+                <h3 className="text-xs md:text-sm font-semibold mb-1 line-clamp-2 leading-tight">{product.name}</h3>
+                
+                <div className="flex items-center gap-1.5 mb-2">
+                  <span className="text-sm md:text-base font-bold text-primary">
                     ₱{getEffectivePrice(product).toFixed(2)}
                   </span>
                   {product.promo_active && product.promo_price && (
-                    <span className="text-xs md:text-sm text-muted-foreground line-through">
+                    <span className="text-[10px] md:text-xs text-muted-foreground line-through">
                       ₱{product.base_price.toFixed(2)}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Stock: {product.stock_quantity || 0}
-                </p>
-              </div>
 
-              <div className="space-y-2">
-                <Button
-                  className="w-full text-sm md:text-base"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleBuyNow(product);
-                  }}
-                  disabled={!product.stock_quantity || product.stock_quantity === 0}
-                >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  {product.stock_quantity > 0 ? "Buy Now" : "Out of Stock"}
-                </Button>
-                
-                <div className="grid grid-cols-2 gap-2">
+                <div className="mt-auto space-y-1.5">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs md:text-sm"
+                    className="w-full h-7 text-[10px] md:text-xs"
                     onClick={(e) => {
                       e.stopPropagation();
-                      addToCart(product.id);
+                      handleBuyNow(product);
                     }}
-                    disabled={!product.stock_quantity || product.stock_quantity === 0 || inCart.has(product.id)}
+                    disabled={!product.stock_quantity || product.stock_quantity === 0}
                   >
-                    <ShoppingCart className="w-3 h-3 md:w-4 md:h-4 mr-1" />
-                    {inCart.has(product.id) ? "In Cart" : "Add to Cart"}
+                    <ShoppingCart className="w-3 h-3 mr-1" />
+                    {product.stock_quantity > 0 ? "Buy" : "Out"}
                   </Button>
                   
-                  <Button
-                    variant={inWishlist.has(product.id) ? "default" : "outline"}
-                    size="sm"
-                    className="text-xs md:text-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleWishlist(product.id);
-                    }}
-                  >
-                    <Heart className={`w-3 h-3 md:w-4 md:h-4 mr-1 ${inWishlist.has(product.id) ? "fill-current" : ""}`} />
-                    {inWishlist.has(product.id) ? "Saved" : "Wishlist"}
-                  </Button>
+                  <div className="grid grid-cols-3 gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] md:text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(product.id);
+                      }}
+                      disabled={!product.stock_quantity || product.stock_quantity === 0}
+                    >
+                      <ShoppingCart className="w-3 h-3 mr-1" />
+                      {inCart.has(product.id) ? "✓" : "Cart"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] md:text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWishlist(product.id);
+                      }}
+                    >
+                      <Heart className={`w-3 h-3 mr-1 ${inWishlist.has(product.id) ? "fill-red-500 text-red-500" : ""}`} />
+                      {inWishlist.has(product.id) ? "✓" : "Save"}
+                    </Button>
+                    <ProductShareButton
+                      productId={product.id}
+                      productName={product.name}
+                      size="sm"
+                      className="h-7 text-[10px] md:text-xs"
+                    />
+                  </div>
                 </div>
               </div>
             </Card>

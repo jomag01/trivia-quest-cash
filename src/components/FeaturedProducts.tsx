@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProductShareButton } from "@/components/ProductShareButton";
 
 interface FeaturedProduct {
   id: string;
@@ -205,15 +206,23 @@ export const FeaturedProducts = () => {
                   )}
                 </div>
 
-                <Button
-                  size="sm"
-                  className="w-full h-7 text-[10px] md:text-xs"
-                  onClick={() => addToCart(product.id)}
-                  disabled={product.stock_quantity === 0}
-                >
-                  <ShoppingCart className="w-3 h-3 mr-1" />
-                  {product.stock_quantity === 0 ? "Out of Stock" : "Add"}
-                </Button>
+                <div className="grid grid-cols-2 gap-1">
+                  <Button
+                    size="sm"
+                    className="h-7 text-[10px] md:text-xs"
+                    onClick={() => addToCart(product.id)}
+                    disabled={product.stock_quantity === 0}
+                  >
+                    <ShoppingCart className="w-3 h-3 mr-1" />
+                    {product.stock_quantity === 0 ? "Out" : "Add"}
+                  </Button>
+                  <ProductShareButton
+                    productId={product.id}
+                    productName={product.name}
+                    size="sm"
+                    className="h-7 text-[10px] md:text-xs"
+                  />
+                </div>
               </div>
             </Card>
           );
