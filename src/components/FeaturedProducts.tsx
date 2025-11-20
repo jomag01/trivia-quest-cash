@@ -147,13 +147,13 @@ export const FeaturedProducts = () => {
         <h2 className="text-xl font-bold">Featured Products</h2>
       </div>
       
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
         {products.map((product) => {
           const effectivePrice = getEffectivePrice(product);
           const hasDiscount = product.promo_active && product.promo_price;
 
           return (
-            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
+            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group border-border/50">
               <div className="relative aspect-square bg-muted overflow-hidden">
                 {product.image_url ? (
                   <>
@@ -176,35 +176,30 @@ export const FeaturedProducts = () => {
                   </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <ShoppingCart className="w-12 h-12 text-muted-foreground/20" />
+                    <ShoppingCart className="w-8 h-8 text-muted-foreground/20" />
                   </div>
                 )}
                 {hasDiscount && (
-                  <Badge className="absolute top-2 right-2 bg-red-500">
+                  <Badge className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0.5 bg-red-500 text-white">
                     Sale
                   </Badge>
                 )}
                 {product.diamond_reward > 0 && (
-                  <Badge className="absolute top-2 left-2 bg-primary">
+                  <Badge className="absolute top-1.5 left-1.5 text-[10px] px-1.5 py-0.5 bg-primary">
                     💎 {product.diamond_reward}
                   </Badge>
                 )}
               </div>
               
-              <div className="p-3 space-y-2">
-                <h3 className="font-semibold text-sm line-clamp-1">{product.name}</h3>
-                {product.diamond_reward && product.diamond_reward > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    💎 Earn {product.diamond_reward} {product.diamond_reward === 1 ? 'diamond' : 'diamonds'} on delivery
-                  </p>
-                )}
+              <div className="p-2 space-y-1.5">
+                <h3 className="font-semibold text-xs md:text-sm line-clamp-2 leading-tight">{product.name}</h3>
                 
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-primary">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm md:text-base font-bold text-primary">
                     ₱{effectivePrice.toFixed(2)}
                   </span>
                   {hasDiscount && (
-                    <span className="text-xs text-muted-foreground line-through">
+                    <span className="text-[10px] md:text-xs text-muted-foreground line-through">
                       ₱{product.base_price.toFixed(2)}
                     </span>
                   )}
@@ -212,12 +207,12 @@ export const FeaturedProducts = () => {
 
                 <Button
                   size="sm"
-                  className="w-full h-8 text-xs"
+                  className="w-full h-7 text-[10px] md:text-xs"
                   onClick={() => addToCart(product.id)}
                   disabled={product.stock_quantity === 0}
                 >
                   <ShoppingCart className="w-3 h-3 mr-1" />
-                  {product.stock_quantity === 0 ? "Out of Stock" : "Add to Cart"}
+                  {product.stock_quantity === 0 ? "Out of Stock" : "Add"}
                 </Button>
               </div>
             </Card>

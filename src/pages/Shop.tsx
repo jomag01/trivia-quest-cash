@@ -354,18 +354,18 @@ const Shop = () => {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
           {filteredProducts.map((product) => (
             <Card
               key={product.id}
-              className="p-4 md:p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth flex flex-col cursor-pointer group"
+              className="overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 flex flex-col cursor-pointer group"
               onClick={() => {
                 setDetailProduct(product);
                 setDetailDialog(true);
               }}
             >
               {/* Product Image */}
-              <div className="mb-4 aspect-square rounded-lg overflow-hidden bg-muted relative">
+              <div className="aspect-square overflow-hidden bg-muted relative">
                 {product.image_url ? (
                   <>
                     <img
@@ -374,25 +374,37 @@ const Shop = () => {
                       className={`w-full h-full object-cover transition-all duration-300 ${
                         product.hover_image_url ? 'group-hover:opacity-0' : 'group-hover:scale-105'
                       }`}
+                      loading="lazy"
                     />
                     {product.hover_image_url && (
                       <img
                         src={product.hover_image_url}
                         alt={`${product.name} hover`}
                         className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        loading="lazy"
                       />
                     )}
                   </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                    <Package className="w-12 h-12 opacity-20" />
+                    <Package className="w-8 h-8 opacity-20" />
                   </div>
+                )}
+                {product.promo_active && product.promo_price && (
+                  <Badge className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0.5 bg-red-500 text-white">
+                    Sale
+                  </Badge>
+                )}
+                {product.diamond_reward > 0 && (
+                  <Badge className="absolute top-1.5 left-1.5 text-[10px] px-1.5 py-0.5 bg-primary">
+                    💎 {product.diamond_reward}
+                  </Badge>
                 )}
               </div>
               
-              <div className="mb-4 flex-1">
-                {product.promo_active && product.promo_price && (
-                  <Badge className="mb-2 bg-red-500">
+              <div className="p-2 flex-1 flex flex-col">
+                {product.promo_active && product.promo_price && product.discount_percentage && (
+                  <Badge className="mb-1.5 w-fit text-[10px] px-1.5 py-0.5 bg-red-500">
                     {product.discount_percentage}% OFF
                   </Badge>
                 )}
