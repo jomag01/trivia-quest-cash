@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useNavigate, useParams } from "react-router-dom";
-import { Phone, Users, Divide, Trophy, Clock } from "lucide-react";
+import { Phone, Users, Divide, Trophy, Clock, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +62,7 @@ const Game = () => {
   const [isCategoryUnlocked, setIsCategoryUnlocked] = useState(false);
   const [unlockedCategoriesCount, setUnlockedCategoriesCount] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
+  const [showHint, setShowHint] = useState(false);
   const navigate = useNavigate();
   const { playCorrectSound, playWrongSound, playTickSound, playUrgentTickSound } = useGameSounds();
 
@@ -467,6 +468,7 @@ const Game = () => {
           setTimeLeft(30);
           setEliminatedOptions([]);
           setUserAnswer("");
+          setShowHint(false);
         } else {
           toast.success("🎉 Congratulations! You completed all 15 levels!");
           navigate("/dashboard");
@@ -479,6 +481,32 @@ const Game = () => {
         }, 1500);
       }
     }, 1000);
+  };
+
+  const getHintText = () => {
+    const currentQuestion = questions[currentLevel];
+    const correctAnswerText = [
+      currentQuestion.option_a,
+      currentQuestion.option_b,
+      currentQuestion.option_c,
+      currentQuestion.option_d
+    ][currentQuestion.correct_answer];
+    
+    const words = correctAnswerText.split(' ');
+    const hintWords = words.map(word => {
+      if (word.length <= 2) return word;
+      return `${word[0]}${'_'.repeat(word.length - 2)}${word[word.length - 1]}`;
+    });
+    
+    return hintWords.join(' ');
+  };
+
+  const handleShowHint = () => {
+    if (showResult) return;
+    setShowHint(true);
+    toast.info('Hint revealed!', {
+      description: 'First and last letters shown'
+    });
   };
 
   const useFiftyFifty = () => {
@@ -610,6 +638,12 @@ const Game = () => {
 
           {categoryInfo?.slug === 'scrambled' ? (
             <div className="space-y-4">
+              {showHint && (
+                <div className="text-center p-4 bg-primary/10 rounded-lg border border-primary/20">
+                  <p className="text-sm text-muted-foreground mb-1">Hint:</p>
+                  <p className="text-lg font-mono font-bold text-primary">{getHintText()}</p>
+                </div>
+              )}
               <Input
                 type="text"
                 placeholder="Type your answer here..."
@@ -660,41 +694,56 @@ const Game = () => {
           )}
         </Card>
 
-        {/* Lifelines */}
-        <Card className="p-6 gradient-accent border-primary/20 shadow-card">
-          <h3 className="text-xl font-bold mb-4 text-center">Lifelines</h3>
-          <div className="grid grid-cols-3 gap-4">
+        {/* Lifelines / Hint */}
+        {categoryInfo?.slug === 'scrambled' ? (
+          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+            <h3 className="text-xl font-bold mb-4 text-center">Hint</h3>
             <Button
-              variant={lifelines.fiftyFifty ? "default" : "outline"}
-              onClick={useFiftyFifty}
-              disabled={!lifelines.fiftyFifty || showResult}
-              className="flex flex-col items-center gap-2 h-auto py-4"
+              variant={showHint ? "outline" : "default"}
+              onClick={handleShowHint}
+              disabled={showHint || showResult}
+              className="w-full flex items-center justify-center gap-2 h-auto py-4"
             >
-              <Divide className="w-6 h-6" />
-              <span className="text-xs">50/50</span>
+              <Lightbulb className="w-6 h-6" />
+              <span>{showHint ? 'Hint Used' : 'Show First & Last Letters'}</span>
             </Button>
+          </Card>
+        ) : (
+          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
+            <h3 className="text-xl font-bold mb-4 text-center">Lifelines</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <Button
+                variant={lifelines.fiftyFifty ? "default" : "outline"}
+                onClick={useFiftyFifty}
+                disabled={!lifelines.fiftyFifty || showResult}
+                className="flex flex-col items-center gap-2 h-auto py-4"
+              >
+                <Divide className="w-6 h-6" />
+                <span className="text-xs">50/50</span>
+              </Button>
 
-            <Button
-              variant={lifelines.callFriend ? "default" : "outline"}
-              onClick={useCallFriend}
-              disabled={!lifelines.callFriend || showResult}
-              className="flex flex-col items-center gap-2 h-auto py-4"
-            >
-              <Phone className="w-6 h-6" />
-              <span className="text-xs">Call Friend</span>
-            </Button>
+              <Button
+                variant={lifelines.callFriend ? "default" : "outline"}
+                onClick={useCallFriend}
+                disabled={!lifelines.callFriend || showResult}
+                className="flex flex-col items-center gap-2 h-auto py-4"
+              >
+                <Phone className="w-6 h-6" />
+                <span className="text-xs">Call Friend</span>
+              </Button>
 
-            <Button
-              variant={lifelines.split ? "default" : "outline"}
-              onClick={useSplit}
-              disabled={!lifelines.split || showResult}
-              className="flex flex-col items-center gap-2 h-auto py-4"
-            >
-              <Users className="w-6 h-6" />
-              <span className="text-xs">Ask Audience</span>
-            </Button>
-          </div>
-        </Card>
+              <Button
+                variant={lifelines.split ? "default" : "outline"}
+                onClick={useSplit}
+                disabled={!lifelines.split || showResult}
+                className="flex flex-col items-center gap-2 h-auto py-4"
+              >
+                <Users className="w-6 h-6" />
+                <span className="text-xs">Ask Audience</span>
+              </Button>
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );
