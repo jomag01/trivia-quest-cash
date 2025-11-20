@@ -31,11 +31,15 @@ export const ProductShareButton = ({
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  if (!user) return null;
-
-  const shareUrl = `${window.location.origin}/shop?ref=${user.id}&product=${productId}`;
+  const shareUrl = user 
+    ? `${window.location.origin}/shop?ref=${user.id}&product=${productId}`
+    : `${window.location.origin}/shop?product=${productId}`;
 
   const handleCopy = async () => {
+    if (!user) {
+      toast.error("Please login to share products");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
@@ -47,6 +51,10 @@ export const ProductShareButton = ({
   };
 
   const handleShare = async () => {
+    if (!user) {
+      toast.error("Please login to share products");
+      return;
+    }
     if (navigator.share) {
       try {
         await navigator.share({
