@@ -75,10 +75,10 @@ const Navigation = () => {
                     </Link>
                   </Button>}
 
-                {profile?.is_verified_seller && <Button variant={isActive("/seller") ? "default" : "ghost"} asChild className="justify-start transition-smooth" onClick={() => setIsOpen(false)}>
+                {user && <Button variant={isActive("/seller") ? "default" : "ghost"} asChild className="justify-start transition-smooth" onClick={() => setIsOpen(false)}>
                     <Link to="/seller">
                       <Package className="w-4 h-4 mr-2" />
-                      Seller Dashboard
+                      {profile?.is_verified_seller ? "Seller Dashboard" : "Be a Seller"}
                     </Link>
                   </Button>}
 
