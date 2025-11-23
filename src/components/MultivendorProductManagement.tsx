@@ -22,11 +22,24 @@ export default function MultivendorProductManagement() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [markup, setMarkup] = useState("");
   const [commission, setCommission] = useState("");
+  const [diamondReward, setDiamondReward] = useState("");
+  const [diamondBasePrice, setDiamondBasePrice] = useState(10);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     fetchProducts();
+    fetchDiamondPrice();
   }, []);
+
+  const fetchDiamondPrice = async () => {
+    try {
+      const { data, error } = await supabase.from("treasure_admin_settings").select("setting_value").eq("setting_key", "diamond_base_price").maybeSingle();
+      if (error) throw error;
+      if (data) setDiamondBasePrice(parseFloat(data.setting_value));
+    } catch (error: any) {
+      console.error("Error fetching diamond price:", error);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -57,6 +70,7 @@ export default function MultivendorProductManagement() {
     setSelectedProduct(product);
     setMarkup(product.admin_markup_percentage?.toString() || "0");
     setCommission(product.commission_percentage?.toString() || "0");
+    setDiamondReward(product.diamond_reward?.toString() || "0");
   };
 
   const handleApproveProduct = async (product: any, approved: boolean) => {
@@ -97,6 +111,7 @@ export default function MultivendorProductManagement() {
         .update({
           admin_markup_percentage: markupValue,
           commission_percentage: parseInt(commission),
+          diamond_reward: parseInt(diamondReward),
         })
         .eq("id", selectedProduct.id);
 
@@ -249,6 +264,36 @@ export default function MultivendorProductManagement() {
                 value={commission}
                 onChange={(e) => setCommission(e.target.value)}
               />
+            </div>
+
+            <div>
+              <Label htmlFor="diamondReward">Diamond Reward (up to 100% of price)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="diamondReward"
+                  type="number"
+                  min="0"
+                  value={diamondReward}
+                  onChange={(e) => setDiamondReward(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (selectedProduct) {
+                      const maxDiamonds = Math.floor(selectedProduct.wholesale_price / diamondBasePrice);
+                      setDiamondReward(maxDiamonds.toString());
+                    }
+                  }}
+                >
+                  Max (100%)
+                </Button>
+              </div>
+              {selectedProduct && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Max: {Math.floor(selectedProduct.wholesale_price / diamondBasePrice)} diamonds (₱{selectedProduct.wholesale_price} ÷ ₱{diamondBasePrice})
+                </p>
+              )}
             </div>
 
             {selectedProduct && markup && (
