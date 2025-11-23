@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Loader2, Store, Package, AlertCircle, Plus, Edit2, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,6 +27,7 @@ export default function SellerDashboard() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState({
     name: "", description: "", wholesale_price: "", stock_quantity: "", category_id: "", image_url: "",
+    diamond_reward: "", referral_commission_diamonds: "", shipping_fee: "", weight_kg: "", dimensions_cm: "", free_shipping: false,
   });
 
   useEffect(() => {
@@ -108,6 +110,12 @@ export default function SellerDashboard() {
         base_price: parseFloat(productForm.wholesale_price), stock_quantity: parseInt(productForm.stock_quantity) || 0,
         category_id: productForm.category_id || null, image_url: productForm.image_url || null, seller_id: user?.id,
         approval_status: "pending", is_active: false,
+        diamond_reward: parseInt(productForm.diamond_reward) || 0,
+        referral_commission_diamonds: parseInt(productForm.referral_commission_diamonds) || 0,
+        shipping_fee: productForm.free_shipping ? 0 : parseFloat(productForm.shipping_fee) || 0,
+        weight_kg: productForm.weight_kg ? parseFloat(productForm.weight_kg) : null,
+        dimensions_cm: productForm.dimensions_cm || null,
+        free_shipping: productForm.free_shipping
       };
       if (editingProduct) {
         const { error } = await supabase.from("products").update(productData).eq("id", editingProduct.id);
@@ -120,7 +128,10 @@ export default function SellerDashboard() {
       }
       setShowProductDialog(false);
       setEditingProduct(null);
-      setProductForm({ name: "", description: "", wholesale_price: "", stock_quantity: "", category_id: "", image_url: "" });
+      setProductForm({ 
+        name: "", description: "", wholesale_price: "", stock_quantity: "", category_id: "", image_url: "",
+        diamond_reward: "", referral_commission_diamonds: "", shipping_fee: "", weight_kg: "", dimensions_cm: "", free_shipping: false 
+      });
       fetchMyProducts();
     } catch (error: any) {
       toast.error(error.message);
@@ -155,7 +166,14 @@ export default function SellerDashboard() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between"><CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" />My Products</CardTitle>
-              <Button onClick={() => { setEditingProduct(null); setProductForm({ name: "", description: "", wholesale_price: "", stock_quantity: "", category_id: "", image_url: "" }); setShowProductDialog(true); }}><Plus className="h-4 w-4 mr-2" />Add Product</Button>
+              <Button onClick={() => { 
+                setEditingProduct(null); 
+                setProductForm({ 
+                  name: "", description: "", wholesale_price: "", stock_quantity: "", category_id: "", image_url: "",
+                  diamond_reward: "", referral_commission_diamonds: "", shipping_fee: "", weight_kg: "", dimensions_cm: "", free_shipping: false 
+                }); 
+                setShowProductDialog(true); 
+              }}><Plus className="h-4 w-4 mr-2" />Add Product</Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -166,7 +184,18 @@ export default function SellerDashboard() {
                     <div className="flex gap-2 my-2"><Badge variant={p.approval_status === "approved" ? "default" : p.approval_status === "rejected" ? "destructive" : "secondary"}>{p.approval_status}</Badge></div>
                     <p className="text-sm">Wholesale: ₱{p.wholesale_price} | Stock: {p.stock_quantity}</p>
                     <div className="flex gap-2 mt-2">
-                      <Button size="sm" variant="outline" onClick={() => { setEditingProduct(p); setProductForm({ name: p.name, description: p.description, wholesale_price: p.wholesale_price.toString(), stock_quantity: p.stock_quantity?.toString() || "0", category_id: p.category_id || "", image_url: p.image_url || "" }); setShowProductDialog(true); }}><Edit2 className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="outline" onClick={() => { 
+                        setEditingProduct(p); 
+                        setProductForm({ 
+                          name: p.name, description: p.description, wholesale_price: p.wholesale_price.toString(), 
+                          stock_quantity: p.stock_quantity?.toString() || "0", category_id: p.category_id || "", 
+                          image_url: p.image_url || "", diamond_reward: p.diamond_reward?.toString() || "0",
+                          referral_commission_diamonds: p.referral_commission_diamonds?.toString() || "0",
+                          shipping_fee: p.shipping_fee?.toString() || "0", weight_kg: p.weight_kg?.toString() || "",
+                          dimensions_cm: p.dimensions_cm || "", free_shipping: p.free_shipping || false
+                        }); 
+                        setShowProductDialog(true); 
+                      }}><Edit2 className="h-4 w-4" /></Button>
                       <Button size="sm" variant="outline" onClick={async () => { if (confirm("Delete?")) { await supabase.from("products").delete().eq("id", p.id); fetchMyProducts(); } }}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
@@ -187,6 +216,23 @@ export default function SellerDashboard() {
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Wholesale Price *</Label><Input type="number" step="0.01" value={productForm.wholesale_price} onChange={(e) => setProductForm({ ...productForm, wholesale_price: e.target.value })} /></div>
               <div><Label>Stock</Label><Input type="number" value={productForm.stock_quantity} onChange={(e) => setProductForm({ ...productForm, stock_quantity: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Diamond Reward</Label><Input type="number" value={productForm.diamond_reward} onChange={(e) => setProductForm({ ...productForm, diamond_reward: e.target.value })} placeholder="Diamonds earned on purchase" /></div>
+              <div><Label>Referral Commission (💎)</Label><Input type="number" value={productForm.referral_commission_diamonds} onChange={(e) => setProductForm({ ...productForm, referral_commission_diamonds: e.target.value })} placeholder="Diamonds for referrer" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Weight (kg)</Label><Input type="number" step="0.01" value={productForm.weight_kg} onChange={(e) => setProductForm({ ...productForm, weight_kg: e.target.value })} placeholder="For shipping calculation" /></div>
+              <div><Label>Dimensions (cm)</Label><Input value={productForm.dimensions_cm} onChange={(e) => setProductForm({ ...productForm, dimensions_cm: e.target.value })} placeholder="L x W x H" /></div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch checked={productForm.free_shipping} onCheckedChange={(checked) => setProductForm({ ...productForm, free_shipping: checked })} />
+                <Label>Free Shipping</Label>
+              </div>
+              {!productForm.free_shipping && (
+                <div className="flex-1"><Label>Shipping Fee</Label><Input type="number" step="0.01" value={productForm.shipping_fee} onChange={(e) => setProductForm({ ...productForm, shipping_fee: e.target.value })} /></div>
+              )}
             </div>
             <div><Label>Image</Label><ImageUploadCrop currentImage={productForm.image_url} onImageUploaded={(url) => setProductForm({ ...productForm, image_url: url })} /></div>
           </div>

@@ -41,6 +41,7 @@ import { BulkShippingManagement } from "@/components/BulkShippingManagement";
 import CourierSettingsManagement from "@/components/CourierSettingsManagement";
 import SellerVerificationManagement from "@/components/SellerVerificationManagement";
 import MultivendorProductManagement from "@/components/MultivendorProductManagement";
+import { SalesAnalytics } from "@/components/SalesAnalytics";
 import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -80,10 +81,11 @@ const Admin = () => {
   const [selectedProof, setSelectedProof] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
-  const [activeTab, setActiveTab] = useState("credits");
+  const [activeTab, setActiveTab] = useState("sales-analytics");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const menuItems = [
+    { id: "sales-analytics", label: "Sales Analytics", icon: TrendingUp },
     { id: "credits", label: "Credit Purchases", icon: CreditCard },
     { id: "payouts", label: "Payout Requests", icon: DollarSign },
     { id: "categories", label: "Game Categories", icon: Gamepad2 },
@@ -463,6 +465,7 @@ const Admin = () => {
             </div>
           )}
 
+          {activeTab === "sales-analytics" && <SalesAnalytics />}
           {activeTab === "categories" && <CategoryManagement />}
           {activeTab === "treasure-hunt" && <TreasureHuntManagement />}
           {activeTab === "diamond-settings" && <TreasureAdminSettings />}
