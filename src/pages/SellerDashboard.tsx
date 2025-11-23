@@ -42,11 +42,16 @@ export default function SellerDashboard() {
 
   const fetchDiamondPrice = async () => {
     try {
-      const { data, error } = await supabase.from("treasure_admin_settings").select("setting_value").eq("setting_key", "diamond_base_price").maybeSingle();
-      if (error) throw error;
-      if (data) setDiamondBasePrice(parseFloat(data.setting_value));
+      const { data: priceData } = await supabase.from("treasure_admin_settings").select("setting_value").eq("setting_key", "diamond_base_price").maybeSingle();
+      const { data: percentData } = await supabase.from("treasure_admin_settings").select("setting_value").eq("setting_key", "user_product_diamond_percent").maybeSingle();
+      
+      if (priceData) setDiamondBasePrice(parseFloat(priceData.setting_value));
+      
+      // Store the percentage for calculation
+      const defaultPercent = percentData ? parseFloat(percentData.setting_value) : 10;
+      sessionStorage.setItem("user_product_diamond_percent", defaultPercent.toString());
     } catch (error: any) {
-      console.error("Error fetching diamond price:", error);
+      console.error("Error fetching diamond settings:", error);
     }
   };
 
@@ -228,13 +233,14 @@ export default function SellerDashboard() {
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Wholesale Price *</Label><Input type="number" step="0.01" value={productForm.wholesale_price} onChange={(e) => {
                 const price = e.target.value;
-                const calculatedDiamonds = price ? Math.floor((parseFloat(price) * 0.10) / diamondBasePrice) : 0;
+                const percent = parseFloat(sessionStorage.getItem("user_product_diamond_percent") || "10") / 100;
+                const calculatedDiamonds = price ? Math.floor((parseFloat(price) * percent) / diamondBasePrice) : 0;
                 setProductForm({ ...productForm, wholesale_price: price, diamond_reward: calculatedDiamonds.toString() });
               }} /></div>
               <div><Label>Stock</Label><Input type="number" value={productForm.stock_quantity} onChange={(e) => setProductForm({ ...productForm, stock_quantity: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>Diamond Reward (Auto-calculated: 10% of price)</Label><Input type="number" value={productForm.diamond_reward} onChange={(e) => setProductForm({ ...productForm, diamond_reward: e.target.value })} placeholder="Auto-calculated" disabled /></div>
+              <div><Label>Diamond Reward (Auto-calculated by admin setting)</Label><Input type="number" value={productForm.diamond_reward} onChange={(e) => setProductForm({ ...productForm, diamond_reward: e.target.value })} placeholder="Auto-calculated" disabled /></div>
               <div><Label>Referral Commission (💎)</Label><Input type="number" value={productForm.referral_commission_diamonds} onChange={(e) => setProductForm({ ...productForm, referral_commission_diamonds: e.target.value })} placeholder="Diamonds for referrer" /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">

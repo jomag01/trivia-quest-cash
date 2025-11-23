@@ -19,6 +19,7 @@ export default function TreasureAdminSettings() {
   const [gemRatio, setGemRatio] = useState("");
   const [minPurchaseDiamonds, setMinPurchaseDiamonds] = useState("");
   const [minReferrals, setMinReferrals] = useState("");
+  const [userProductDiamondPercent, setUserProductDiamondPercent] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -36,6 +37,7 @@ export default function TreasureAdminSettings() {
           "gem_to_diamond_ratio",
           "min_purchase_diamonds_for_earnings",
           "min_referrals_for_earnings",
+          "user_product_diamond_percent",
         ]);
 
       if (error) throw error;
@@ -46,11 +48,13 @@ export default function TreasureAdminSettings() {
       const ratioData = data?.find((s) => s.setting_key === "gem_to_diamond_ratio");
       const purchaseData = data?.find((s) => s.setting_key === "min_purchase_diamonds_for_earnings");
       const referralData = data?.find((s) => s.setting_key === "min_referrals_for_earnings");
+      const userProductData = data?.find((s) => s.setting_key === "user_product_diamond_percent");
       
       if (priceData) setDiamondPrice(priceData.setting_value);
       if (ratioData) setGemRatio(ratioData.setting_value);
       if (purchaseData) setMinPurchaseDiamonds(purchaseData.setting_value);
       if (referralData) setMinReferrals(referralData.setting_value);
+      if (userProductData) setUserProductDiamondPercent(userProductData.setting_value);
     } catch (error) {
       console.error("Error fetching settings:", error);
       toast.error("Failed to load settings");
@@ -144,6 +148,42 @@ export default function TreasureAdminSettings() {
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Number of gems required to convert to 1 diamond
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="w-6 h-6" />
+            User Product Diamond Settings
+          </CardTitle>
+          <CardDescription>
+            Configure default diamond rewards for user-uploaded products
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="userProductDiamondPercent">
+              Default Diamond Reward Percentage (0-100%)
+            </Label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                id="userProductDiamondPercent"
+                type="number"
+                min="0"
+                max="100"
+                value={userProductDiamondPercent}
+                onChange={(e) => setUserProductDiamondPercent(e.target.value)}
+                placeholder="10"
+              />
+              <Button onClick={() => handleUpdateSetting("user_product_diamond_percent", userProductDiamondPercent)} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Percentage of wholesale price that converts to diamonds (e.g., 10% of ₱100 = 1 diamond at ₱10/diamond)
             </p>
           </div>
         </CardContent>
