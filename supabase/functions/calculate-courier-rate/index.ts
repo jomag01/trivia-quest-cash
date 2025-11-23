@@ -42,13 +42,49 @@ serve(async (req) => {
           is_estimated: true
         };
       } else {
-        // Call Ninja Van API
+        // Call Ninja Van API with proper payload structure
         const ninjaVanPayload = {
           service_type: "Parcel",
           service_level: service_type,
-          from: from_address,
-          to: to_address,
+          requested_tracking_number: `ORD-${Date.now()}`,
+          reference: {
+            merchant_order_number: `SHIP-${Date.now()}`
+          },
+          from: {
+            name: from_address?.name || "Store",
+            phone_number: from_address?.phone_number || "+63123456789",
+            email: from_address?.email || "store@example.com",
+            address: {
+              address1: from_address?.address?.address1 || "Store Address Line 1",
+              address2: from_address?.address?.address2 || "",
+              area: from_address?.address?.area || "Business District",
+              city: from_address?.address?.city || "Manila",
+              state: from_address?.address?.state || "Metro Manila",
+              address_type: "office",
+              country: from_address?.address?.country || "PH",
+              postcode: from_address?.address?.postcode || "1000"
+            }
+          },
+          to: {
+            name: to_address?.name || "Customer",
+            phone_number: to_address?.phone_number || "+63987654321",
+            email: to_address?.email || "customer@example.com",
+            address: {
+              address1: to_address?.address?.address1 || to_address?.address || "Customer Address",
+              address2: to_address?.address?.address2 || "",
+              area: to_address?.address?.area || "Residential Area",
+              city: to_address?.address?.city || "Quezon City",
+              state: to_address?.address?.state || "Metro Manila",
+              address_type: "home",
+              country: to_address?.address?.country || "PH",
+              postcode: to_address?.address?.postcode || "1100"
+            }
+          },
           parcel_job: {
+            is_pickup_required: false,
+            pickup_service_type: "Scheduled",
+            pickup_service_level: "Standard",
+            delivery_instructions: "Please handle with care",
             dimensions: {
               weight: weight
             },
