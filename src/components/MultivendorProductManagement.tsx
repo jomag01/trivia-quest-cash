@@ -85,8 +85,8 @@ export default function MultivendorProductManagement() {
     if (!selectedProduct) return;
 
     const markupValue = parseInt(markup);
-    if (markupValue < 0 || markupValue > 200) {
-      toast.error("Markup must be between 0% and 200%");
+    if (markupValue < 0 || markupValue > 500) {
+      toast.error("Markup must be between 0% and 500%");
       return;
     }
 
@@ -228,12 +228,12 @@ export default function MultivendorProductManagement() {
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="markup">Markup Percentage (0-200%)</Label>
+              <Label htmlFor="markup">Markup Percentage (0-500%)</Label>
               <Input
                 id="markup"
                 type="number"
                 min="0"
-                max="200"
+                max="500"
                 value={markup}
                 onChange={(e) => setMarkup(e.target.value)}
               />

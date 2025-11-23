@@ -29,14 +29,26 @@ export default function SellerDashboard() {
     name: "", description: "", wholesale_price: "", stock_quantity: "", category_id: "", image_url: "",
     diamond_reward: "", referral_commission_diamonds: "", shipping_fee: "", weight_kg: "", dimensions_cm: "", free_shipping: false,
   });
+  const [diamondBasePrice, setDiamondBasePrice] = useState(10);
 
   useEffect(() => {
     if (user) {
       checkSellerEligibility();
       checkVerificationStatus();
       fetchCategories();
+      fetchDiamondPrice();
     }
   }, [user]);
+
+  const fetchDiamondPrice = async () => {
+    try {
+      const { data, error } = await supabase.from("treasure_admin_settings").select("setting_value").eq("setting_key", "diamond_base_price").maybeSingle();
+      if (error) throw error;
+      if (data) setDiamondBasePrice(parseFloat(data.setting_value));
+    } catch (error: any) {
+      console.error("Error fetching diamond price:", error);
+    }
+  };
 
   useEffect(() => {
     if (profile?.is_verified_seller) fetchMyProducts();
@@ -214,11 +226,15 @@ export default function SellerDashboard() {
             <div><Label>Description</Label><Textarea value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} /></div>
             <div><Label>Category</Label><Select value={productForm.category_id} onValueChange={(v) => setProductForm({ ...productForm, category_id: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>Wholesale Price *</Label><Input type="number" step="0.01" value={productForm.wholesale_price} onChange={(e) => setProductForm({ ...productForm, wholesale_price: e.target.value })} /></div>
+              <div><Label>Wholesale Price *</Label><Input type="number" step="0.01" value={productForm.wholesale_price} onChange={(e) => {
+                const price = e.target.value;
+                const calculatedDiamonds = price ? Math.floor((parseFloat(price) * 0.10) / diamondBasePrice) : 0;
+                setProductForm({ ...productForm, wholesale_price: price, diamond_reward: calculatedDiamonds.toString() });
+              }} /></div>
               <div><Label>Stock</Label><Input type="number" value={productForm.stock_quantity} onChange={(e) => setProductForm({ ...productForm, stock_quantity: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>Diamond Reward</Label><Input type="number" value={productForm.diamond_reward} onChange={(e) => setProductForm({ ...productForm, diamond_reward: e.target.value })} placeholder="Diamonds earned on purchase" /></div>
+              <div><Label>Diamond Reward (Auto-calculated: 10% of price)</Label><Input type="number" value={productForm.diamond_reward} onChange={(e) => setProductForm({ ...productForm, diamond_reward: e.target.value })} placeholder="Auto-calculated" disabled /></div>
               <div><Label>Referral Commission (💎)</Label><Input type="number" value={productForm.referral_commission_diamonds} onChange={(e) => setProductForm({ ...productForm, referral_commission_diamonds: e.target.value })} placeholder="Diamonds for referrer" /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
