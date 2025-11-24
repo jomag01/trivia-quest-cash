@@ -2189,6 +2189,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      distribute_network_diamonds: {
+        Args: { p_amount: number; p_buyer_id: string; p_purchase_id: string }
+        Returns: undefined
+      }
       distribute_purchase_commissions: {
         Args: {
           amount_param: number
@@ -2197,15 +2201,25 @@ export type Database = {
         }
         Returns: undefined
       }
-      distribute_stair_step_commissions: {
-        Args: {
-          amount_param: number
-          buyer_id: string
-          is_credit_purchase?: boolean
-          purchase_id_param: string
-        }
-        Returns: undefined
-      }
+      distribute_stair_step_commissions:
+        | {
+            Args: {
+              p_amount: number
+              p_buyer_id: string
+              p_is_credit_purchase?: boolean
+              p_purchase_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              amount_param: number
+              buyer_id: string
+              is_credit_purchase?: boolean
+              purchase_id_param: string
+            }
+            Returns: undefined
+          }
       generate_order_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       get_referral_count: { Args: { p_user_id: string }; Returns: number }
