@@ -24,6 +24,10 @@ export default function EarningsCalculator() {
   // Stair step inputs
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [salesAmount, setSalesAmount] = useState<number>(10000);
+  
+  // Downline stair step inputs
+  const [downlineCounts, setDownlineCounts] = useState<{ [key: number]: number }>({});
+  const [downlineSales, setDownlineSales] = useState<{ [key: number]: number }>({});
 
   // Commission rates for 7-level network (example percentages)
   const networkCommissionRates = [10, 5, 3, 2, 1, 0.5, 0.5];
@@ -62,9 +66,39 @@ export default function EarningsCalculator() {
     return salesAmount * (step.commission_percentage / 100);
   };
 
+  // Calculate downline differential earnings
+  const calculateDownlineEarnings = () => {
+    const currentStepData = stairSteps.find(s => s.step_number === currentStep);
+    if (!currentStepData) return { total: 0, breakdown: [] };
+
+    const breakdown: { level: string; percentage: number; earnings: number }[] = [];
+    let total = 0;
+
+    stairSteps.forEach(step => {
+      if (step.step_number < currentStep) {
+        const count = downlineCounts[step.step_number] || 0;
+        const sales = downlineSales[step.step_number] || 0;
+        const differentialPercentage = currentStepData.commission_percentage - step.commission_percentage;
+        const earnings = sales * (differentialPercentage / 100);
+        
+        if (count > 0 && sales > 0) {
+          breakdown.push({
+            level: step.step_name,
+            percentage: differentialPercentage,
+            earnings: earnings
+          });
+          total += earnings;
+        }
+      }
+    });
+
+    return { total, breakdown };
+  };
+
   const totalNetworkEarnings = calculateNetworkEarnings();
   const totalStairStepEarnings = calculateStairStepEarnings();
-  const grandTotal = totalNetworkEarnings + totalStairStepEarnings;
+  const downlineEarnings = calculateDownlineEarnings();
+  const grandTotal = totalNetworkEarnings + totalStairStepEarnings + downlineEarnings.total;
 
   return (
     <Card className="w-full">
@@ -171,7 +205,7 @@ export default function EarningsCalculator() {
 
           <div className="bg-primary/10 p-4 rounded-lg">
             <div className="flex justify-between items-center">
-              <span className="font-semibold">Stair-Step Earnings:</span>
+              <span className="font-semibold">Personal Sales Earnings:</span>
               <span className="text-xl font-bold text-primary">
                 ₱{totalStairStepEarnings.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
@@ -181,6 +215,71 @@ export default function EarningsCalculator() {
                 At {stairSteps.find(s => s.step_number === currentStep)?.commission_percentage}% commission rate
               </p>
             )}
+          </div>
+
+          {/* Downline Differential Earnings */}
+          <div className="space-y-3 mt-6">
+            <h4 className="font-semibold text-sm">Earnings from Downlines Below Your Level</h4>
+            <p className="text-xs text-muted-foreground">
+              Calculate how much you earn from team members at lower steps (based on percentage difference)
+            </p>
+            
+            {stairSteps
+              .filter(step => step.step_number < currentStep)
+              .map(step => (
+                <div key={step.step_number} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{step.step_name} ({step.commission_percentage}%)</span>
+                    <span className="text-xs text-primary">
+                      You earn: {(stairSteps.find(s => s.step_number === currentStep)?.commission_percentage || 0) - step.commission_percentage}% difference
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Number of People</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={downlineCounts[step.step_number] || 0}
+                        onChange={(e) => setDownlineCounts(prev => ({
+                          ...prev,
+                          [step.step_number]: Number(e.target.value)
+                        }))}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Their Total Sales (₱)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={downlineSales[step.step_number] || 0}
+                        onChange={(e) => setDownlineSales(prev => ({
+                          ...prev,
+                          [step.step_number]: Number(e.target.value)
+                        }))}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  
+                  {downlineCounts[step.step_number] > 0 && downlineSales[step.step_number] > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      Earnings: ₱{((downlineSales[step.step_number] || 0) * ((stairSteps.find(s => s.step_number === currentStep)?.commission_percentage || 0) - step.commission_percentage) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+            <div className="bg-primary/10 p-4 rounded-lg mt-3">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Downline Differential Earnings:</span>
+                <span className="text-xl font-bold text-primary">
+                  ₱{downlineEarnings.total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
