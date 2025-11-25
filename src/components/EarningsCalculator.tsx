@@ -29,6 +29,10 @@ export default function EarningsCalculator() {
   const [downlineCounts, setDownlineCounts] = useState<{ [key: number]: number }>({});
   const [downlineSales, setDownlineSales] = useState<{ [key: number]: number }>({});
 
+  // Leadership breakaway inputs (21% leaders across 7 levels)
+  const [leadershipCounts, setLeadershipCounts] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  const [leadershipSales, setLeadershipSales] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+
   // Commission rates for 7-level network (example percentages)
   const networkCommissionRates = [10, 5, 3, 2, 1, 0.5, 0.5];
 
@@ -95,10 +99,22 @@ export default function EarningsCalculator() {
     return { total, breakdown };
   };
 
+  // Calculate leadership breakaway earnings (2% from 21% leaders across 7 levels)
+  const calculateLeadershipBreakaway = () => {
+    return leadershipSales.reduce((total, sales, index) => {
+      const count = leadershipCounts[index];
+      if (count > 0 && sales > 0) {
+        return total + (sales * 0.02); // 2% from all 21% leaders
+      }
+      return total;
+    }, 0);
+  };
+
   const totalNetworkEarnings = calculateNetworkEarnings();
   const totalStairStepEarnings = calculateStairStepEarnings();
   const downlineEarnings = calculateDownlineEarnings();
-  const grandTotal = totalNetworkEarnings + totalStairStepEarnings + downlineEarnings.total;
+  const leadershipBreakaway = calculateLeadershipBreakaway();
+  const grandTotal = totalNetworkEarnings + totalStairStepEarnings + downlineEarnings.total + leadershipBreakaway;
 
   return (
     <Card className="w-full">
@@ -108,7 +124,7 @@ export default function EarningsCalculator() {
           <CardTitle>Earnings Calculator</CardTitle>
         </div>
         <CardDescription>
-          Calculate your potential earnings from the 7-level network and stair-step plan
+          Calculate your potential earnings from the 7-level network, stair-step plan, and leadership breakaway
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -285,6 +301,76 @@ export default function EarningsCalculator() {
 
         <Separator />
 
+        {/* Leadership Breakaway Earnings */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold">Leadership Breakaway (2% Override)</h3>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Earn 2% from all your downlines who are at 21% level, down to 7 levels deep
+          </p>
+
+          <div className="space-y-3">
+            {leadershipCounts.map((count, index) => (
+              <div key={index} className="border rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Level {index + 1} - 21% Leaders</span>
+                  <span className="text-xs text-primary">You earn: 2% override</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Number of 21% Leaders</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={count}
+                      onChange={(e) => {
+                        const newCounts = [...leadershipCounts];
+                        newCounts[index] = Number(e.target.value);
+                        setLeadershipCounts(newCounts);
+                      }}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Their Total Sales (₱)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={leadershipSales[index]}
+                      onChange={(e) => {
+                        const newSales = [...leadershipSales];
+                        newSales[index] = Number(e.target.value);
+                        setLeadershipSales(newSales);
+                      }}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                
+                {count > 0 && leadershipSales[index] > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    Earnings: ₱{(leadershipSales[index] * 0.02).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-primary/10 p-4 rounded-lg">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">Leadership Breakaway Earnings:</span>
+              <span className="text-xl font-bold text-primary">
+                ₱{leadershipBreakaway.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
         {/* Total Earnings */}
         <div className="bg-gradient-to-r from-primary/20 to-primary/10 p-6 rounded-lg">
           <div className="flex justify-between items-center">
@@ -301,6 +387,7 @@ export default function EarningsCalculator() {
         <div className="text-xs text-muted-foreground space-y-1">
           <p>* Network rates: Level 1 (10%), Level 2 (5%), Level 3 (3%), Level 4 (2%), Level 5-7 (1%, 0.5%, 0.5%)</p>
           <p>* Stair-step earnings are based on your current rank and team sales</p>
+          <p>* Leadership breakaway: 2% from all 21% leaders in your 7-level network</p>
           <p>* Actual earnings may vary based on product purchases and qualification requirements</p>
         </div>
       </CardContent>
