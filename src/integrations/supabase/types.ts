@@ -551,6 +551,63 @@ export type Database = {
         }
         Relationships: []
       }
+      leadership_commissions: {
+        Row: {
+          amount: number
+          commission_type: string
+          created_at: string | null
+          downline_id: string
+          id: string
+          level: number
+          notes: string | null
+          order_id: string | null
+          purchase_id: string | null
+          sales_amount: number
+          upline_id: string
+        }
+        Insert: {
+          amount: number
+          commission_type?: string
+          created_at?: string | null
+          downline_id: string
+          id?: string
+          level: number
+          notes?: string | null
+          order_id?: string | null
+          purchase_id?: string | null
+          sales_amount: number
+          upline_id: string
+        }
+        Update: {
+          amount?: number
+          commission_type?: string
+          created_at?: string | null
+          downline_id?: string
+          id?: string
+          level?: number
+          notes?: string | null
+          order_id?: string | null
+          purchase_id?: string | null
+          sales_amount?: number
+          upline_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadership_commissions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leadership_commissions_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "credit_purchases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_attachments: {
         Row: {
           created_at: string | null
@@ -2178,6 +2235,15 @@ export type Database = {
       }
       deduct_wrong_answer_penalty: {
         Args: { p_category_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      distribute_leadership_breakaway: {
+        Args: {
+          p_order_id?: string
+          p_purchase_id?: string
+          p_sales_amount: number
+          p_seller_id: string
+        }
         Returns: undefined
       }
       distribute_multivendor_commissions: {

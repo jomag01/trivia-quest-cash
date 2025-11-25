@@ -28,6 +28,8 @@ import { DiamondLeaderboard } from "@/components/DiamondLeaderboard";
 import { GenealogyTree } from "@/components/GenealogyTree";
 import { UplineTransferRequest } from "@/components/UplineTransferRequest";
 import EarningsCalculator from "@/components/EarningsCalculator";
+import LeadershipStatus from "@/components/LeadershipStatus";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const {
@@ -339,6 +341,13 @@ const Dashboard = () => {
                     Calculator
                   </Button>
                   <Button
+                    variant={activeTab === "leadership" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("leadership"); setMobileMenuOpen(false); }}
+                  >
+                    Leadership
+                  </Button>
+                  <Button
                     variant={activeTab === "notifications" ? "default" : "ghost"}
                     className="justify-start"
                     onClick={() => { setActiveTab("notifications"); setMobileMenuOpen(false); }}
@@ -386,10 +395,11 @@ const Dashboard = () => {
           </div>
 
           {/* Desktop Tabs */}
-          <TabsList className="hidden lg:grid w-full grid-cols-9 gap-1">
+          <TabsList className="hidden lg:grid w-full grid-cols-10 gap-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="network">Network Tree</TabsTrigger>
             <TabsTrigger value="calculator">Calculator</TabsTrigger>
+            <TabsTrigger value="leadership">Leadership</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="diamonds">Diamonds</TabsTrigger>
             <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
@@ -653,6 +663,10 @@ const Dashboard = () => {
 
       <TabsContent value="calculator" className="space-y-6">
         <EarningsCalculator />
+      </TabsContent>
+
+      <TabsContent value="leadership" className="space-y-6">
+        <LeadershipStatus />
       </TabsContent>
 
       <TabsContent value="cart">
