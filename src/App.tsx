@@ -12,6 +12,7 @@ import Admin from "./pages/Admin";
 import Shop from "./pages/Shop";
 import TreasureHunt from "./pages/TreasureHunt";
 import Community from "./pages/Community";
+import Feed from "./pages/Feed";
 import DiamondMarketplace from "./components/DiamondMarketplace";
 import NotFound from "./pages/NotFound";
 import SellerDashboard from "./pages/SellerDashboard";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/treasure-hunt" element={<TreasureHunt />} />
             <Route path="/diamond-marketplace" element={<DiamondMarketplace />} />
             <Route path="/community" element={<Community />} />
+            <Route path="/feed" element={<Feed />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />

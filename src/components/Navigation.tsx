@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Home, Gamepad2, LayoutDashboard, LogIn, LogOut, Trophy, Shield, ShoppingBag, MessageSquare, Package } from "lucide-react";
+import { Menu, Home, Gamepad2, LayoutDashboard, LogIn, LogOut, Trophy, Shield, ShoppingBag, MessageSquare, Package, Share2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 const Navigation = () => {
   const location = useLocation();
@@ -34,6 +34,10 @@ const Navigation = () => {
     to: "/community",
     label: "Community",
     icon: MessageSquare
+  }, {
+    to: "/feed",
+    label: "Feed",
+    icon: Share2
   }] : []), {
     to: "/dashboard",
     label: "Dashboard",
