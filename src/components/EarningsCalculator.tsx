@@ -20,6 +20,7 @@ export default function EarningsCalculator() {
   // 7-level network inputs
   const [networkReferrals, setNetworkReferrals] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
   const [avgPurchaseAmount, setAvgPurchaseAmount] = useState<number>(1000);
+  const [networkMultiplier, setNetworkMultiplier] = useState<number>(5);
   
   // Stair step inputs
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -32,6 +33,7 @@ export default function EarningsCalculator() {
   // Leadership breakaway inputs (21% leaders across 7 levels)
   const [leadershipCounts, setLeadershipCounts] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
   const [leadershipSales, setLeadershipSales] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  const [leadershipMultiplier, setLeadershipMultiplier] = useState<number>(5);
 
   // Commission rates for 7-level network (example percentages)
   const networkCommissionRates = [10, 5, 3, 2, 1, 0.5, 0.5];
@@ -53,6 +55,22 @@ export default function EarningsCalculator() {
     } catch (error) {
       console.error("Error fetching stair steps:", error);
     }
+  };
+
+  // Apply network multiplier to auto-populate levels
+  const applyNetworkMultiplier = () => {
+    const newReferrals = Array.from({ length: 7 }, (_, i) => 
+      Math.pow(networkMultiplier, i + 1)
+    );
+    setNetworkReferrals(newReferrals);
+  };
+
+  // Apply leadership multiplier to auto-populate levels
+  const applyLeadershipMultiplier = () => {
+    const newCounts = Array.from({ length: 7 }, (_, i) => 
+      Math.pow(leadershipMultiplier, i + 1)
+    );
+    setLeadershipCounts(newCounts);
   };
 
   // Calculate 7-level network earnings
@@ -145,6 +163,30 @@ export default function EarningsCalculator() {
                 onChange={(e) => setAvgPurchaseAmount(Number(e.target.value))}
                 placeholder="1000"
               />
+            </div>
+
+            <div className="border rounded-lg p-3 bg-muted/50">
+              <Label htmlFor="network-multiplier" className="text-sm font-medium">Auto-populate in Multiples</Label>
+              <div className="flex gap-2 mt-2">
+                <Input
+                  id="network-multiplier"
+                  type="number"
+                  min="1"
+                  value={networkMultiplier}
+                  onChange={(e) => setNetworkMultiplier(Number(e.target.value))}
+                  placeholder="5"
+                  className="w-24"
+                />
+                <button
+                  onClick={applyNetworkMultiplier}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90"
+                >
+                  Apply
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Enter a multiplier (e.g., 5) to auto-populate all levels exponentially
+              </p>
             </div>
 
             {networkReferrals.map((count, index) => (
@@ -310,6 +352,30 @@ export default function EarningsCalculator() {
           <p className="text-xs text-muted-foreground">
             Earn 2% from all your downlines who are at 21% level, down to 7 levels deep
           </p>
+
+          <div className="border rounded-lg p-3 bg-muted/50 mb-3">
+            <Label htmlFor="leadership-multiplier" className="text-sm font-medium">Auto-populate in Multiples</Label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                id="leadership-multiplier"
+                type="number"
+                min="1"
+                value={leadershipMultiplier}
+                onChange={(e) => setLeadershipMultiplier(Number(e.target.value))}
+                placeholder="5"
+                className="w-24"
+              />
+              <button
+                onClick={applyLeadershipMultiplier}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90"
+              >
+                Apply
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Enter a multiplier (e.g., 5) to auto-populate all levels exponentially
+            </p>
+          </div>
 
           <div className="space-y-3">
             {leadershipCounts.map((count, index) => (
