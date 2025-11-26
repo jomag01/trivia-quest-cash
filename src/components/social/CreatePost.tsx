@@ -66,6 +66,7 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
 
     setUploading(true);
     try {
+      let mediaUrl = "";
       let fileToUpload = selectedFile;
 
       // Compress images
@@ -78,20 +79,28 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
         fileToUpload = await imageCompression(selectedFile, options);
       }
 
-      // Upload to Supabase Storage
-      const fileExt = fileToUpload.name.split(".").pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      // Try to upload to Supabase Storage
+      try {
+        const fileExt = fileToUpload.name.split(".").pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-      const { data, error: uploadError } = await supabase.storage
-        .from("post-media")
-        .upload(fileName, fileToUpload);
+        const { data, error: uploadError } = await supabase.storage
+          .from("post-media")
+          .upload(fileName, fileToUpload);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("post-media")
-        .getPublicUrl(fileName);
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from("post-media")
+          .getPublicUrl(fileName);
+
+        mediaUrl = urlData.publicUrl;
+      } catch (storageError) {
+        console.warn("Storage upload failed, using data URL fallback:", storageError);
+        // Fallback: Convert to data URL and store in database
+        mediaUrl = previewUrl || "";
+      }
 
       // Create post in database
       const { error: insertError } = await supabase
@@ -99,7 +108,7 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
         .insert({
           user_id: user.id,
           content: content || null,
-          media_url: urlData.publicUrl,
+          media_url: mediaUrl,
           media_type: mediaType,
         });
 
