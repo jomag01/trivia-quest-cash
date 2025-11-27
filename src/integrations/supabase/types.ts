@@ -1085,6 +1085,67 @@ export type Database = {
           },
         ]
       }
+      post_reactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_shares: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_shares_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_views: {
         Row: {
           id: string
@@ -1123,6 +1184,7 @@ export type Database = {
           likes_count: number | null
           media_type: string
           media_url: string | null
+          shares_count: number | null
           thumbnail_url: string | null
           updated_at: string
           user_id: string
@@ -1136,6 +1198,7 @@ export type Database = {
           likes_count?: number | null
           media_type: string
           media_url?: string | null
+          shares_count?: number | null
           thumbnail_url?: string | null
           updated_at?: string
           user_id: string
@@ -1149,6 +1212,7 @@ export type Database = {
           likes_count?: number | null
           media_type?: string
           media_url?: string | null
+          shares_count?: number | null
           thumbnail_url?: string | null
           updated_at?: string
           user_id?: string

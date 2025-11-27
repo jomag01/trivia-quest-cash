@@ -2,7 +2,8 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Image, Video, Music, X, Upload } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Image, Video, Music, X, Upload, Users, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -149,6 +150,20 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
         <CardTitle>Create Post</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <Tabs defaultValue="post" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="post">Post</TabsTrigger>
+            <TabsTrigger value="community">
+              <Users className="w-4 h-4 mr-2" />
+              Community
+            </TabsTrigger>
+            <TabsTrigger value="live">
+              <Radio className="w-4 h-4 mr-2" />
+              Go Live
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="post" className="space-y-4">
         <Textarea
           placeholder="What's on your mind?"
           value={content}
@@ -215,20 +230,41 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
           </Button>
         </div>
 
-        <Button
-          onClick={handlePost}
-          disabled={uploading || !selectedFile}
-          className="w-full"
-        >
-          {uploading ? (
-            <>
-              <Upload className="w-4 h-4 mr-2 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            "Post"
-          )}
-        </Button>
+            <Button
+              onClick={handlePost}
+              disabled={uploading || !selectedFile}
+              className="w-full"
+            >
+              {uploading ? (
+                <>
+                  <Upload className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                "Post"
+              )}
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="community" className="space-y-4">
+            <p className="text-muted-foreground text-center py-8">
+              Share content with your community groups
+            </p>
+            <Button className="w-full" disabled>
+              Coming Soon
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="live" className="space-y-4">
+            <p className="text-muted-foreground text-center py-8">
+              Start a live video stream
+            </p>
+            <Button className="w-full" disabled>
+              <Radio className="w-4 h-4 mr-2" />
+              Start Live Video
+            </Button>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
