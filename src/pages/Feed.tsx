@@ -15,9 +15,11 @@ interface Post {
   likes_count: number;
   comments_count: number;
   views_count: number;
+  shares_count: number;
   created_at: string;
   profiles?: {
     full_name: string | null;
+    email: string | null;
   };
 }
 
@@ -37,19 +39,31 @@ const Feed = () => {
 
   const loadPosts = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data: postsData, error } = await supabase
       .from("posts")
-      .select(`
-        *,
-        profiles:user_id (full_name)
-      `)
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error loading posts:", error);
-    } else {
-      setPosts(data as any);
+      setLoading(false);
+      return;
     }
+
+    // Fetch profiles for all unique user_ids
+    const userIds = [...new Set(postsData?.map(post => post.user_id) || [])];
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", userIds);
+
+    // Merge profile data with posts
+    const postsWithProfiles = postsData?.map(post => ({
+      ...post,
+      profiles: profilesData?.find(p => p.id === post.user_id)
+    })) || [];
+
+    setPosts(postsWithProfiles as any);
     setLoading(false);
   };
 
