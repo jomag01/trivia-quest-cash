@@ -3,11 +3,12 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, MessageCircle, Trash2, Eye, Share2, Smile, Laugh, Frown, ThumbsUp } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Eye, Share2, Smile, Laugh, Frown, ThumbsUp, UserPlus, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatDistanceToNow } from "date-fns";
 
 interface Post {
   id: string;
@@ -43,14 +44,65 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
   const [newComment, setNewComment] = useState("");
   const [reactions, setReactions] = useState<{[key: string]: number}>({});
   const [userReaction, setUserReaction] = useState<string | null>(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
       checkLikeStatus();
       recordView();
       loadReactions();
+      checkFollowStatus();
     }
   }, [user]);
+
+  const checkFollowStatus = async () => {
+    if (!user || user.id === post.user_id) return;
+
+    const { data } = await supabase
+      .from("user_follows")
+      .select("id")
+      .eq("follower_id", user.id)
+      .eq("following_id", post.user_id)
+      .single();
+
+    setIsFollowing(!!data);
+  };
+
+  const handleFollow = async () => {
+    if (!user || user.id === post.user_id) return;
+
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        const { error } = await supabase
+          .from("user_follows")
+          .delete()
+          .eq("follower_id", user.id)
+          .eq("following_id", post.user_id);
+
+        if (error) throw error;
+        setIsFollowing(false);
+        toast.success("Unfollowed user");
+      } else {
+        const { error } = await supabase
+          .from("user_follows")
+          .insert({
+            follower_id: user.id,
+            following_id: post.user_id,
+          });
+
+        if (error) throw error;
+        setIsFollowing(true);
+        toast.success("Following user");
+      }
+    } catch (error: any) {
+      console.error("Error toggling follow:", error);
+      toast.error(error.message || "Failed to update follow status");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const checkLikeStatus = async () => {
     if (!user) return;
@@ -249,14 +301,32 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
             </Avatar>
             <div>
               <p className="font-semibold">{post.profiles?.full_name || post.profiles?.email || "Unknown User"}</p>
-              <p className="text-xs text-muted-foreground">{new Date(post.created_at).toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })} • {post.views_count} views
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Eye className="w-4 h-4" />
-              {post.views_count}
-            </div>
+            {user && user.id !== post.user_id && (
+              <Button
+                variant={isFollowing ? "outline" : "default"}
+                size="sm"
+                onClick={handleFollow}
+                disabled={followLoading}
+              >
+                {isFollowing ? (
+                  <>
+                    <UserCheck className="w-4 h-4 mr-1" />
+                    Following
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    Follow
+                  </>
+                )}
+              </Button>
+            )}
             {user?.id === post.user_id && (
               <Button variant="ghost" size="icon" onClick={handleDelete}>
                 <Trash2 className="w-4 h-4" />

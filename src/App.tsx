@@ -31,18 +31,18 @@ const App = () => (
           <Navigation />
           <CustomerSupportChat />
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Feed />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/game" element={<Game />} />
             <Route path="/game/:category" element={<Game />} />
             <Route path="/treasure-hunt" element={<TreasureHunt />} />
             <Route path="/diamond-marketplace" element={<DiamondMarketplace />} />
             <Route path="/community" element={<Community />} />
-            <Route path="/feed" element={<Feed />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/seller" element={<SellerDashboard />} />
+            <Route path="/home" element={<Home />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
