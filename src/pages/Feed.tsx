@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CreatePost } from "@/components/social/CreatePost";
 import { PostCard } from "@/components/social/PostCard";
-import { Loader2 } from "lucide-react";
+import { Loader2, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Post {
   id: string;
@@ -27,7 +27,9 @@ const Feed = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [followingPosts, setFollowingPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("foryou");
 
   useEffect(() => {
     if (!user) {
@@ -35,6 +37,7 @@ const Feed = () => {
       return;
     }
     loadPosts();
+    loadFollowingPosts();
   }, [user, navigate]);
 
   const loadPosts = async () => {
@@ -50,43 +53,102 @@ const Feed = () => {
       return;
     }
 
-    // Fetch profiles for all unique user_ids
+    await enrichPostsWithProfiles(postsData, setPosts);
+    setLoading(false);
+  };
+
+  const loadFollowingPosts = async () => {
+    if (!user) return;
+
+    // Get users that current user follows
+    const { data: followingData } = await supabase
+      .from("user_follows")
+      .select("following_id")
+      .eq("follower_id", user.id);
+
+    const followingIds = followingData?.map(f => f.following_id) || [];
+
+    if (followingIds.length === 0) {
+      setFollowingPosts([]);
+      return;
+    }
+
+    const { data: postsData, error } = await supabase
+      .from("posts")
+      .select("*")
+      .in("user_id", followingIds)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading following posts:", error);
+      return;
+    }
+
+    await enrichPostsWithProfiles(postsData, setFollowingPosts);
+  };
+
+  const enrichPostsWithProfiles = async (postsData: any[], setter: (posts: Post[]) => void) => {
     const userIds = [...new Set(postsData?.map(post => post.user_id) || [])];
     const { data: profilesData } = await supabase
       .from("profiles")
-      .select("id, full_name, email")
+      .select("id, full_name, email, followers_count, following_count")
       .in("id", userIds);
 
-    // Merge profile data with posts
     const postsWithProfiles = postsData?.map(post => ({
       ...post,
       profiles: profilesData?.find(p => p.id === post.user_id)
     })) || [];
 
-    setPosts(postsWithProfiles as any);
-    setLoading(false);
+    setter(postsWithProfiles as any);
   };
 
   if (!user) return null;
 
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
-      <div className="space-y-6">
-        <CreatePost onPostCreated={loadPosts} />
+  const renderPosts = (postsList: Post[]) => {
+    if (loading) {
+      return (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      );
+    }
 
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin" />
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            No posts yet. Be the first to share something!
-          </div>
-        ) : (
-          posts.map((post) => (
-            <PostCard key={post.id} post={post} onDelete={loadPosts} />
-          ))
-        )}
+    if (postsList.length === 0) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          {activeTab === "following" 
+            ? "Follow users to see their posts here!"
+            : "No posts yet. Be the first to share something!"}
+        </div>
+      );
+    }
+
+    return postsList.map((post) => (
+      <PostCard key={post.id} post={post} onDelete={() => { loadPosts(); loadFollowingPosts(); }} />
+    ));
+  };
+
+  return (
+    <div className="min-h-screen pb-20">
+      {/* Top Tabs */}
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full justify-start rounded-none bg-transparent h-14 px-4">
+            <TabsTrigger value="following" className="gap-2">
+              <Users className="w-4 h-4" />
+              Following
+            </TabsTrigger>
+            <TabsTrigger value="foryou">For You</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        <div className="space-y-6">
+          {activeTab === "following" && renderPosts(followingPosts)}
+          {activeTab === "foryou" && renderPosts(posts)}
+        </div>
       </div>
     </div>
   );
