@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu } from "lucide-react";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
@@ -29,6 +29,7 @@ import { GenealogyTree } from "@/components/GenealogyTree";
 import { UplineTransferRequest } from "@/components/UplineTransferRequest";
 import EarningsCalculator from "@/components/EarningsCalculator";
 import LeadershipStatus from "@/components/LeadershipStatus";
+import { CustomerSupportChat } from "@/components/CustomerSupportChat";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ const Dashboard = () => {
   const [referralLoading, setReferralLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   useEffect(() => {
     if (!loading && !user) {
@@ -62,8 +64,23 @@ const Dashboard = () => {
   useEffect(() => {
     if (user) {
       fetchAllData();
+      checkAdminRole();
     }
   }, [user]);
+
+  const checkAdminRole = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin'
+      });
+      if (error) throw error;
+      setIsAdmin(data === true);
+    } catch (error) {
+      console.error('Error checking admin role:', error);
+    }
+  };
 
   // Refresh data when switching to network tab
   useEffect(() => {
@@ -279,26 +296,36 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-              <Trophy className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gradient-gold">
-                {profile.full_name || profile.email}
-              </h2>
-              <div className="flex items-center gap-3">
-                <p className="text-sm text-muted-foreground">Player ID: {userStats.referralCode}</p>
-                {referrerName && (
-                  <>
-                    <span className="text-sm text-muted-foreground">•</span>
-                    <p className="text-sm text-muted-foreground">
-                      Referred by: <span className="text-primary font-semibold">{referrerName}</span>
-                    </p>
-                  </>
-                )}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                <Trophy className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gradient-gold">
+                  {profile.full_name || profile.email}
+                </h2>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-muted-foreground">Player ID: {userStats.referralCode}</p>
+                  {referrerName && (
+                    <>
+                      <span className="text-sm text-muted-foreground">•</span>
+                      <p className="text-sm text-muted-foreground">
+                        Referred by: <span className="text-primary font-semibold">{referrerName}</span>
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
+            {isAdmin && (
+              <Link to="/admin">
+                <Button variant="outline" className="gap-2">
+                  <Shield className="w-4 h-4" />
+                  Admin Panel
+                </Button>
+              </Link>
+            )}
           </div>
           <h1 className="text-4xl font-bold mb-2 text-gradient-gold">
             Player Dashboard
@@ -389,13 +416,20 @@ const Dashboard = () => {
                   >
                     Orders
                   </Button>
+                  <Button
+                    variant={activeTab === "support" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("support"); setMobileMenuOpen(false); }}
+                  >
+                    Support
+                  </Button>
                 </div>
               </SheetContent>
             </Sheet>
           </div>
 
           {/* Desktop Tabs */}
-          <TabsList className="hidden lg:grid w-full grid-cols-10 gap-1">
+          <TabsList className="hidden lg:grid w-full grid-cols-11 gap-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="network">Network Tree</TabsTrigger>
             <TabsTrigger value="calculator">Calculator</TabsTrigger>
@@ -406,6 +440,7 @@ const Dashboard = () => {
             <TabsTrigger value="cart">Cart</TabsTrigger>
             <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
+            <TabsTrigger value="support">Support</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
@@ -691,6 +726,10 @@ const Dashboard = () => {
 
       <TabsContent value="orders">
         <OrderTracking />
+      </TabsContent>
+
+      <TabsContent value="support">
+        <CustomerSupportChat />
       </TabsContent>
     </Tabs>
   </div>

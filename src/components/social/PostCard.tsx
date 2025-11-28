@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, MessageCircle, Trash2, Eye, Share2, Smile, Laugh, Frown, ThumbsUp, UserPlus, UserCheck } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Eye, Share2, Smile, Laugh, Frown, ThumbsUp, UserPlus, UserCheck, Play, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDistanceToNow } from "date-fns";
+import { PostCardComments } from "./PostCardComments";
 
 interface Post {
   id: string;
@@ -38,14 +38,14 @@ interface Comment {
 
 export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void }) => {
   const { user } = useAuth();
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [liked, setLiked] = useState(false);
   const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState("");
   const [reactions, setReactions] = useState<{[key: string]: number}>({});
   const [userReaction, setUserReaction] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -149,54 +149,18 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
     }
   };
 
-  const loadComments = async () => {
-    const { data: commentsData } = await supabase
-      .from("post_comments")
-      .select("id, content, created_at, user_id")
-      .eq("post_id", post.id)
-      .order("created_at", { ascending: false });
-
-    if (commentsData) {
-      const userIds = [...new Set(commentsData.map(c => c.user_id))];
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", userIds);
-
-      const commentsWithProfiles = commentsData.map(comment => ({
-        ...comment,
-        profiles: profilesData?.find(p => p.id === comment.user_id)
-      }));
-
-      setComments(commentsWithProfiles as any);
-    }
-  };
-
-  const handleComment = async () => {
-    if (!user) {
-      toast.error("Please log in to comment");
-      return;
-    }
-    if (!newComment.trim()) return;
-
-    const { error } = await supabase.from("post_comments").insert({
-      post_id: post.id,
-      user_id: user.id,
-      content: newComment,
-    });
-
-    if (error) {
-      toast.error("Failed to post comment");
-    } else {
-      setNewComment("");
-      loadComments();
-    }
-  };
-
   const toggleComments = () => {
     setShowComments(!showComments);
-    if (!showComments && comments.length === 0) {
-      loadComments();
+  };
+
+  const toggleVideo = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
     }
   };
 
@@ -343,7 +307,22 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
           <img src={post.media_url} alt="Post" className="w-full rounded-lg" />
         )}
         {post.media_url && post.media_type === "video" && (
-          <video src={post.media_url} controls className="w-full rounded-lg" />
+          <div className="relative cursor-pointer" onClick={toggleVideo}>
+            <video
+              ref={videoRef}
+              src={post.media_url}
+              className="w-full rounded-lg"
+              loop
+              playsInline
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              {!isPlaying && (
+                <div className="bg-black/50 rounded-full p-4">
+                  <Play className="w-12 h-12 text-white" />
+                </div>
+              )}
+            </div>
+          </div>
         )}
         {post.media_url && post.media_type === "audio" && (
           <audio src={post.media_url} controls className="w-full" />
@@ -397,33 +376,7 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
           </div>
         )}
 
-        {showComments && (
-          <div className="w-full space-y-3 border-t pt-3">
-            <div className="flex gap-2">
-              <Textarea
-                placeholder="Write a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="min-h-[60px]"
-              />
-              <Button onClick={handleComment}>Post</Button>
-            </div>
-            
-            <div className="space-y-2">
-              {comments.map((comment) => (
-                <div key={comment.id} className="bg-muted p-3 rounded-lg">
-                  <p className="font-semibold text-sm">
-                    {comment.profiles?.full_name || "Anonymous"}
-                  </p>
-                  <p className="text-sm">{comment.content}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(comment.created_at).toLocaleString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <PostCardComments postId={post.id} showComments={showComments} />
       </CardFooter>
     </Card>
   );
