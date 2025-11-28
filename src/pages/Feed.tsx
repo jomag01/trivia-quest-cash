@@ -6,8 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { PostCard } from "@/components/social/PostCard";
-import { Gamepad2, Users } from "lucide-react";
+import { Gamepad2, Users, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Post {
   id: string;
@@ -167,29 +173,35 @@ export default function Feed() {
       {/* Top Tabs */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full justify-start rounded-none bg-transparent h-14 px-4 overflow-x-auto">
+          <TabsList className="w-full justify-start rounded-none bg-transparent h-14 px-4">
             <TabsTrigger value="following" className="gap-2">
               <Users className="w-4 h-4" />
               Following
             </TabsTrigger>
             <TabsTrigger value="for-you">For You</TabsTrigger>
             
-            {/* Game Categories */}
-            {categories.map((category) => (
-              <TabsTrigger
-                key={category.id}
-                value={category.slug}
-                className="gap-2"
-                onClick={() => {
-                  if (activeTab === category.slug) {
-                    navigate(`/game/${category.slug}`);
-                  }
-                }}
-              >
-                <span className="text-lg">{category.icon}</span>
-                {category.name}
-              </TabsTrigger>
-            ))}
+            {/* Game Categories Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="gap-2 h-10">
+                  <Gamepad2 className="w-4 h-4" />
+                  Games
+                  <ChevronDown className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 bg-background z-50">
+                {categories.map((category) => (
+                  <DropdownMenuItem
+                    key={category.id}
+                    onClick={() => navigate(`/game/${category.slug}`)}
+                    className="gap-2 cursor-pointer"
+                  >
+                    <span className="text-lg">{category.icon}</span>
+                    {category.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </TabsList>
         </Tabs>
       </div>
@@ -199,12 +211,6 @@ export default function Feed() {
         <div className="space-y-6">
           {activeTab === "following" && renderPosts(followingPosts)}
           {activeTab === "for-you" && renderPosts(posts)}
-          {categories.some(c => c.slug === activeTab) && (
-            <div className="text-center py-12">
-              <Gamepad2 className="w-16 h-16 mx-auto mb-4 text-primary animate-pulse" />
-              <p className="text-muted-foreground">Click the tab again to play this game!</p>
-            </div>
-          )}
         </div>
       </div>
     </div>
