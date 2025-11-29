@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Package, Search, Filter, Heart } from "lucide-react";
+import { ShoppingCart, Package, Search, Filter, Heart, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +12,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ProductDetailDialog } from "@/components/ProductDetailDialog";
 import ShippingCalculator from "@/components/ShippingCalculator";
 import { ProductShareButton } from "@/components/ProductShareButton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SellerDashboard from "./SellerDashboard";
 import {
   Dialog,
   DialogContent,
@@ -388,37 +390,48 @@ const Shop = () => {
   return (
     <div className="min-h-screen bg-white py-4 md:py-8 px-3 md:px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2 text-gradient-gold">Shop</h1>
-          <p className="text-sm md:text-base text-muted-foreground">Browse our products</p>
-        </div>
-
-        {/* Filters */}
-        <div className="mb-6 md:mb-8 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 text-sm md:text-base"
-            />
+        <Tabs defaultValue="shop" className="w-full">
+          <div className="mb-6">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gradient-gold">Shop</h1>
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="shop" className="gap-2">
+                <ShoppingCart className="w-4 h-4" />
+                Shop
+              </TabsTrigger>
+              <TabsTrigger value="seller" className="gap-2">
+                <Store className="w-4 h-4" />
+                Be a Seller
+              </TabsTrigger>
+            </TabsList>
           </div>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="text-sm md:text-base">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+
+          <TabsContent value="shop" className="space-y-6">
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 text-sm md:text-base"
+                />
+              </div>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="text-sm md:text-base">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
         {/* Products Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
@@ -546,7 +559,6 @@ const Shop = () => {
             <p className="text-muted-foreground">No products found</p>
           </div>
         )}
-      </div>
 
       {/* Checkout Dialog */}
       <Dialog open={checkoutDialog} onOpenChange={setCheckoutDialog}>
@@ -678,6 +690,13 @@ const Shop = () => {
         inCart={detailProduct ? inCart.has(detailProduct.id) : false}
         inWishlist={detailProduct ? inWishlist.has(detailProduct.id) : false}
       />
+          </TabsContent>
+
+          <TabsContent value="seller">
+            <SellerDashboard />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
