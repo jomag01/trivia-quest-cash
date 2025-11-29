@@ -13,11 +13,11 @@ import Shop from "./pages/Shop";
 import TreasureHunt from "./pages/TreasureHunt";
 import Community from "./pages/Community";
 import Feed from "./pages/Feed";
+import Profile from "./pages/Profile";
 import DiamondMarketplace from "./components/DiamondMarketplace";
 import NotFound from "./pages/NotFound";
 import SellerDashboard from "./pages/SellerDashboard";
 import Navigation from "./components/Navigation";
-import { CustomerSupportChat } from "./components/CustomerSupportChat";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +29,6 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Navigation />
-          <CustomerSupportChat />
           <Routes>
             <Route path="/" element={<Feed />} />
             <Route path="/auth" element={<Auth />} />
@@ -43,6 +42,7 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/seller" element={<SellerDashboard />} />
             <Route path="/home" element={<Home />} />
+            <Route path="/profile/:userId" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
