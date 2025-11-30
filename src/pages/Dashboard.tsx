@@ -744,6 +744,57 @@ const Dashboard = () => {
           </p>
           <AffiliateRankCard />
         </Card>
+        
+        {/* Leadership Breakaway Information */}
+        <Card className="p-6 bg-gradient-to-br from-yellow-500/5 to-yellow-600/5 border-yellow-500/20">
+          <div className="flex items-center gap-3 mb-4">
+            <Award className="w-8 h-8 text-yellow-500" />
+            <div>
+              <h3 className="text-xl font-bold">Leadership 2% Breakaway Bonus</h3>
+              <p className="text-sm text-muted-foreground">Exclusive royalty for 21% leaders</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-background rounded-lg">
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-yellow-500" />
+                How it works:
+              </h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-500 font-bold">1.</span>
+                  <span>Reach the highest stair-step level (21% commission rate)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-500 font-bold">2.</span>
+                  <span>Earn an additional 2% override from all your direct downlines who are also at 21%</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-500 font-bold">3.</span>
+                  <span>This 2% bonus extends through 7 levels of 21% leaders in your network</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-500 font-bold">4.</span>
+                  <span>Leadership earnings are separate from and in addition to your standard stair-step commissions</span>
+                </li>
+              </ul>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 bg-yellow-500/10 rounded-lg">
+              <div className="flex-1">
+                <p className="text-sm font-medium mb-1">View Your Leadership Status</p>
+                <p className="text-xs text-muted-foreground">Check your royalty earnings and active 21% leaders in your network</p>
+              </div>
+              <Button 
+                onClick={() => setActiveTab("leadership")}
+                className="bg-yellow-500 hover:bg-yellow-600"
+              >
+                View Status
+              </Button>
+            </div>
+          </div>
+        </Card>
       </TabsContent>
 
       <TabsContent value="support">
