@@ -51,6 +51,8 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
   const [followLoading, setFollowLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showFullscreenVideo, setShowFullscreenVideo] = useState(false);
+  const [showFullscreenImage, setShowFullscreenImage] = useState(false);
+  const [showInteractions, setShowInteractions] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -321,11 +323,13 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
         {post.content && <p>{post.content}</p>}
         
         {post.media_url && post.media_type === "image" && (
-          <img src={post.media_url} alt="Post" className="w-full rounded-lg" />
+          <div className="relative cursor-pointer" onClick={() => setShowFullscreenImage(true)}>
+            <img src={post.media_url} alt="Post" className="w-full rounded-lg" />
+          </div>
         )}
         {post.media_url && post.media_type === "video" && (
           <div className="relative">
-            <div className="cursor-pointer" onClick={openFullscreenVideo}>
+            <div className="cursor-pointer" onClick={() => setShowInteractions(true)}>
               <video
                 ref={videoRef}
                 src={post.media_url}
@@ -397,6 +401,116 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
 
         <PostCardComments postId={post.id} showComments={showComments} />
       </CardFooter>
+
+      {/* Fullscreen Image Dialog */}
+      <Dialog open={showFullscreenImage} onOpenChange={setShowFullscreenImage}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black border-none">
+          <div className="relative w-full h-[95vh] flex items-center justify-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 z-50 text-white hover:bg-white/20"
+              onClick={() => setShowFullscreenImage(false)}
+            >
+              <X className="w-6 h-6" />
+            </Button>
+            {post.media_url && (
+              <img
+                src={post.media_url}
+                alt="Post"
+                className="max-w-full max-h-full object-contain"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* TikTok-style Interactions Dialog */}
+      <Dialog open={showInteractions} onOpenChange={setShowInteractions}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black border-none">
+          <div className="relative w-full h-[95vh] flex">
+            {/* Main Content Area */}
+            <div className="flex-1 flex items-center justify-center">
+              {post.media_url && post.media_type === "video" && (
+                <video
+                  src={post.media_url}
+                  className="max-w-full max-h-full"
+                  controls
+                  autoPlay
+                  loop
+                  playsInline
+                />
+              )}
+              {post.media_url && post.media_type === "image" && (
+                <img
+                  src={post.media_url}
+                  alt="Post"
+                  className="max-w-full max-h-full object-contain"
+                />
+              )}
+            </div>
+
+            {/* Right Sidebar with Interactions */}
+            <div className="w-20 md:w-24 flex flex-col items-center justify-center gap-8 py-8 bg-black/50 backdrop-blur-sm">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 flex flex-col gap-1"
+                onClick={handleLike}
+              >
+                <Heart className={`w-8 h-8 ${liked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+                <span className="text-xs text-white">{post.likes_count}</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 flex flex-col gap-1"
+                onClick={toggleComments}
+              >
+                <MessageCircle className="w-8 h-8 text-white" />
+                <span className="text-xs text-white">{post.comments_count}</span>
+              </Button>
+
+              {user && user.id !== post.user_id && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 flex flex-col gap-1"
+                  onClick={handleFollow}
+                  disabled={followLoading}
+                >
+                  {isFollowing ? (
+                    <UserCheck className="w-8 h-8 text-white" />
+                  ) : (
+                    <UserPlus className="w-8 h-8 text-white" />
+                  )}
+                </Button>
+              )}
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 flex flex-col gap-1"
+                onClick={handleShare}
+              >
+                <Share2 className="w-8 h-8 text-white" />
+                <span className="text-xs text-white">{post.shares_count || 0}</span>
+              </Button>
+            </div>
+
+            {/* Close Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 z-50 text-white hover:bg-white/20"
+              onClick={() => setShowInteractions(false)}
+            >
+              <X className="w-6 h-6" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Fullscreen Video Dialog */}
       <Dialog open={showFullscreenVideo} onOpenChange={setShowFullscreenVideo}>

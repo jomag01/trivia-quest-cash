@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { UserPlus, UserCheck, ArrowLeft, Users, Trophy } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserPlus, UserCheck, ArrowLeft, Users, Trophy, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 
 const Profile = () => {
   const { userId } = useParams();
@@ -22,6 +23,8 @@ const Profile = () => {
     following: 0,
     posts: 0,
   });
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (userId) {
@@ -121,6 +124,48 @@ const Profile = () => {
     }
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    if (user.id !== userId) {
+      toast.error("You can only upload your own profile picture");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `profile-pictures/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-pictures')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-pictures')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl } as any)
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      toast.success("Profile picture updated!");
+      fetchProfile();
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload profile picture");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen py-8 px-4">
@@ -164,11 +209,34 @@ const Profile = () => {
         <Card className="mb-8">
           <CardHeader>
             <div className="flex flex-col md:flex-row items-center gap-6">
-              <Avatar className="w-32 h-32">
-                <AvatarFallback className="text-4xl">
-                  {profile.full_name?.charAt(0) || profile.email?.charAt(0) || "U"}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="w-32 h-32">
+                  {profile.avatar_url && <AvatarImage src={profile.avatar_url} />}
+                  <AvatarFallback className="text-4xl">
+                    {profile.full_name?.charAt(0) || profile.email?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                {user && user.id === userId && (
+                  <>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="absolute bottom-0 right-0 rounded-full"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      <Camera className="w-4 h-4" />
+                    </Button>
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                  </>
+                )}
+              </div>
 
               <div className="flex-1 text-center md:text-left">
                 <h1 className="text-3xl font-bold mb-2">
