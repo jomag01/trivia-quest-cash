@@ -336,6 +336,7 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
                 className="w-full rounded-lg"
                 loop
                 playsInline
+                controlsList="nodownload"
               />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 {!isPlaying && (
@@ -530,6 +531,7 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
                 src={post.media_url}
                 className="max-w-full max-h-full"
                 controls
+                controlsList="nodownload"
                 autoPlay
                 loop
                 playsInline
