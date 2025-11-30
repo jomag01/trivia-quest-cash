@@ -417,6 +417,13 @@ const Dashboard = () => {
                     Orders
                   </Button>
                   <Button
+                    variant={activeTab === "stair-step" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("stair-step"); setMobileMenuOpen(false); }}
+                  >
+                    Stair Step
+                  </Button>
+                  <Button
                     variant={activeTab === "support" ? "default" : "ghost"}
                     className="justify-start"
                     onClick={() => { setActiveTab("support"); setMobileMenuOpen(false); }}
@@ -440,6 +447,7 @@ const Dashboard = () => {
             <TabsTrigger value="cart">Cart</TabsTrigger>
             <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
+            <TabsTrigger value="stair-step">Stair Step</TabsTrigger>
             <TabsTrigger value="support">Support</TabsTrigger>
           </TabsList>
 
@@ -726,6 +734,16 @@ const Dashboard = () => {
 
       <TabsContent value="orders">
         <OrderTracking />
+      </TabsContent>
+
+      <TabsContent value="stair-step" className="space-y-6">
+        <Card className="p-6">
+          <h3 className="text-2xl font-bold mb-6">Stair-Step Leadership Plan</h3>
+          <p className="text-muted-foreground mb-6">
+            Track your progress through the leadership levels and see your commission rates.
+          </p>
+          <AffiliateRankCard />
+        </Card>
       </TabsContent>
 
       <TabsContent value="support">
