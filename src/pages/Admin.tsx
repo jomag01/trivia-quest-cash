@@ -42,6 +42,7 @@ import CourierSettingsManagement from "@/components/CourierSettingsManagement";
 import SellerVerificationManagement from "@/components/SellerVerificationManagement";
 import MultivendorProductManagement from "@/components/MultivendorProductManagement";
 import { SalesAnalytics } from "@/components/SalesAnalytics";
+import { AdManagement } from "@/components/AdManagement";
 import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -466,6 +467,7 @@ const Admin = () => {
           )}
 
           {activeTab === "sales-analytics" && <SalesAnalytics />}
+          {activeTab === "ad-management" && <AdManagement />}
           {activeTab === "categories" && <CategoryManagement />}
           {activeTab === "treasure-hunt" && <TreasureHuntManagement />}
           {activeTab === "diamond-settings" && <TreasureAdminSettings />}

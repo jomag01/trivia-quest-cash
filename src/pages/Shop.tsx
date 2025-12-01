@@ -12,6 +12,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ProductDetailDialog } from "@/components/ProductDetailDialog";
 import ShippingCalculator from "@/components/ShippingCalculator";
 import { ProductShareButton } from "@/components/ProductShareButton";
+import { AdSlider } from "@/components/AdSlider";
+import { useInteractionTracking } from "@/hooks/useInteractionTracking";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SellerDashboard from "./SellerDashboard";
 import {
@@ -34,6 +36,7 @@ const Shop = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { trackInteraction } = useInteractionTracking();
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -406,6 +409,11 @@ const Shop = () => {
           </div>
 
           <TabsContent value="shop" className="space-y-6">
+            {/* Ad Slider */}
+            <div className="mb-4">
+              <AdSlider />
+            </div>
+            
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <div className="relative">
@@ -438,8 +446,9 @@ const Shop = () => {
           {filteredProducts.map((product) => (
             <Card
               key={product.id}
-              className="overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 flex flex-col cursor-pointer group"
+              className="overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 flex flex-col cursor-pointer group bg-white"
               onClick={() => {
+                trackInteraction('view', 'product', product.id, { name: product.name });
                 setDetailProduct(product);
                 setDetailDialog(true);
               }}
@@ -503,24 +512,26 @@ const Shop = () => {
 
                 <div className="mt-auto space-y-1.5">
                   <Button
-                    className="w-full h-7 text-[10px] md:text-xs"
+                    className="w-full h-7 text-[10px] md:text-xs bg-red-500 hover:bg-red-600 text-white"
                     onClick={(e) => {
                       e.stopPropagation();
+                      trackInteraction('click', 'button', `buy_${product.id}`);
                       handleBuyNow(product);
                     }}
                     disabled={!product.stock_quantity || product.stock_quantity === 0}
                   >
                     <ShoppingCart className="w-3 h-3 mr-1" />
-                    {product.stock_quantity > 0 ? "Buy" : "Out"}
+                    {product.stock_quantity > 0 ? "Buy Now" : "Out"}
                   </Button>
                   
                   <div className="grid grid-cols-3 gap-1">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-7 text-[10px] md:text-xs"
+                      className="h-7 text-[10px] md:text-xs border-red-500 text-red-500 hover:bg-red-50"
                       onClick={(e) => {
                         e.stopPropagation();
+                        trackInteraction('click', 'button', `cart_${product.id}`);
                         addToCart(product.id);
                       }}
                       disabled={!product.stock_quantity || product.stock_quantity === 0}
