@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ProductReviews } from "./ProductReviews";
+import { useInteractionTracking } from "@/hooks/useInteractionTracking";
 
 interface Product {
   id: string;
@@ -45,6 +47,7 @@ export const ProductDetailDialog = ({
   const [images, setImages] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const { trackInteraction } = useInteractionTracking();
 
   useEffect(() => {
     if (product && open) {
@@ -123,7 +126,7 @@ export const ProductDetailDialog = ({
         <div className="grid md:grid-cols-2 gap-6">
           {/* Product Image Gallery */}
           <div className="relative">
-            <div className="aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+            <div className="aspect-square rounded-lg overflow-hidden bg-white flex items-center justify-center border border-border/50">
               {loading ? (
                 <div className="text-muted-foreground">Loading images...</div>
               ) : images.length > 0 ? (
@@ -238,8 +241,11 @@ export const ProductDetailDialog = ({
 
             <div className="space-y-2 pt-4">
               <Button
-                className="w-full"
-                onClick={onBuyNow}
+                className="w-full bg-red-500 hover:bg-red-600 text-white"
+                onClick={() => {
+                  trackInteraction('click', 'button', `buy_now_${product.id}`);
+                  onBuyNow();
+                }}
                 disabled={!product.stock_quantity || product.stock_quantity === 0}
               >
                 <ShoppingCart className="w-4 h-4 mr-2" />
@@ -249,7 +255,11 @@ export const ProductDetailDialog = ({
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
-                  onClick={onAddToCart}
+                  className="border-red-500 text-red-500 hover:bg-red-50"
+                  onClick={() => {
+                    trackInteraction('click', 'button', `add_cart_${product.id}`);
+                    onAddToCart();
+                  }}
                   disabled={!product.stock_quantity || product.stock_quantity === 0 || inCart}
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
@@ -258,7 +268,10 @@ export const ProductDetailDialog = ({
                 
                 <Button
                   variant={inWishlist ? "default" : "outline"}
-                  onClick={onToggleWishlist}
+                  onClick={() => {
+                    trackInteraction('click', 'button', `wishlist_${product.id}`);
+                    onToggleWishlist();
+                  }}
                 >
                   <Heart className={`w-4 h-4 mr-2 ${inWishlist ? "fill-current" : ""}`} />
                   {inWishlist ? "Saved" : "Wishlist"}
@@ -266,6 +279,11 @@ export const ProductDetailDialog = ({
               </div>
             </div>
           </div>
+        </div>
+        
+        {/* Product Reviews Section */}
+        <div className="mt-6">
+          <ProductReviews productId={product.id} sellerId={null} />
         </div>
       </DialogContent>
     </Dialog>

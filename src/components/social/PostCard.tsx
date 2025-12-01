@@ -11,6 +11,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatDistanceToNow } from "date-fns";
 import { PostCardComments } from "./PostCardComments";
 import { useNavigate } from "react-router-dom";
+import { useInteractionTracking } from "@/hooks/useInteractionTracking";
 
 interface Post {
   id: string;
@@ -41,6 +42,7 @@ interface Comment {
 export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { trackInteraction } = useInteractionTracking();
   const videoRef = useRef<HTMLVideoElement>(null);
   const fullscreenVideoRef = useRef<HTMLVideoElement>(null);
   const [liked, setLiked] = useState(false);
@@ -127,6 +129,7 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
       post_id: post.id,
       user_id: user?.id || null,
     });
+    trackInteraction('view', post.media_type === 'video' ? 'video' : 'post', post.id);
   };
 
   const handleLike = async () => {
@@ -135,6 +138,8 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
       return;
     }
 
+    trackInteraction('like', post.media_type, post.id);
+    
     if (liked) {
       await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
       setLiked(false);

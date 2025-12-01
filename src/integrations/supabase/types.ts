@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      ads: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          link_url: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          link_url?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          link_url?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       affiliate_current_rank: {
         Row: {
           created_at: string
@@ -2211,6 +2244,33 @@ export type Database = {
           },
         ]
       }
+      user_ad_preferences: {
+        Row: {
+          id: string
+          interest_tags: Json | null
+          last_updated: string | null
+          purchase_history: Json | null
+          user_id: string | null
+          viewed_categories: string[] | null
+        }
+        Insert: {
+          id?: string
+          interest_tags?: Json | null
+          last_updated?: string | null
+          purchase_history?: Json | null
+          user_id?: string | null
+          viewed_categories?: string[] | null
+        }
+        Update: {
+          id?: string
+          interest_tags?: Json | null
+          last_updated?: string | null
+          purchase_history?: Json | null
+          user_id?: string | null
+          viewed_categories?: string[] | null
+        }
+        Relationships: []
+      }
       user_answered_questions: {
         Row: {
           answered_at: string | null
@@ -2293,6 +2353,36 @@ export type Database = {
           follower_id?: string
           following_id?: string
           id?: string
+        }
+        Relationships: []
+      }
+      user_interactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          interaction_type: string
+          metadata: Json | null
+          target_id: string
+          target_type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          interaction_type: string
+          metadata?: Json | null
+          target_id: string
+          target_type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          interaction_type?: string
+          metadata?: Json | null
+          target_id?: string
+          target_type?: string
+          user_id?: string | null
         }
         Relationships: []
       }

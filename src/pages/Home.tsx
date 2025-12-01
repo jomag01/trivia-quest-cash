@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Trophy, Users, Gamepad2, Zap, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { AdSlider } from "@/components/AdSlider";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -75,6 +76,11 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
+      {/* Ad Slider */}
+      <div className="max-w-6xl mx-auto px-4 pt-4">
+        <AdSlider />
+      </div>
+
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 px-4">
         <div className="absolute inset-0 gradient-primary opacity-80" />
