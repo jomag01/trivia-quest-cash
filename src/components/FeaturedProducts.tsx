@@ -154,7 +154,7 @@ export const FeaturedProducts = () => {
           const hasDiscount = product.promo_active && product.promo_price;
 
           return (
-            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group border-border/50">
+            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group border-border/50 bg-white">
               <div className="relative aspect-square bg-muted overflow-hidden">
                 {product.image_url ? (
                   <>
@@ -193,10 +193,10 @@ export const FeaturedProducts = () => {
               </div>
               
               <div className="p-2 space-y-1.5">
-                <h3 className="font-semibold text-xs md:text-sm line-clamp-2 leading-tight">{product.name}</h3>
+                <h3 className="font-semibold text-xs md:text-sm line-clamp-2 leading-tight text-black">{product.name}</h3>
                 
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm md:text-base font-bold text-primary">
+                  <span className="text-sm md:text-base font-bold text-black">
                     ₱{effectivePrice.toFixed(2)}
                   </span>
                   {hasDiscount && (
@@ -209,7 +209,7 @@ export const FeaturedProducts = () => {
                 <div className="grid grid-cols-2 gap-1">
                   <Button
                     size="sm"
-                    className="h-7 text-[10px] md:text-xs"
+                    className="h-7 text-[10px] md:text-xs bg-red-600 hover:bg-red-700 text-white"
                     onClick={() => addToCart(product.id)}
                     disabled={product.stock_quantity === 0}
                   >
@@ -220,7 +220,7 @@ export const FeaturedProducts = () => {
                     productId={product.id}
                     productName={product.name}
                     size="sm"
-                    className="h-7 text-[10px] md:text-xs"
+                    className="h-7 text-[10px] md:text-xs bg-red-600 hover:bg-red-700 text-white"
                   />
                 </div>
               </div>
