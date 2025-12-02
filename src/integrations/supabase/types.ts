@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_impressions: {
+        Row: {
+          ad_id: string
+          clicked: boolean | null
+          converted: boolean | null
+          created_at: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          ad_id: string
+          clicked?: boolean | null
+          converted?: boolean | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          ad_id?: string
+          clicked?: boolean | null
+          converted?: boolean | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_impressions_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "user_ads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ads: {
         Row: {
           created_at: string | null
@@ -2271,6 +2306,81 @@ export type Database = {
         }
         Relationships: []
       }
+      user_ads: {
+        Row: {
+          admin_notes: string | null
+          budget_diamonds: number
+          clicks_count: number
+          conversions_count: number
+          cost_per_view: number
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          link_url: string | null
+          spent_diamonds: number
+          start_date: string | null
+          status: string
+          target_behavior: string[] | null
+          target_category: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+          video_url: string | null
+          views_count: number
+        }
+        Insert: {
+          admin_notes?: string | null
+          budget_diamonds?: number
+          clicks_count?: number
+          conversions_count?: number
+          cost_per_view?: number
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          link_url?: string | null
+          spent_diamonds?: number
+          start_date?: string | null
+          status?: string
+          target_behavior?: string[] | null
+          target_category?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+          video_url?: string | null
+          views_count?: number
+        }
+        Update: {
+          admin_notes?: string | null
+          budget_diamonds?: number
+          clicks_count?: number
+          conversions_count?: number
+          cost_per_view?: number
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          link_url?: string | null
+          spent_diamonds?: number
+          start_date?: string | null
+          status?: string
+          target_behavior?: string[] | null
+          target_category?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          video_url?: string | null
+          views_count?: number
+        }
+        Relationships: []
+      }
       user_answered_questions: {
         Row: {
           answered_at: string | null
@@ -2581,6 +2691,7 @@ export type Database = {
         Returns: boolean
       }
       can_become_seller: { Args: { p_user_id: string }; Returns: boolean }
+      can_create_ads: { Args: { user_id_param: string }; Returns: boolean }
       check_and_update_affiliate_rank: {
         Args: { p_user_id: string }
         Returns: undefined
