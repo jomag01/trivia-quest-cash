@@ -30,6 +30,7 @@ import { UplineTransferRequest } from "@/components/UplineTransferRequest";
 import EarningsCalculator from "@/components/EarningsCalculator";
 import LeadershipStatus from "@/components/LeadershipStatus";
 import { CustomerSupportChat } from "@/components/CustomerSupportChat";
+import { UserAdCreation } from "@/components/UserAdCreation";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -424,6 +425,13 @@ const Dashboard = () => {
                     Stair Step
                   </Button>
                   <Button
+                    variant={activeTab === "advertising" ? "default" : "ghost"}
+                    className="justify-start"
+                    onClick={() => { setActiveTab("advertising"); setMobileMenuOpen(false); }}
+                  >
+                    Advertising
+                  </Button>
+                  <Button
                     variant={activeTab === "support" ? "default" : "ghost"}
                     className="justify-start"
                     onClick={() => { setActiveTab("support"); setMobileMenuOpen(false); }}
@@ -436,7 +444,7 @@ const Dashboard = () => {
           </div>
 
           {/* Desktop Tabs */}
-          <TabsList className="hidden lg:grid w-full grid-cols-11 gap-1">
+          <TabsList className="hidden lg:grid w-full grid-cols-12 gap-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="network">Network Tree</TabsTrigger>
             <TabsTrigger value="calculator">Calculator</TabsTrigger>
@@ -448,6 +456,7 @@ const Dashboard = () => {
             <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="stair-step">Stair Step</TabsTrigger>
+            <TabsTrigger value="advertising">Advertising</TabsTrigger>
             <TabsTrigger value="support">Support</TabsTrigger>
           </TabsList>
 
@@ -795,6 +804,10 @@ const Dashboard = () => {
             </div>
           </div>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="advertising" className="space-y-6">
+        <UserAdCreation />
       </TabsContent>
 
       <TabsContent value="support">

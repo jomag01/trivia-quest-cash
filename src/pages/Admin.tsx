@@ -43,6 +43,7 @@ import SellerVerificationManagement from "@/components/SellerVerificationManagem
 import MultivendorProductManagement from "@/components/MultivendorProductManagement";
 import { SalesAnalytics } from "@/components/SalesAnalytics";
 import { AdManagement } from "@/components/AdManagement";
+import { UserAdManagement } from "@/components/UserAdManagement";
 import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -99,6 +100,8 @@ const Admin = () => {
     { id: "shipping-zones", label: "Shipping Zones", icon: MapPin },
     { id: "bulk-shipping", label: "Bulk Shipping", icon: Truck },
     { id: "courier-settings", label: "Courier Settings", icon: Truck },
+    { id: "ad-management", label: "Ad Management", icon: Upload },
+    { id: "user-ads", label: "User Ad Campaigns", icon: TrendingUp },
     { id: "migration", label: "Image Migration", icon: Upload },
     { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
     { id: "transfers", label: "Upline Transfers", icon: Users },
@@ -468,6 +471,7 @@ const Admin = () => {
 
           {activeTab === "sales-analytics" && <SalesAnalytics />}
           {activeTab === "ad-management" && <AdManagement />}
+          {activeTab === "user-ads" && <UserAdManagement />}
           {activeTab === "categories" && <CategoryManagement />}
           {activeTab === "treasure-hunt" && <TreasureHuntManagement />}
           {activeTab === "diamond-settings" && <TreasureAdminSettings />}
