@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Package, Search, Filter, Heart, Store } from "lucide-react";
+import { ShoppingCart, Package, Search, Heart, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +16,8 @@ import { AdSlider } from "@/components/AdSlider";
 import { useInteractionTracking } from "@/hooks/useInteractionTracking";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SellerDashboard from "./SellerDashboard";
+import ShopAccountOverview from "@/components/ShopAccountOverview";
+import CategorySlider from "@/components/CategorySlider";
 import {
   Dialog,
   DialogContent,
@@ -24,13 +26,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const Shop = () => {
   const { user } = useAuth();
@@ -49,7 +44,7 @@ const Shop = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [shippingFee, setShippingFee] = useState(50); // Default shipping fee
+  const [shippingFee, setShippingFee] = useState(50);
   const [inCart, setInCart] = useState<Set<string>>(new Set());
   const [inWishlist, setInWishlist] = useState<Set<string>>(new Set());
   const [detailDialog, setDetailDialog] = useState(false);
@@ -63,7 +58,6 @@ const Shop = () => {
       fetchWishlistStatus();
     }
     
-    // Track referral from URL
     const ref = searchParams.get('ref');
     const productId = searchParams.get('product');
     if (ref && productId) {
@@ -81,7 +75,6 @@ const Shop = () => {
 
       if (error) throw error;
       
-      // Fetch static and hover images for products
       const productsWithImages = await Promise.all(
         (data || []).map(async (product) => {
           const { data: images } = await supabase
@@ -256,7 +249,6 @@ const Shop = () => {
       const subtotal = price * quantity;
       const totalAmount = subtotal + shippingFee;
 
-      // Check for product referral
       const referralData = localStorage.getItem('product_referrer');
       let referrerId: string | null = null;
       
@@ -267,13 +259,11 @@ const Shop = () => {
         }
       }
 
-      // Generate order number
       const { data: orderNumberData, error: orderNumError } = await supabase
         .rpc("generate_order_number");
 
       if (orderNumError) throw orderNumError;
 
-      // Create order (user_id will be null for guests)
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -293,10 +283,8 @@ const Shop = () => {
 
       if (orderError) throw orderError;
 
-      // Calculate diamond credits
       const diamondCredits = (selectedProduct.diamond_reward || 0) * quantity;
 
-      // Create order item with diamond reward
       const { error: itemError } = await supabase.from("order_items").insert({
         order_id: order.id,
         product_id: selectedProduct.id,
@@ -307,7 +295,6 @@ const Shop = () => {
 
       if (itemError) throw itemError;
 
-      // Update order with total diamond credits
       const { error: updateError } = await supabase
         .from("orders")
         .update({ total_diamond_credits: diamondCredits })
@@ -315,7 +302,6 @@ const Shop = () => {
 
       if (updateError) throw updateError;
 
-      // Create product referral record if there's a referrer
       if (referrerId && selectedProduct.referral_commission_diamonds > 0) {
         const { error: referralError } = await supabase
           .from("product_referrals")
@@ -332,7 +318,6 @@ const Shop = () => {
           console.error("Error creating referral record:", referralError);
         }
 
-        // If user just signed up and has a referrer, add them to referrer's downline
         if (user?.id && referrerId) {
           const { data: profile } = await supabase
             .from("profiles")
@@ -340,14 +325,12 @@ const Shop = () => {
             .eq("id", user.id)
             .single();
 
-          // Only set referrer if user doesn't already have one
           if (profile && !profile.referred_by) {
             await supabase
               .from("profiles")
               .update({ referred_by: referrerId })
               .eq("id", user.id);
 
-            // Create referral record
             await supabase
               .from("referrals")
               .insert({
@@ -357,7 +340,6 @@ const Shop = () => {
           }
         }
 
-        // Clear referral data
         localStorage.removeItem('product_referrer');
       }
 
@@ -384,330 +366,335 @@ const Shop = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Package className="w-16 h-16 text-primary animate-pulse" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Package className="w-16 h-16 text-black animate-pulse" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white py-4 md:py-8 px-3 md:px-4">
-      <div className="max-w-7xl mx-auto">
-        <Tabs defaultValue="shop" className="w-full">
-          <div className="mb-6">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gradient-gold">Shop</h1>
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="shop" className="gap-2">
-                <ShoppingCart className="w-4 h-4" />
+    <div className="min-h-screen bg-white pb-20">
+      <Tabs defaultValue="shop" className="w-full">
+        {/* Top Header with Search and Cart */}
+        <div className="sticky top-0 z-40 bg-white border-b border-gray-100 px-3 py-2">
+          <div className="flex items-center gap-2 max-w-7xl mx-auto">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 text-sm bg-gray-50 border-gray-200"
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => navigate("/dashboard?tab=cart")}
+            >
+              <ShoppingCart className="w-5 h-5 text-black" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-3">
+          {/* Account Overview - Compact */}
+          <ShopAccountOverview />
+
+          {/* Tabs for Shop/Seller */}
+          <div className="py-2">
+            <TabsList className="grid w-full max-w-[200px] grid-cols-2 h-8">
+              <TabsTrigger value="shop" className="text-xs h-7">
+                <ShoppingCart className="w-3 h-3 mr-1" />
                 Shop
               </TabsTrigger>
-              <TabsTrigger value="seller" className="gap-2">
-                <Store className="w-4 h-4" />
-                Be a Seller
+              <TabsTrigger value="seller" className="text-xs h-7">
+                <Store className="w-3 h-3 mr-1" />
+                Sell
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="shop" className="space-y-6">
-            {/* Ad Slider */}
-            <div className="mb-4">
+          <TabsContent value="shop" className="space-y-3 mt-0">
+            {/* Promotion Slider */}
+            <div className="-mx-3">
               <AdSlider />
             </div>
             
-            {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 text-sm md:text-base"
-                />
-              </div>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="text-sm md:text-base">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
-          {filteredProducts.map((product) => (
-            <Card
-              key={product.id}
-              className="overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 flex flex-col cursor-pointer group bg-white"
-              onClick={() => {
-                trackInteraction('view', 'product', product.id, { name: product.name });
-                setDetailProduct(product);
-                setDetailDialog(true);
-              }}
-            >
-              {/* Product Image */}
-              <div className="aspect-square overflow-hidden bg-muted relative">
-                {product.image_url ? (
-                  <>
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className={`w-full h-full object-cover transition-all duration-300 ${
-                        product.hover_image_url ? 'group-hover:opacity-0' : 'group-hover:scale-105'
-                      }`}
-                      loading="lazy"
-                    />
-                    {product.hover_image_url && (
-                      <img
-                        src={product.hover_image_url}
-                        alt={`${product.name} hover`}
-                        className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        loading="lazy"
-                      />
-                    )}
-                  </>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                    <Package className="w-8 h-8 opacity-20" />
-                  </div>
-                )}
-                {product.promo_active && product.promo_price && (
-                  <Badge className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0.5 bg-red-500 text-white">
-                    Sale
-                  </Badge>
-                )}
-                {product.diamond_reward > 0 && (
-                  <Badge className="absolute top-1.5 left-1.5 text-[10px] px-1.5 py-0.5 bg-primary">
-                    💎 {product.diamond_reward}
-                  </Badge>
-                )}
-              </div>
-              
-              <div className="p-2 flex-1 flex flex-col">
-                {product.promo_active && product.promo_price && product.discount_percentage && (
-                  <Badge className="mb-1.5 w-fit text-[10px] px-1.5 py-0.5 bg-red-500">
-                    {product.discount_percentage}% OFF
-                  </Badge>
-                )}
-                <h3 className="text-xs md:text-sm font-semibold mb-1 line-clamp-2 leading-tight">{product.name}</h3>
-                
-                <div className="flex items-center gap-1.5 mb-2">
-                  <span className="text-sm md:text-base font-bold text-primary">
-                    ₱{getEffectivePrice(product).toFixed(2)}
-                  </span>
-                  {product.promo_active && product.promo_price && (
-                    <span className="text-[10px] md:text-xs text-muted-foreground line-through">
-                      ₱{product.base_price.toFixed(2)}
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-auto space-y-1.5">
-                  <Button
-                    className="w-full h-7 text-[10px] md:text-xs bg-red-500 hover:bg-red-600 text-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      trackInteraction('click', 'button', `buy_${product.id}`);
-                      handleBuyNow(product);
-                    }}
-                    disabled={!product.stock_quantity || product.stock_quantity === 0}
-                  >
-                    <ShoppingCart className="w-3 h-3 mr-1" />
-                    {product.stock_quantity > 0 ? "Buy Now" : "Out"}
-                  </Button>
-                  
-                  <div className="grid grid-cols-3 gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-[10px] md:text-xs border-red-500 text-red-500 hover:bg-red-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        trackInteraction('click', 'button', `cart_${product.id}`);
-                        addToCart(product.id);
-                      }}
-                      disabled={!product.stock_quantity || product.stock_quantity === 0}
-                    >
-                      <ShoppingCart className="w-3 h-3 mr-1" />
-                      {inCart.has(product.id) ? "✓" : "Cart"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-[10px] md:text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleWishlist(product.id);
-                      }}
-                    >
-                      <Heart className={`w-3 h-3 mr-1 ${inWishlist.has(product.id) ? "fill-red-500 text-red-500" : ""}`} />
-                      {inWishlist.has(product.id) ? "✓" : "Save"}
-                    </Button>
-                    <ProductShareButton
-                      productId={product.id}
-                      productName={product.name}
-                      size="sm"
-                      className="h-7 text-[10px] md:text-xs"
-                    />
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No products found</p>
-          </div>
-        )}
-
-      {/* Checkout Dialog */}
-      <Dialog open={checkoutDialog} onOpenChange={setCheckoutDialog}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Complete Your Order</DialogTitle>
-            <p className="text-sm text-muted-foreground">Fill in your shipping details to complete the purchase</p>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label>Product</Label>
-              <p className="font-semibold">{selectedProduct?.name}</p>
-              <p className="text-sm text-muted-foreground">
-                ₱{getEffectivePrice(selectedProduct).toFixed(2)} each
-              </p>
-            </div>
-
-            <div>
-              <Label htmlFor="quantity">Quantity</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                max={selectedProduct?.stock_quantity || 1}
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="customerName">
-                Full Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="customerName"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="customerEmail">
-                Email <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="customerEmail"
-                type="email"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="customerPhone">Phone Number</Label>
-              <Input
-                id="customerPhone"
-                type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="shippingAddress">
-                Shipping Address <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="shippingAddress"
-                value={shippingAddress}
-                onChange={(e) => setShippingAddress(e.target.value)}
-                rows={3}
-                required
-              />
-            </div>
-
-            <ShippingCalculator
-              productWeight={selectedProduct?.weight_kg || 1}
-              subtotal={getEffectivePrice(selectedProduct) * quantity}
-              onShippingCalculated={setShippingFee}
+            {/* Category Slider */}
+            <CategorySlider
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
             />
 
-            <div className="pt-4 border-t space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Subtotal:</span>
-                <span>₱{(getEffectivePrice(selectedProduct) * quantity).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-lg font-bold border-t pt-2">
-                <span>Total:</span>
-                <span className="text-primary">
-                  ₱{(getEffectivePrice(selectedProduct) * quantity + shippingFee).toFixed(2)}
-                </span>
-              </div>
+            {/* Products Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {filteredProducts.map((product) => (
+                <Card
+                  key={product.id}
+                  className="overflow-hidden border-gray-100 hover:shadow-md transition-all duration-300 flex flex-col cursor-pointer group bg-white"
+                  onClick={() => {
+                    trackInteraction('view', 'product', product.id, { name: product.name });
+                    setDetailProduct(product);
+                    setDetailDialog(true);
+                  }}
+                >
+                  {/* Product Image */}
+                  <div className="aspect-square overflow-hidden bg-gray-50 relative">
+                    {product.image_url ? (
+                      <>
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className={`w-full h-full object-cover transition-all duration-300 ${
+                            product.hover_image_url ? 'group-hover:opacity-0' : 'group-hover:scale-105'
+                          }`}
+                          loading="lazy"
+                        />
+                        {product.hover_image_url && (
+                          <img
+                            src={product.hover_image_url}
+                            alt={`${product.name} hover`}
+                            className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                            loading="lazy"
+                          />
+                        )}
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300">
+                        <Package className="w-8 h-8" />
+                      </div>
+                    )}
+                    {product.promo_active && product.promo_price && (
+                      <Badge className="absolute top-1 right-1 text-[9px] px-1.5 py-0.5 bg-red-500 text-white">
+                        Sale
+                      </Badge>
+                    )}
+                    {product.diamond_reward > 0 && (
+                      <Badge className="absolute top-1 left-1 text-[9px] px-1.5 py-0.5 bg-black text-white">
+                        💎 {product.diamond_reward}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="p-2 flex-1 flex flex-col">
+                    <h3 className="text-xs font-medium mb-1 line-clamp-2 leading-tight text-black">{product.name}</h3>
+                    
+                    <div className="flex items-center gap-1 mb-1.5">
+                      <span className="text-sm font-bold text-red-500">
+                        ₱{getEffectivePrice(product).toFixed(2)}
+                      </span>
+                      {product.promo_active && product.promo_price && (
+                        <span className="text-[10px] text-gray-400 line-through">
+                          ₱{product.base_price.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-auto space-y-1">
+                      <Button
+                        className="w-full h-7 text-[10px] bg-red-500 hover:bg-red-600 text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          trackInteraction('click', 'button', `buy_${product.id}`);
+                          handleBuyNow(product);
+                        }}
+                        disabled={!product.stock_quantity || product.stock_quantity === 0}
+                      >
+                        <ShoppingCart className="w-3 h-3 mr-1" />
+                        {product.stock_quantity > 0 ? "Buy Now" : "Out"}
+                      </Button>
+                      
+                      <div className="grid grid-cols-3 gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[9px] border-red-500 text-red-500 hover:bg-red-50 px-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            trackInteraction('click', 'button', `cart_${product.id}`);
+                            addToCart(product.id);
+                          }}
+                          disabled={!product.stock_quantity || product.stock_quantity === 0}
+                        >
+                          {inCart.has(product.id) ? "✓" : "Cart"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[9px] px-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleWishlist(product.id);
+                          }}
+                        >
+                          <Heart className={`w-2.5 h-2.5 ${inWishlist.has(product.id) ? "fill-red-500 text-red-500" : ""}`} />
+                        </Button>
+                        <ProductShareButton
+                          productId={product.id}
+                          productName={product.name}
+                          size="sm"
+                          className="h-6 text-[9px] px-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCheckoutDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCheckout}>Place Order</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-12">
+                <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">No products found</p>
+              </div>
+            )}
 
-      {/* Product Detail Dialog */}
-      <ProductDetailDialog
-        product={detailProduct}
-        open={detailDialog}
-        onOpenChange={setDetailDialog}
-        onBuyNow={() => {
-          if (detailProduct) {
-            setDetailDialog(false);
-            handleBuyNow(detailProduct);
-          }
-        }}
-        onAddToCart={() => {
-          if (detailProduct) {
-            addToCart(detailProduct.id);
-          }
-        }}
-        onToggleWishlist={() => {
-          if (detailProduct) {
-            toggleWishlist(detailProduct.id);
-          }
-        }}
-        inCart={detailProduct ? inCart.has(detailProduct.id) : false}
-        inWishlist={detailProduct ? inWishlist.has(detailProduct.id) : false}
-      />
+            {/* Checkout Dialog */}
+            <Dialog open={checkoutDialog} onOpenChange={setCheckoutDialog}>
+              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Complete Your Order</DialogTitle>
+                  <p className="text-sm text-gray-500">Fill in your shipping details</p>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>Product</Label>
+                    <p className="font-semibold text-sm">{selectedProduct?.name}</p>
+                    <p className="text-xs text-gray-500">
+                      ₱{getEffectivePrice(selectedProduct).toFixed(2)} each
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="quantity">Quantity</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      max={selectedProduct?.stock_quantity || 1}
+                      value={quantity}
+                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="customerName">
+                      Full Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="customerName"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="h-9"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="customerEmail">
+                      Email <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="customerEmail"
+                      type="email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      className="h-9"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="customerPhone">Phone Number</Label>
+                    <Input
+                      id="customerPhone"
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="shippingAddress">
+                      Shipping Address <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      id="shippingAddress"
+                      value={shippingAddress}
+                      onChange={(e) => setShippingAddress(e.target.value)}
+                      rows={2}
+                      required
+                    />
+                  </div>
+
+                  <ShippingCalculator
+                    productWeight={selectedProduct?.weight_kg || 1}
+                    subtotal={getEffectivePrice(selectedProduct) * quantity}
+                    onShippingCalculated={setShippingFee}
+                  />
+
+                  <div className="pt-3 border-t space-y-1.5">
+                    <div className="flex justify-between text-sm">
+                      <span>Subtotal:</span>
+                      <span>₱{(getEffectivePrice(selectedProduct) * quantity).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-base font-bold border-t pt-2">
+                      <span>Total:</span>
+                      <span className="text-red-500">
+                        ₱{(getEffectivePrice(selectedProduct) * quantity + shippingFee).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCheckoutDialog(false)} size="sm">
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCheckout} size="sm" className="bg-red-500 hover:bg-red-600">
+                    Place Order
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Product Detail Dialog */}
+            <ProductDetailDialog
+              product={detailProduct}
+              open={detailDialog}
+              onOpenChange={setDetailDialog}
+              onBuyNow={() => {
+                if (detailProduct) {
+                  setDetailDialog(false);
+                  handleBuyNow(detailProduct);
+                }
+              }}
+              onAddToCart={() => {
+                if (detailProduct) {
+                  addToCart(detailProduct.id);
+                }
+              }}
+              onToggleWishlist={() => {
+                if (detailProduct) {
+                  toggleWishlist(detailProduct.id);
+                }
+              }}
+              inCart={detailProduct ? inCart.has(detailProduct.id) : false}
+              inWishlist={detailProduct ? inWishlist.has(detailProduct.id) : false}
+            />
           </TabsContent>
 
           <TabsContent value="seller">
             <SellerDashboard />
           </TabsContent>
-        </Tabs>
-      </div>
+        </div>
+      </Tabs>
     </div>
   );
 };
