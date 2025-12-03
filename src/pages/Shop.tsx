@@ -403,14 +403,16 @@ const Shop = () => {
           <ShopAccountOverview />
 
           {/* Tabs for Shop/Seller */}
-          <div className="py-2">
-            <TabsList className="grid w-full max-w-[200px] grid-cols-2 h-8">
-              <TabsTrigger value="shop" className="text-xs h-7">
-                <ShoppingCart className="w-3 h-3 mr-1" />
+          <div className="py-2 flex justify-between items-center">
+            <TabsList className="h-7 bg-white border border-gray-200 p-0.5">
+              <TabsTrigger value="shop" className="text-[10px] h-6 px-2 data-[state=active]:bg-gray-100">
+                <ShoppingCart className="w-2.5 h-2.5 mr-1" />
                 Shop
               </TabsTrigger>
-              <TabsTrigger value="seller" className="text-xs h-7">
-                <Store className="w-3 h-3 mr-1" />
+            </TabsList>
+            <TabsList className="h-7 bg-white border border-gray-200 p-0.5">
+              <TabsTrigger value="seller" className="text-[10px] h-6 px-2 data-[state=active]:bg-gray-100">
+                <Store className="w-2.5 h-2.5 mr-1" />
                 Sell
               </TabsTrigger>
             </TabsList>
