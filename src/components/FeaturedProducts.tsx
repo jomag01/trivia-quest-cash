@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductShareButton } from "@/components/ProductShareButton";
+import { ProductDetailDialog } from "@/components/ProductDetailDialog";
 
 interface FeaturedProduct {
   id: string;
@@ -26,6 +27,10 @@ export const FeaturedProducts = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<FeaturedProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState<FeaturedProduct | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [cartItems, setCartItems] = useState<string[]>([]);
+  const [wishlistItems, setWishlistItems] = useState<string[]>([]);
 
   useEffect(() => {
     fetchFeaturedProducts();
@@ -154,7 +159,14 @@ export const FeaturedProducts = () => {
           const hasDiscount = product.promo_active && product.promo_price;
 
           return (
-            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group border-border/50 bg-white">
+            <Card 
+              key={product.id} 
+              className="overflow-hidden hover:shadow-lg transition-all duration-300 group border-border/50 bg-white cursor-pointer"
+              onClick={() => {
+                setSelectedProduct(product);
+                setDialogOpen(true);
+              }}
+            >
               <div className="relative aspect-square bg-muted overflow-hidden">
                 {product.image_url ? (
                   <>
@@ -210,24 +222,52 @@ export const FeaturedProducts = () => {
                   <Button
                     size="sm"
                     className="h-7 text-[10px] md:text-xs bg-red-600 hover:bg-red-700 text-white"
-                    onClick={() => addToCart(product.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToCart(product.id);
+                    }}
                     disabled={product.stock_quantity === 0}
                   >
                     <ShoppingCart className="w-3 h-3 mr-1" />
                     {product.stock_quantity === 0 ? "Out" : "Add"}
                   </Button>
-                  <ProductShareButton
-                    productId={product.id}
-                    productName={product.name}
-                    size="sm"
-                    className="h-7 text-[10px] md:text-xs bg-red-600 hover:bg-red-700 text-white"
-                  />
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <ProductShareButton
+                      productId={product.id}
+                      productName={product.name}
+                      size="sm"
+                      className="h-7 text-[10px] md:text-xs bg-red-600 hover:bg-red-700 text-white w-full"
+                    />
+                  </div>
                 </div>
               </div>
             </Card>
           );
         })}
       </div>
+
+      <ProductDetailDialog
+        product={selectedProduct}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onBuyNow={() => {
+          if (selectedProduct) {
+            addToCart(selectedProduct.id);
+            setDialogOpen(false);
+            window.location.href = "/shop?tab=cart";
+          }
+        }}
+        onAddToCart={() => {
+          if (selectedProduct) {
+            addToCart(selectedProduct.id);
+          }
+        }}
+        onToggleWishlist={() => {
+          toast.info("Wishlist feature coming soon!");
+        }}
+        inCart={selectedProduct ? cartItems.includes(selectedProduct.id) : false}
+        inWishlist={selectedProduct ? wishlistItems.includes(selectedProduct.id) : false}
+      />
     </div>
   );
 };
