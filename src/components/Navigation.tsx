@@ -12,34 +12,34 @@ const Navigation = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200">
-      <div className="flex items-center justify-around h-16 max-w-screen-xl mx-auto px-2">
+      <div className="flex items-center justify-around h-14 max-w-screen-xl mx-auto px-2">
         {/* Home */}
         <Link
           to="/"
-          className={`flex flex-col items-center justify-center gap-1 min-w-[60px] ${
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[48px] ${
             isActive("/") ? "text-black" : "text-gray-500"
           }`}
         >
-          <Home className="w-6 h-6" />
-          <span className="text-xs font-medium">Home</span>
+          <Home className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Home</span>
         </Link>
 
         {/* Shop */}
         <Link
           to="/shop"
-          className={`flex flex-col items-center justify-center gap-1 min-w-[60px] ${
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[48px] ${
             isActive("/shop") ? "text-black" : "text-gray-500"
           }`}
         >
-          <ShoppingBag className="w-6 h-6" />
-          <span className="text-xs font-medium">Shop</span>
+          <ShoppingBag className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Shop</span>
         </Link>
 
         {/* Create Post (Center) - TikTok style black and white */}
         <Dialog>
           <DialogTrigger asChild>
-            <button className="flex items-center justify-center w-12 h-12 rounded-xl bg-black text-white hover:opacity-90 transition-opacity">
-              <Plus className="w-7 h-7" strokeWidth={3} />
+            <button className="flex items-center justify-center w-10 h-10 rounded-lg bg-black text-white hover:opacity-90 transition-opacity">
+              <Plus className="w-5 h-5" strokeWidth={3} />
             </button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -50,23 +50,23 @@ const Navigation = () => {
         {/* Messages */}
         <Link
           to="/community"
-          className={`flex flex-col items-center justify-center gap-1 min-w-[60px] relative ${
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[48px] relative ${
             isActive("/community") ? "text-black" : "text-gray-500"
           }`}
         >
-          <MessageSquare className="w-6 h-6" />
-          <span className="text-xs font-medium">Messages</span>
+          <MessageSquare className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Messages</span>
         </Link>
 
         {/* Profile */}
         <Link
           to={user ? "/dashboard" : "/auth"}
-          className={`flex flex-col items-center justify-center gap-1 min-w-[60px] ${
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[48px] ${
             isActive("/dashboard") || isActive("/auth") ? "text-black" : "text-gray-500"
           }`}
         >
-          <User className="w-6 h-6" />
-          <span className="text-xs font-medium">Profile</span>
+          <User className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Profile</span>
         </Link>
       </div>
     </nav>
