@@ -47,27 +47,27 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
     if (!user) return;
     
     // Fetch user's own products (any active product they own)
-    const { data: myData } = await supabase
+    const { data: myData, error: myError } = await supabase
       .from('products')
       .select('id, name, final_price, image_url, seller_id')
       .eq('seller_id', user.id)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
     
+    console.log("My products:", myData, "Error:", myError);
     if (myData) setMyProducts(myData);
     
     // Fetch all shop products (all active products for sharing)
-    const { data: shopData } = await supabase
+    const { data: shopData, error: shopError } = await supabase
       .from('products')
       .select('id, name, final_price, image_url, seller_id')
       .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(100);
+      .order('created_at', { ascending: false });
     
-    // Filter out user's own products from shop list
+    console.log("Shop products:", shopData, "Error:", shopError);
+    
     if (shopData) {
-      const filtered = shopData.filter(p => p.seller_id !== user.id);
-      setShopProducts(filtered);
+      setShopProducts(shopData);
     }
   };
 
@@ -216,11 +216,11 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                 </Button>
               </div>
               
-              <ScrollArea className="h-64 border rounded-lg p-2">
+              <ScrollArea className="h-80 border rounded-lg p-2">
                 {displayProducts.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     {productTab === 'my' 
-                      ? "You don't have any approved products yet" 
+                      ? "You don't have any approved products yet. Switch to 'Shop Products' to share others' products!" 
                       : "No shop products available"}
                   </div>
                 ) : (
@@ -230,8 +230,8 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                         key={product.id}
                         className={`cursor-pointer transition-all ${
                           selectedProducts.includes(product.id) 
-                            ? 'ring-2 ring-primary' 
-                            : ''
+                            ? 'ring-2 ring-primary bg-primary/5' 
+                            : 'hover:bg-muted/50'
                         }`}
                         onClick={() => toggleProduct(product.id)}
                       >
@@ -248,8 +248,8 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                               </div>
                             )}
                           </div>
-                          <p className="text-xs mt-1 truncate">{product.name}</p>
-                          <p className="text-xs font-bold text-primary">₱{product.final_price}</p>
+                          <p className="text-xs mt-1 truncate font-medium">{product.name}</p>
+                          <p className="text-xs font-bold text-primary">₱{product.final_price?.toLocaleString() || 0}</p>
                         </CardContent>
                       </Card>
                     ))}
