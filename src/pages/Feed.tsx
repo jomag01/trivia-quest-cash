@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { PostCard } from "@/components/social/PostCard";
-import { Gamepad2, Users, ChevronDown } from "lucide-react";
+import { Gamepad2, Users, ChevronDown, Video } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -14,6 +14,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import GoLiveDialog from "@/components/live/GoLiveDialog";
+import LiveStreamList from "@/components/live/LiveStreamList";
+import LiveStreamViewer from "@/components/live/LiveStreamViewer";
+import BroadcasterView from "@/components/live/BroadcasterView";
 
 interface Post {
   id: string;
@@ -49,6 +53,9 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("for-you");
   const [categories, setCategories] = useState<GameCategory[]>([]);
+  const [showGoLiveDialog, setShowGoLiveDialog] = useState(false);
+  const [currentStreamId, setCurrentStreamId] = useState<string | null>(null);
+  const [watchingStream, setWatchingStream] = useState<any>(null);
 
   useEffect(() => {
     loadCategories();
@@ -168,6 +175,16 @@ export default function Feed() {
     ));
   };
 
+  // Show broadcaster view when streaming
+  if (currentStreamId) {
+    return <BroadcasterView streamId={currentStreamId} onEndStream={() => setCurrentStreamId(null)} />;
+  }
+
+  // Show viewer when watching a stream
+  if (watchingStream) {
+    return <LiveStreamViewer stream={watchingStream} onClose={() => setWatchingStream(null)} />;
+  }
+
   return (
     <div className="min-h-screen pb-20 bg-white">
       {/* Top Tabs */}
@@ -179,6 +196,10 @@ export default function Feed() {
               Following
             </TabsTrigger>
             <TabsTrigger value="for-you">For You</TabsTrigger>
+            <TabsTrigger value="live" className="gap-2">
+              <Video className="w-4 h-4 text-red-500" />
+              Live
+            </TabsTrigger>
             
             {/* Game Categories Dropdown */}
             <DropdownMenu>
@@ -202,6 +223,19 @@ export default function Feed() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Go Live Button */}
+            {user && (
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                className="ml-auto gap-2"
+                onClick={() => setShowGoLiveDialog(true)}
+              >
+                <Video className="w-4 h-4" />
+                Go Live
+              </Button>
+            )}
           </TabsList>
         </Tabs>
       </div>
@@ -211,8 +245,18 @@ export default function Feed() {
         <div className="space-y-6">
           {activeTab === "following" && renderPosts(followingPosts)}
           {activeTab === "for-you" && renderPosts(posts)}
+          {activeTab === "live" && (
+            <LiveStreamList onSelectStream={(stream) => setWatchingStream(stream)} />
+          )}
         </div>
       </div>
+
+      {/* Go Live Dialog */}
+      <GoLiveDialog 
+        open={showGoLiveDialog} 
+        onOpenChange={setShowGoLiveDialog}
+        onGoLive={(streamId) => setCurrentStreamId(streamId)}
+      />
     </div>
   );
 }

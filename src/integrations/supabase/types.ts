@@ -708,6 +708,184 @@ export type Database = {
           },
         ]
       }
+      live_stream_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          stream_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          stream_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          stream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_comments_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_stream_followers: {
+        Row: {
+          created_at: string
+          follower_id: string
+          id: string
+          streamer_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          id?: string
+          streamer_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          id?: string
+          streamer_id?: string
+        }
+        Relationships: []
+      }
+      live_stream_gifts: {
+        Row: {
+          created_at: string
+          diamond_amount: number
+          gift_type: string
+          id: string
+          sender_id: string
+          stream_id: string
+        }
+        Insert: {
+          created_at?: string
+          diamond_amount?: number
+          gift_type: string
+          id?: string
+          sender_id: string
+          stream_id: string
+        }
+        Update: {
+          created_at?: string
+          diamond_amount?: number
+          gift_type?: string
+          id?: string
+          sender_id?: string
+          stream_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_gifts_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_stream_products: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          is_featured: boolean | null
+          product_id: string
+          stream_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_featured?: boolean | null
+          product_id: string
+          stream_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_featured?: boolean | null
+          product_id?: string
+          stream_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_stream_products_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_streams: {
+        Row: {
+          created_at: string
+          description: string | null
+          ended_at: string | null
+          id: string
+          started_at: string | null
+          status: string
+          stream_key: string
+          thumbnail_url: string | null
+          title: string
+          total_views: number | null
+          updated_at: string
+          user_id: string
+          viewer_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          stream_key?: string
+          thumbnail_url?: string | null
+          title: string
+          total_views?: number | null
+          updated_at?: string
+          user_id: string
+          viewer_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          stream_key?: string
+          thumbnail_url?: string | null
+          title?: string
+          total_views?: number | null
+          updated_at?: string
+          user_id?: string
+          viewer_count?: number | null
+        }
+        Relationships: []
+      }
       message_attachments: {
         Row: {
           created_at: string | null
@@ -2029,6 +2207,7 @@ export type Database = {
           created_at: string
           id: string
           months_to_qualify: number
+          qualification_type: string
           sales_quota: number
           step_name: string
           step_number: number
@@ -2041,6 +2220,7 @@ export type Database = {
           created_at?: string
           id?: string
           months_to_qualify?: number
+          qualification_type?: string
           sales_quota: number
           step_name: string
           step_number: number
@@ -2053,6 +2233,7 @@ export type Database = {
           created_at?: string
           id?: string
           months_to_qualify?: number
+          qualification_type?: string
           sales_quota?: number
           step_name?: string
           step_number?: number
