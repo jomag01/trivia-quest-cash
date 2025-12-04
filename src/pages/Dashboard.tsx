@@ -31,7 +31,6 @@ import EarningsCalculator from "@/components/EarningsCalculator";
 import LeadershipStatus from "@/components/LeadershipStatus";
 import { CustomerSupportChat } from "@/components/CustomerSupportChat";
 import { UserAdCreation } from "@/components/UserAdCreation";
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const {
@@ -55,24 +54,24 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
-  
   useEffect(() => {
     if (user) {
       fetchAllData();
       checkAdminRole();
     }
   }, [user]);
-
   const checkAdminRole = async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase.rpc('has_role', {
+      const {
+        data,
+        error
+      } = await supabase.rpc('has_role', {
         _user_id: user.id,
         _role: 'admin'
       });
@@ -100,16 +99,13 @@ const Dashboard = () => {
     fetchReferralLevels();
     fetchCommissions();
   };
-  
   const fetchReferrer = async () => {
     try {
       if (profile?.referred_by) {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("full_name, email")
-          .eq("id", profile.referred_by)
-          .maybeSingle();
-        
+        const {
+          data,
+          error
+        } = await supabase.from("profiles").select("full_name, email").eq("id", profile.referred_by).maybeSingle();
         if (error) throw error;
         if (data) {
           setReferrerName(data.full_name || data.email);
@@ -122,13 +118,8 @@ const Dashboard = () => {
   const fetchWallet = async () => {
     try {
       // Fetch both user wallet and treasure wallet
-      const [walletResult, treasureResult] = await Promise.all([
-        supabase.from("user_wallets").select("*").eq("user_id", user?.id).maybeSingle(),
-        supabase.from("treasure_wallet").select("*").eq("user_id", user?.id).maybeSingle()
-      ]);
-
+      const [walletResult, treasureResult] = await Promise.all([supabase.from("user_wallets").select("*").eq("user_id", user?.id).maybeSingle(), supabase.from("treasure_wallet").select("*").eq("user_id", user?.id).maybeSingle()]);
       if (walletResult.error) throw walletResult.error;
-      
       let walletData = walletResult.data;
       if (!walletData) {
         // Create wallet if it doesn't exist
@@ -143,7 +134,7 @@ const Dashboard = () => {
         if (createError) throw createError;
         walletData = newWallet;
       }
-      
+
       // Add treasure wallet data
       const treasureDiamonds = (treasureResult.data as any)?.diamonds || 0;
       setWallet({
@@ -185,50 +176,46 @@ const Dashboard = () => {
       console.error("Error fetching completed categories:", error);
     }
   };
-
   const fetchReferralLevels = async () => {
     try {
       const levelsData = [];
       let currentLevelIds = [user?.id];
-      
+
       // Fetch counts and earnings for each of the 7 levels
       for (let level = 1; level <= 7; level++) {
         if (currentLevelIds.length === 0) {
-          levelsData.push({ level, count: 0, earnings: 0 });
+          levelsData.push({
+            level,
+            count: 0,
+            earnings: 0
+          });
           continue;
         }
-        
+
         // Get members at this level
-        const { data: members, error: membersError } = await supabase
-          .from("profiles")
-          .select("id")
-          .in("referred_by", currentLevelIds);
-          
+        const {
+          data: members,
+          error: membersError
+        } = await supabase.from("profiles").select("id").in("referred_by", currentLevelIds);
         if (membersError) throw membersError;
-        
         const memberIds = members?.map(m => m.id) || [];
-        
+
         // Get earnings from this level
-        const { data: levelCommissions, error: commissionsError } = await supabase
-          .from("commissions")
-          .select("amount")
-          .eq("user_id", user?.id)
-          .eq("level", level);
-          
+        const {
+          data: levelCommissions,
+          error: commissionsError
+        } = await supabase.from("commissions").select("amount").eq("user_id", user?.id).eq("level", level);
         if (commissionsError) throw commissionsError;
-        
         const earnings = levelCommissions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
-        
         levelsData.push({
           level,
           count: memberIds.length,
           earnings
         });
-        
+
         // Move to next level
         currentLevelIds = memberIds;
       }
-      
       setReferralLevelsData(levelsData);
     } catch (error: any) {
       console.error("Error fetching referral levels:", error);
@@ -236,16 +223,14 @@ const Dashboard = () => {
       setReferralLoading(false);
     }
   };
-
   const fetchCommissions = async () => {
     try {
-      const { data, error } = await supabase
-        .from("commissions")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-        
+      const {
+        data,
+        error
+      } = await supabase.from("commissions").select("*").eq("user_id", user?.id).order("created_at", {
+        ascending: false
+      }).limit(10);
       if (error) throw error;
       setCommissions(data || []);
     } catch (error: any) {
@@ -264,7 +249,6 @@ const Dashboard = () => {
   // Calculate user stats from real data
   const totalReferrals = referralLevelsData.reduce((sum, level) => sum + level.count, 0);
   const directReferrals = referralLevelsData.find(l => l.level === 1)?.count || 0;
-  
   const userStats = {
     currentLevel: completedCategories.length,
     credits: wallet?.credits || 0,
@@ -275,16 +259,35 @@ const Dashboard = () => {
     pendingCommissions: wallet?.pending_commissions || 0,
     referralCode: profile.referral_code
   };
-  
-  const referralLevels = referralLevelsData.length > 0 ? referralLevelsData : [
-    { level: 1, count: 0, earnings: 0 },
-    { level: 2, count: 0, earnings: 0 },
-    { level: 3, count: 0, earnings: 0 },
-    { level: 4, count: 0, earnings: 0 },
-    { level: 5, count: 0, earnings: 0 },
-    { level: 6, count: 0, earnings: 0 },
-    { level: 7, count: 0, earnings: 0 }
-  ];
+  const referralLevels = referralLevelsData.length > 0 ? referralLevelsData : [{
+    level: 1,
+    count: 0,
+    earnings: 0
+  }, {
+    level: 2,
+    count: 0,
+    earnings: 0
+  }, {
+    level: 3,
+    count: 0,
+    earnings: 0
+  }, {
+    level: 4,
+    count: 0,
+    earnings: 0
+  }, {
+    level: 5,
+    count: 0,
+    earnings: 0
+  }, {
+    level: 6,
+    count: 0,
+    earnings: 0
+  }, {
+    level: 7,
+    count: 0,
+    earnings: 0
+  }];
   const copyReferralCode = () => {
     navigator.clipboard.writeText(userStats.referralCode);
     toast.success("Referral code copied to clipboard!");
@@ -303,35 +306,31 @@ const Dashboard = () => {
                 <Trophy className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gradient-gold">
+                <h2 className="font-bold text-gradient-gold text-base">
                   {profile.full_name || profile.email}
                 </h2>
                 <div className="flex items-center gap-3">
                   <p className="text-sm text-muted-foreground">Player ID: {userStats.referralCode}</p>
-                  {referrerName && (
-                    <>
+                  {referrerName && <>
                       <span className="text-sm text-muted-foreground">•</span>
                       <p className="text-sm text-muted-foreground">
                         Referred by: <span className="text-primary font-semibold">{referrerName}</span>
                       </p>
-                    </>
-                  )}
+                    </>}
                 </div>
               </div>
             </div>
-            {isAdmin && (
-              <Link to="/admin">
+            {isAdmin && <Link to="/admin">
                 <Button variant="outline" className="gap-2">
                   <Shield className="w-4 h-4" />
                   Admin Panel
                 </Button>
-              </Link>
-            )}
+              </Link>}
           </div>
-          <h1 className="text-4xl font-bold mb-2 text-gradient-gold">
+          <h1 className="font-bold mb-2 text-gradient-gold text-lg">
             Player Dashboard
           </h1>
-          <p className="text-muted-foreground">Track your progress and earnings</p>
+          <p className="text-muted-foreground text-sm">Track your progress and earnings</p>
         </div>
 
         {/* Tabs - Desktop only, Hamburger for Mobile/Tablet */}
@@ -347,95 +346,82 @@ const Dashboard = () => {
               </SheetTrigger>
               <SheetContent side="left" className="w-64 bg-background border-primary/20">
                 <div className="flex flex-col gap-2 mt-8">
-                  <Button
-                    variant={activeTab === "overview" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("overview"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "overview" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("overview");
+                  setMobileMenuOpen(false);
+                }}>
                     Overview
                   </Button>
-                  <Button
-                    variant={activeTab === "network" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("network"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "network" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("network");
+                  setMobileMenuOpen(false);
+                }}>
                     Network Tree
                   </Button>
-                  <Button
-                    variant={activeTab === "calculator" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("calculator"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "calculator" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("calculator");
+                  setMobileMenuOpen(false);
+                }}>
                     Calculator
                   </Button>
-                  <Button
-                    variant={activeTab === "leadership" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("leadership"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "leadership" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("leadership");
+                  setMobileMenuOpen(false);
+                }}>
                     Leadership
                   </Button>
-                  <Button
-                    variant={activeTab === "notifications" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("notifications"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "notifications" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("notifications");
+                  setMobileMenuOpen(false);
+                }}>
                     Notifications
                   </Button>
-                  <Button
-                    variant={activeTab === "diamonds" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("diamonds"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "diamonds" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("diamonds");
+                  setMobileMenuOpen(false);
+                }}>
                     Diamonds
                   </Button>
-                  <Button
-                    variant={activeTab === "leaderboard" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("leaderboard"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "leaderboard" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("leaderboard");
+                  setMobileMenuOpen(false);
+                }}>
                     Leaderboard
                   </Button>
-                  <Button
-                    variant={activeTab === "cart" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("cart"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "cart" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("cart");
+                  setMobileMenuOpen(false);
+                }}>
                     Cart
                   </Button>
-                  <Button
-                    variant={activeTab === "wishlist" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("wishlist"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "wishlist" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("wishlist");
+                  setMobileMenuOpen(false);
+                }}>
                     Wishlist
                   </Button>
-                  <Button
-                    variant={activeTab === "orders" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("orders"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "orders" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("orders");
+                  setMobileMenuOpen(false);
+                }}>
                     Orders
                   </Button>
-                  <Button
-                    variant={activeTab === "stair-step" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("stair-step"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "stair-step" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("stair-step");
+                  setMobileMenuOpen(false);
+                }}>
                     Stair Step
                   </Button>
-                  <Button
-                    variant={activeTab === "advertising" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("advertising"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "advertising" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("advertising");
+                  setMobileMenuOpen(false);
+                }}>
                     Advertising
                   </Button>
-                  <Button
-                    variant={activeTab === "support" ? "default" : "ghost"}
-                    className="justify-start"
-                    onClick={() => { setActiveTab("support"); setMobileMenuOpen(false); }}
-                  >
+                  <Button variant={activeTab === "support" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("support");
+                  setMobileMenuOpen(false);
+                }}>
                     Support
                   </Button>
                 </div>
@@ -473,21 +459,17 @@ const Dashboard = () => {
               <Target className="w-8 h-8 text-primary" />
               <Clock className="w-5 h-5 text-muted-foreground" />
             </div>
-            {walletLoading ? (
-              <>
+            {walletLoading ? <>
                 <Skeleton className="h-9 w-24 mb-2" />
                 <Skeleton className="h-4 w-32 mb-3" />
                 <Skeleton className="h-9 w-full" />
-              </>
-            ) : (
-              <>
+              </> : <>
                 <div className="text-3xl font-bold mb-2">₱{userStats.credits}</div>
                 <p className="text-sm text-muted-foreground">Available Credits</p>
                 <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setShowBuyCredits(true)}>
                   Buy More Credits
                 </Button>
-              </>
-            )}
+              </>}
           </Card>
 
           <Card className="p-6 gradient-accent border-amber-500/20 shadow-card">
@@ -497,14 +479,11 @@ const Dashboard = () => {
                 💎 Diamonds
               </Badge>
             </div>
-            {walletLoading ? (
-              <>
+            {walletLoading ? <>
                 <Skeleton className="h-9 w-24 mb-2" />
                 <Skeleton className="h-4 w-32 mb-3" />
                 <Skeleton className="h-9 w-full" />
-              </>
-            ) : (
-              <>
+              </> : <>
                 <div className="text-3xl font-bold mb-2 text-amber-500">
                   💎 {wallet?.diamond_balance || 0}
                 </div>
@@ -512,8 +491,7 @@ const Dashboard = () => {
                 <p className="text-xs text-amber-600 mt-1">
                   Total Earned: 💎 {wallet?.diamond_earned || 0}
                 </p>
-              </>
-            )}
+              </>}
           </Card>
 
           {!referralLoading && userStats.referrals > 0 && <Card className="p-6 gradient-accent border-primary/20 shadow-card">
@@ -534,17 +512,13 @@ const Dashboard = () => {
                 Commissions
               </Badge>
             </div>
-            {walletLoading ? (
-              <>
+            {walletLoading ? <>
                 <Skeleton className="h-9 w-24 mb-2" />
                 <Skeleton className="h-4 w-40" />
-              </>
-            ) : (
-              <>
+              </> : <>
                 <div className="text-3xl font-bold mb-2">₱{userStats.totalCommissions.toFixed(2)}</div>
                 <p className="text-sm text-muted-foreground">Total Commissions Earned</p>
-              </>
-            )}
+              </>}
           </Card>
 
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
@@ -552,19 +526,15 @@ const Dashboard = () => {
               <DollarSign className="w-8 h-8 text-primary" />
               <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
-            {walletLoading ? (
-              <>
+            {walletLoading ? <>
                 <Skeleton className="h-9 w-32 mb-2" />
                 <Skeleton className="h-4 w-28" />
                 <Skeleton className="h-3 w-24 mt-1" />
-              </>
-            ) : (
-              <>
+              </> : <>
                 <div className="text-3xl font-bold mb-2">{formatCurrency(userStats.totalEarnings, profile.currency)}</div>
                 <p className="text-sm text-muted-foreground">Total Earnings</p>
                 <p className="text-xs text-primary mt-1">+{formatCurrency(userStats.pendingCommissions, profile.currency)} pending</p>
-              </>
-            )}
+              </>}
           </Card>
         </div>
 
@@ -603,9 +573,9 @@ const Dashboard = () => {
             </h2>
 
             <div className="space-y-3">
-              {referralLoading ? (
-                Array.from({ length: 7 }).map((_, i) => (
-                  <div key={i} className="p-4 bg-background/20 rounded-lg">
+              {referralLoading ? Array.from({
+                  length: 7
+                }).map((_, i) => <div key={i} className="p-4 bg-background/20 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Skeleton className="h-6 w-16" />
@@ -619,10 +589,7 @@ const Dashboard = () => {
                         <Skeleton className="h-3 w-12" />
                       </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                referralLevels.map(level => <div key={level.level} className="flex items-center justify-between p-4 bg-background/20 rounded-lg hover:bg-background/30 transition-smooth cursor-pointer" onClick={() => openGenealogy(level.level)}>
+                  </div>) : referralLevels.map(level => <div key={level.level} className="flex items-center justify-between p-4 bg-background/20 rounded-lg hover:bg-background/30 transition-smooth cursor-pointer" onClick={() => openGenealogy(level.level)}>
                     <div className="flex items-center gap-3">
                       <Badge variant="outline" className="w-16 justify-center border-primary/50">
                         Level {level.level}
@@ -636,8 +603,7 @@ const Dashboard = () => {
                       <div className="font-bold text-primary">₱{level.earnings.toFixed(2)}</div>
                       <div className="text-xs text-muted-foreground">earned</div>
                     </div>
-                  </div>)
-              )}
+                  </div>)}
             </div>
           </Card>
 
@@ -795,10 +761,7 @@ const Dashboard = () => {
                 <p className="text-sm font-medium mb-1">View Your Leadership Status</p>
                 <p className="text-xs text-muted-foreground">Check your royalty earnings and active 21% leaders in your network</p>
               </div>
-              <Button 
-                onClick={() => setActiveTab("leadership")}
-                className="bg-yellow-500 hover:bg-yellow-600"
-              >
+              <Button onClick={() => setActiveTab("leadership")} className="bg-yellow-500 hover:bg-yellow-600">
                 View Status
               </Button>
             </div>
@@ -815,6 +778,6 @@ const Dashboard = () => {
       </TabsContent>
     </Tabs>
   </div>
-</div>;
+  </div>;
 };
 export default Dashboard;
