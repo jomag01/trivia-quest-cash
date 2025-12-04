@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { PostCard } from "@/components/social/PostCard";
 import { Gamepad2, Users, ChevronDown, Video } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +18,7 @@ import GoLiveDialog from "@/components/live/GoLiveDialog";
 import LiveStreamList from "@/components/live/LiveStreamList";
 import LiveStreamViewer from "@/components/live/LiveStreamViewer";
 import BroadcasterView from "@/components/live/BroadcasterView";
+import FloatingLiveStream from "@/components/live/FloatingLiveStream";
 
 interface Post {
   id: string;
@@ -48,6 +49,7 @@ interface GameCategory {
 export default function Feed() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [posts, setPosts] = useState<Post[]>([]);
   const [followingPosts, setFollowingPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +58,7 @@ export default function Feed() {
   const [showGoLiveDialog, setShowGoLiveDialog] = useState(false);
   const [currentStreamId, setCurrentStreamId] = useState<string | null>(null);
   const [watchingStream, setWatchingStream] = useState<any>(null);
+  const [minimizedStream, setMinimizedStream] = useState<any>(null);
 
   useEffect(() => {
     loadCategories();
@@ -63,7 +66,35 @@ export default function Feed() {
     if (user) {
       loadFollowingPosts();
     }
-  }, [user]);
+    
+    // Check for live stream in URL params
+    const liveStreamId = searchParams.get('live');
+    if (liveStreamId) {
+      loadStreamFromUrl(liveStreamId);
+    }
+  }, [user, searchParams]);
+
+  const loadStreamFromUrl = async (streamId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("live_streams")
+        .select("*, profiles:user_id(full_name, avatar_url)")
+        .eq("id", streamId)
+        .eq("status", "live")
+        .single();
+      
+      if (data && !error) {
+        setWatchingStream(data);
+        // Store referrer if present
+        const ref = searchParams.get('ref');
+        if (ref) {
+          localStorage.setItem('live_stream_referrer', JSON.stringify({ ref, streamId }));
+        }
+      }
+    } catch (error) {
+      console.error("Error loading stream from URL:", error);
+    }
+  };
 
   const loadCategories = async () => {
     try {
@@ -175,6 +206,20 @@ export default function Feed() {
     ));
   };
 
+  const handleMinimizeStream = (stream: any) => {
+    setMinimizedStream(stream);
+    setWatchingStream(null);
+  };
+
+  const handleExpandStream = () => {
+    setWatchingStream(minimizedStream);
+    setMinimizedStream(null);
+  };
+
+  const handleCloseMinimized = () => {
+    setMinimizedStream(null);
+  };
+
   // Show broadcaster view when streaming
   if (currentStreamId) {
     return <BroadcasterView streamId={currentStreamId} onEndStream={() => setCurrentStreamId(null)} />;
@@ -182,7 +227,22 @@ export default function Feed() {
 
   // Show viewer when watching a stream
   if (watchingStream) {
-    return <LiveStreamViewer stream={watchingStream} onClose={() => setWatchingStream(null)} />;
+    return (
+      <>
+        <LiveStreamViewer 
+          stream={watchingStream} 
+          onClose={() => setWatchingStream(null)} 
+          onMinimize={handleMinimizeStream}
+        />
+        {minimizedStream && (
+          <FloatingLiveStream
+            stream={minimizedStream}
+            onExpand={handleExpandStream}
+            onClose={handleCloseMinimized}
+          />
+        )}
+      </>
+    );
   }
 
   return (
@@ -259,6 +319,15 @@ export default function Feed() {
         onOpenChange={setShowGoLiveDialog}
         onGoLive={(streamId) => setCurrentStreamId(streamId)}
       />
+
+      {/* Floating Live Stream (when minimized) */}
+      {minimizedStream && (
+        <FloatingLiveStream
+          stream={minimizedStream}
+          onExpand={handleExpandStream}
+          onClose={handleCloseMinimized}
+        />
+      )}
     </div>
   );
 }
