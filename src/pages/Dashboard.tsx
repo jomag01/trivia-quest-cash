@@ -451,89 +451,89 @@ const Dashboard = () => {
             <FeaturedProducts />
 
             {/* Main Stats Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {/* Active Users */}
               <ActiveUsersStats />
-          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
-            <div className="flex items-center justify-between mb-4">
-              <Target className="w-8 h-8 text-primary" />
-              <Clock className="w-5 h-5 text-muted-foreground" />
+          <Card className="p-3 md:p-4 gradient-accent border-primary/20 shadow-card">
+            <div className="flex items-center justify-between mb-2">
+              <Target className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+              <Clock className="w-4 h-4 text-muted-foreground" />
             </div>
             {walletLoading ? <>
-                <Skeleton className="h-9 w-24 mb-2" />
-                <Skeleton className="h-4 w-32 mb-3" />
-                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-6 w-20 mb-1" />
+                <Skeleton className="h-3 w-28 mb-2" />
+                <Skeleton className="h-7 w-full" />
               </> : <>
-                <div className="text-3xl font-bold mb-2">₱{userStats.credits}</div>
-                <p className="text-sm text-muted-foreground">Available Credits</p>
-                <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setShowBuyCredits(true)}>
+                <div className="text-xl md:text-2xl font-bold mb-1">₱{userStats.credits}</div>
+                <p className="text-xs text-muted-foreground">Available Credits</p>
+                <Button variant="outline" size="sm" className="mt-2 w-full h-7 text-xs" onClick={() => setShowBuyCredits(true)}>
                   Buy More Credits
                 </Button>
               </>}
           </Card>
 
-          <Card className="p-6 gradient-accent border-amber-500/20 shadow-card">
-            <div className="flex items-center justify-between mb-4">
-              <Award className="w-8 h-8 text-amber-500" />
-              <Badge variant="outline" className="border-amber-500 text-amber-500">
+          <Card className="p-3 md:p-4 gradient-accent border-amber-500/20 shadow-card">
+            <div className="flex items-center justify-between mb-2">
+              <Award className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />
+              <Badge variant="outline" className="border-amber-500 text-amber-500 text-[10px] px-1.5 py-0">
                 💎 Diamonds
               </Badge>
             </div>
             {walletLoading ? <>
-                <Skeleton className="h-9 w-24 mb-2" />
-                <Skeleton className="h-4 w-32 mb-3" />
-                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-6 w-20 mb-1" />
+                <Skeleton className="h-3 w-28 mb-2" />
+                <Skeleton className="h-7 w-full" />
               </> : <>
-                <div className="text-3xl font-bold mb-2 text-amber-500">
+                <div className="text-xl md:text-2xl font-bold mb-1 text-amber-500">
                   💎 {wallet?.diamond_balance || 0}
                 </div>
-                <p className="text-sm text-muted-foreground">Diamond Balance</p>
-                <p className="text-xs text-amber-600 mt-1">
+                <p className="text-xs text-muted-foreground">Diamond Balance</p>
+                <p className="text-[10px] text-amber-600 mt-0.5">
                   Total Earned: 💎 {wallet?.diamond_earned || 0}
                 </p>
               </>}
           </Card>
 
-          {!referralLoading && userStats.referrals > 0 && <Card className="p-6 gradient-accent border-primary/20 shadow-card">
-              <div className="flex items-center justify-between mb-4">
-                <Users className="w-8 h-8 text-primary" />
-                <Badge variant="outline" className="border-green-500 text-green-500">
+          {!referralLoading && userStats.referrals > 0 && <Card className="p-3 md:p-4 gradient-accent border-primary/20 shadow-card">
+              <div className="flex items-center justify-between mb-2">
+                <Users className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                <Badge variant="outline" className="border-green-500 text-green-500 text-[10px] px-1.5 py-0">
                   {userStats.activeReferrals} Active
                 </Badge>
               </div>
-              <div className="text-3xl font-bold mb-2">{userStats.referrals}</div>
-              <p className="text-sm text-muted-foreground">Total Referrals</p>
+              <div className="text-xl md:text-2xl font-bold mb-1">{userStats.referrals}</div>
+              <p className="text-xs text-muted-foreground">Total Referrals</p>
             </Card>}
 
-          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
-            <div className="flex items-center justify-between mb-4">
-              <TrendingUp className="w-8 h-8 text-primary" />
-              <Badge variant="outline" className="border-primary/50">
+          <Card className="p-3 md:p-4 gradient-accent border-primary/20 shadow-card">
+            <div className="flex items-center justify-between mb-2">
+              <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+              <Badge variant="outline" className="border-primary/50 text-[10px] px-1.5 py-0">
                 Commissions
               </Badge>
             </div>
             {walletLoading ? <>
-                <Skeleton className="h-9 w-24 mb-2" />
-                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-6 w-20 mb-1" />
+                <Skeleton className="h-3 w-32" />
               </> : <>
-                <div className="text-3xl font-bold mb-2">₱{userStats.totalCommissions.toFixed(2)}</div>
-                <p className="text-sm text-muted-foreground">Total Commissions Earned</p>
+                <div className="text-xl md:text-2xl font-bold mb-1">₱{userStats.totalCommissions.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">Total Commissions Earned</p>
               </>}
           </Card>
 
-          <Card className="p-6 gradient-accent border-primary/20 shadow-card">
-            <div className="flex items-center justify-between mb-4">
-              <DollarSign className="w-8 h-8 text-primary" />
-              <TrendingUp className="w-5 h-5 text-green-500" />
+          <Card className="p-3 md:p-4 gradient-accent border-primary/20 shadow-card">
+            <div className="flex items-center justify-between mb-2">
+              <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+              <TrendingUp className="w-4 h-4 text-green-500" />
             </div>
             {walletLoading ? <>
-                <Skeleton className="h-9 w-32 mb-2" />
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-3 w-24 mt-1" />
+                <Skeleton className="h-6 w-24 mb-1" />
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-2 w-20 mt-0.5" />
               </> : <>
-                <div className="text-3xl font-bold mb-2">{formatCurrency(userStats.totalEarnings, profile.currency)}</div>
-                <p className="text-sm text-muted-foreground">Total Earnings</p>
-                <p className="text-xs text-primary mt-1">+{formatCurrency(userStats.pendingCommissions, profile.currency)} pending</p>
+                <div className="text-xl md:text-2xl font-bold mb-1">{formatCurrency(userStats.totalEarnings, profile.currency)}</div>
+                <p className="text-xs text-muted-foreground">Total Earnings</p>
+                <p className="text-[10px] text-primary mt-0.5">+{formatCurrency(userStats.pendingCommissions, profile.currency)} pending</p>
               </>}
           </Card>
         </div>
