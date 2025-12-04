@@ -190,24 +190,26 @@ export default function Feed() {
       {/* Top Tabs */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full justify-start rounded-none bg-transparent h-14 px-4">
-            <TabsTrigger value="following" className="gap-2">
-              <Users className="w-4 h-4" />
+          <TabsList className="w-full justify-start rounded-none bg-transparent h-12 px-2 md:px-4 gap-0.5 md:gap-1 overflow-x-auto">
+            <TabsTrigger value="following" className="gap-1 text-xs md:text-sm px-2 md:px-3 h-8 md:h-10">
+              <Users className="w-3 h-3 md:w-4 md:h-4 hidden sm:block" />
               Following
             </TabsTrigger>
-            <TabsTrigger value="for-you">For You</TabsTrigger>
-            <TabsTrigger value="live" className="gap-2">
-              <Video className="w-4 h-4 text-red-500" />
+            <TabsTrigger value="for-you" className="text-xs md:text-sm px-2 md:px-3 h-8 md:h-10">
+              For You
+            </TabsTrigger>
+            <TabsTrigger value="live" className="gap-1 text-xs md:text-sm px-2 md:px-3 h-8 md:h-10">
+              <Video className="w-3 h-3 md:w-4 md:h-4 text-red-500" />
               Live
             </TabsTrigger>
             
             {/* Game Categories Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2 h-10">
-                  <Gamepad2 className="w-4 h-4" />
-                  Games
-                  <ChevronDown className="w-4 h-4" />
+                <Button variant="ghost" className="gap-1 h-8 md:h-10 px-2 md:px-3 text-xs md:text-sm">
+                  <Gamepad2 className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden xs:inline">Games</span>
+                  <ChevronDown className="w-3 h-3 md:w-4 md:h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56 bg-background z-50">
@@ -229,11 +231,11 @@ export default function Feed() {
               <Button 
                 variant="destructive" 
                 size="sm" 
-                className="ml-auto gap-2"
+                className="ml-auto gap-1 h-7 md:h-9 px-2 md:px-3 text-[10px] md:text-sm flex-shrink-0"
                 onClick={() => setShowGoLiveDialog(true)}
               >
-                <Video className="w-4 h-4" />
-                Go Live
+                <Video className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden xs:inline">Go</span> Live
               </Button>
             )}
           </TabsList>
