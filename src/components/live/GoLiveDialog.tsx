@@ -17,6 +17,7 @@ interface Product {
   name: string;
   final_price: number;
   image_url: string;
+  seller_id: string | null;
 }
 
 interface GoLiveDialogProps {
@@ -31,27 +32,42 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [products, setProducts] = useState<Product[]>([]);
+  const [myProducts, setMyProducts] = useState<Product[]>([]);
+  const [shopProducts, setShopProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [productTab, setProductTab] = useState<'my' | 'shop'>('my');
 
   useEffect(() => {
     if (open && user) {
-      fetchUserProducts();
+      fetchProducts();
     }
   }, [open, user]);
 
-  const fetchUserProducts = async () => {
+  const fetchProducts = async () => {
     if (!user) return;
     
-    // Fetch products the user can showcase (their own or all approved products)
-    const { data } = await supabase
+    // Fetch user's own products
+    const { data: myData } = await supabase
       .from('products')
-      .select('id, name, final_price, image_url')
+      .select('id, name, final_price, image_url, seller_id')
+      .eq('seller_id', user.id)
       .eq('is_active', true)
       .eq('approval_status', 'approved')
-      .limit(50);
+      .order('created_at', { ascending: false });
     
-    if (data) setProducts(data);
+    if (myData) setMyProducts(myData);
+    
+    // Fetch all shop products (excluding user's own)
+    const { data: shopData } = await supabase
+      .from('products')
+      .select('id, name, final_price, image_url, seller_id')
+      .eq('is_active', true)
+      .eq('approval_status', 'approved')
+      .neq('seller_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    
+    if (shopData) setShopProducts(shopData);
   };
 
   const toggleProduct = (productId: string) => {
@@ -85,12 +101,13 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
 
       if (streamError) throw streamError;
 
-      // Add selected products to the stream
+      // Add selected products to the stream with streamer_id for commission tracking
       if (selectedProducts.length > 0) {
         const productInserts = selectedProducts.map((productId, index) => ({
           stream_id: stream.id,
           product_id: productId,
-          display_order: index
+          display_order: index,
+          streamer_id: user.id // Track who's sharing for commission purposes
         }));
 
         await supabase
@@ -114,7 +131,10 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
     setTitle("");
     setDescription("");
     setSelectedProducts([]);
+    setProductTab('my');
   };
+
+  const displayProducts = productTab === 'my' ? myProducts : shopProducts;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -171,14 +191,40 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                 Select Products to Showcase ({selectedProducts.length} selected)
               </Label>
               
+              <p className="text-xs text-muted-foreground mb-2">
+                Share any product to earn commissions when viewers purchase!
+              </p>
+              
+              {/* Product tabs */}
+              <div className="flex gap-2 mb-3">
+                <Button
+                  size="sm"
+                  variant={productTab === 'my' ? 'default' : 'outline'}
+                  onClick={() => setProductTab('my')}
+                  className="flex-1"
+                >
+                  My Products ({myProducts.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={productTab === 'shop' ? 'default' : 'outline'}
+                  onClick={() => setProductTab('shop')}
+                  className="flex-1"
+                >
+                  Shop Products ({shopProducts.length})
+                </Button>
+              </div>
+              
               <ScrollArea className="h-64 border rounded-lg p-2">
-                {products.length === 0 ? (
+                {displayProducts.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
-                    No products available
+                    {productTab === 'my' 
+                      ? "You don't have any approved products yet" 
+                      : "No shop products available"}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
-                    {products.map((product) => (
+                    {displayProducts.map((product) => (
                       <Card 
                         key={product.id}
                         className={`cursor-pointer transition-all ${

@@ -804,6 +804,7 @@ export type Database = {
           is_featured: boolean | null
           product_id: string
           stream_id: string
+          streamer_id: string | null
         }
         Insert: {
           created_at?: string
@@ -812,6 +813,7 @@ export type Database = {
           is_featured?: boolean | null
           product_id: string
           stream_id: string
+          streamer_id?: string | null
         }
         Update: {
           created_at?: string
@@ -820,6 +822,7 @@ export type Database = {
           is_featured?: boolean | null
           product_id?: string
           stream_id?: string
+          streamer_id?: string | null
         }
         Relationships: [
           {
@@ -1162,6 +1165,8 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           id: string
+          live_stream_id: string | null
+          live_streamer_id: string | null
           notes: string | null
           order_number: string
           payment_method: string | null
@@ -1181,6 +1186,8 @@ export type Database = {
           customer_name: string
           customer_phone?: string | null
           id?: string
+          live_stream_id?: string | null
+          live_streamer_id?: string | null
           notes?: string | null
           order_number: string
           payment_method?: string | null
@@ -1200,6 +1207,8 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           id?: string
+          live_stream_id?: string | null
+          live_streamer_id?: string | null
           notes?: string | null
           order_number?: string
           payment_method?: string | null
@@ -1213,7 +1222,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payout_accounts: {
         Row: {
