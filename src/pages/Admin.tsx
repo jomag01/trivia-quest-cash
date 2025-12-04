@@ -18,7 +18,8 @@ import {
   Menu,
   X,
   Gem,
-  Users
+  Users,
+  LogOut
 } from "lucide-react";
 import {
   Dialog,
@@ -77,7 +78,7 @@ interface PayoutRequest {
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { isAdmin, loading } = useAuth();
+  const { isAdmin, loading, signOut } = useAuth();
   const [creditPurchases, setCreditPurchases] = useState<CreditPurchase[]>([]);
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
   const [selectedProof, setSelectedProof] = useState<string | null>(null);
@@ -325,6 +326,18 @@ const Admin = () => {
               );
             })}
           </nav>
+          <div className="p-2 border-t">
+            <button
+              onClick={async () => {
+                await signOut();
+                navigate('/auth');
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -350,9 +363,21 @@ const Admin = () => {
               <Menu className="w-5 h-5" />
             </Button>
             <Shield className="w-6 h-6 text-primary hidden lg:block" />
-            <h1 className="text-2xl font-bold text-gradient-gold">
+            <h1 className="text-2xl font-bold text-gradient-gold flex-1">
               {menuItems.find(item => item.id === activeTab)?.label || "Admin Panel"}
             </h1>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-destructive hover:text-destructive hidden lg:flex"
+              onClick={async () => {
+                await signOut();
+                navigate('/auth');
+              }}
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
           </div>
         </header>
 

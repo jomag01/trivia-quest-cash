@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield } from "lucide-react";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
@@ -36,7 +36,8 @@ const Dashboard = () => {
   const {
     user,
     profile,
-    loading
+    loading,
+    signOut
   } = useAuth();
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [showCashOut, setShowCashOut] = useState(false);
@@ -320,12 +321,21 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-            {isAdmin && <Link to="/admin">
-                <Button variant="outline" className="gap-2">
-                  <Shield className="w-4 h-4" />
-                  Admin Panel
-                </Button>
-              </Link>}
+            <div className="flex items-center gap-2">
+              {isAdmin && <Link to="/admin">
+                  <Button variant="outline" className="gap-2">
+                    <Shield className="w-4 h-4" />
+                    <span className="hidden sm:inline">Admin Panel</span>
+                  </Button>
+                </Link>}
+              <Button variant="outline" className="gap-2 text-destructive hover:text-destructive" onClick={async () => {
+                await signOut();
+                navigate('/auth');
+              }}>
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </div>
           </div>
           <h1 className="font-bold mb-2 text-gradient-gold text-lg">
             Player Dashboard
@@ -423,6 +433,14 @@ const Dashboard = () => {
                   setMobileMenuOpen(false);
                 }}>
                     Support
+                  </Button>
+                  <div className="border-t border-border my-2" />
+                  <Button variant="ghost" className="justify-start text-destructive hover:text-destructive" onClick={async () => {
+                    await signOut();
+                    navigate('/auth');
+                  }}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
                   </Button>
                 </div>
               </SheetContent>
