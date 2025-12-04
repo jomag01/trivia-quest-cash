@@ -2320,11 +2320,23 @@ export type Database = {
           image_url: string | null
           is_active: boolean | null
           link_url: string | null
+          objective: string | null
+          placement: string | null
           spent_diamonds: number
           start_date: string | null
           status: string
+          target_age_max: number | null
+          target_age_min: number | null
+          target_barangay: string | null
           target_behavior: string[] | null
           target_category: string | null
+          target_city: string | null
+          target_country: string | null
+          target_device: string[] | null
+          target_gender: string | null
+          target_interests: string[] | null
+          target_language: string | null
+          target_province: string | null
           title: string
           updated_at: string | null
           user_id: string
@@ -2344,11 +2356,23 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           link_url?: string | null
+          objective?: string | null
+          placement?: string | null
           spent_diamonds?: number
           start_date?: string | null
           status?: string
+          target_age_max?: number | null
+          target_age_min?: number | null
+          target_barangay?: string | null
           target_behavior?: string[] | null
           target_category?: string | null
+          target_city?: string | null
+          target_country?: string | null
+          target_device?: string[] | null
+          target_gender?: string | null
+          target_interests?: string[] | null
+          target_language?: string | null
+          target_province?: string | null
           title: string
           updated_at?: string | null
           user_id: string
@@ -2368,11 +2392,23 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           link_url?: string | null
+          objective?: string | null
+          placement?: string | null
           spent_diamonds?: number
           start_date?: string | null
           status?: string
+          target_age_max?: number | null
+          target_age_min?: number | null
+          target_barangay?: string | null
           target_behavior?: string[] | null
           target_category?: string | null
+          target_city?: string | null
+          target_country?: string | null
+          target_device?: string[] | null
+          target_gender?: string | null
+          target_interests?: string[] | null
+          target_language?: string | null
+          target_province?: string | null
           title?: string
           updated_at?: string | null
           user_id?: string
