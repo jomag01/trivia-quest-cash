@@ -46,28 +46,29 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
   const fetchProducts = async () => {
     if (!user) return;
     
-    // Fetch user's own products
+    // Fetch user's own products (any active product they own)
     const { data: myData } = await supabase
       .from('products')
       .select('id, name, final_price, image_url, seller_id')
       .eq('seller_id', user.id)
       .eq('is_active', true)
-      .eq('approval_status', 'approved')
       .order('created_at', { ascending: false });
     
     if (myData) setMyProducts(myData);
     
-    // Fetch all shop products (including admin products with null seller_id, excluding user's own)
+    // Fetch all shop products (all active products for sharing)
     const { data: shopData } = await supabase
       .from('products')
       .select('id, name, final_price, image_url, seller_id')
       .eq('is_active', true)
-      .eq('approval_status', 'approved')
-      .or(`seller_id.is.null,seller_id.neq.${user.id}`)
       .order('created_at', { ascending: false })
       .limit(100);
     
-    if (shopData) setShopProducts(shopData);
+    // Filter out user's own products from shop list
+    if (shopData) {
+      const filtered = shopData.filter(p => p.seller_id !== user.id);
+      setShopProducts(filtered);
+    }
   };
 
   const toggleProduct = (productId: string) => {
