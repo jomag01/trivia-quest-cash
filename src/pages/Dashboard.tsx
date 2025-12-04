@@ -17,7 +17,6 @@ import { CartView } from "@/components/CartView";
 import { WishlistView } from "@/components/WishlistView";
 import { CartWidget } from "@/components/CartWidget";
 import { OrderTracking } from "@/components/OrderTracking";
-
 import AffiliateRankCard from "@/components/AffiliateRankCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
@@ -329,9 +328,9 @@ const Dashboard = () => {
                   </Button>
                 </Link>}
               <Button variant="outline" className="gap-2 text-destructive hover:text-destructive" onClick={async () => {
-                await signOut();
-                navigate('/auth');
-              }}>
+              await signOut();
+              navigate('/auth');
+            }}>
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Logout</span>
               </Button>
@@ -436,9 +435,9 @@ const Dashboard = () => {
                   </Button>
                   <div className="border-t border-border my-2" />
                   <Button variant="ghost" className="justify-start text-destructive hover:text-destructive" onClick={async () => {
-                    await signOut();
-                    navigate('/auth');
-                  }}>
+                  await signOut();
+                  navigate('/auth');
+                }}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Logout
                   </Button>
@@ -582,8 +581,7 @@ const Dashboard = () => {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Referral Network */}
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <Users className="w-6 h-6 text-primary" />
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">Affiliate Network<Users className="w-6 h-6 text-primary" />
               7-Level Network
             </h2>
 
