@@ -13,6 +13,7 @@ interface LiveStreamShareButtonProps {
   variant?: "ghost" | "default" | "outline";
   size?: "sm" | "default" | "icon";
   className?: string;
+  iconOnly?: boolean;
 }
 
 export function LiveStreamShareButton({ 
@@ -21,7 +22,8 @@ export function LiveStreamShareButton({
   streamerName,
   variant = "ghost",
   size = "icon",
-  className = ""
+  className = "",
+  iconOnly = false
 }: LiveStreamShareButtonProps) {
   const { user } = useAuth();
   const [showShareDialog, setShowShareDialog] = useState(false);
@@ -64,6 +66,74 @@ export function LiveStreamShareButton({
       toast.error("Failed to copy link");
     }
   };
+
+  // TikTok-style icon button
+  if (iconOnly) {
+    return (
+      <>
+        <button 
+          className={`flex flex-col items-center active:scale-90 transition-transform ${className}`}
+          onClick={handleShare}
+        >
+          <div className="w-9 h-9 bg-black/40 rounded-full flex items-center justify-center">
+            <Share2 className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-white text-[10px] mt-0.5">Share</span>
+        </button>
+
+        <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Share2 className="w-5 h-5" />
+                Share Live Stream
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Share this live stream with friends{user ? " and earn commission when they purchase products!" : "!"}
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      readOnly
+                      value={getShareUrl()}
+                      className="pl-9 pr-20 text-sm bg-muted"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleCopyLink}
+                    variant="outline"
+                    className="flex-shrink-0"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2 text-green-500" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+              
+              {user && (
+                <p className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                  💎 Your referral code is included. You'll earn diamonds when viewers purchase products through this link!
+                </p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
 
   return (
     <>
