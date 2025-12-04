@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Plane, Car, Package, MapPin, Plus, Shield, AlertCircle } from "lucide-react";
+import ProviderVerificationDialog from "./ProviderVerificationDialog";
 
 interface CreateServiceDialogProps {
   open: boolean;
@@ -21,12 +23,20 @@ interface Category {
   icon: string;
 }
 
+const TRAVEL_CATEGORIES = ["Travel & Tours", "Transportation", "Tour Packages"];
+
 const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [destinations, setDestinations] = useState<string[]>([]);
+  const [newDestination, setNewDestination] = useState("");
+  const [includes, setIncludes] = useState<string[]>([]);
+  const [newInclude, setNewInclude] = useState("");
   
   const [formData, setFormData] = useState({
     title: "",
@@ -35,12 +45,27 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
     price: "",
     duration_minutes: "60",
     diamond_reward: "0",
-    referral_commission_diamonds: "0"
+    referral_commission_diamonds: "0",
+    service_type: "standard",
+    package_type: "",
+    max_guests: "1",
+    pickup_location: "",
+    meeting_point: ""
   });
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+    if (user) checkVerification();
+  }, [user]);
+
+  useEffect(() => {
+    // Check if selected category is travel-related
+    if (TRAVEL_CATEGORIES.some(c => formData.category.toLowerCase().includes(c.toLowerCase()))) {
+      setFormData(prev => ({ ...prev, service_type: "travel_tour" }));
+    } else {
+      setFormData(prev => ({ ...prev, service_type: "standard" }));
+    }
+  }, [formData.category]);
 
   const fetchCategories = async () => {
     const { data } = await supabase
@@ -49,6 +74,38 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
       .eq("is_active", true)
       .order("display_order");
     if (data) setCategories(data);
+  };
+
+  const checkVerification = async () => {
+    if (!user) return;
+    const { data } = await (supabase
+      .from("profiles")
+      .select("is_verified_service_provider")
+      .eq("id", user.id)
+      .single() as any);
+    setIsVerified(data?.is_verified_service_provider ?? false);
+  };
+
+  const addDestination = () => {
+    if (newDestination.trim() && !destinations.includes(newDestination.trim())) {
+      setDestinations([...destinations, newDestination.trim()]);
+      setNewDestination("");
+    }
+  };
+
+  const removeDestination = (dest: string) => {
+    setDestinations(destinations.filter(d => d !== dest));
+  };
+
+  const addInclude = () => {
+    if (newInclude.trim() && !includes.includes(newInclude.trim())) {
+      setIncludes([...includes, newInclude.trim()]);
+      setNewInclude("");
+    }
+  };
+
+  const removeInclude = (item: string) => {
+    setIncludes(includes.filter(i => i !== item));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,7 +159,7 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
       }
     }
 
-    const { error } = await supabase.from("services").insert({
+    const serviceData: any = {
       provider_id: user.id,
       title: formData.title,
       description: formData.description,
@@ -113,8 +170,21 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
       referral_commission_diamonds: parseInt(formData.referral_commission_diamonds),
       image_url: imageUrl,
       approval_status: "pending",
-      is_active: true
-    });
+      is_active: true,
+      service_type: formData.service_type,
+      max_guests: parseInt(formData.max_guests)
+    };
+
+    // Add travel-specific fields if travel_tour type
+    if (formData.service_type === "travel_tour") {
+      serviceData.package_type = formData.package_type;
+      serviceData.destinations = destinations;
+      serviceData.includes = includes;
+      serviceData.pickup_location = formData.pickup_location;
+      serviceData.meeting_point = formData.meeting_point;
+    }
+
+    const { error } = await supabase.from("services").insert(serviceData);
 
     setLoading(false);
 
@@ -136,18 +206,54 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
       price: "",
       duration_minutes: "60",
       diamond_reward: "0",
-      referral_commission_diamonds: "0"
+      referral_commission_diamonds: "0",
+      service_type: "standard",
+      package_type: "",
+      max_guests: "1",
+      pickup_location: "",
+      meeting_point: ""
     });
     setImageFile(null);
     setImagePreview(null);
+    setDestinations([]);
+    setIncludes([]);
   };
 
+  const isTravelCategory = formData.service_type === "travel_tour";
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Service</DialogTitle>
         </DialogHeader>
+
+        {/* Verification Warning */}
+        {!isVerified && (
+          <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-lg">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-600 dark:text-amber-400">
+                  Identity Verification Required
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  For safety and trust, service providers must verify their identity before offering services.
+                </p>
+                <Button 
+                  type="button"
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => setShowVerification(true)}
+                >
+                  <Shield className="h-4 w-4 mr-1" />
+                  Verify Now
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Image Upload */}
@@ -264,6 +370,143 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
             </div>
           </div>
 
+          {/* Travel/Tour Specific Fields */}
+          {isTravelCategory && (
+            <div className="space-y-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <h4 className="font-medium flex items-center gap-2">
+                <Plane className="h-4 w-4" />
+                Travel Package Details
+              </h4>
+
+              {/* Package Type */}
+              <div>
+                <Label>Package Type *</Label>
+                <Select 
+                  value={formData.package_type} 
+                  onValueChange={(v) => setFormData({ ...formData, package_type: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select package type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="transfer_only">
+                      <div className="flex items-center gap-2">
+                        <Car className="h-4 w-4" />
+                        Transfer Only (Airport/Point-to-Point)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="car_rental">
+                      <div className="flex items-center gap-2">
+                        <Car className="h-4 w-4" />
+                        Car Rental with Driver
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="day_tour">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Day Tour Package
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="complete_package">
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        Complete Package (Transport + Tour + Accommodation)
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Destinations */}
+              <div>
+                <Label>Destinations</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={newDestination}
+                    onChange={(e) => setNewDestination(e.target.value)}
+                    placeholder="e.g., Boracay, Palawan"
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addDestination())}
+                  />
+                  <Button type="button" size="icon" onClick={addDestination}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {destinations.map((dest) => (
+                    <Badge key={dest} variant="secondary" className="gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {dest}
+                      <X 
+                        className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                        onClick={() => removeDestination(dest)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* What's Included */}
+              <div>
+                <Label>What's Included</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={newInclude}
+                    onChange={(e) => setNewInclude(e.target.value)}
+                    placeholder="e.g., Meals, Hotel, Guide"
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addInclude())}
+                  />
+                  <Button type="button" size="icon" onClick={addInclude}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {includes.map((item) => (
+                    <Badge key={item} variant="outline" className="gap-1">
+                      ✓ {item}
+                      <X 
+                        className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                        onClick={() => removeInclude(item)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Max Guests & Pickup */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="max_guests">Max Guests</Label>
+                  <Input
+                    id="max_guests"
+                    type="number"
+                    min="1"
+                    value={formData.max_guests}
+                    onChange={(e) => setFormData({ ...formData, max_guests: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="pickup_location">Pickup Location</Label>
+                  <Input
+                    id="pickup_location"
+                    value={formData.pickup_location}
+                    onChange={(e) => setFormData({ ...formData, pickup_location: e.target.value })}
+                    placeholder="e.g., Airport, Hotel"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="meeting_point">Meeting Point</Label>
+                <Input
+                  id="meeting_point"
+                  value={formData.meeting_point}
+                  onChange={(e) => setFormData({ ...formData, meeting_point: e.target.value })}
+                  placeholder="Exact meeting location details"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Diamond Rewards */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -296,15 +539,23 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
             <p className="font-medium mb-1">📝 Note</p>
             <p className="text-muted-foreground">
               Your service will be reviewed by admin before being listed publicly.
+              {!isVerified && " Identity verification is required for approval."}
             </p>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Creating..." : "Create Service"}
+          <Button type="submit" disabled={loading || !isVerified} className="w-full">
+            {loading ? "Creating..." : !isVerified ? "Verify Identity First" : "Create Service"}
           </Button>
         </form>
       </DialogContent>
     </Dialog>
+
+    <ProviderVerificationDialog
+      open={showVerification}
+      onOpenChange={setShowVerification}
+      onSuccess={checkVerification}
+    />
+    </>
   );
 };
 
