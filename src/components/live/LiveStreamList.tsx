@@ -57,7 +57,7 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
       .from('live_streams')
       .select('*')
       .eq('status', 'live')
-      .order('viewer_count', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (data) {
       // Fetch profiles separately
