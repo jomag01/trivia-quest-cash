@@ -57,13 +57,13 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
     
     if (myData) setMyProducts(myData);
     
-    // Fetch all shop products (excluding user's own)
+    // Fetch all shop products (including admin products with null seller_id, excluding user's own)
     const { data: shopData } = await supabase
       .from('products')
       .select('id, name, final_price, image_url, seller_id')
       .eq('is_active', true)
       .eq('approval_status', 'approved')
-      .neq('seller_id', user.id)
+      .or(`seller_id.is.null,seller_id.neq.${user.id}`)
       .order('created_at', { ascending: false })
       .limit(100);
     
