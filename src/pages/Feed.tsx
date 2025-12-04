@@ -169,7 +169,7 @@ export default function Feed() {
   };
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 bg-white">
       {/* Top Tabs */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
