@@ -32,6 +32,8 @@ interface Product {
   name: string;
   final_price: number;
   image_url: string;
+  seller_id?: string | null;
+  diamond_reward?: number | null;
 }
 
 interface Comment {
@@ -146,13 +148,57 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
   const fetchProducts = async () => {
     const { data } = await supabase
       .from('live_stream_products')
-      .select(`*, products:product_id(id, name, final_price, image_url)`)
+      .select(`*, products:product_id(id, name, final_price, image_url, seller_id, diamond_reward)`)
       .eq('stream_id', stream.id)
       .order('display_order');
     
     if (data) {
       setProducts(data.map(p => p.products as unknown as Product).filter(Boolean));
     }
+  };
+
+  const handleBuyProduct = async (product: Product) => {
+    if (!user) {
+      toast.error("Please login to purchase");
+      return;
+    }
+
+    // Add to cart with live stream referrer tracking
+    const { data: existingItem } = await supabase
+      .from('cart')
+      .select('id, quantity')
+      .eq('user_id', user.id)
+      .eq('product_id', product.id)
+      .maybeSingle();
+
+    if (existingItem) {
+      await supabase
+        .from('cart')
+        .update({ quantity: existingItem.quantity + 1 })
+        .eq('id', existingItem.id);
+    } else {
+      await supabase
+        .from('cart')
+        .insert({
+          user_id: user.id,
+          product_id: product.id,
+          quantity: 1
+        });
+    }
+
+    // Store live stream referrer info in localStorage for checkout
+    const liveStreamReferrer = {
+      stream_id: stream.id,
+      streamer_id: stream.user_id,
+      product_id: product.id
+    };
+    
+    const existingReferrers = JSON.parse(localStorage.getItem('live_stream_referrers') || '[]');
+    const updatedReferrers = existingReferrers.filter((r: any) => r.product_id !== product.id);
+    updatedReferrers.push(liveStreamReferrer);
+    localStorage.setItem('live_stream_referrers', JSON.stringify(updatedReferrers));
+
+    toast.success(`${product.name} added to cart!`);
   };
 
   const checkFollowStatus = async () => {
@@ -307,11 +353,11 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
 
         {/* Products panel */}
         {showProducts && products.length > 0 && (
-          <div className="absolute bottom-32 left-4 right-20 max-h-40">
+          <div className="absolute bottom-32 left-4 right-20 max-h-48">
             <ScrollArea className="h-full">
               <div className="flex gap-2 p-2">
                 {products.map((product) => (
-                  <Card key={product.id} className="flex-shrink-0 w-32 p-2 bg-white/10 backdrop-blur">
+                  <Card key={product.id} className="flex-shrink-0 w-36 p-2 bg-white/10 backdrop-blur">
                     <img
                       src={product.image_url || "/placeholder.svg"}
                       alt={product.name}
@@ -319,6 +365,17 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
                     />
                     <p className="text-white text-xs truncate">{product.name}</p>
                     <p className="text-orange-400 font-bold text-sm">₱{product.final_price}</p>
+                    {product.diamond_reward && (
+                      <p className="text-cyan-400 text-xs">+{product.diamond_reward} 💎</p>
+                    )}
+                    <Button 
+                      size="sm" 
+                      className="w-full mt-2 bg-orange-500 hover:bg-orange-600 text-xs h-7"
+                      onClick={() => handleBuyProduct(product)}
+                    >
+                      <ShoppingBag className="w-3 h-3 mr-1" />
+                      Buy Now
+                    </Button>
                   </Card>
                 ))}
               </div>

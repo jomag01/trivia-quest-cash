@@ -184,25 +184,47 @@ export const CartView = () => {
       const subtotal = calculateTotal();
       const totalAmount = subtotal + shippingFee;
 
-      // Create order
+      // Check for live stream referrer
+      const liveStreamReferrers = JSON.parse(localStorage.getItem('live_stream_referrers') || '[]');
+      const cartProductIds = cartItems.map(item => item.product_id);
+      const matchingReferrer = liveStreamReferrers.find((r: any) => cartProductIds.includes(r.product_id));
+
+      // Create order with live stream tracking if applicable
+      const orderData: any = {
+        user_id: user?.id,
+        order_number: orderNumberData,
+        total_amount: totalAmount,
+        shipping_fee: shippingFee,
+        shipping_address: shippingAddress,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        status: "pending",
+        payment_method: paymentMethod,
+      };
+
+      // Add live stream referrer tracking for commission calculation
+      if (matchingReferrer) {
+        orderData.live_stream_id = matchingReferrer.stream_id;
+        orderData.live_streamer_id = matchingReferrer.streamer_id;
+        orderData.product_referrer_id = matchingReferrer.streamer_id;
+      }
+
       const { data: order, error: orderError } = await supabase
         .from("orders")
-        .insert({
-          user_id: user?.id,
-          order_number: orderNumberData,
-          total_amount: totalAmount,
-          shipping_fee: shippingFee,
-          shipping_address: shippingAddress,
-          customer_name: customerName,
-          customer_email: customerEmail,
-          customer_phone: customerPhone,
-          status: "pending",
-          payment_method: paymentMethod,
-        })
+        .insert(orderData)
         .select()
         .single();
 
       if (orderError) throw orderError;
+
+      // Clear live stream referrers from localStorage after order
+      if (matchingReferrer) {
+        const updatedReferrers = liveStreamReferrers.filter(
+          (r: any) => !cartProductIds.includes(r.product_id)
+        );
+        localStorage.setItem('live_stream_referrers', JSON.stringify(updatedReferrers));
+      }
 
       // Calculate total diamond credits and create order items from cart
       const totalDiamondCredits = cartItems.reduce((total, item) => {
