@@ -172,12 +172,37 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
       )
       .subscribe();
 
+    // Subscribe to user's diamond balance (for real-time updates)
+    let diamondsChannel: any = null;
+    if (user) {
+      diamondsChannel = supabase
+        .channel(`user-diamonds-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'treasure_wallet',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            if (payload.new && 'diamonds' in payload.new) {
+              setUserDiamonds(payload.new.diamonds || 0);
+            }
+          }
+        )
+        .subscribe();
+    }
+
     return () => {
       supabase.removeChannel(commentsChannel);
       supabase.removeChannel(streamChannel);
       supabase.removeChannel(giftsChannel);
+      if (diamondsChannel) {
+        supabase.removeChannel(diamondsChannel);
+      }
     };
-  }, [stream.id]);
+  }, [stream.id, user]);
 
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -446,18 +471,26 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Video/Stream Area */}
       <div className="relative flex-1 bg-gradient-to-b from-purple-900 to-black flex items-center justify-center overflow-hidden">
-        {/* Placeholder for actual video stream */}
-        <div className="text-center text-white">
-          <div className="text-6xl mb-4">📺</div>
-          <h2 className="text-2xl font-bold">{stream.title}</h2>
-          <p className="text-gray-300 mt-2">Live Stream</p>
-        </div>
+        {/* Stream video/thumbnail - show thumbnail if available, otherwise placeholder */}
+        {stream.thumbnail_url ? (
+          <img 
+            src={stream.thumbnail_url} 
+            alt={stream.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="text-center text-white">
+            <div className="text-6xl mb-4">📺</div>
+            <h2 className="text-xl md:text-2xl font-bold px-4">{stream.title}</h2>
+            <p className="text-gray-300 mt-2">Live Stream</p>
+          </div>
+        )}
 
         {/* Floating reactions */}
         {reactions.map((reaction) => (
           <div
             key={reaction.id}
-            className="absolute bottom-20 text-4xl animate-bounce pointer-events-none"
+            className="absolute bottom-20 text-3xl md:text-4xl animate-bounce pointer-events-none"
             style={{
               left: `${reaction.x}%`,
               animation: 'float-up 2s ease-out forwards'
@@ -468,30 +501,30 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
         ))}
 
         {/* Gift notifications */}
-        <div className="absolute top-20 left-4 space-y-2 z-10">
+        <div className="absolute top-16 md:top-20 left-2 md:left-4 space-y-2 z-10 max-w-[70%]">
           {giftNotifications.map((gift) => (
             <div 
               key={gift.id}
-              className="bg-gradient-to-r from-pink-500/90 to-purple-500/90 text-white px-4 py-2 rounded-full animate-pulse backdrop-blur-sm"
+              className="bg-gradient-to-r from-pink-500/90 to-purple-500/90 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-full animate-pulse backdrop-blur-sm text-sm md:text-base"
             >
               <span className="font-medium">{gift.sender_name}</span> sent {gift.gift_type}
-              <span className="ml-2 text-yellow-300">💎{gift.diamond_amount}</span>
+              <span className="ml-1 md:ml-2 text-yellow-300">💎{gift.diamond_amount}</span>
             </div>
           ))}
         </div>
 
         {/* Top bar */}
-        <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 border-2 border-pink-500">
+        <div className="absolute top-0 left-0 right-0 p-2 md:p-4 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent">
+          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+            <Avatar className="h-8 w-8 md:h-10 md:w-10 border-2 border-pink-500 flex-shrink-0">
               <AvatarImage src={stream.profiles?.avatar_url || ""} />
               <AvatarFallback>{stream.profiles?.full_name?.[0] || "?"}</AvatarFallback>
             </Avatar>
-            <div>
-              <p className="text-white font-semibold text-sm">{stream.profiles?.full_name || "Streamer"}</p>
-              <div className="flex items-center gap-2">
-                <Badge variant="destructive" className="text-xs animate-pulse">● LIVE</Badge>
-                <span className="text-white/80 text-xs flex items-center gap-1">
+            <div className="min-w-0 flex-1">
+              <p className="text-white font-semibold text-xs md:text-sm truncate">{stream.profiles?.full_name || "Streamer"}</p>
+              <div className="flex items-center gap-1 md:gap-2">
+                <Badge variant="destructive" className="text-[10px] md:text-xs animate-pulse px-1 md:px-2">● LIVE</Badge>
+                <span className="text-white/80 text-[10px] md:text-xs flex items-center gap-1">
                   <Eye className="w-3 h-3" /> {viewerCount}
                 </span>
               </div>
@@ -500,54 +533,55 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
               size="sm"
               variant={isFollowing ? "secondary" : "default"}
               onClick={handleFollow}
-              className="ml-2"
+              className="ml-1 md:ml-2 h-7 md:h-8 px-2 md:px-3 flex-shrink-0"
             >
-              {isFollowing ? <UserMinus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+              {isFollowing ? <UserMinus className="w-3 h-3 md:w-4 md:h-4" /> : <UserPlus className="w-3 h-3 md:w-4 md:h-4" />}
             </Button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
             {user && (
-              <Badge variant="outline" className="text-white border-white/50">
-                💎 {userDiamonds}
+              <Badge variant="outline" className="text-white border-white/50 text-[10px] md:text-xs px-1.5 md:px-2">
+                💎 {userDiamonds.toLocaleString()}
               </Badge>
             )}
-            <Button variant="ghost" size="icon" onClick={onClose} className="text-white">
-              <X className="w-6 h-6" />
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-white h-8 w-8 md:h-10 md:w-10">
+              <X className="w-5 h-5 md:w-6 md:h-6" />
             </Button>
           </div>
         </div>
 
         {/* Products showcase button */}
         <Button
-          className="absolute bottom-20 left-4 bg-orange-500 hover:bg-orange-600"
-          onClick={() => setShowProducts(!showProducts)}
+          className="absolute bottom-24 md:bottom-20 left-2 md:left-4 bg-orange-500 hover:bg-orange-600 h-8 md:h-10 text-xs md:text-sm px-2 md:px-4"
+          onClick={() => { setShowProducts(!showProducts); setShowGiftPanel(false); }}
         >
-          <ShoppingBag className="w-4 h-4 mr-2" />
+          <ShoppingBag className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
           Products ({products.length})
         </Button>
 
-        {/* Products panel */}
+        {/* Products panel - mobile optimized */}
         {showProducts && (
-          <div className="absolute bottom-32 left-4 right-20 max-h-52 z-10">
+          <div className="absolute bottom-36 md:bottom-32 left-2 md:left-4 right-14 md:right-20 max-h-44 md:max-h-52 z-20 bg-black/60 backdrop-blur-md rounded-xl p-2">
             <ScrollArea className="h-full">
               {products.length > 0 ? (
-                <div className="flex gap-2 p-2">
+                <div className="flex gap-2 pb-2">
                   {products.map((product) => (
-                    <Card key={product.id} className="flex-shrink-0 w-40 p-2 bg-white/10 backdrop-blur border-white/20">
+                    <Card key={product.id} className="flex-shrink-0 w-32 md:w-40 p-2 bg-white/10 backdrop-blur border-white/20">
                       <img
                         src={product.image_url || "/placeholder.svg"}
                         alt={product.name}
-                        className="w-full h-24 object-cover rounded mb-2"
+                        className="w-full h-16 md:h-24 object-cover rounded mb-1 md:mb-2 cursor-pointer"
+                        onClick={() => handleViewProduct(product.id)}
                       />
-                      <p className="text-white text-xs truncate font-medium">{product.name}</p>
-                      <p className="text-orange-400 font-bold text-sm">₱{product.final_price?.toLocaleString()}</p>
+                      <p className="text-white text-[10px] md:text-xs truncate font-medium">{product.name}</p>
+                      <p className="text-orange-400 font-bold text-xs md:text-sm">₱{product.final_price?.toLocaleString()}</p>
                       {product.diamond_reward && (
-                        <p className="text-cyan-400 text-xs">+{product.diamond_reward} 💎</p>
+                        <p className="text-cyan-400 text-[10px] md:text-xs">+{product.diamond_reward} 💎</p>
                       )}
-                      <div className="flex gap-1 mt-2">
+                      <div className="flex gap-1 mt-1 md:mt-2">
                         <Button 
                           size="sm" 
-                          className="flex-1 bg-orange-500 hover:bg-orange-600 text-xs h-7"
+                          className="flex-1 bg-orange-500 hover:bg-orange-600 text-[10px] md:text-xs h-6 md:h-7"
                           onClick={() => handleBuyProduct(product)}
                         >
                           <ShoppingBag className="w-3 h-3 mr-1" />
@@ -556,7 +590,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
                         <Button 
                           size="sm" 
                           variant="outline"
-                          className="h-7 px-2 border-white/30 text-white hover:bg-white/10"
+                          className="h-6 md:h-7 px-1.5 md:px-2 border-white/30 text-white hover:bg-white/10"
                           onClick={() => handleViewProduct(product.id)}
                         >
                           <ExternalLink className="w-3 h-3" />
@@ -566,7 +600,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
                   ))}
                 </div>
               ) : (
-                <div className="text-white/60 text-center py-8">
+                <div className="text-white/60 text-center py-6 text-sm">
                   No products in this stream
                 </div>
               )}
@@ -574,54 +608,59 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
           </div>
         )}
 
-        {/* Gift panel */}
+        {/* Gift panel - mobile optimized */}
         {showGiftPanel && (
-          <div className="absolute bottom-32 right-4 bg-black/80 backdrop-blur rounded-xl p-3 z-10">
-            <p className="text-white text-xs mb-2 text-center">Send a gift 💎{userDiamonds}</p>
-            <div className="grid grid-cols-3 gap-2">
+          <div className="absolute bottom-36 md:bottom-32 right-2 md:right-4 left-2 md:left-auto md:w-auto bg-black/90 backdrop-blur-md rounded-xl p-3 z-20">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-white text-xs md:text-sm">Send a gift</p>
+              <Badge variant="outline" className="text-white border-white/50 text-[10px] md:text-xs">
+                💎 {userDiamonds.toLocaleString()}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-6 md:grid-cols-3 gap-1 md:gap-2">
               {GIFT_OPTIONS.map((gift) => (
                 <Button
                   key={gift.type}
                   variant="ghost"
-                  className={`flex flex-col items-center p-2 h-auto hover:bg-white/10 ${gift.color}`}
+                  className={`flex flex-col items-center p-1.5 md:p-2 h-auto hover:bg-white/10 ${gift.color} ${userDiamonds < gift.diamonds ? 'opacity-50' : ''}`}
                   onClick={() => handleSendGift(gift.type, gift.diamonds)}
                   disabled={userDiamonds < gift.diamonds}
                 >
-                  <span className="text-2xl">{gift.type}</span>
-                  <span className="text-[10px] text-white/80">{gift.name}</span>
-                  <span className="text-[10px] text-yellow-400">💎{gift.diamonds}</span>
+                  <span className="text-xl md:text-2xl">{gift.type}</span>
+                  <span className="text-[8px] md:text-[10px] text-white/80 hidden md:block">{gift.name}</span>
+                  <span className="text-[8px] md:text-[10px] text-yellow-400">💎{gift.diamonds}</span>
                 </Button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Side actions */}
-        <div className="absolute right-4 bottom-32 flex flex-col gap-3">
+        {/* Side actions - mobile optimized */}
+        <div className="absolute right-2 md:right-4 bottom-36 md:bottom-32 flex flex-col gap-2 md:gap-3">
           {/* Quick reactions */}
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-white hover:bg-white/10"
+            className="text-white hover:bg-white/10 h-9 w-9 md:h-10 md:w-10"
             onClick={() => handleReaction("❤️")}
           >
-            <Heart className="w-7 h-7 text-red-500" />
+            <Heart className="w-5 h-5 md:w-7 md:h-7 text-red-500" />
           </Button>
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-white hover:bg-white/10"
+            className="text-white hover:bg-white/10 h-9 w-9 md:h-10 md:w-10"
             onClick={() => handleReaction("🔥")}
           >
-            <Flame className="w-7 h-7 text-orange-500" />
+            <Flame className="w-5 h-5 md:w-7 md:h-7 text-orange-500" />
           </Button>
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-white hover:bg-white/10 relative"
-            onClick={() => setShowGiftPanel(!showGiftPanel)}
+            className="text-white hover:bg-white/10 h-9 w-9 md:h-10 md:w-10 relative"
+            onClick={() => { setShowGiftPanel(!showGiftPanel); setShowProducts(false); }}
           >
-            <Gift className="w-7 h-7 text-purple-500" />
+            <Gift className="w-5 h-5 md:w-7 md:h-7 text-purple-500" />
             {showGiftPanel && (
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
             )}
@@ -630,33 +669,33 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
             streamId={stream.id}
             streamTitle={stream.title}
             streamerName={stream.profiles?.full_name || undefined}
-            className="text-white hover:bg-white/10"
+            className="text-white hover:bg-white/10 h-9 w-9 md:h-10 md:w-10"
           />
           {onMinimize && (
             <Button 
               variant="ghost" 
               size="icon" 
-              className="text-white hover:bg-white/10"
+              className="text-white hover:bg-white/10 h-9 w-9 md:h-10 md:w-10"
               onClick={() => onMinimize(stream)}
             >
-              <Minimize2 className="w-7 h-7" />
+              <Minimize2 className="w-5 h-5 md:w-7 md:h-7" />
             </Button>
           )}
         </div>
 
-        {/* Comments overlay */}
-        <div className="absolute bottom-20 left-4 right-20 max-h-40 pointer-events-none">
+        {/* Comments overlay - mobile optimized */}
+        <div className="absolute bottom-24 md:bottom-20 left-2 md:left-4 right-14 md:right-20 max-h-28 md:max-h-40 pointer-events-none">
           <ScrollArea className="h-full">
-            <div className="space-y-2 p-2">
-              {comments.slice(-20).map((comment) => (
-                <div key={comment.id} className="flex items-start gap-2 pointer-events-auto">
-                  <Avatar className="h-6 w-6 flex-shrink-0">
+            <div className="space-y-1.5 md:space-y-2 p-1 md:p-2">
+              {comments.slice(-15).map((comment) => (
+                <div key={comment.id} className="flex items-start gap-1.5 md:gap-2 pointer-events-auto">
+                  <Avatar className="h-5 w-5 md:h-6 md:w-6 flex-shrink-0">
                     <AvatarImage src={comment.profiles?.avatar_url || ""} />
-                    <AvatarFallback className="text-xs">{comment.profiles?.full_name?.[0] || "?"}</AvatarFallback>
+                    <AvatarFallback className="text-[8px] md:text-xs">{comment.profiles?.full_name?.[0] || "?"}</AvatarFallback>
                   </Avatar>
-                  <div className="bg-black/50 rounded-lg px-2 py-1 max-w-xs backdrop-blur-sm">
-                    <span className="text-pink-400 text-xs font-medium">{comment.profiles?.full_name || "User"}</span>
-                    <span className="text-white text-sm ml-2">{comment.content}</span>
+                  <div className="bg-black/50 rounded-lg px-1.5 md:px-2 py-0.5 md:py-1 max-w-[200px] md:max-w-xs backdrop-blur-sm">
+                    <span className="text-pink-400 text-[10px] md:text-xs font-medium">{comment.profiles?.full_name || "User"}</span>
+                    <span className="text-white text-xs md:text-sm ml-1 md:ml-2">{comment.content}</span>
                   </div>
                 </div>
               ))}
@@ -667,17 +706,17 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
       </div>
 
       {/* Comment input */}
-      <div className="bg-black p-4 flex items-center gap-2">
+      <div className="bg-black p-2 md:p-4 flex items-center gap-2 safe-area-inset-bottom">
         <Input
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder={user ? "Say something..." : "Login to comment"}
-          className="flex-1 bg-white/10 border-0 text-white placeholder:text-gray-400"
+          className="flex-1 bg-white/10 border-0 text-white placeholder:text-gray-400 h-9 md:h-10 text-sm md:text-base"
           onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
           disabled={!user}
         />
-        <Button onClick={handleSendComment} size="icon" disabled={!user || !newComment.trim()}>
-          <Send className="w-5 h-5" />
+        <Button onClick={handleSendComment} size="icon" disabled={!user || !newComment.trim()} className="h-9 w-9 md:h-10 md:w-10">
+          <Send className="w-4 h-4 md:w-5 md:h-5" />
         </Button>
       </div>
 
