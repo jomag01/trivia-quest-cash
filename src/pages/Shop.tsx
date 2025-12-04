@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import LiveStreamSlider from "@/components/live/LiveStreamSlider";
 import LiveStreamViewer from "@/components/live/LiveStreamViewer";
+import FloatingLiveStream from "@/components/live/FloatingLiveStream";
 
 const Shop = () => {
   const {
@@ -50,6 +51,21 @@ const Shop = () => {
   const [detailDialog, setDetailDialog] = useState(false);
   const [detailProduct, setDetailProduct] = useState<any>(null);
   const [selectedStream, setSelectedStream] = useState<any>(null);
+  const [minimizedStream, setMinimizedStream] = useState<any>(null);
+  
+  const handleMinimizeStream = (stream: any) => {
+    setMinimizedStream(stream);
+    setSelectedStream(null);
+  };
+
+  const handleExpandStream = () => {
+    setSelectedStream(minimizedStream);
+    setMinimizedStream(null);
+  };
+
+  const handleCloseMinimized = () => {
+    setMinimizedStream(null);
+  };
   useEffect(() => {
     fetchProducts();
     fetchCategories();
@@ -540,6 +556,16 @@ const Shop = () => {
         <LiveStreamViewer
           stream={selectedStream}
           onClose={() => setSelectedStream(null)}
+          onMinimize={handleMinimizeStream}
+        />
+      )}
+
+      {/* Floating Live Stream (when minimized) */}
+      {minimizedStream && (
+        <FloatingLiveStream
+          stream={minimizedStream}
+          onExpand={handleExpandStream}
+          onClose={handleCloseMinimized}
         />
       )}
     </div>;

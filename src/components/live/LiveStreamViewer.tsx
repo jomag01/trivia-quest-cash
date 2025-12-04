@@ -10,10 +10,11 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { 
-  Heart, MessageCircle, Share2, Gift, ShoppingBag, 
+  Heart, MessageCircle, Gift, ShoppingBag, 
   X, Users, Eye, Send, UserPlus, UserMinus, Sparkles,
-  ExternalLink, Diamond, Star, Flame
+  ExternalLink, Diamond, Star, Flame, Minimize2
 } from "lucide-react";
+import { LiveStreamShareButton } from "./LiveStreamShareButton";
 
 interface LiveStream {
   id: string;
@@ -59,6 +60,7 @@ interface GiftNotification {
 interface LiveStreamViewerProps {
   stream: LiveStream;
   onClose: () => void;
+  onMinimize?: (stream: LiveStream) => void;
 }
 
 const GIFT_OPTIONS = [
@@ -70,7 +72,7 @@ const GIFT_OPTIONS = [
   { type: "✨", name: "Sparkle", diamonds: 500, icon: Sparkles, color: "text-pink-500" },
 ];
 
-export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerProps) {
+export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveStreamViewerProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -298,8 +300,10 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
   };
 
   const handleViewProduct = (productId: string) => {
-    // Close live stream and navigate to shop with product
-    onClose();
+    // Minimize live stream if possible, otherwise close
+    if (onMinimize) {
+      onMinimize(stream);
+    }
     navigate(`/shop?product=${productId}`);
   };
 
@@ -622,9 +626,22 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
             )}
           </Button>
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
-            <Share2 className="w-7 h-7" />
-          </Button>
+          <LiveStreamShareButton
+            streamId={stream.id}
+            streamTitle={stream.title}
+            streamerName={stream.profiles?.full_name || undefined}
+            className="text-white hover:bg-white/10"
+          />
+          {onMinimize && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white hover:bg-white/10"
+              onClick={() => onMinimize(stream)}
+            >
+              <Minimize2 className="w-7 h-7" />
+            </Button>
+          )}
         </div>
 
         {/* Comments overlay */}
