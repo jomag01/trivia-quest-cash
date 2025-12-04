@@ -20,6 +20,9 @@ import ShopAccountOverview from "@/components/ShopAccountOverview";
 import CategorySlider from "@/components/CategorySlider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import LiveStreamSlider from "@/components/live/LiveStreamSlider";
+import LiveStreamViewer from "@/components/live/LiveStreamViewer";
+
 const Shop = () => {
   const {
     user
@@ -46,6 +49,7 @@ const Shop = () => {
   const [inWishlist, setInWishlist] = useState<Set<string>>(new Set());
   const [detailDialog, setDetailDialog] = useState(false);
   const [detailProduct, setDetailProduct] = useState<any>(null);
+  const [selectedStream, setSelectedStream] = useState<any>(null);
   useEffect(() => {
     fetchProducts();
     fetchCategories();
@@ -353,6 +357,9 @@ const Shop = () => {
             <div className="-mx-3">
               <AdSlider />
             </div>
+
+            {/* Live Streams Slider */}
+            <LiveStreamSlider onSelectStream={setSelectedStream} />
             
             {/* Category Slider */}
             <CategorySlider categories={categories} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
@@ -527,6 +534,14 @@ const Shop = () => {
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* Live Stream Viewer */}
+      {selectedStream && (
+        <LiveStreamViewer
+          stream={selectedStream}
+          onClose={() => setSelectedStream(null)}
+        />
+      )}
     </div>;
 };
 export default Shop;
