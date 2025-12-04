@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Edit, Save, X, Plus } from "lucide-react";
 
@@ -17,6 +18,7 @@ interface StairStepConfig {
   sales_quota: number;
   months_to_qualify: number;
   breakaway_percentage: number;
+  qualification_type: 'personal' | 'group' | 'combined';
   active: boolean;
 }
 
@@ -27,6 +29,7 @@ interface FormData {
   sales_quota: string;
   months_to_qualify: string;
   breakaway_percentage: string;
+  qualification_type: 'personal' | 'group' | 'combined';
 }
 
 export default function StairStepManagement() {
@@ -41,6 +44,7 @@ export default function StairStepManagement() {
     sales_quota: "",
     months_to_qualify: "3",
     breakaway_percentage: "0",
+    qualification_type: "combined",
   });
 
   useEffect(() => {
@@ -55,7 +59,10 @@ export default function StairStepManagement() {
         .order("step_number");
 
       if (error) throw error;
-      setConfigs(data || []);
+      setConfigs((data || []).map(d => ({
+        ...d,
+        qualification_type: d.qualification_type as 'personal' | 'group' | 'combined'
+      })));
     } catch (error: any) {
       toast.error("Failed to load stair step configuration");
       console.error(error);
@@ -73,6 +80,7 @@ export default function StairStepManagement() {
       sales_quota: config.sales_quota.toString(),
       months_to_qualify: config.months_to_qualify.toString(),
       breakaway_percentage: config.breakaway_percentage.toString(),
+      qualification_type: config.qualification_type,
     });
   };
 
@@ -86,6 +94,7 @@ export default function StairStepManagement() {
           sales_quota: parseFloat(formData.sales_quota),
           months_to_qualify: parseInt(formData.months_to_qualify),
           breakaway_percentage: parseFloat(formData.breakaway_percentage),
+          qualification_type: formData.qualification_type,
         });
 
         if (error) throw error;
@@ -100,6 +109,7 @@ export default function StairStepManagement() {
             sales_quota: parseFloat(formData.sales_quota),
             months_to_qualify: parseInt(formData.months_to_qualify),
             breakaway_percentage: parseFloat(formData.breakaway_percentage),
+            qualification_type: formData.qualification_type,
           })
           .eq("id", editingId);
 
@@ -115,6 +125,7 @@ export default function StairStepManagement() {
         sales_quota: "",
         months_to_qualify: "3",
         breakaway_percentage: "0",
+        qualification_type: "combined",
       });
       fetchConfigs();
     } catch (error: any) {
@@ -133,6 +144,7 @@ export default function StairStepManagement() {
       sales_quota: "",
       months_to_qualify: "3",
       breakaway_percentage: "0",
+      qualification_type: "combined",
     });
   };
 
@@ -162,6 +174,7 @@ export default function StairStepManagement() {
       sales_quota: "",
       months_to_qualify: "3",
       breakaway_percentage: "0",
+      qualification_type: "combined",
     });
   };
 
@@ -262,8 +275,29 @@ export default function StairStepManagement() {
                     value={formData.breakaway_percentage}
                     onChange={(e) => setFormData({ ...formData, breakaway_percentage: e.target.value })}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
+                   <p className="text-xs text-muted-foreground mt-1">
                     Override earned from same-level downlines (typically Step 3 only)
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="qualification_type">Sales Qualification Type</Label>
+                  <Select 
+                    value={formData.qualification_type} 
+                    onValueChange={(value: 'personal' | 'group' | 'combined') => 
+                      setFormData({ ...formData, qualification_type: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="combined">Combined (Personal + Group Sales)</SelectItem>
+                      <SelectItem value="personal">Personal Sales Only</SelectItem>
+                      <SelectItem value="group">Group Sales Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Determines which sales count toward qualification quota
                   </p>
                 </div>
               </div>
@@ -288,6 +322,7 @@ export default function StairStepManagement() {
               <TableHead>Name</TableHead>
               <TableHead>Commission %</TableHead>
               <TableHead>Sales Quota</TableHead>
+              <TableHead>Qualification</TableHead>
               <TableHead>Qualify Months</TableHead>
               <TableHead>Breakaway %</TableHead>
               <TableHead>Status</TableHead>
@@ -301,6 +336,7 @@ export default function StairStepManagement() {
                 <TableCell>{config.step_name}</TableCell>
                 <TableCell>{config.commission_percentage}%</TableCell>
                 <TableCell>₱{config.sales_quota.toLocaleString()}</TableCell>
+                <TableCell className="capitalize">{config.qualification_type}</TableCell>
                 <TableCell>{config.months_to_qualify}</TableCell>
                 <TableCell>{config.breakaway_percentage}%</TableCell>
                 <TableCell>
