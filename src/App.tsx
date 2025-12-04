@@ -21,6 +21,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const DiamondMarketplace = lazy(() => import("./components/DiamondMarketplace"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const SellerDashboard = lazy(() => import("./pages/SellerDashboard"));
+const Booking = lazy(() => import("./pages/Booking"));
 
 // Configure QueryClient with aggressive caching
 const queryClient = new QueryClient({
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/diamond-marketplace" element={<DiamondMarketplace />} />
               <Route path="/community" element={<Community />} />
               <Route path="/shop" element={<Shop />} />
+              <Route path="/booking" element={<Booking />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/seller" element={<SellerDashboard />} />

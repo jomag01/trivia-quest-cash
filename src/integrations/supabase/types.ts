@@ -2180,6 +2180,214 @@ export type Database = {
           },
         ]
       }
+      service_blockout_dates: {
+        Row: {
+          blockout_date: string
+          created_at: string
+          id: string
+          provider_id: string
+          reason: string | null
+          service_id: string | null
+        }
+        Insert: {
+          blockout_date: string
+          created_at?: string
+          id?: string
+          provider_id: string
+          reason?: string | null
+          service_id?: string | null
+        }
+        Update: {
+          blockout_date?: string
+          created_at?: string
+          id?: string
+          provider_id?: string
+          reason?: string | null
+          service_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_blockout_dates_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_blockout_dates_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_bookings: {
+        Row: {
+          booking_date: string
+          created_at: string
+          customer_id: string
+          end_time: string | null
+          id: string
+          notes: string | null
+          provider_id: string
+          referrer_id: string | null
+          service_id: string
+          start_time: string
+          status: string | null
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          booking_date: string
+          created_at?: string
+          customer_id: string
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          provider_id: string
+          referrer_id?: string | null
+          service_id: string
+          start_time: string
+          status?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          booking_date?: string
+          created_at?: string
+          customer_id?: string
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          provider_id?: string
+          referrer_id?: string | null
+          service_id?: string
+          start_time?: string
+          status?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_bookings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_bookings_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          approval_status: string | null
+          category: string | null
+          created_at: string
+          description: string | null
+          diamond_reward: number | null
+          duration_minutes: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          price: number
+          provider_id: string
+          referral_commission_diamonds: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approval_status?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          diamond_reward?: number | null
+          duration_minutes?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          price?: number
+          provider_id: string
+          referral_commission_diamonds?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approval_status?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          diamond_reward?: number | null
+          duration_minutes?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          price?: number
+          provider_id?: string
+          referral_commission_diamonds?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipping_zones: {
         Row: {
           base_rate: number

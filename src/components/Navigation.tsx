@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, ShoppingBag, Plus, MessageSquare, User } from "lucide-react";
+import { Home, ShoppingBag, Plus, MessageSquare, User, CalendarCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { CreatePost } from "@/components/social/CreatePost";
@@ -16,7 +16,7 @@ const Navigation = () => {
         {/* Home */}
         <Link
           to="/"
-          className={`flex flex-col items-center justify-center gap-0.5 min-w-[48px] ${
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] ${
             isActive("/") ? "text-black" : "text-gray-500"
           }`}
         >
@@ -24,10 +24,21 @@ const Navigation = () => {
           <span className="text-[10px] font-medium">Home</span>
         </Link>
 
+        {/* Booking */}
+        <Link
+          to="/booking"
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] ${
+            isActive("/booking") ? "text-black" : "text-gray-500"
+          }`}
+        >
+          <CalendarCheck className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Book</span>
+        </Link>
+
         {/* Shop */}
         <Link
           to="/shop"
-          className={`flex flex-col items-center justify-center gap-0.5 min-w-[48px] ${
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] ${
             isActive("/shop") ? "text-black" : "text-gray-500"
           }`}
         >
