@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { 
   Heart, MessageCircle, Share2, Gift, ShoppingBag, 
-  X, Users, Eye, Send, UserPlus, UserMinus 
+  X, Users, Eye, Send, UserPlus, UserMinus, Sparkles,
+  ExternalLink, Diamond, Star, Flame
 } from "lucide-react";
 
 interface LiveStream {
@@ -47,19 +49,40 @@ interface Comment {
   };
 }
 
+interface GiftNotification {
+  id: string;
+  gift_type: string;
+  diamond_amount: number;
+  sender_name: string;
+}
+
 interface LiveStreamViewerProps {
   stream: LiveStream;
   onClose: () => void;
 }
 
+const GIFT_OPTIONS = [
+  { type: "❤️", name: "Heart", diamonds: 1, icon: Heart, color: "text-red-500" },
+  { type: "⭐", name: "Star", diamonds: 5, icon: Star, color: "text-yellow-500" },
+  { type: "🔥", name: "Fire", diamonds: 10, icon: Flame, color: "text-orange-500" },
+  { type: "💎", name: "Diamond", diamonds: 50, icon: Diamond, color: "text-cyan-500" },
+  { type: "🎁", name: "Gift Box", diamonds: 100, icon: Gift, color: "text-purple-500" },
+  { type: "✨", name: "Sparkle", diamonds: 500, icon: Sparkles, color: "text-pink-500" },
+];
+
 export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isFollowing, setIsFollowing] = useState(false);
-  const [viewerCount, setViewerCount] = useState(stream.viewer_count);
+  const [viewerCount, setViewerCount] = useState(stream.viewer_count || 0);
   const [showProducts, setShowProducts] = useState(false);
+  const [showGiftPanel, setShowGiftPanel] = useState(false);
+  const [giftNotifications, setGiftNotifications] = useState<GiftNotification[]>([]);
+  const [userDiamonds, setUserDiamonds] = useState(0);
+  const [reactions, setReactions] = useState<{ id: string; emoji: string; x: number }[]>([]);
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,6 +90,7 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
     fetchProducts();
     checkFollowStatus();
     incrementViewCount();
+    fetchUserDiamonds();
 
     // Subscribe to realtime comments
     const commentsChannel = supabase
@@ -106,7 +130,42 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
           filter: `id=eq.${stream.id}`
         },
         (payload) => {
-          setViewerCount(payload.new.viewer_count);
+          setViewerCount(payload.new.viewer_count || 0);
+        }
+      )
+      .subscribe();
+
+    // Subscribe to gifts for animations
+    const giftsChannel = supabase
+      .channel(`stream-gifts-${stream.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'live_stream_gifts',
+          filter: `stream_id=eq.${stream.id}`
+        },
+        async (payload) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', payload.new.sender_id)
+            .single();
+          
+          const notification: GiftNotification = {
+            id: payload.new.id,
+            gift_type: payload.new.gift_type,
+            diamond_amount: payload.new.diamond_amount,
+            sender_name: profile?.full_name || 'Someone'
+          };
+          
+          setGiftNotifications(prev => [...prev, notification]);
+          
+          // Remove notification after 4 seconds
+          setTimeout(() => {
+            setGiftNotifications(prev => prev.filter(g => g.id !== notification.id));
+          }, 4000);
         }
       )
       .subscribe();
@@ -114,12 +173,24 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
     return () => {
       supabase.removeChannel(commentsChannel);
       supabase.removeChannel(streamChannel);
+      supabase.removeChannel(giftsChannel);
     };
   }, [stream.id]);
 
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments]);
+
+  const fetchUserDiamonds = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('treasure_wallet')
+      .select('diamonds')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (data) setUserDiamonds(data.diamonds || 0);
+  };
 
   const fetchComments = async () => {
     const { data } = await supabase
@@ -130,30 +201,56 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
       .limit(100);
     
     if (data) {
-      // Fetch profiles separately
       const userIds = [...new Set(data.map(c => c.user_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', userIds);
-      
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-      setComments(data.map(c => ({
-        ...c,
-        profiles: profileMap.get(c.user_id)
-      })));
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+        
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+        setComments(data.map(c => ({
+          ...c,
+          profiles: profileMap.get(c.user_id)
+        })));
+      } else {
+        setComments(data);
+      }
     }
   };
 
   const fetchProducts = async () => {
-    const { data } = await supabase
+    console.log("Fetching products for stream:", stream.id);
+    
+    // First get the live_stream_products
+    const { data: streamProducts, error: streamError } = await supabase
       .from('live_stream_products')
-      .select(`*, products:product_id(id, name, final_price, image_url, seller_id, diamond_reward)`)
+      .select('product_id, display_order')
       .eq('stream_id', stream.id)
       .order('display_order');
     
-    if (data) {
-      setProducts(data.map(p => p.products as unknown as Product).filter(Boolean));
+    console.log("Stream products:", streamProducts, "Error:", streamError);
+    
+    if (streamProducts && streamProducts.length > 0) {
+      const productIds = streamProducts.map(sp => sp.product_id);
+      
+      // Then fetch the actual products
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('id, name, final_price, image_url, seller_id, diamond_reward')
+        .in('id', productIds)
+        .eq('is_active', true);
+      
+      console.log("Products data:", productsData, "Error:", productsError);
+      
+      if (productsData) {
+        // Sort by display order
+        const productMap = new Map(productsData.map(p => [p.id, p]));
+        const sortedProducts = streamProducts
+          .map(sp => productMap.get(sp.product_id))
+          .filter(Boolean) as Product[];
+        setProducts(sortedProducts);
+      }
     }
   };
 
@@ -163,7 +260,6 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
       return;
     }
 
-    // Add to cart with live stream referrer tracking
     const { data: existingItem } = await supabase
       .from('cart')
       .select('id, quantity')
@@ -186,7 +282,7 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
         });
     }
 
-    // Store live stream referrer info in localStorage for checkout
+    // Store live stream referrer info
     const liveStreamReferrer = {
       stream_id: stream.id,
       streamer_id: stream.user_id,
@@ -199,6 +295,12 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
     localStorage.setItem('live_stream_referrers', JSON.stringify(updatedReferrers));
 
     toast.success(`${product.name} added to cart!`);
+  };
+
+  const handleViewProduct = (productId: string) => {
+    // Close live stream and navigate to shop with product
+    onClose();
+    navigate(`/shop?product=${productId}`);
   };
 
   const checkFollowStatus = async () => {
@@ -216,12 +318,16 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
   const incrementViewCount = async () => {
     await supabase
       .from('live_streams')
-      .update({ viewer_count: viewerCount + 1 })
+      .update({ viewer_count: (viewerCount || 0) + 1 })
       .eq('id', stream.id);
   };
 
   const handleSendComment = async () => {
-    if (!user || !newComment.trim()) return;
+    if (!user) {
+      toast.error("Please login to comment");
+      return;
+    }
+    if (!newComment.trim()) return;
     
     const { error } = await supabase
       .from('live_stream_comments')
@@ -270,46 +376,104 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
       return;
     }
 
-    // Check diamond balance
-    const { data: wallet } = await supabase
-      .from('treasure_wallet')
-      .select('diamonds')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!wallet || wallet.diamonds < diamonds) {
-      toast.error("Insufficient diamonds");
+    if (userDiamonds < diamonds) {
+      toast.error(`Insufficient diamonds. You have ${userDiamonds} 💎`);
       return;
     }
 
-    // Deduct diamonds
-    await supabase
-      .from('treasure_wallet')
-      .update({ diamonds: wallet.diamonds - diamonds })
-      .eq('user_id', user.id);
+    try {
+      // Deduct diamonds from sender
+      const { error: deductError } = await supabase
+        .from('treasure_wallet')
+        .update({ diamonds: userDiamonds - diamonds })
+        .eq('user_id', user.id);
 
-    // Record gift
-    await supabase
-      .from('live_stream_gifts')
-      .insert({
-        stream_id: stream.id,
-        sender_id: user.id,
-        gift_type: giftType,
-        diamond_amount: diamonds
-      });
+      if (deductError) throw deductError;
 
-    toast.success(`Sent ${giftType}!`);
+      // Add diamonds to streamer's wallet
+      const { data: streamerWallet } = await supabase
+        .from('treasure_wallet')
+        .select('diamonds')
+        .eq('user_id', stream.user_id)
+        .single();
+
+      if (streamerWallet) {
+        await supabase
+          .from('treasure_wallet')
+          .update({ diamonds: (streamerWallet.diamonds || 0) + diamonds })
+          .eq('user_id', stream.user_id);
+      } else {
+        // Create wallet for streamer if doesn't exist
+        await supabase
+          .from('treasure_wallet')
+          .insert({ user_id: stream.user_id, diamonds: diamonds, gems: 0 });
+      }
+
+      // Record the gift
+      await supabase
+        .from('live_stream_gifts')
+        .insert({
+          stream_id: stream.id,
+          sender_id: user.id,
+          gift_type: giftType,
+          diamond_amount: diamonds
+        });
+
+      setUserDiamonds(prev => prev - diamonds);
+      setShowGiftPanel(false);
+      toast.success(`Sent ${giftType} (${diamonds} 💎) to ${stream.profiles?.full_name || 'Streamer'}!`);
+    } catch (error) {
+      toast.error("Failed to send gift");
+    }
+  };
+
+  const handleReaction = (emoji: string) => {
+    const id = Math.random().toString(36);
+    const x = Math.random() * 80 + 10;
+    setReactions(prev => [...prev, { id, emoji, x }]);
+    
+    // Remove reaction after animation
+    setTimeout(() => {
+      setReactions(prev => prev.filter(r => r.id !== id));
+    }, 2000);
   };
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Video/Stream Area */}
-      <div className="relative flex-1 bg-gradient-to-b from-purple-900 to-black flex items-center justify-center">
+      <div className="relative flex-1 bg-gradient-to-b from-purple-900 to-black flex items-center justify-center overflow-hidden">
         {/* Placeholder for actual video stream */}
         <div className="text-center text-white">
           <div className="text-6xl mb-4">📺</div>
           <h2 className="text-2xl font-bold">{stream.title}</h2>
           <p className="text-gray-300 mt-2">Live Stream</p>
+        </div>
+
+        {/* Floating reactions */}
+        {reactions.map((reaction) => (
+          <div
+            key={reaction.id}
+            className="absolute bottom-20 text-4xl animate-bounce pointer-events-none"
+            style={{
+              left: `${reaction.x}%`,
+              animation: 'float-up 2s ease-out forwards'
+            }}
+          >
+            {reaction.emoji}
+          </div>
+        ))}
+
+        {/* Gift notifications */}
+        <div className="absolute top-20 left-4 space-y-2 z-10">
+          {giftNotifications.map((gift) => (
+            <div 
+              key={gift.id}
+              className="bg-gradient-to-r from-pink-500/90 to-purple-500/90 text-white px-4 py-2 rounded-full animate-pulse backdrop-blur-sm"
+            >
+              <span className="font-medium">{gift.sender_name}</span> sent {gift.gift_type}
+              <span className="ml-2 text-yellow-300">💎{gift.diamond_amount}</span>
+            </div>
+          ))}
         </div>
 
         {/* Top bar */}
@@ -322,7 +486,7 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
             <div>
               <p className="text-white font-semibold text-sm">{stream.profiles?.full_name || "Streamer"}</p>
               <div className="flex items-center gap-2">
-                <Badge variant="destructive" className="text-xs">LIVE</Badge>
+                <Badge variant="destructive" className="text-xs animate-pulse">● LIVE</Badge>
                 <span className="text-white/80 text-xs flex items-center gap-1">
                   <Eye className="w-3 h-3" /> {viewerCount}
                 </span>
@@ -337,9 +501,16 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
               {isFollowing ? <UserMinus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
             </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="text-white">
-            <X className="w-6 h-6" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {user && (
+              <Badge variant="outline" className="text-white border-white/50">
+                💎 {userDiamonds}
+              </Badge>
+            )}
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-white">
+              <X className="w-6 h-6" />
+            </Button>
+          </div>
         </div>
 
         {/* Products showcase button */}
@@ -352,61 +523,121 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
         </Button>
 
         {/* Products panel */}
-        {showProducts && products.length > 0 && (
-          <div className="absolute bottom-32 left-4 right-20 max-h-48">
+        {showProducts && (
+          <div className="absolute bottom-32 left-4 right-20 max-h-52 z-10">
             <ScrollArea className="h-full">
-              <div className="flex gap-2 p-2">
-                {products.map((product) => (
-                  <Card key={product.id} className="flex-shrink-0 w-36 p-2 bg-white/10 backdrop-blur">
-                    <img
-                      src={product.image_url || "/placeholder.svg"}
-                      alt={product.name}
-                      className="w-full h-20 object-cover rounded mb-2"
-                    />
-                    <p className="text-white text-xs truncate">{product.name}</p>
-                    <p className="text-orange-400 font-bold text-sm">₱{product.final_price}</p>
-                    {product.diamond_reward && (
-                      <p className="text-cyan-400 text-xs">+{product.diamond_reward} 💎</p>
-                    )}
-                    <Button 
-                      size="sm" 
-                      className="w-full mt-2 bg-orange-500 hover:bg-orange-600 text-xs h-7"
-                      onClick={() => handleBuyProduct(product)}
-                    >
-                      <ShoppingBag className="w-3 h-3 mr-1" />
-                      Buy Now
-                    </Button>
-                  </Card>
-                ))}
-              </div>
+              {products.length > 0 ? (
+                <div className="flex gap-2 p-2">
+                  {products.map((product) => (
+                    <Card key={product.id} className="flex-shrink-0 w-40 p-2 bg-white/10 backdrop-blur border-white/20">
+                      <img
+                        src={product.image_url || "/placeholder.svg"}
+                        alt={product.name}
+                        className="w-full h-24 object-cover rounded mb-2"
+                      />
+                      <p className="text-white text-xs truncate font-medium">{product.name}</p>
+                      <p className="text-orange-400 font-bold text-sm">₱{product.final_price?.toLocaleString()}</p>
+                      {product.diamond_reward && (
+                        <p className="text-cyan-400 text-xs">+{product.diamond_reward} 💎</p>
+                      )}
+                      <div className="flex gap-1 mt-2">
+                        <Button 
+                          size="sm" 
+                          className="flex-1 bg-orange-500 hover:bg-orange-600 text-xs h-7"
+                          onClick={() => handleBuyProduct(product)}
+                        >
+                          <ShoppingBag className="w-3 h-3 mr-1" />
+                          Buy
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-7 px-2 border-white/30 text-white hover:bg-white/10"
+                          onClick={() => handleViewProduct(product.id)}
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-white/60 text-center py-8">
+                  No products in this stream
+                </div>
+              )}
             </ScrollArea>
           </div>
         )}
 
+        {/* Gift panel */}
+        {showGiftPanel && (
+          <div className="absolute bottom-32 right-4 bg-black/80 backdrop-blur rounded-xl p-3 z-10">
+            <p className="text-white text-xs mb-2 text-center">Send a gift 💎{userDiamonds}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {GIFT_OPTIONS.map((gift) => (
+                <Button
+                  key={gift.type}
+                  variant="ghost"
+                  className={`flex flex-col items-center p-2 h-auto hover:bg-white/10 ${gift.color}`}
+                  onClick={() => handleSendGift(gift.type, gift.diamonds)}
+                  disabled={userDiamonds < gift.diamonds}
+                >
+                  <span className="text-2xl">{gift.type}</span>
+                  <span className="text-[10px] text-white/80">{gift.name}</span>
+                  <span className="text-[10px] text-yellow-400">💎{gift.diamonds}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Side actions */}
-        <div className="absolute right-4 bottom-32 flex flex-col gap-4">
-          <Button variant="ghost" size="icon" className="text-white" onClick={() => handleSendGift("❤️", 1)}>
-            <Heart className="w-7 h-7" />
+        <div className="absolute right-4 bottom-32 flex flex-col gap-3">
+          {/* Quick reactions */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/10"
+            onClick={() => handleReaction("❤️")}
+          >
+            <Heart className="w-7 h-7 text-red-500" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-white" onClick={() => handleSendGift("🎁", 10)}>
-            <Gift className="w-7 h-7" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/10"
+            onClick={() => handleReaction("🔥")}
+          >
+            <Flame className="w-7 h-7 text-orange-500" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-white">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/10 relative"
+            onClick={() => setShowGiftPanel(!showGiftPanel)}
+          >
+            <Gift className="w-7 h-7 text-purple-500" />
+            {showGiftPanel && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+            )}
+          </Button>
+          <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
             <Share2 className="w-7 h-7" />
           </Button>
         </div>
 
         {/* Comments overlay */}
-        <div className="absolute bottom-20 left-4 right-20 max-h-48 pointer-events-none">
+        <div className="absolute bottom-20 left-4 right-20 max-h-40 pointer-events-none">
           <ScrollArea className="h-full">
             <div className="space-y-2 p-2">
               {comments.slice(-20).map((comment) => (
                 <div key={comment.id} className="flex items-start gap-2 pointer-events-auto">
-                  <Avatar className="h-6 w-6">
+                  <Avatar className="h-6 w-6 flex-shrink-0">
                     <AvatarImage src={comment.profiles?.avatar_url || ""} />
                     <AvatarFallback className="text-xs">{comment.profiles?.full_name?.[0] || "?"}</AvatarFallback>
                   </Avatar>
-                  <div className="bg-black/50 rounded-lg px-2 py-1 max-w-xs">
+                  <div className="bg-black/50 rounded-lg px-2 py-1 max-w-xs backdrop-blur-sm">
                     <span className="text-pink-400 text-xs font-medium">{comment.profiles?.full_name || "User"}</span>
                     <span className="text-white text-sm ml-2">{comment.content}</span>
                   </div>
@@ -423,14 +654,29 @@ export default function LiveStreamViewer({ stream, onClose }: LiveStreamViewerPr
         <Input
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Say something..."
+          placeholder={user ? "Say something..." : "Login to comment"}
           className="flex-1 bg-white/10 border-0 text-white placeholder:text-gray-400"
           onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
+          disabled={!user}
         />
-        <Button onClick={handleSendComment} size="icon">
+        <Button onClick={handleSendComment} size="icon" disabled={!user || !newComment.trim()}>
           <Send className="w-5 h-5" />
         </Button>
       </div>
+
+      {/* CSS for floating animation */}
+      <style>{`
+        @keyframes float-up {
+          0% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-200px) scale(1.5);
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -112,12 +112,12 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           };
           
           setGifts(prev => [...prev, newGift]);
-          toast.success(`${profile?.full_name || 'Someone'} sent ${payload.new.gift_type}!`);
+          toast.success(`🎉 ${profile?.full_name || 'Someone'} sent ${payload.new.gift_type} (+${payload.new.diamond_amount} 💎)!`);
           
-          // Remove gift notification after 3 seconds
+          // Remove gift notification after 4 seconds
           setTimeout(() => {
             setGifts(prev => prev.filter(g => g.id !== newGift.id));
-          }, 3000);
+          }, 4000);
         }
       )
       .subscribe();
@@ -186,14 +186,28 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       })));
     }
 
-    // Fetch products
-    const { data: productsData } = await supabase
+    // Fetch products - separate queries to ensure data loads
+    const { data: streamProducts } = await supabase
       .from('live_stream_products')
-      .select(`*, products:product_id(id, name, final_price, image_url)`)
-      .eq('stream_id', streamId);
+      .select('product_id, display_order')
+      .eq('stream_id', streamId)
+      .order('display_order');
     
-    if (productsData) {
-      setProducts(productsData.map(p => p.products as unknown as Product).filter(Boolean));
+    if (streamProducts && streamProducts.length > 0) {
+      const productIds = streamProducts.map(sp => sp.product_id);
+      const { data: productsData } = await supabase
+        .from('products')
+        .select('id, name, final_price, image_url')
+        .in('id', productIds)
+        .eq('is_active', true);
+      
+      if (productsData) {
+        const productMap = new Map(productsData.map(p => [p.id, p]));
+        const sortedProducts = streamProducts
+          .map(sp => productMap.get(sp.product_id))
+          .filter(Boolean) as Product[];
+        setProducts(sortedProducts);
+      }
     }
   };
 
