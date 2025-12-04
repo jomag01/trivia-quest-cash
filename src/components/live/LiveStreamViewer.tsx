@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   Heart, MessageCircle, Gift, ShoppingBag, 
   X, Eye, Send, UserPlus, UserMinus, Sparkles,
-  ExternalLink, Diamond, Star, Flame, Minimize2, ArrowDown, ThumbsUp, ThumbsDown
+  Diamond, Star, Flame, Minimize2, ArrowDown, ThumbsUp, ThumbsDown, Reply, Video
 } from "lucide-react";
 import { LiveStreamShareButton } from "./LiveStreamShareButton";
 
@@ -86,7 +86,9 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const [giftNotifications, setGiftNotifications] = useState<GiftNotification[]>([]);
   const [userDiamonds, setUserDiamonds] = useState(0);
   const [reactions, setReactions] = useState<{ id: string; emoji: string; x: number }[]>([]);
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     fetchComments();
@@ -165,7 +167,6 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
           
           setGiftNotifications(prev => [...prev, notification]);
           
-          // Remove notification after 4 seconds
           setTimeout(() => {
             setGiftNotifications(prev => prev.filter(g => g.id !== notification.id));
           }, 4000);
@@ -173,7 +174,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
       )
       .subscribe();
 
-    // Subscribe to user's diamond balance (for real-time updates)
+    // Subscribe to user's diamond balance
     let diamondsChannel: any = null;
     if (user) {
       diamondsChannel = supabase
@@ -348,19 +349,34 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
     }
     if (!newComment.trim()) return;
     
+    const commentContent = replyingTo 
+      ? `@${replyingTo.profiles?.full_name || 'User'} ${newComment.trim()}`
+      : newComment.trim();
+    
     const { error } = await supabase
       .from('live_stream_comments')
       .insert({
         stream_id: stream.id,
         user_id: user.id,
-        content: newComment.trim()
+        content: commentContent
       });
     
     if (error) {
       toast.error("Failed to send comment");
     } else {
       setNewComment("");
+      setReplyingTo(null);
     }
+  };
+
+  const handleReplyToComment = (comment: Comment) => {
+    setReplyingTo(comment);
+    setShowComments(true);
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+    setNewComment("");
   };
 
   const handleFollow = async () => {
@@ -460,28 +476,42 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      {/* Video/Stream Area - Minimizes when comments are open */}
-      <div className={`relative bg-gradient-to-b from-purple-900 to-black flex items-center justify-center overflow-hidden transition-all duration-300 ${showComments ? 'h-[35%]' : 'flex-1'}`}>
-        {/* Stream video/thumbnail */}
-        {stream.thumbnail_url ? (
-          <img 
-            src={stream.thumbnail_url} 
-            alt={stream.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="text-center text-white">
-            <div className="text-4xl mb-2">📺</div>
-            <h2 className="text-sm font-bold px-4 truncate">{stream.title}</h2>
-            <p className="text-gray-300 text-xs">Live Stream</p>
-          </div>
-        )}
+      {/* Video/Stream Area */}
+      <div className={`relative bg-black flex items-center justify-center overflow-hidden transition-all duration-300 ${showComments ? 'h-[35%] min-h-[200px]' : 'flex-1'}`}>
+        {/* Video display area - show thumbnail as background or placeholder */}
+        <div className="absolute inset-0 w-full h-full">
+          {stream.thumbnail_url ? (
+            <img 
+              src={stream.thumbnail_url} 
+              alt={stream.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-b from-purple-900/80 to-black flex items-center justify-center">
+              {/* Streamer profile picture in center when no video */}
+              <div className="flex flex-col items-center">
+                <Avatar className="w-20 h-20 md:w-28 md:h-28 border-4 border-pink-500 shadow-lg shadow-pink-500/50">
+                  <AvatarImage src={stream.profiles?.avatar_url || ""} />
+                  <AvatarFallback className="text-2xl md:text-4xl bg-gradient-to-br from-purple-500 to-pink-500">
+                    {stream.profiles?.full_name?.[0] || "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <h2 className="text-white font-bold text-base md:text-lg mt-3 px-4 text-center">{stream.title}</h2>
+                <p className="text-gray-300 text-xs md:text-sm mt-1">{stream.profiles?.full_name || "Streamer"}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Video className="w-4 h-4 text-red-500 animate-pulse" />
+                  <span className="text-white/80 text-xs">Live Now</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Floating reactions */}
         {reactions.map((reaction) => (
           <div
             key={reaction.id}
-            className="absolute bottom-20 text-2xl animate-bounce pointer-events-none"
+            className="absolute bottom-20 text-2xl animate-bounce pointer-events-none z-20"
             style={{
               left: `${reaction.x}%`,
               animation: 'float-up 2s ease-out forwards'
@@ -492,7 +522,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
         ))}
 
         {/* Gift notifications */}
-        <div className="absolute top-12 left-2 space-y-1 z-10 max-w-[60%]">
+        <div className="absolute top-14 left-2 space-y-1 z-20 max-w-[60%]">
           {giftNotifications.map((gift) => (
             <div 
               key={gift.id}
@@ -504,12 +534,14 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
           ))}
         </div>
 
-        {/* Top bar - compact */}
-        <div className="absolute top-0 left-0 right-0 p-2 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent">
+        {/* Top bar */}
+        <div className="absolute top-0 left-0 right-0 p-2 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent z-30">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Avatar className="h-7 w-7 border border-pink-500 flex-shrink-0">
+            <Avatar className="h-8 w-8 border-2 border-pink-500 flex-shrink-0">
               <AvatarImage src={stream.profiles?.avatar_url || ""} />
-              <AvatarFallback className="text-xs">{stream.profiles?.full_name?.[0] || "?"}</AvatarFallback>
+              <AvatarFallback className="text-xs bg-gradient-to-br from-purple-500 to-pink-500">
+                {stream.profiles?.full_name?.[0] || "?"}
+              </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="text-white font-semibold text-xs truncate">{stream.profiles?.full_name || "Streamer"}</p>
@@ -541,46 +573,46 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
           </div>
         </div>
 
-        {/* Side action icons - inside video, right side, small */}
-        <div className="absolute right-2 bottom-3 flex flex-col gap-3 z-20">
+        {/* Side action icons */}
+        <div className="absolute right-2 bottom-3 flex flex-col gap-2 z-20">
           <button 
             className="flex flex-col items-center active:scale-90 transition-transform"
             onClick={() => handleReaction("❤️")}
           >
-            <div className="w-9 h-9 bg-black/40 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
               <Heart className="w-5 h-5 text-white" fill="white" />
             </div>
-            <span className="text-white text-[10px] mt-0.5">Like</span>
+            <span className="text-white text-[10px] mt-0.5 drop-shadow">Like</span>
           </button>
           
           <button 
             className="flex flex-col items-center active:scale-90 transition-transform"
             onClick={toggleComments}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center ${showComments ? 'bg-primary' : 'bg-black/40'}`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm ${showComments ? 'bg-primary' : 'bg-black/50'}`}>
               <MessageCircle className="w-5 h-5 text-white" />
             </div>
-            <span className="text-white text-[10px] mt-0.5">{comments.length}</span>
+            <span className="text-white text-[10px] mt-0.5 drop-shadow">{comments.length}</span>
           </button>
           
           <button 
             className="flex flex-col items-center active:scale-90 transition-transform"
             onClick={() => { setShowGiftPanel(!showGiftPanel); setShowProducts(false); setShowComments(false); }}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center ${showGiftPanel ? 'bg-purple-500' : 'bg-black/40'}`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm ${showGiftPanel ? 'bg-purple-500' : 'bg-black/50'}`}>
               <Gift className="w-5 h-5 text-white" />
             </div>
-            <span className="text-white text-[10px] mt-0.5">Gift</span>
+            <span className="text-white text-[10px] mt-0.5 drop-shadow">Gift</span>
           </button>
 
           <button 
             className="flex flex-col items-center active:scale-90 transition-transform"
             onClick={() => { setShowProducts(!showProducts); setShowGiftPanel(false); setShowComments(false); }}
           >
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center ${showProducts ? 'bg-orange-500' : 'bg-black/40'}`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm ${showProducts ? 'bg-orange-500' : 'bg-black/50'}`}>
               <ShoppingBag className="w-5 h-5 text-white" />
             </div>
-            <span className="text-white text-[10px] mt-0.5">{products.length}</span>
+            <span className="text-white text-[10px] mt-0.5 drop-shadow">{products.length}</span>
           </button>
 
           <LiveStreamShareButton
@@ -596,7 +628,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
               className="flex flex-col items-center active:scale-90 transition-transform"
               onClick={() => onMinimize(stream)}
             >
-              <div className="w-9 h-9 bg-black/40 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
                 <Minimize2 className="w-5 h-5 text-white" />
               </div>
             </button>
@@ -605,29 +637,29 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
 
         {/* Products panel overlay */}
         {showProducts && (
-          <div className="absolute bottom-14 left-2 right-14 max-h-36 z-30 bg-black/90 backdrop-blur-md rounded-xl p-2">
+          <div className="absolute bottom-14 left-2 right-14 max-h-40 z-30 bg-black/90 backdrop-blur-md rounded-xl p-2">
             <ScrollArea className="h-full">
               {products.length > 0 ? (
                 <div className="flex gap-2 pb-1 overflow-x-auto">
                   {products.map((product) => (
                     <Card 
                       key={product.id} 
-                      className="flex-shrink-0 w-24 p-1.5 bg-white/10 backdrop-blur border-white/20 cursor-pointer active:scale-95 transition-transform"
+                      className="flex-shrink-0 w-28 p-2 bg-white/10 backdrop-blur border-white/20 cursor-pointer active:scale-95 transition-transform"
                       onClick={() => handleViewProduct(product.id)}
                     >
                       <img
                         src={product.image_url || "/placeholder.svg"}
                         alt={product.name}
-                        className="w-full h-14 object-cover rounded mb-1"
+                        className="w-full h-16 object-cover rounded mb-1"
                       />
-                      <p className="text-white text-[9px] truncate font-medium">{product.name}</p>
-                      <p className="text-orange-400 font-bold text-[10px]">₱{product.final_price?.toLocaleString()}</p>
+                      <p className="text-white text-[10px] truncate font-medium">{product.name}</p>
+                      <p className="text-orange-400 font-bold text-xs">₱{product.final_price?.toLocaleString()}</p>
                       <Button 
                         size="sm" 
-                        className="w-full bg-orange-500 hover:bg-orange-600 text-[9px] h-5 mt-1"
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-[10px] h-6 mt-1"
                         onClick={(e) => { e.stopPropagation(); handleBuyProduct(product); }}
                       >
-                        Buy
+                        Add to Cart
                       </Button>
                     </Card>
                   ))}
@@ -643,23 +675,23 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
 
         {/* Gift panel overlay */}
         {showGiftPanel && (
-          <div className="absolute bottom-14 left-2 right-14 bg-black/90 backdrop-blur-md rounded-xl p-2 z-30">
+          <div className="absolute bottom-14 left-2 right-14 bg-black/90 backdrop-blur-md rounded-xl p-3 z-30">
             <div className="flex items-center justify-between mb-2">
               <p className="text-white text-xs font-medium">Send a gift</p>
               <Badge variant="outline" className="text-white border-white/50 text-[9px]">
                 💎 {userDiamonds.toLocaleString()}
               </Badge>
             </div>
-            <div className="grid grid-cols-6 gap-1">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
               {GIFT_OPTIONS.map((gift) => (
                 <button
                   key={gift.type}
-                  className={`flex flex-col items-center p-1.5 rounded-lg hover:bg-white/10 active:scale-90 transition-all ${userDiamonds < gift.diamonds ? 'opacity-40' : ''}`}
+                  className={`flex flex-col items-center p-2 rounded-lg hover:bg-white/10 active:scale-90 transition-all ${userDiamonds < gift.diamonds ? 'opacity-40' : ''}`}
                   onClick={() => handleSendGift(gift.type, gift.diamonds)}
                   disabled={userDiamonds < gift.diamonds}
                 >
-                  <span className="text-xl">{gift.type}</span>
-                  <span className="text-[8px] text-yellow-400">💎{gift.diamonds}</span>
+                  <span className="text-2xl">{gift.type}</span>
+                  <span className="text-[9px] text-yellow-400 mt-1">💎{gift.diamonds}</span>
                 </button>
               ))}
             </div>
@@ -667,11 +699,11 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
         )}
       </div>
 
-      {/* TikTok-style Comments Section - Shows when comment icon is clicked */}
+      {/* TikTok-style Comments Section */}
       {showComments && (
-        <div className="flex-1 bg-background flex flex-col">
+        <div className="flex-1 bg-background flex flex-col min-h-0">
           {/* Comments header */}
-          <div className="flex items-center justify-between px-4 py-2 border-b">
+          <div className="flex items-center justify-between px-4 py-2 border-b flex-shrink-0">
             <h3 className="text-sm font-semibold">{comments.length} comment{comments.length !== 1 ? 's' : ''}</h3>
             <div className="flex items-center gap-2">
               <button className="p-1">
@@ -684,7 +716,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
           </div>
 
           {/* Comments list */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="px-4 py-2 space-y-4">
               {comments.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">
@@ -709,14 +741,20 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
                         <span className="text-[10px] text-muted-foreground">
                           {new Date(comment.created_at).toLocaleDateString()}
                         </span>
-                        <button className="text-[10px] text-muted-foreground hover:text-foreground">Reply</button>
+                        <button 
+                          className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1"
+                          onClick={() => handleReplyToComment(comment)}
+                        >
+                          <Reply className="w-3 h-3" />
+                          Reply
+                        </button>
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-1">
-                      <button className="p-1 hover:bg-muted rounded">
+                      <button className="p-1 hover:bg-muted rounded active:scale-90 transition-transform">
                         <ThumbsUp className="w-4 h-4 text-muted-foreground" />
                       </button>
-                      <button className="p-1 hover:bg-muted rounded">
+                      <button className="p-1 hover:bg-muted rounded active:scale-90 transition-transform">
                         <ThumbsDown className="w-4 h-4 text-muted-foreground" />
                       </button>
                     </div>
@@ -727,13 +765,25 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
             </div>
           </ScrollArea>
 
+          {/* Reply indicator */}
+          {replyingTo && (
+            <div className="px-3 py-2 bg-muted/50 border-t flex items-center justify-between flex-shrink-0">
+              <span className="text-xs text-muted-foreground">
+                Replying to <span className="font-medium text-foreground">@{replyingTo.profiles?.full_name || 'User'}</span>
+              </span>
+              <button onClick={cancelReply} className="text-xs text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Comment input */}
-          <div className="p-3 border-t bg-background safe-area-inset-bottom">
+          <div className="p-3 border-t bg-background flex-shrink-0">
             <div className="flex items-center gap-2">
               <Input
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder={user ? "Add a comment..." : "Login to comment"}
+                placeholder={user ? (replyingTo ? `Reply to @${replyingTo.profiles?.full_name || 'User'}...` : "Add a comment...") : "Login to comment"}
                 className="flex-1 h-10 text-sm"
                 onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
                 disabled={!user}
@@ -746,17 +796,21 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
         </div>
       )}
 
-      {/* Inline comments overlay when NOT in comment view - shows last few comments */}
+      {/* Inline comments overlay when NOT in comment view */}
       {!showComments && (
-        <div className="absolute bottom-16 left-2 right-14 max-h-28 overflow-hidden pointer-events-none z-10">
+        <div className="absolute bottom-16 left-2 right-14 max-h-28 overflow-hidden z-10">
           <div className="space-y-1">
             {comments.slice(-5).map((comment) => (
-              <div key={comment.id} className="flex items-start gap-1.5 animate-fade-in">
+              <div 
+                key={comment.id} 
+                className="flex items-start gap-1.5 animate-fade-in cursor-pointer"
+                onClick={() => handleReplyToComment(comment)}
+              >
                 <Avatar className="h-5 w-5 flex-shrink-0">
                   <AvatarImage src={comment.profiles?.avatar_url || ""} />
                   <AvatarFallback className="text-[8px]">{comment.profiles?.full_name?.[0] || "?"}</AvatarFallback>
                 </Avatar>
-                <div className="bg-black/50 rounded-lg px-2 py-0.5 max-w-[80%]">
+                <div className="bg-black/60 rounded-lg px-2 py-1 max-w-[80%] backdrop-blur-sm">
                   <span className="text-pink-400 text-[10px] font-medium">{comment.profiles?.full_name || "User"}</span>
                   <span className="text-white text-xs ml-1">{comment.content}</span>
                 </div>
@@ -768,11 +822,21 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
 
       {/* Bottom comment input when NOT in comment view */}
       {!showComments && (
-        <div className="bg-black/90 p-2 flex items-center gap-2 safe-area-inset-bottom">
+        <div className="bg-black/90 p-2 flex items-center gap-2 backdrop-blur-sm">
+          {replyingTo && (
+            <div className="absolute bottom-14 left-2 right-2 bg-black/80 rounded-lg px-3 py-1.5 flex items-center justify-between backdrop-blur-sm">
+              <span className="text-xs text-white/70">
+                Replying to <span className="text-pink-400">@{replyingTo.profiles?.full_name || 'User'}</span>
+              </span>
+              <button onClick={cancelReply} className="text-white/70">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <Input
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder={user ? "Say something..." : "Login to comment"}
+            placeholder={user ? (replyingTo ? `Reply to @${replyingTo.profiles?.full_name}...` : "Say something...") : "Login to comment"}
             className="flex-1 bg-white/10 border-0 text-white placeholder:text-gray-400 h-9 text-sm"
             onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
             disabled={!user}
