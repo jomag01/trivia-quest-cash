@@ -45,7 +45,8 @@ import MultivendorProductManagement from "@/components/MultivendorProductManagem
 import { SalesAnalytics } from "@/components/SalesAnalytics";
 import { AdManagement } from "@/components/AdManagement";
 import { UserAdManagement } from "@/components/UserAdManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck } from "lucide-react";
+import ServiceCommissionManagement from "@/components/ServiceCommissionManagement";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -108,6 +109,7 @@ const Admin = () => {
     { id: "transfers", label: "Upline Transfers", icon: Users },
     { id: "seller-verification", label: "Seller Verification", icon: CheckCircle },
     { id: "multivendor-products", label: "User Products", icon: Package },
+    { id: "service-commissions", label: "Service Bookings", icon: CalendarCheck },
   ];
 
   useEffect(() => {
@@ -512,6 +514,7 @@ const Admin = () => {
           {activeTab === "transfers" && <UplineTransferManagement />}
           {activeTab === "seller-verification" && <SellerVerificationManagement />}
           {activeTab === "multivendor-products" && <MultivendorProductManagement />}
+          {activeTab === "service-commissions" && <ServiceCommissionManagement />}
         </main>
       </div>
 
