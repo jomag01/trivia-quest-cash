@@ -1,8 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Direct storage upload that bypasses the bucket metadata query
- * This works around the "file_size_limit column does not exist" error
+ * Upload to storage via edge function (bypasses bucket metadata query issues)
  */
 export async function uploadToStorage(
   bucket: string,
@@ -17,33 +16,30 @@ export async function uploadToStorage(
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     
-    const url = `${supabaseUrl}/storage/v1/object/${bucket}/${path}`;
+    // Use edge function for upload to bypass bucket metadata issues
+    const edgeFunctionUrl = `${supabaseUrl}/functions/v1/storage-upload`;
     
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token || supabaseAnonKey}`,
       'apikey': supabaseAnonKey,
+      'x-bucket': bucket,
+      'x-path': path,
+      'Content-Type': options?.contentType || file.type || 'application/octet-stream',
     };
     
-    if (options?.contentType) {
-      headers['Content-Type'] = options.contentType;
-    }
-    
-    if (options?.upsert) {
-      headers['x-upsert'] = 'true';
-    }
-    
-    const response = await fetch(url, {
+    const response = await fetch(edgeFunctionUrl, {
       method: 'POST',
       headers,
       body: file,
     });
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(errorData.message || errorData.error || 'Upload failed');
+      const errorData = await response.json().catch(() => ({ error: response.statusText }));
+      throw new Error(errorData.error || errorData.message || 'Upload failed');
     }
     
-    return { data: { path }, error: null };
+    const result = await response.json();
+    return { data: { path: result.path }, error: null };
   } catch (error) {
     console.error('Storage upload error:', error);
     return { data: null, error: error as Error };
