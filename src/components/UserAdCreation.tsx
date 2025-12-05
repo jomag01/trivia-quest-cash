@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadToStorage, getPublicUrl } from "@/lib/storage";
+import { uploadToStorage } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -207,17 +207,17 @@ export const UserAdCreation = () => {
       if (imageFile) {
         const fileExt = imageFile.name.split(".").pop();
         const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await uploadToStorage("ads", fileName, imageFile);
+        const { data: uploadData, error: uploadError } = await uploadToStorage("ads", fileName, imageFile);
         if (uploadError) throw uploadError;
-        imageUrl = getPublicUrl("ads", fileName);
+        imageUrl = uploadData?.publicUrl || null;
       }
 
       if (videoFile) {
         const fileExt = videoFile.name.split(".").pop();
         const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await uploadToStorage("ads", fileName, videoFile);
+        const { data: uploadData, error: uploadError } = await uploadToStorage("ads", fileName, videoFile);
         if (uploadError) throw uploadError;
-        videoUrl = getPublicUrl("ads", fileName);
+        videoUrl = uploadData?.publicUrl || null;
       }
 
       const { error: insertError } = await supabase.from("user_ads").insert({

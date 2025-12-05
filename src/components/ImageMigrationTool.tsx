@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadToStorage, getPublicUrl } from "@/lib/storage";
+import { uploadToStorage } from "@/lib/storage";
 import { toast } from "sonner";
 import { Upload, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -39,11 +39,11 @@ export const ImageMigrationTool = () => {
 
       // Upload to storage
       const fileName = `${Math.random()}.jpg`;
-      const { error: uploadError } = await uploadToStorage("product-images", fileName, file);
+      const { data: uploadData, error: uploadError } = await uploadToStorage("product-images", fileName, file);
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const publicUrl = getPublicUrl("product-images", fileName);
+      // Get public URL from upload result
+      const publicUrl = uploadData?.publicUrl || "";
 
       // Update database
       if (isProductTable) {

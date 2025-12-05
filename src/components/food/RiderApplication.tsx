@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadToStorage, getPublicUrl } from "@/lib/storage";
+import { uploadToStorage } from "@/lib/storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,25 +46,25 @@ export const RiderApplication = () => {
       // Upload ID front
       if (idFront) {
         const path = `riders/${user?.id}/id-front-${Date.now()}`;
-        const { error } = await uploadToStorage("rider-documents", path, idFront);
+        const { data, error } = await uploadToStorage("rider-documents", path, idFront);
         if (error) throw error;
-        id_front_url = getPublicUrl("rider-documents", path);
+        id_front_url = data?.publicUrl || "";
       }
 
       // Upload ID back
       if (idBack) {
         const path = `riders/${user?.id}/id-back-${Date.now()}`;
-        const { error } = await uploadToStorage("rider-documents", path, idBack);
+        const { data, error } = await uploadToStorage("rider-documents", path, idBack);
         if (error) throw error;
-        id_back_url = getPublicUrl("rider-documents", path);
+        id_back_url = data?.publicUrl || "";
       }
 
       // Upload selfie
       if (selfie) {
         const path = `riders/${user?.id}/selfie-${Date.now()}`;
-        const { error } = await uploadToStorage("rider-documents", path, selfie);
+        const { data, error } = await uploadToStorage("rider-documents", path, selfie);
         if (error) throw error;
-        selfie_url = getPublicUrl("rider-documents", path);
+        selfie_url = data?.publicUrl || "";
       }
 
       const { error } = await (supabase as any).from("delivery_riders").insert({

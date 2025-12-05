@@ -11,7 +11,7 @@ import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 import imageCompression from "browser-image-compression";
-import { uploadToStorage, getPublicUrl } from "@/lib/storage";
+import { uploadToStorage } from "@/lib/storage";
 
 interface CreateRestaurantDialogProps {
   onClose: () => void;
@@ -90,12 +90,12 @@ export const CreateRestaurantDialog = ({ onClose }: CreateRestaurantDialogProps)
   };
 
   const uploadImage = async (file: File, path: string): Promise<string> => {
-    const { error } = await uploadToStorage("food-images", path, file);
+    const { data, error } = await uploadToStorage("food-images", path, file);
     if (error) {
       console.error("Upload error:", error);
       throw new Error(`Upload failed: ${error.message}`);
     }
-    return getPublicUrl("food-images", path);
+    return data?.publicUrl || "";
   };
 
   const createMutation = useMutation({

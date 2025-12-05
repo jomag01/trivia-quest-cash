@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserPlus, UserCheck, ArrowLeft, Users, Trophy, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadToStorage, getPublicUrl } from "@/lib/storage";
+import { uploadToStorage } from "@/lib/storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -140,10 +140,10 @@ const Profile = () => {
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { error: uploadError } = await uploadToStorage('profile-pictures', filePath, file, { upsert: true });
+      const { data: uploadData, error: uploadError } = await uploadToStorage('profile-pictures', filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
 
-      const publicUrl = getPublicUrl('profile-pictures', filePath);
+      const publicUrl = uploadData?.publicUrl || "";
 
       const { error: updateError } = await supabase
         .from("profiles")
