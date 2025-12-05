@@ -6,23 +6,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Settings, Store, Check, X } from "lucide-react";
+import { Settings, Store, Check, X, Eye } from "lucide-react";
+import { VendorDetailDialog } from "@/components/food/VendorDetailDialog";
 
 interface FoodVendor {
   id: string;
   name: string;
   logo_url: string | null;
+  cover_image_url?: string | null;
   cuisine_type: string | null;
   address: string | null;
+  phone?: string | null;
   approval_status: string;
   is_open: boolean;
+  is_active?: boolean;
+  delivery_fee?: number | null;
+  minimum_order?: number | null;
+  estimated_delivery_time?: string | null;
+  admin_notes?: string | null;
+  owner_id?: string;
   owner: { full_name: string | null; email: string | null } | null;
 }
 
 export const FoodCommissionManagement = () => {
   const queryClient = useQueryClient();
+  const [selectedVendor, setSelectedVendor] = useState<FoodVendor | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [commissionSettings, setCommissionSettings] = useState({
     food_unilevel_commission: "5",
     food_stairstep_commission: "3",
@@ -152,6 +164,26 @@ export const FoodCommissionManagement = () => {
     },
   });
 
+  const toggleVendorOpenMutation = useMutation({
+    mutationFn: async ({ vendorId, isOpen }: { vendorId: string; isOpen: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("food_vendors")
+        .update({ is_open: isOpen })
+        .eq("id", vendorId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-food-vendors"] });
+      toast.success("Restaurant status updated!");
+    },
+  });
+
+  const handleViewDetails = (vendor: FoodVendor) => {
+    setSelectedVendor(vendor);
+    setDetailDialogOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="settings">
@@ -266,7 +298,11 @@ export const FoodCommissionManagement = () => {
               </Card>
             ) : (
               pendingVendors?.map((vendor) => (
-                <Card key={vendor.id}>
+                <Card 
+                  key={vendor.id} 
+                  className="cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => handleViewDetails(vendor)}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       {vendor.logo_url ? (
@@ -286,7 +322,15 @@ export const FoodCommissionManagement = () => {
                         <p className="text-sm">Owner: {vendor.owner?.full_name || vendor.owner?.email}</p>
                         <p className="text-sm text-muted-foreground">{vendor.address}</p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewDetails(vendor)}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
                         <Button
                           size="sm"
                           onClick={() =>
@@ -324,7 +368,11 @@ export const FoodCommissionManagement = () => {
         <TabsContent value="vendors" className="mt-4">
           <div className="space-y-4">
             {allVendors?.map((vendor) => (
-              <Card key={vendor.id}>
+              <Card 
+                key={vendor.id} 
+                className="cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => handleViewDetails(vendor)}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -344,7 +392,16 @@ export const FoodCommissionManagement = () => {
                         <p className="text-sm text-muted-foreground">{vendor.owner?.full_name}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Open</span>
+                        <Switch
+                          checked={vendor.is_open}
+                          onCheckedChange={(checked) =>
+                            toggleVendorOpenMutation.mutate({ vendorId: vendor.id, isOpen: checked })
+                          }
+                        />
+                      </div>
                       <Badge
                         variant={
                           vendor.approval_status === "approved"
@@ -356,9 +413,9 @@ export const FoodCommissionManagement = () => {
                       >
                         {vendor.approval_status}
                       </Badge>
-                      <Badge variant={vendor.is_open ? "default" : "outline"}>
-                        {vendor.is_open ? "Open" : "Closed"}
-                      </Badge>
+                      <Button size="sm" variant="outline" onClick={() => handleViewDetails(vendor)}>
+                        <Eye className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -367,6 +424,12 @@ export const FoodCommissionManagement = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <VendorDetailDialog
+        vendor={selectedVendor}
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+      />
     </div>
   );
 };
