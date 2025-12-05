@@ -9,7 +9,7 @@ import { Upload, Crop as CropIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import imageCompression from "browser-image-compression";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadToStorage, getPublicUrl } from "@/lib/storage";
+import { uploadToStorage } from "@/lib/storage";
 
 interface ImageUploadCropProps {
   onImageUploaded: (url: string) => void;
@@ -144,7 +144,7 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { error: uploadError } = await uploadToStorage("product-images", filePath, compressedFile);
+      const { data: uploadData, error: uploadError } = await uploadToStorage("product-images", filePath, compressedFile);
 
       if (uploadError) {
         // Fallback: store as data URL in DB fields
@@ -156,8 +156,8 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
         return;
       }
 
-      // Get public URL
-      const publicUrl = getPublicUrl("product-images", filePath);
+      // Use public URL from upload result
+      const publicUrl = uploadData?.publicUrl || "";
 
       onImageUploaded(publicUrl);
       setCropDialogOpen(false);
@@ -184,7 +184,7 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { error: uploadError } = await uploadToStorage("product-images", filePath, compressedFile);
+      const { data: uploadData, error: uploadError } = await uploadToStorage("product-images", filePath, compressedFile);
 
       if (uploadError) {
         // Fallback: store as data URL in DB fields
@@ -196,8 +196,8 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
         return;
       }
 
-      // Get public URL
-      const publicUrl = getPublicUrl("product-images", filePath);
+      // Use public URL from upload result
+      const publicUrl = uploadData?.publicUrl || "";
 
       onImageUploaded(publicUrl);
       setCropDialogOpen(false);

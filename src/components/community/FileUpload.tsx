@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Paperclip, X, FileImage, File } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadToStorage, getPublicUrl } from "@/lib/storage";
+import { uploadToStorage } from "@/lib/storage";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import imageCompression from "browser-image-compression";
@@ -64,11 +64,11 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       const fileExt = fileToUpload.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
-      const { error } = await uploadToStorage("message-attachments", fileName, fileToUpload);
+      const { data, error } = await uploadToStorage("message-attachments", fileName, fileToUpload);
       if (error) throw error;
 
-      // Get public URL
-      const publicUrl = getPublicUrl("message-attachments", fileName);
+      // Get public URL from upload result
+      const publicUrl = data?.publicUrl || "";
 
       onFileUploaded(
         publicUrl,
