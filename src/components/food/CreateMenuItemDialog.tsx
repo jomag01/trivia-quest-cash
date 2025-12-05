@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
+import imageCompression from "browser-image-compression";
 
 interface CreateMenuItemDialogProps {
   vendorId: string;
@@ -51,11 +52,28 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
     },
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
+
+      try {
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1024,
+          useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(file, options);
+        setImageFile(compressedFile);
+        setImagePreview(URL.createObjectURL(compressedFile));
+        toast.success("Image ready for upload");
+      } catch (error) {
+        console.error("Compression error:", error);
+        toast.error("Failed to process image");
+      }
     }
   };
 
@@ -67,9 +85,15 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
         const path = `items/${vendorId}-${Date.now()}`;
         const { data, error } = await supabase.storage
           .from("food-images")
-          .upload(path, imageFile);
+          .upload(path, imageFile, {
+            cacheControl: "3600",
+            upsert: false,
+          });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Upload error:", error);
+          throw new Error(`Upload failed: ${error.message}`);
+        }
 
         const { data: urlData } = supabase.storage
           .from("food-images")

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
+import imageCompression from "browser-image-compression";
 
 interface CreateRestaurantDialogProps {
   onClose: () => void;
@@ -54,15 +55,35 @@ export const CreateRestaurantDialog = ({ onClose }: CreateRestaurantDialogProps)
     },
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: "logo" | "cover") => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "logo" | "cover") => {
     const file = e.target.files?.[0];
     if (file) {
-      if (type === "logo") {
-        setLogoFile(file);
-        setLogoPreview(URL.createObjectURL(file));
-      } else {
-        setCoverFile(file);
-        setCoverPreview(URL.createObjectURL(file));
+      // Check file size (max 5MB before compression)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
+
+      try {
+        // Compress image
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: type === "logo" ? 512 : 1920,
+          useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(file, options);
+        
+        if (type === "logo") {
+          setLogoFile(compressedFile);
+          setLogoPreview(URL.createObjectURL(compressedFile));
+        } else {
+          setCoverFile(compressedFile);
+          setCoverPreview(URL.createObjectURL(compressedFile));
+        }
+        toast.success("Image ready for upload");
+      } catch (error) {
+        console.error("Compression error:", error);
+        toast.error("Failed to process image");
       }
     }
   };
@@ -70,9 +91,15 @@ export const CreateRestaurantDialog = ({ onClose }: CreateRestaurantDialogProps)
   const uploadImage = async (file: File, path: string): Promise<string> => {
     const { data, error } = await supabase.storage
       .from("food-images")
-      .upload(path, file);
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Upload error:", error);
+      throw new Error(`Upload failed: ${error.message}`);
+    }
 
     const { data: urlData } = supabase.storage
       .from("food-images")
