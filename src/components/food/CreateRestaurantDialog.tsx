@@ -116,7 +116,6 @@ export const CreateRestaurantDialog = ({ onClose }: CreateRestaurantDialogProps)
       const { error } = await (supabase as any).from("food_vendors").insert({
         owner_id: user.id,
         name: formData.name,
-        description: formData.description,
         cuisine_type: formData.cuisine_type,
         category_id: formData.category_id || null,
         address: formData.address,
