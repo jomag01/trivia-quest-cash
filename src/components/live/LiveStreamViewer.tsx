@@ -12,9 +12,10 @@ import { useNavigate } from "react-router-dom";
 import { 
   Heart, MessageCircle, Gift, ShoppingBag, 
   X, Eye, Send, UserPlus, UserMinus, Sparkles,
-  Diamond, Star, Flame, Minimize2, ArrowDown, ThumbsUp, ThumbsDown, Reply, Radio
+  Diamond, Star, Flame, Minimize2, ArrowDown, ThumbsUp, ThumbsDown, Reply, Radio, Loader2
 } from "lucide-react";
 import { LiveStreamShareButton } from "./LiveStreamShareButton";
+import { ViewerConnection } from "@/lib/webrtc";
 
 interface LiveStream {
   id: string;
@@ -87,7 +88,11 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const [userDiamonds, setUserDiamonds] = useState(0);
   const [reactions, setReactions] = useState<{ id: string; emoji: string; x: number }[]>([]);
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
+  const [isConnecting, setIsConnecting] = useState(true);
+  const [hasVideo, setHasVideo] = useState(false);
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const viewerConnectionRef = useRef<ViewerConnection | null>(null);
 
   useEffect(() => {
     fetchComments();
@@ -95,6 +100,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
     checkFollowStatus();
     incrementViewCount();
     fetchUserDiamonds();
+    connectToStream();
 
     const commentsChannel = supabase
       .channel(`stream-comments-${stream.id}`)
@@ -133,6 +139,10 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
         },
         (payload) => {
           setViewerCount(payload.new.viewer_count || 0);
+          if (payload.new.status === 'ended') {
+            toast.info("Stream has ended");
+            onClose();
+          }
         }
       )
       .subscribe();
@@ -198,12 +208,52 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
       if (diamondsChannel) {
         supabase.removeChannel(diamondsChannel);
       }
+      if (viewerConnectionRef.current) {
+        viewerConnectionRef.current.disconnect();
+      }
     };
   }, [stream.id, user]);
 
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments]);
+
+  const connectToStream = async () => {
+    if (!user) {
+      setIsConnecting(false);
+      return;
+    }
+
+    setIsConnecting(true);
+    
+    try {
+      viewerConnectionRef.current = new ViewerConnection(
+        stream.id,
+        user.id,
+        stream.user_id,
+        (remoteStream) => {
+          console.log('Received remote stream');
+          if (videoRef.current) {
+            videoRef.current.srcObject = remoteStream;
+            setHasVideo(true);
+          }
+          setIsConnecting(false);
+        }
+      );
+      
+      await viewerConnectionRef.current.connect();
+      
+      // Set timeout for connection
+      setTimeout(() => {
+        if (isConnecting) {
+          setIsConnecting(false);
+        }
+      }, 10000);
+    } catch (error) {
+      console.error('Failed to connect to stream:', error);
+      setIsConnecting(false);
+    }
+  };
 
   const fetchUserDiamonds = async () => {
     if (!user) return;
@@ -473,27 +523,45 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Video/Stream Area */}
       <div className={`relative bg-black flex items-center justify-center overflow-hidden transition-all duration-300 ${showComments ? 'h-[35%] min-h-[200px]' : 'flex-1'}`}>
-        {/* Live Stream Visual */}
-        <div className="absolute inset-0 w-full h-full">
-          <div className="w-full h-full bg-gradient-to-b from-purple-900/80 to-black flex items-center justify-center">
-            <div className="flex flex-col items-center">
-              <div className="relative">
-                <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-pink-500 shadow-lg shadow-pink-500/50">
-                  <AvatarImage src={stream.profiles?.avatar_url || ""} />
-                  <AvatarFallback className="text-3xl md:text-4xl bg-gradient-to-br from-purple-500 to-pink-500">
-                    {stream.profiles?.full_name?.[0] || "?"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
-                  <Radio className="w-4 h-4 text-white" />
+        {/* Video element for WebRTC stream */}
+        <video 
+          ref={videoRef}
+          autoPlay
+          playsInline
+          className={`absolute inset-0 w-full h-full object-cover ${hasVideo ? 'block' : 'hidden'}`}
+        />
+        
+        {/* Fallback/Loading when no video */}
+        {!hasVideo && (
+          <div className="absolute inset-0 w-full h-full">
+            <div className="w-full h-full bg-gradient-to-b from-purple-900/80 to-black flex items-center justify-center">
+              {isConnecting ? (
+                <div className="flex flex-col items-center">
+                  <Loader2 className="w-12 h-12 animate-spin text-white mb-4" />
+                  <p className="text-white text-sm">Connecting to stream...</p>
                 </div>
-              </div>
-              <h2 className="text-white font-bold text-base md:text-lg mt-4 px-4 text-center">{stream.title}</h2>
-              <p className="text-gray-300 text-sm mt-1">{stream.profiles?.full_name || "Streamer"}</p>
-              <p className="text-gray-400 text-xs mt-2 px-6 text-center line-clamp-2">{stream.description}</p>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <div className="relative">
+                    <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-pink-500 shadow-lg shadow-pink-500/50">
+                      <AvatarImage src={stream.profiles?.avatar_url || ""} />
+                      <AvatarFallback className="text-3xl md:text-4xl bg-gradient-to-br from-purple-500 to-pink-500">
+                        {stream.profiles?.full_name?.[0] || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+                      <Radio className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                  <h2 className="text-white font-bold text-base md:text-lg mt-4 px-4 text-center">{stream.title}</h2>
+                  <p className="text-gray-300 text-sm mt-1">{stream.profiles?.full_name || "Streamer"}</p>
+                  <p className="text-gray-400 text-xs mt-2 px-6 text-center line-clamp-2">{stream.description}</p>
+                  <p className="text-yellow-400 text-xs mt-3">Waiting for streamer video...</p>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
 
         {/* Floating reactions */}
         {reactions.map((reaction) => (
