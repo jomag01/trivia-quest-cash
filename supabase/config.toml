@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.validate-referral]
 verify_jwt = false
+
+[functions.get-maps-key]
+verify_jwt = false
