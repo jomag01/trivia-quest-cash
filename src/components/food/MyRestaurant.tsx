@@ -7,9 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Store, UtensilsCrossed, ShoppingBag, Settings } from "lucide-react";
+import { Plus, Store, UtensilsCrossed, ShoppingBag, Settings, Menu } from "lucide-react";
 import { toast } from "sonner";
 import { MenuItemsList } from "./MenuItemsList";
+import { MenuManagement } from "./MenuManagement";
 import { VendorOrders } from "./VendorOrders";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CreateMenuItemDialog } from "./CreateMenuItemDialog";
@@ -152,22 +153,30 @@ export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="menu">
-            <UtensilsCrossed className="w-4 h-4 mr-1" />
-            Menu
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="menus" className="text-xs">
+            <Menu className="w-3 h-3 mr-1" />
+            Menus
           </TabsTrigger>
-          <TabsTrigger value="orders">
-            <ShoppingBag className="w-4 h-4 mr-1" />
+          <TabsTrigger value="items" className="text-xs">
+            <UtensilsCrossed className="w-3 h-3 mr-1" />
+            Items
+          </TabsTrigger>
+          <TabsTrigger value="orders" className="text-xs">
+            <ShoppingBag className="w-3 h-3 mr-1" />
             Orders
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="menu" className="mt-4">
+        <TabsContent value="menus" className="mt-4">
+          <MenuManagement vendorId={vendor.id} />
+        </TabsContent>
+
+        <TabsContent value="items" className="mt-4">
           <div className="flex justify-between items-center mb-4">
-            <h4 className="font-semibold">Menu Items</h4>
-            <Button size="sm" onClick={() => setCreateItemOpen(true)}>
-              <Plus className="w-4 h-4 mr-1" />
+            <h4 className="font-semibold text-sm">Menu Items</h4>
+            <Button size="sm" onClick={() => setCreateItemOpen(true)} className="text-xs h-8">
+              <Plus className="w-3 h-3 mr-1" />
               Add Item
             </Button>
           </div>
