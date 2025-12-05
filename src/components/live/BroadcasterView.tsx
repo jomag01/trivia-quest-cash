@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Settings, Eye, ShoppingBag } from "lucide-react";
+import { Settings, Eye, ShoppingBag, Video, VideoOff, Mic, MicOff } from "lucide-react";
 
 interface BroadcasterViewProps {
   streamId: string;
@@ -49,16 +49,15 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [viewerCount, setViewerCount] = useState(0);
   const [showProducts, setShowProducts] = useState(false);
-  const [jitsiLoaded, setJitsiLoaded] = useState(false);
+  const [isVideoOn, setIsVideoOn] = useState(true);
+  const [isAudioOn, setIsAudioOn] = useState(true);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
-  const jitsiContainerRef = useRef<HTMLDivElement>(null);
-  const jitsiApiRef = useRef<any>(null);
-
-  const roomName = `livestream_${streamId.replace(/-/g, '')}`;
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     fetchStreamData();
-    initJitsi();
+    startCamera();
 
     const commentsChannel = supabase
       .channel(`broadcaster-comments-${streamId}`)
@@ -137,9 +136,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       supabase.removeChannel(commentsChannel);
       supabase.removeChannel(giftsChannel);
       supabase.removeChannel(streamChannel);
-      if (jitsiApiRef.current) {
-        jitsiApiRef.current.dispose();
-      }
+      stopCamera();
     };
   }, [streamId]);
 
@@ -147,82 +144,60 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments]);
 
-  const initJitsi = () => {
-    const script = document.createElement('script');
-    script.src = 'https://meet.jit.si/external_api.js';
-    script.async = true;
-    script.onload = () => {
-      console.log('Jitsi script loaded for broadcaster');
-      setJitsiLoaded(true);
-    };
-    script.onerror = () => {
-      console.error('Failed to load Jitsi script');
-      toast.error('Failed to load video streaming');
-    };
-    document.body.appendChild(script);
-  };
-
-  const startJitsiMeeting = () => {
-    if (!jitsiContainerRef.current || jitsiApiRef.current) return;
-
+  const startCamera = async () => {
     try {
-      const domain = 'meet.jit.si';
-      const options = {
-        roomName: roomName,
-        parentNode: jitsiContainerRef.current,
-        width: '100%',
-        height: '100%',
-        configOverwrite: {
-          startWithAudioMuted: false,
-          startWithVideoMuted: false,
-          prejoinPageEnabled: false,
-          disableDeepLinking: true,
-          enableWelcomePage: false,
-          enableClosePage: false,
-          disableInviteFunctions: true,
-          toolbarButtons: ['microphone', 'camera', 'settings'],
-          hideConferenceSubject: true,
-          hideConferenceTimer: true,
-          subject: ' ',
-        },
-        interfaceConfigOverwrite: {
-          SHOW_JITSI_WATERMARK: false,
-          SHOW_WATERMARK_FOR_GUESTS: false,
-          SHOW_BRAND_WATERMARK: false,
-          TOOLBAR_BUTTONS: ['microphone', 'camera', 'settings'],
-          DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
-          HIDE_INVITE_MORE_HEADER: true,
-          MOBILE_APP_PROMO: false,
-          FILM_STRIP_MAX_HEIGHT: 0,
-          VERTICAL_FILMSTRIP: false,
-        },
-        userInfo: {
-          displayName: user?.user_metadata?.full_name || 'Broadcaster',
-        }
-      };
-
-      // @ts-ignore
-      jitsiApiRef.current = new window.JitsiMeetExternalAPI(domain, options);
-      
-      jitsiApiRef.current.addListener('videoConferenceJoined', () => {
-        console.log('Broadcaster joined the stream');
-        // Store room name in stream_key field
-        (supabase as any)
-          .from('live_streams')
-          .update({ stream_key: roomName })
-          .eq('id', streamId);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true
       });
-
+      setMediaStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      
+      // Update stream status to live
+      await supabase
+        .from('live_streams')
+        .update({ 
+          status: 'live',
+          started_at: new Date().toISOString(),
+          stream_key: `live_${streamId}`
+        })
+        .eq('id', streamId);
+        
+      toast.success("You're now live!");
     } catch (error) {
-      console.error('Failed to initialize Jitsi:', error);
+      console.error('Failed to access camera:', error);
+      toast.error("Failed to access camera. Please check permissions.");
     }
   };
 
-  useEffect(() => {
-    if (jitsiLoaded && jitsiContainerRef.current && !jitsiApiRef.current) {
-      startJitsiMeeting();
+  const stopCamera = () => {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.stop());
+      setMediaStream(null);
     }
-  }, [jitsiLoaded]);
+  };
+
+  const toggleVideo = () => {
+    if (mediaStream) {
+      const videoTrack = mediaStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsVideoOn(videoTrack.enabled);
+      }
+    }
+  };
+
+  const toggleAudio = () => {
+    if (mediaStream) {
+      const audioTrack = mediaStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsAudioOn(audioTrack.enabled);
+      }
+    }
+  };
 
   const fetchStreamData = async () => {
     const { data } = await supabase
@@ -282,9 +257,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   };
 
   const handleEndStream = async () => {
-    if (jitsiApiRef.current) {
-      jitsiApiRef.current.dispose();
-    }
+    stopCamera();
     
     await supabase
       .from('live_streams')
@@ -302,11 +275,19 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       <div className="relative flex-1 bg-gray-900">
-        <div 
-          ref={jitsiContainerRef} 
-          className="w-full h-full"
-          style={{ minHeight: '300px' }}
+        <video 
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          className="w-full h-full object-cover"
         />
+
+        {!isVideoOn && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+            <VideoOff className="w-16 h-16 text-gray-500" />
+          </div>
+        )}
 
         <div className="absolute top-20 left-4 space-y-2 z-10 pointer-events-none">
           {gifts.map((gift) => (
@@ -322,21 +303,22 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent z-10">
           <div className="flex items-center gap-3">
             <Badge variant="destructive" className="animate-pulse">● LIVE</Badge>
-            <span className="text-white flex items-center gap-1">
-              <Eye className="w-4 h-4" /> {viewerCount} viewers
+            <span className="text-white flex items-center gap-1 text-sm">
+              <Eye className="w-4 h-4" /> {viewerCount}
             </span>
           </div>
           <Button variant="destructive" size="sm" onClick={handleEndStream}>
-            End Stream
+            End
           </Button>
         </div>
 
         <Button
-          className="absolute bottom-20 left-4 bg-orange-500 hover:bg-orange-600 z-10"
+          className="absolute bottom-20 left-4 bg-orange-500 hover:bg-orange-600 z-10 text-xs px-3"
+          size="sm"
           onClick={() => setShowProducts(!showProducts)}
         >
-          <ShoppingBag className="w-4 h-4 mr-2" />
-          Products ({products.length})
+          <ShoppingBag className="w-4 h-4 mr-1" />
+          ({products.length})
         </Button>
 
         {showProducts && (
@@ -344,14 +326,14 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
             <ScrollArea className="h-full">
               <div className="flex gap-2 p-2">
                 {products.map((product) => (
-                  <Card key={product.id} className="flex-shrink-0 w-24 p-2 bg-white/10 backdrop-blur">
+                  <Card key={product.id} className="flex-shrink-0 w-20 p-1.5 bg-white/10 backdrop-blur">
                     <img
                       src={product.image_url || "/placeholder.svg"}
                       alt={product.name}
-                      className="w-full h-14 object-cover rounded mb-1"
+                      className="w-full h-12 object-cover rounded mb-1"
                     />
-                    <p className="text-white text-[10px] truncate">{product.name}</p>
-                    <p className="text-orange-400 font-bold text-xs">₱{product.final_price}</p>
+                    <p className="text-white text-[8px] truncate">{product.name}</p>
+                    <p className="text-orange-400 font-bold text-[10px]">₱{product.final_price}</p>
                   </Card>
                 ))}
               </div>
@@ -359,18 +341,18 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           </div>
         )}
 
-        <div className="absolute bottom-20 right-4 w-64 max-h-40 z-10">
+        <div className="absolute bottom-20 right-4 w-56 max-h-36 z-10">
           <ScrollArea className="h-full">
-            <div className="space-y-2 p-2">
+            <div className="space-y-1.5 p-2">
               {comments.slice(-15).map((comment) => (
-                <div key={comment.id} className="flex items-start gap-2">
-                  <Avatar className="h-5 w-5">
+                <div key={comment.id} className="flex items-start gap-1.5">
+                  <Avatar className="h-4 w-4">
                     <AvatarImage src={comment.profiles?.avatar_url || ""} />
-                    <AvatarFallback className="text-[8px]">{comment.profiles?.full_name?.[0]}</AvatarFallback>
+                    <AvatarFallback className="text-[6px]">{comment.profiles?.full_name?.[0]}</AvatarFallback>
                   </Avatar>
-                  <div className="bg-black/50 rounded-lg px-2 py-1 max-w-[200px]">
-                    <span className="text-pink-400 text-[10px] font-medium">{comment.profiles?.full_name}</span>
-                    <span className="text-white text-xs ml-1">{comment.content}</span>
+                  <div className="bg-black/50 rounded-lg px-2 py-1 max-w-[180px]">
+                    <span className="text-pink-400 text-[8px] font-medium">{comment.profiles?.full_name}</span>
+                    <span className="text-white text-[10px] ml-1">{comment.content}</span>
                   </div>
                 </div>
               ))}
@@ -380,8 +362,24 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         </div>
       </div>
 
-      <div className="bg-black p-4 flex items-center justify-center gap-4">
-        <Button variant="outline" size="icon">
+      <div className="bg-black p-3 flex items-center justify-center gap-3">
+        <Button 
+          variant={isVideoOn ? "outline" : "destructive"} 
+          size="icon"
+          className="h-10 w-10"
+          onClick={toggleVideo}
+        >
+          {isVideoOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+        </Button>
+        <Button 
+          variant={isAudioOn ? "outline" : "destructive"} 
+          size="icon"
+          className="h-10 w-10"
+          onClick={toggleAudio}
+        >
+          {isAudioOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+        </Button>
+        <Button variant="outline" size="icon" className="h-10 w-10">
           <Settings className="w-5 h-5" />
         </Button>
       </div>
