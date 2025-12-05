@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadToStorage, getPublicUrl } from "@/lib/storage";
+import { uploadToStorage, getPublicUrl, deleteFromStorage } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -118,7 +118,7 @@ export const AdManagement = () => {
       // Try to delete image from storage
       const path = imageUrl.split("/ads/")[1];
       if (path) {
-        await supabase.storage.from("ads").remove([path]);
+        await deleteFromStorage("ads", [path]);
       }
 
       toast.success("Ad deleted successfully");
