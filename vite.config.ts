@@ -14,39 +14,15 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Dedupe React to prevent multiple instances
     dedupe: ['react', 'react-dom'],
   },
   build: {
-    // Enable minification for smaller bundles
     minify: 'esbuild',
-    // Code splitting for better caching
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          // Vendor chunks for better caching
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-tabs', '@radix-ui/react-dropdown-menu'],
-          'vendor-query': ['@tanstack/react-query'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-        },
-        // Use content hash for cache busting
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]',
-      },
-    },
-    // Target modern browsers for smaller output
     target: 'es2020',
-    // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
-    // Enable source maps for debugging (can disable in prod)
     sourcemap: mode === 'development',
   },
-  // Optimize dependencies with deduplication
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'],
-    // Force pre-bundling to avoid multiple React instances
-    force: true,
+    include: ['react', 'react-dom'],
   },
 }))
