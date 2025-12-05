@@ -29,7 +29,7 @@ export const EditMenuItemDialog = ({ item, onClose }: EditMenuItemDialogProps) =
 
   const updateMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("food_items")
         .update({
           name: formData.name,

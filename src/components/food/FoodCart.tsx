@@ -48,13 +48,13 @@ export const FoodCart = () => {
 
     try {
       // Get delivery fee from vendor
-      const { data: vendor } = await supabase
+      const { data: vendor } = await (supabase as any)
         .from("food_vendors")
         .select("delivery_fee, minimum_order")
         .eq("id", vendorId)
         .single();
 
-      if (vendor && subtotal < vendor.minimum_order) {
+      if (vendor && subtotal < (vendor.minimum_order || 0)) {
         toast.error(`Minimum order is ₱${vendor.minimum_order}`);
         setIsOrdering(false);
         return;
@@ -69,7 +69,7 @@ export const FoodCart = () => {
       // Create order
       const orderNumber = `FO-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-      const { data: order, error: orderError } = await supabase
+      const { data: order, error: orderError } = await (supabase as any)
         .from("food_orders")
         .insert({
           order_number: orderNumber,
@@ -99,7 +99,7 @@ export const FoodCart = () => {
         subtotal: item.price * item.quantity,
       }));
 
-      const { error: itemsError } = await supabase
+      const { error: itemsError } = await (supabase as any)
         .from("food_order_items")
         .insert(orderItems);
 

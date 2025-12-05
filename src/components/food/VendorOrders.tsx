@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
@@ -31,6 +30,24 @@ const statusOptions = [
   { value: "cancelled", label: "Cancelled" },
 ];
 
+interface FoodOrder {
+  id: string;
+  order_number: string;
+  status: string;
+  total_amount: number;
+  delivery_address: string;
+  delivery_notes: string | null;
+  customer_phone: string;
+  created_at: string;
+  customer: { full_name: string | null; email: string | null } | null;
+  items: Array<{
+    id: string;
+    quantity: number;
+    subtotal: number;
+    food_item: { name: string } | null;
+  }>;
+}
+
 export const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -38,7 +55,7 @@ export const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
   const { data: orders, isLoading } = useQuery({
     queryKey: ["vendor-orders", vendorId, statusFilter],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any)
         .from("food_orders")
         .select(`
           *,
@@ -56,7 +73,7 @@ export const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
 
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as FoodOrder[];
     },
   });
 
@@ -67,7 +84,7 @@ export const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
         updateData.delivered_at = new Date().toISOString();
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("food_orders")
         .update(updateData)
         .eq("id", orderId);
@@ -151,7 +168,7 @@ export const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
 
                 <div className="border-t pt-2">
                   <p className="text-sm font-medium mb-2">Items:</p>
-                  {order.items?.map((item: any) => (
+                  {order.items?.map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
                       <span>{item.quantity}x {item.food_item?.name}</span>
                       <span>₱{item.subtotal}</span>

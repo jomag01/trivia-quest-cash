@@ -8,6 +8,26 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Search, Star, Clock, MapPin } from "lucide-react";
 import { RestaurantMenu } from "./RestaurantMenu";
 
+interface FoodCategory {
+  id: string;
+  name: string;
+  icon: string | null;
+}
+
+interface FoodVendor {
+  id: string;
+  name: string;
+  cuisine_type: string | null;
+  logo_url: string | null;
+  cover_image_url: string | null;
+  address: string | null;
+  is_open: boolean;
+  rating: number | null;
+  estimated_delivery_time: string | null;
+  delivery_fee: number;
+  minimum_order: number;
+}
+
 export const RestaurantList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -16,20 +36,20 @@ export const RestaurantList = () => {
   const { data: categories } = useQuery({
     queryKey: ["food-categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("food_categories")
         .select("*")
         .eq("is_active", true)
         .order("display_order");
       if (error) throw error;
-      return data;
+      return data as FoodCategory[];
     },
   });
 
   const { data: vendors, isLoading } = useQuery({
     queryKey: ["food-vendors", selectedCategory, searchQuery],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any)
         .from("food_vendors")
         .select("*")
         .eq("approval_status", "approved")
@@ -45,7 +65,7 @@ export const RestaurantList = () => {
 
       const { data, error } = await query.order("rating", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as FoodVendor[];
     },
   });
 

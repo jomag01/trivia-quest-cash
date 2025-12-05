@@ -14,6 +14,33 @@ interface RestaurantMenuProps {
   onBack: () => void;
 }
 
+interface FoodVendor {
+  id: string;
+  name: string;
+  cuisine_type: string | null;
+  description: string | null;
+  logo_url: string | null;
+  cover_image_url: string | null;
+  address: string | null;
+  is_open: boolean;
+  rating: number | null;
+  estimated_delivery_time: string | null;
+  delivery_fee: number;
+  minimum_order: number;
+}
+
+interface MenuItem {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  category: string | null;
+  image_url: string | null;
+  is_available: boolean;
+  is_featured: boolean;
+  diamond_reward: number;
+}
+
 export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { addToCart, cart, updateQuantity } = useFoodCart();
@@ -21,20 +48,20 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
   const { data: vendor } = useQuery({
     queryKey: ["food-vendor", vendorId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("food_vendors")
         .select("*")
         .eq("id", vendorId)
         .single();
       if (error) throw error;
-      return data;
+      return data as FoodVendor;
     },
   });
 
   const { data: menuItems, isLoading } = useQuery({
     queryKey: ["food-items", vendorId, selectedCategory],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any)
         .from("food_items")
         .select("*")
         .eq("vendor_id", vendorId)
@@ -46,7 +73,7 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
 
       const { data, error } = await query.order("is_featured", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as MenuItem[];
     },
   });
 
@@ -57,7 +84,7 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
     return cartItem?.quantity || 0;
   };
 
-  const handleAddToCart = (item: any) => {
+  const handleAddToCart = (item: MenuItem) => {
     if (cart.length > 0 && cart[0].vendor_id !== vendorId) {
       toast.error("You can only order from one restaurant at a time. Please clear your cart first.");
       return;

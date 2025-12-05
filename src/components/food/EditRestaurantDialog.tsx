@@ -29,7 +29,7 @@ export const EditRestaurantDialog = ({ vendor, onClose }: EditRestaurantDialogPr
 
   const updateMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("food_vendors")
         .update({
           name: formData.name,

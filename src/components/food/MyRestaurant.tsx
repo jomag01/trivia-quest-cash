@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +19,15 @@ interface MyRestaurantProps {
   onCreateNew: () => void;
 }
 
+interface FoodVendor {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  cuisine_type: string | null;
+  approval_status: string;
+  is_open: boolean;
+}
+
 export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -29,21 +38,21 @@ export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
   const { data: vendor, isLoading } = useQuery({
     queryKey: ["my-food-vendor", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("food_vendors")
         .select("*")
         .eq("owner_id", user?.id)
         .maybeSingle();
 
       if (error) throw error;
-      return data;
+      return data as FoodVendor | null;
     },
     enabled: !!user,
   });
 
   const toggleOpenMutation = useMutation({
     mutationFn: async (isOpen: boolean) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("food_vendors")
         .update({ is_open: isOpen })
         .eq("id", vendor?.id);
