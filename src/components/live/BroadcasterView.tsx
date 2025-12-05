@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Settings, Eye, ShoppingBag, Video, VideoOff, Mic, MicOff } from "lucide-react";
+import { Settings, Eye, ShoppingBag, Video, VideoOff, Mic, MicOff, Loader2 } from "lucide-react";
+import { BroadcasterConnection } from "@/lib/webrtc";
 
 interface BroadcasterViewProps {
   streamId: string;
@@ -52,8 +53,10 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isAudioOn, setIsAudioOn] = useState(true);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const [isConnecting, setIsConnecting] = useState(true);
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const broadcasterConnectionRef = useRef<BroadcasterConnection | null>(null);
 
   useEffect(() => {
     fetchStreamData();
@@ -137,6 +140,9 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       supabase.removeChannel(giftsChannel);
       supabase.removeChannel(streamChannel);
       stopCamera();
+      if (broadcasterConnectionRef.current) {
+        broadcasterConnectionRef.current.stop();
+      }
     };
   }, [streamId]);
 
@@ -145,15 +151,23 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   }, [comments]);
 
   const startCamera = async () => {
+    if (!user) return;
+    
+    setIsConnecting(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: true
       });
       setMediaStream(stream);
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
+      
+      // Initialize WebRTC broadcaster connection
+      broadcasterConnectionRef.current = new BroadcasterConnection(streamId, user.id);
+      await broadcasterConnectionRef.current.start(stream);
       
       // Update stream status to live
       await supabase
@@ -165,10 +179,12 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         })
         .eq('id', streamId);
         
-      toast.success("You're now live!");
+      setIsConnecting(false);
+      toast.success("You're now live! Viewers can see your stream.");
     } catch (error) {
       console.error('Failed to access camera:', error);
       toast.error("Failed to access camera. Please check permissions.");
+      setIsConnecting(false);
     }
   };
 
@@ -220,16 +236,18 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
     
     if (commentsData) {
       const userIds = [...new Set(commentsData.map(c => c.user_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', userIds);
-      
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-      setComments(commentsData.map(c => ({
-        ...c,
-        profiles: profileMap.get(c.user_id)
-      })));
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+        
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+        setComments(commentsData.map(c => ({
+          ...c,
+          profiles: profileMap.get(c.user_id)
+        })));
+      }
     }
 
     const { data: streamProducts } = await supabase
@@ -259,6 +277,10 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   const handleEndStream = async () => {
     stopCamera();
     
+    if (broadcasterConnectionRef.current) {
+      broadcasterConnectionRef.current.stop();
+    }
+    
     await supabase
       .from('live_streams')
       .update({ 
@@ -275,6 +297,15 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       <div className="relative flex-1 bg-gray-900">
+        {isConnecting && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-20">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-white">Starting stream...</p>
+            </div>
+          </div>
+        )}
+        
         <video 
           ref={videoRef}
           autoPlay
