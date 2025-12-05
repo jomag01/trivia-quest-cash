@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   Heart, MessageCircle, Gift, ShoppingBag, 
   X, Eye, Send, UserPlus, UserMinus, Sparkles,
-  Diamond, Star, Flame, Minimize2, ArrowDown, ThumbsUp, ThumbsDown, Reply, Video
+  Diamond, Star, Flame, Minimize2, ArrowDown, ThumbsUp, ThumbsDown, Reply, Radio
 } from "lucide-react";
 import { LiveStreamShareButton } from "./LiveStreamShareButton";
 
@@ -87,15 +87,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const [userDiamonds, setUserDiamonds] = useState(0);
   const [reactions, setReactions] = useState<{ id: string; emoji: string; x: number }[]>([]);
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
-  const [jitsiLoaded, setJitsiLoaded] = useState(false);
-  const [streamRoomName, setStreamRoomName] = useState<string | null>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const jitsiContainerRef = useRef<HTMLDivElement>(null);
-  const jitsiApiRef = useRef<any>(null);
-
-  // Generate room name from stream ID
-  const roomName = `livestream_${stream.id.replace(/-/g, '')}`;
 
   useEffect(() => {
     fetchComments();
@@ -103,10 +95,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
     checkFollowStatus();
     incrementViewCount();
     fetchUserDiamonds();
-    fetchStreamRoomName();
-    initJitsi();
 
-    // Subscribe to realtime comments
     const commentsChannel = supabase
       .channel(`stream-comments-${stream.id}`)
       .on(
@@ -132,7 +121,6 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
       )
       .subscribe();
 
-    // Subscribe to stream updates
     const streamChannel = supabase
       .channel(`stream-${stream.id}`)
       .on(
@@ -149,7 +137,6 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
       )
       .subscribe();
 
-    // Subscribe to gifts for animations
     const giftsChannel = supabase
       .channel(`stream-gifts-${stream.id}`)
       .on(
@@ -183,7 +170,6 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
       )
       .subscribe();
 
-    // Subscribe to user's diamond balance
     let diamondsChannel: any = null;
     if (user) {
       diamondsChannel = supabase
@@ -218,113 +204,6 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments]);
-
-  // Initialize Jitsi for viewers
-  useEffect(() => {
-    if (jitsiLoaded && jitsiContainerRef.current && !jitsiApiRef.current) {
-      startJitsiViewer();
-    }
-  }, [jitsiLoaded, streamRoomName]);
-
-  // Cleanup Jitsi on unmount
-  useEffect(() => {
-    return () => {
-      if (jitsiApiRef.current) {
-        jitsiApiRef.current.dispose();
-      }
-    };
-  }, []);
-
-  const initJitsi = () => {
-    const script = document.createElement('script');
-    script.src = 'https://meet.jit.si/external_api.js';
-    script.async = true;
-    script.onload = () => {
-      console.log('Jitsi script loaded for viewer');
-      setJitsiLoaded(true);
-    };
-    script.onerror = () => {
-      console.error('Failed to load Jitsi script');
-    };
-    
-    // Check if script already exists
-    if (!document.querySelector('script[src="https://meet.jit.si/external_api.js"]')) {
-      document.body.appendChild(script);
-    } else {
-      setJitsiLoaded(true);
-    }
-  };
-
-  const fetchStreamRoomName = async () => {
-    const { data } = await supabase
-      .from('live_streams')
-      .select('stream_key')
-      .eq('id', stream.id)
-      .single();
-    
-    if (data?.stream_key) {
-      setStreamRoomName(data.stream_key);
-    } else {
-      // Use default room name based on stream ID
-      setStreamRoomName(roomName);
-    }
-  };
-
-  const startJitsiViewer = () => {
-    if (!jitsiContainerRef.current || jitsiApiRef.current || !streamRoomName) return;
-
-    try {
-      const domain = 'meet.jit.si';
-      const options = {
-        roomName: streamRoomName,
-        parentNode: jitsiContainerRef.current,
-        width: '100%',
-        height: '100%',
-        configOverwrite: {
-          startWithAudioMuted: true,
-          startWithVideoMuted: true,
-          prejoinPageEnabled: false,
-          disableDeepLinking: true,
-          enableWelcomePage: false,
-          enableClosePage: false,
-          disableInviteFunctions: true,
-          toolbarButtons: [],
-          hideConferenceSubject: true,
-          hideConferenceTimer: true,
-          subject: ' ',
-          disableRemoteMute: true,
-          remoteVideoMenu: { disabled: true },
-          disableKick: true,
-          startSilent: true,
-        },
-        interfaceConfigOverwrite: {
-          SHOW_JITSI_WATERMARK: false,
-          SHOW_WATERMARK_FOR_GUESTS: false,
-          SHOW_BRAND_WATERMARK: false,
-          TOOLBAR_BUTTONS: [],
-          DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
-          HIDE_INVITE_MORE_HEADER: true,
-          MOBILE_APP_PROMO: false,
-          FILM_STRIP_MAX_HEIGHT: 0,
-          VERTICAL_FILMSTRIP: false,
-          filmStripOnly: true,
-        },
-        userInfo: {
-          displayName: user?.user_metadata?.full_name || 'Viewer',
-        }
-      };
-
-      // @ts-ignore
-      jitsiApiRef.current = new window.JitsiMeetExternalAPI(domain, options);
-      
-      jitsiApiRef.current.addListener('videoConferenceJoined', () => {
-        console.log('Viewer joined the stream');
-      });
-
-    } catch (error) {
-      console.error('Failed to initialize Jitsi viewer:', error);
-    }
-  };
 
   const fetchUserDiamonds = async () => {
     if (!user) return;
@@ -594,33 +473,26 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Video/Stream Area */}
       <div className={`relative bg-black flex items-center justify-center overflow-hidden transition-all duration-300 ${showComments ? 'h-[35%] min-h-[200px]' : 'flex-1'}`}>
-        {/* Jitsi Video Container */}
+        {/* Live Stream Visual */}
         <div className="absolute inset-0 w-full h-full">
-          {jitsiLoaded && streamRoomName ? (
-            <div 
-              ref={jitsiContainerRef} 
-              className="w-full h-full"
-              style={{ minHeight: '200px' }}
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-b from-purple-900/80 to-black flex items-center justify-center">
-              {/* Loading state or fallback */}
-              <div className="flex flex-col items-center">
-                <Avatar className="w-20 h-20 md:w-28 md:h-28 border-4 border-pink-500 shadow-lg shadow-pink-500/50">
+          <div className="w-full h-full bg-gradient-to-b from-purple-900/80 to-black flex items-center justify-center">
+            <div className="flex flex-col items-center">
+              <div className="relative">
+                <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-pink-500 shadow-lg shadow-pink-500/50">
                   <AvatarImage src={stream.profiles?.avatar_url || ""} />
-                  <AvatarFallback className="text-2xl md:text-4xl bg-gradient-to-br from-purple-500 to-pink-500">
+                  <AvatarFallback className="text-3xl md:text-4xl bg-gradient-to-br from-purple-500 to-pink-500">
                     {stream.profiles?.full_name?.[0] || "?"}
                   </AvatarFallback>
                 </Avatar>
-                <h2 className="text-white font-bold text-base md:text-lg mt-3 px-4 text-center">{stream.title}</h2>
-                <p className="text-gray-300 text-xs md:text-sm mt-1">{stream.profiles?.full_name || "Streamer"}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <Video className="w-4 h-4 text-red-500 animate-pulse" />
-                  <span className="text-white/80 text-xs">Connecting to stream...</span>
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+                  <Radio className="w-4 h-4 text-white" />
                 </div>
               </div>
+              <h2 className="text-white font-bold text-base md:text-lg mt-4 px-4 text-center">{stream.title}</h2>
+              <p className="text-gray-300 text-sm mt-1">{stream.profiles?.full_name || "Streamer"}</p>
+              <p className="text-gray-400 text-xs mt-2 px-6 text-center line-clamp-2">{stream.description}</p>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Floating reactions */}
@@ -818,7 +690,6 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
       {/* TikTok-style Comments Section */}
       {showComments && (
         <div className="flex-1 bg-background flex flex-col min-h-0">
-          {/* Comments header */}
           <div className="flex items-center justify-between px-4 py-2 border-b flex-shrink-0">
             <h3 className="text-sm font-semibold">{comments.length} comment{comments.length !== 1 ? 's' : ''}</h3>
             <div className="flex items-center gap-2">
@@ -831,7 +702,6 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
             </div>
           </div>
 
-          {/* Comments list */}
           <ScrollArea className="flex-1 min-h-0">
             <div className="px-4 py-2 space-y-4">
               {comments.length === 0 ? (
@@ -881,7 +751,6 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
             </div>
           </ScrollArea>
 
-          {/* Reply indicator */}
           {replyingTo && (
             <div className="px-3 py-2 bg-muted/50 border-t flex items-center justify-between flex-shrink-0">
               <span className="text-xs text-muted-foreground">
@@ -893,7 +762,6 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
             </div>
           )}
 
-          {/* Comment input */}
           <div className="p-3 border-t bg-background flex-shrink-0">
             <div className="flex items-center gap-2">
               <Input
@@ -904,7 +772,12 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
                 onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
                 disabled={!user}
               />
-              <Button onClick={handleSendComment} size="icon" disabled={!user || !newComment.trim()} className="h-10 w-10">
+              <Button
+                size="icon"
+                onClick={handleSendComment}
+                disabled={!newComment.trim() || !user}
+                className="h-10 w-10"
+              >
                 <Send className="w-4 h-4" />
               </Button>
             </div>
@@ -912,58 +785,6 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
         </div>
       )}
 
-      {/* Inline comments overlay when NOT in comment view */}
-      {!showComments && (
-        <div className="absolute bottom-16 left-2 right-14 max-h-28 overflow-hidden z-10">
-          <div className="space-y-1">
-            {comments.slice(-5).map((comment) => (
-              <div 
-                key={comment.id} 
-                className="flex items-start gap-1.5 animate-fade-in cursor-pointer"
-                onClick={() => handleReplyToComment(comment)}
-              >
-                <Avatar className="h-5 w-5 flex-shrink-0">
-                  <AvatarImage src={comment.profiles?.avatar_url || ""} />
-                  <AvatarFallback className="text-[8px]">{comment.profiles?.full_name?.[0] || "?"}</AvatarFallback>
-                </Avatar>
-                <div className="bg-black/60 rounded-lg px-2 py-1 max-w-[80%] backdrop-blur-sm">
-                  <span className="text-pink-400 text-[10px] font-medium">{comment.profiles?.full_name || "User"}</span>
-                  <span className="text-white text-xs ml-1">{comment.content}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Bottom comment input when NOT in comment view */}
-      {!showComments && (
-        <div className="bg-black/90 p-2 flex items-center gap-2 backdrop-blur-sm">
-          {replyingTo && (
-            <div className="absolute bottom-14 left-2 right-2 bg-black/80 rounded-lg px-3 py-1.5 flex items-center justify-between backdrop-blur-sm">
-              <span className="text-xs text-white/70">
-                Replying to <span className="text-pink-400">@{replyingTo.profiles?.full_name || 'User'}</span>
-              </span>
-              <button onClick={cancelReply} className="text-white/70">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-          <Input
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder={user ? (replyingTo ? `Reply to @${replyingTo.profiles?.full_name}...` : "Say something...") : "Login to comment"}
-            className="flex-1 bg-white/10 border-0 text-white placeholder:text-gray-400 h-9 text-sm"
-            onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
-            disabled={!user}
-          />
-          <Button onClick={handleSendComment} size="icon" disabled={!user || !newComment.trim()} className="h-9 w-9">
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
-
-      {/* CSS for floating animation */}
       <style>{`
         @keyframes float-up {
           0% {
@@ -972,7 +793,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
           }
           100% {
             opacity: 0;
-            transform: translateY(-150px) scale(1.3);
+            transform: translateY(-100px) scale(1.5);
           }
         }
       `}</style>
