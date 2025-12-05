@@ -33,7 +33,6 @@ export const EditRestaurantDialog = ({ vendor, onClose }: EditRestaurantDialogPr
         .from("food_vendors")
         .update({
           name: formData.name,
-          description: formData.description,
           cuisine_type: formData.cuisine_type,
           address: formData.address,
           phone: formData.phone,
