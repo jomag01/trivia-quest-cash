@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft, Star, Clock, MapPin, Plus, Minus } from "lucide-react";
 import { useFoodCart } from "@/hooks/useFoodCart";
 import { toast } from "sonner";
@@ -29,6 +33,20 @@ interface FoodVendor {
   minimum_order: number;
 }
 
+interface Variation {
+  id: string;
+  name: string;
+  options: { label: string; priceAdjustment: number }[];
+  is_required: boolean;
+}
+
+interface AddOn {
+  id: string;
+  name: string;
+  price: number;
+  is_available: boolean;
+}
+
 interface MenuItem {
   id: string;
   name: string;
@@ -39,10 +57,15 @@ interface MenuItem {
   is_available: boolean;
   is_featured: boolean;
   diamond_reward: number;
+  variations?: Variation[];
+  addons?: AddOn[];
 }
 
 export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [selectedVariations, setSelectedVariations] = useState<Record<string, { label: string; priceAdjustment: number }>>({});
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const { addToCart, cart, updateQuantity } = useFoodCart();
 
   const { data: vendor } = useQuery({
@@ -73,7 +96,19 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
 
       const { data, error } = await query.order("is_featured", { ascending: false });
       if (error) throw error;
-      return data as MenuItem[];
+
+      // Fetch variations and add-ons for each item
+      const itemsWithExtras = await Promise.all(
+        (data || []).map(async (item: MenuItem) => {
+          const [{ data: variations }, { data: addons }] = await Promise.all([
+            (supabase as any).from("food_item_variations").select("*").eq("item_id", item.id),
+            (supabase as any).from("food_item_addons").select("*").eq("item_id", item.id).eq("is_available", true),
+          ]);
+          return { ...item, variations: variations || [], addons: addons || [] };
+        })
+      );
+
+      return itemsWithExtras as MenuItem[];
     },
   });
 
@@ -84,21 +119,69 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
     return cartItem?.quantity || 0;
   };
 
-  const handleAddToCart = (item: MenuItem) => {
+  const calculateItemTotal = (item: MenuItem) => {
+    let total = item.price;
+    
+    // Add variation price adjustments
+    Object.values(selectedVariations).forEach((v) => {
+      total += v.priceAdjustment;
+    });
+    
+    // Add add-on prices
+    selectedAddOns.forEach((addOnId) => {
+      const addOn = item.addons?.find((a) => a.id === addOnId);
+      if (addOn) total += addOn.price;
+    });
+    
+    return total;
+  };
+
+  const handleAddToCart = (item: MenuItem, withOptions = false) => {
     if (cart.length > 0 && cart[0].vendor_id !== vendorId) {
       toast.error("You can only order from one restaurant at a time. Please clear your cart first.");
       return;
     }
+
+    // If item has variations/addons and not already customized, open dialog
+    if (!withOptions && ((item.variations?.length || 0) > 0 || (item.addons?.length || 0) > 0)) {
+      setSelectedItem(item);
+      setSelectedVariations({});
+      setSelectedAddOns([]);
+      return;
+    }
+
+    const finalPrice = withOptions ? calculateItemTotal(item) : item.price;
+    
     addToCart({
-      id: item.id,
+      id: withOptions ? `${item.id}-${Date.now()}` : item.id,
       name: item.name,
-      price: item.price,
+      price: finalPrice,
       image_url: item.image_url,
       vendor_id: vendorId,
       vendor_name: vendor?.name || "",
       diamond_reward: item.diamond_reward || 0,
     });
+    
     toast.success(`${item.name} added to cart`);
+    setSelectedItem(null);
+  };
+
+  const handleVariationChange = (variationName: string, option: { label: string; priceAdjustment: number }) => {
+    setSelectedVariations({ ...selectedVariations, [variationName]: option });
+  };
+
+  const handleAddOnToggle = (addOnId: string) => {
+    if (selectedAddOns.includes(addOnId)) {
+      setSelectedAddOns(selectedAddOns.filter((id) => id !== addOnId));
+    } else {
+      setSelectedAddOns([...selectedAddOns, addOnId]);
+    }
+  };
+
+  const canAddToCart = () => {
+    if (!selectedItem) return false;
+    const requiredVariations = selectedItem.variations?.filter((v) => v.is_required) || [];
+    return requiredVariations.every((v) => selectedVariations[v.name]);
   };
 
   if (!vendor) return null;
@@ -134,7 +217,6 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
             <span className="font-medium">{vendor.rating || "New"}</span>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">{vendor.description}</p>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
@@ -142,7 +224,7 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
           </div>
           <div className="flex items-center gap-1">
             <MapPin className="w-4 h-4" />
-            <span>{vendor.address}</span>
+            <span className="truncate max-w-[200px]">{vendor.address}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -207,6 +289,8 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
         <div className="space-y-3">
           {menuItems?.map((item) => {
             const quantity = getItemQuantity(item.id);
+            const hasExtras = (item.variations?.length || 0) > 0 || (item.addons?.length || 0) > 0;
+            
             return (
               <Card key={item.id} className="overflow-hidden">
                 <CardContent className="p-0">
@@ -228,14 +312,31 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
                       <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                         {item.description}
                       </p>
+                      
+                      {/* Show variation/addon indicators */}
+                      {hasExtras && (
+                        <div className="flex gap-1 mt-1">
+                          {(item.variations?.length || 0) > 0 && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {item.variations?.length} options
+                            </Badge>
+                          )}
+                          {(item.addons?.length || 0) > 0 && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {item.addons?.length} add-ons
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      
                       <div className="flex items-center justify-between mt-2">
                         <div>
-                          <span className="font-bold text-lg">₱{item.price}</span>
+                          <span className="font-bold text-lg">₱{item.price.toFixed(2)}</span>
                           {item.diamond_reward > 0 && (
                             <span className="text-xs text-primary ml-2">+{item.diamond_reward} 💎</span>
                           )}
                         </div>
-                        {quantity === 0 ? (
+                        {!hasExtras && quantity === 0 ? (
                           <Button
                             size="sm"
                             onClick={() => handleAddToCart(item)}
@@ -243,6 +344,15 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
                           >
                             <Plus className="w-4 h-4 mr-1" />
                             Add
+                          </Button>
+                        ) : hasExtras ? (
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddToCart(item)}
+                            disabled={!vendor.is_open}
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Customize
                           </Button>
                         ) : (
                           <div className="flex items-center gap-2">
@@ -274,6 +384,97 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
           })}
         </div>
       )}
+
+      {/* Customization Dialog */}
+      <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedItem?.name}</DialogTitle>
+          </DialogHeader>
+          
+          {selectedItem && (
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <img
+                  src={selectedItem.image_url || "/placeholder.svg"}
+                  alt={selectedItem.name}
+                  className="w-20 h-20 rounded-lg object-cover"
+                />
+                <div>
+                  <p className="text-sm text-muted-foreground">{selectedItem.description}</p>
+                  <p className="font-bold mt-1">Base: ₱{selectedItem.price.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* Variations */}
+              {selectedItem.variations?.map((variation) => (
+                <div key={variation.id} className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    {variation.name}
+                    {variation.is_required && <Badge variant="destructive" className="text-[10px]">Required</Badge>}
+                  </Label>
+                  <RadioGroup
+                    value={selectedVariations[variation.name]?.label || ""}
+                    onValueChange={(value) => {
+                      const option = variation.options.find((o) => o.label === value);
+                      if (option) handleVariationChange(variation.name, option);
+                    }}
+                  >
+                    {variation.options.map((option) => (
+                      <div key={option.label} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value={option.label} id={`${variation.name}-${option.label}`} />
+                          <Label htmlFor={`${variation.name}-${option.label}`} className="text-sm cursor-pointer">
+                            {option.label}
+                          </Label>
+                        </div>
+                        {option.priceAdjustment > 0 && (
+                          <span className="text-sm text-muted-foreground">+₱{option.priceAdjustment.toFixed(2)}</span>
+                        )}
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              ))}
+
+              {/* Add-ons */}
+              {(selectedItem.addons?.length || 0) > 0 && (
+                <div className="space-y-2">
+                  <Label>Add-ons</Label>
+                  {selectedItem.addons?.map((addon) => (
+                    <div key={addon.id} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={addon.id}
+                          checked={selectedAddOns.includes(addon.id)}
+                          onCheckedChange={() => handleAddOnToggle(addon.id)}
+                        />
+                        <Label htmlFor={addon.id} className="text-sm cursor-pointer">
+                          {addon.name}
+                        </Label>
+                      </div>
+                      <span className="text-sm text-muted-foreground">+₱{addon.price.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="border-t pt-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total</p>
+                  <p className="text-xl font-bold">₱{calculateItemTotal(selectedItem).toFixed(2)}</p>
+                </div>
+                <Button
+                  onClick={() => handleAddToCart(selectedItem, true)}
+                  disabled={!canAddToCart()}
+                >
+                  Add to Cart
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

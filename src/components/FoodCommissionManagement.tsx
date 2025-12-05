@@ -64,15 +64,25 @@ export const FoodCommissionManagement = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("food_vendors")
-        .select(`
-          *,
-          owner:profiles!food_vendors_owner_id_fkey(full_name, email)
-        `)
+        .select("*")
         .eq("approval_status", "pending")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as FoodVendor[];
+      
+      // Fetch owner profiles separately
+      const vendorsWithOwners = await Promise.all(
+        (data || []).map(async (vendor: any) => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, email")
+            .eq("id", vendor.owner_id)
+            .maybeSingle();
+          return { ...vendor, owner: profile };
+        })
+      );
+      
+      return vendorsWithOwners as FoodVendor[];
     },
   });
 
@@ -82,14 +92,24 @@ export const FoodCommissionManagement = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("food_vendors")
-        .select(`
-          *,
-          owner:profiles!food_vendors_owner_id_fkey(full_name, email)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as FoodVendor[];
+      
+      // Fetch owner profiles separately
+      const vendorsWithOwners = await Promise.all(
+        (data || []).map(async (vendor: any) => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, email")
+            .eq("id", vendor.owner_id)
+            .maybeSingle();
+          return { ...vendor, owner: profile };
+        })
+      );
+      
+      return vendorsWithOwners as FoodVendor[];
     },
   });
 

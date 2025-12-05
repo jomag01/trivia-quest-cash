@@ -633,6 +633,76 @@ export type Database = {
         }
         Relationships: []
       }
+      food_item_addons: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_available: boolean | null
+          item_id: string
+          name: string
+          price: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_available?: boolean | null
+          item_id: string
+          name: string
+          price?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_available?: boolean | null
+          item_id?: string
+          name?: string
+          price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_item_addons_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "food_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      food_item_variations: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_required: boolean | null
+          item_id: string
+          name: string
+          options: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          item_id: string
+          name: string
+          options?: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          item_id?: string
+          name?: string
+          options?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_item_variations_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "food_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       food_items: {
         Row: {
           category: string | null

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFoodCart } from "@/hooks/useFoodCart";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Plus, Minus, Trash2, MapPin } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, MapPin, Bike } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -19,14 +19,41 @@ export const FoodCart = () => {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [minimumOrder, setMinimumOrder] = useState(0);
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = getTotal();
   const totalDiamonds = getTotalDiamonds();
+  const totalAmount = subtotal + deliveryFee;
   
   // Get vendor info for delivery fee
   const vendorId = cart[0]?.vendor_id;
   const vendorName = cart[0]?.vendor_name;
+
+  // Fetch delivery fee when vendor changes
+  useEffect(() => {
+    const fetchVendorInfo = async () => {
+      if (!vendorId) {
+        setDeliveryFee(0);
+        setMinimumOrder(0);
+        return;
+      }
+      
+      const { data: vendor } = await (supabase as any)
+        .from("food_vendors")
+        .select("delivery_fee, minimum_order")
+        .eq("id", vendorId)
+        .single();
+      
+      if (vendor) {
+        setDeliveryFee(vendor.delivery_fee || 0);
+        setMinimumOrder(vendor.minimum_order || 0);
+      }
+    };
+
+    fetchVendorInfo();
+  }, [vendorId]);
 
   const handlePlaceOrder = async () => {
     if (!user) {
@@ -44,46 +71,44 @@ export const FoodCart = () => {
       return;
     }
 
+    if (subtotal < minimumOrder) {
+      toast.error(`Minimum order is ₱${minimumOrder}`);
+      return;
+    }
+
     setIsOrdering(true);
 
     try {
-      // Get delivery fee from vendor
-      const { data: vendor } = await (supabase as any)
-        .from("food_vendors")
-        .select("delivery_fee, minimum_order")
-        .eq("id", vendorId)
-        .single();
-
-      if (vendor && subtotal < (vendor.minimum_order || 0)) {
-        toast.error(`Minimum order is ₱${vendor.minimum_order}`);
-        setIsOrdering(false);
-        return;
-      }
-
-      const deliveryFee = vendor?.delivery_fee || 0;
-      const totalAmount = subtotal + deliveryFee;
-
       // Check for referrer in localStorage
       const referrerId = localStorage.getItem("food_referrer_id");
 
       // Create order
       const orderNumber = `FO-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
+      // Get user profile for customer name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
       const { data: order, error: orderError } = await (supabase as any)
         .from("food_orders")
         .insert({
           order_number: orderNumber,
           customer_id: user.id,
+          customer_name: profile?.full_name || "Customer",
           vendor_id: vendorId,
           referrer_id: referrerId || null,
           subtotal,
           delivery_fee: deliveryFee,
           total_amount: totalAmount,
-          total_diamond_credits: totalDiamonds,
+          diamond_reward: totalDiamonds,
           delivery_address: deliveryAddress,
-          delivery_notes: deliveryNotes,
+          notes: deliveryNotes,
           customer_phone: customerPhone,
           payment_method: "cod",
+          status: "pending", // Start as pending, vendor confirms and marks ready for riders
         })
         .select()
         .single();
@@ -93,7 +118,7 @@ export const FoodCart = () => {
       // Create order items
       const orderItems = cart.map((item) => ({
         order_id: order.id,
-        food_item_id: item.id,
+        item_id: item.id,
         quantity: item.quantity,
         unit_price: item.price,
         subtotal: item.price * item.quantity,
@@ -105,7 +130,23 @@ export const FoodCart = () => {
 
       if (itemsError) throw itemsError;
 
-      toast.success("Order placed successfully!");
+      // Notify vendor about new order
+      const { data: vendor } = await (supabase as any)
+        .from("food_vendors")
+        .select("owner_id")
+        .eq("id", vendorId)
+        .single();
+
+      if (vendor?.owner_id) {
+        await (supabase as any).from("notifications").insert({
+          user_id: vendor.owner_id,
+          type: "new_food_order",
+          title: "New Food Order",
+          message: `You have a new order #${orderNumber} for ₱${totalAmount.toFixed(2)}`,
+        });
+      }
+
+      toast.success("Order placed successfully! The restaurant will confirm your order.");
       clearCart();
       setDeliveryAddress("");
       setDeliveryNotes("");
@@ -161,7 +202,7 @@ export const FoodCart = () => {
                   />
                   <div className="flex-1">
                     <h4 className="font-medium text-sm">{item.name}</h4>
-                    <p className="text-sm text-muted-foreground">₱{item.price}</p>
+                    <p className="text-sm text-muted-foreground">₱{item.price.toFixed(2)}</p>
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center gap-2">
                         <Button
@@ -239,8 +280,11 @@ export const FoodCart = () => {
                 <span>₱{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Delivery Fee</span>
-                <span>TBD</span>
+                <span className="flex items-center gap-1">
+                  <Bike className="w-4 h-4" />
+                  Delivery Fee
+                </span>
+                <span>{deliveryFee === 0 ? "Free" : `₱${deliveryFee.toFixed(2)}`}</span>
               </div>
               {totalDiamonds > 0 && (
                 <div className="flex justify-between text-sm text-primary">
@@ -248,15 +292,20 @@ export const FoodCart = () => {
                   <span>+{totalDiamonds} 💎</span>
                 </div>
               )}
+              {minimumOrder > 0 && subtotal < minimumOrder && (
+                <div className="text-xs text-destructive">
+                  Minimum order: ₱{minimumOrder} (₱{(minimumOrder - subtotal).toFixed(2)} more needed)
+                </div>
+              )}
               <div className="flex justify-between font-bold text-lg border-t pt-3">
                 <span>Total</span>
-                <span>₱{subtotal.toFixed(2)}+</span>
+                <span>₱{totalAmount.toFixed(2)}</span>
               </div>
               <Button
                 className="w-full"
                 size="lg"
                 onClick={handlePlaceOrder}
-                disabled={isOrdering || !user}
+                disabled={isOrdering || !user || subtotal < minimumOrder}
               >
                 {isOrdering ? "Placing Order..." : user ? "Place Order" : "Log in to Order"}
               </Button>
