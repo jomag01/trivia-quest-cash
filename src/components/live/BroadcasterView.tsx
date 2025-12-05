@@ -2,16 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { 
-  Video, VideoOff, Mic, MicOff, Settings, 
-  X, Users, Eye, ShoppingBag, Plus, Trash2
-} from "lucide-react";
+import { Settings, Eye, ShoppingBag } from "lucide-react";
 
 interface BroadcasterViewProps {
   streamId: string;
@@ -52,17 +48,18 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   const [products, setProducts] = useState<Product[]>([]);
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [viewerCount, setViewerCount] = useState(0);
-  const [isVideoOn, setIsVideoOn] = useState(true);
-  const [isAudioOn, setIsAudioOn] = useState(true);
   const [showProducts, setShowProducts] = useState(false);
+  const [jitsiLoaded, setJitsiLoaded] = useState(false);
   const commentsEndRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const jitsiContainerRef = useRef<HTMLDivElement>(null);
+  const jitsiApiRef = useRef<any>(null);
+
+  const roomName = `livestream_${streamId.replace(/-/g, '')}`;
 
   useEffect(() => {
     fetchStreamData();
-    startCamera();
+    initJitsi();
 
-    // Subscribe to comments
     const commentsChannel = supabase
       .channel(`broadcaster-comments-${streamId}`)
       .on(
@@ -88,7 +85,6 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       )
       .subscribe();
 
-    // Subscribe to gifts
     const giftsChannel = supabase
       .channel(`broadcaster-gifts-${streamId}`)
       .on(
@@ -114,7 +110,6 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           setGifts(prev => [...prev, newGift]);
           toast.success(`🎉 ${profile?.full_name || 'Someone'} sent ${payload.new.gift_type} (+${payload.new.diamond_amount} 💎)!`);
           
-          // Remove gift notification after 4 seconds
           setTimeout(() => {
             setGifts(prev => prev.filter(g => g.id !== newGift.id));
           }, 4000);
@@ -122,7 +117,6 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       )
       .subscribe();
 
-    // Subscribe to stream updates
     const streamChannel = supabase
       .channel(`broadcaster-stream-${streamId}`)
       .on(
@@ -143,13 +137,92 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       supabase.removeChannel(commentsChannel);
       supabase.removeChannel(giftsChannel);
       supabase.removeChannel(streamChannel);
-      stopCamera();
+      if (jitsiApiRef.current) {
+        jitsiApiRef.current.dispose();
+      }
     };
   }, [streamId]);
 
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments]);
+
+  const initJitsi = () => {
+    const script = document.createElement('script');
+    script.src = 'https://meet.jit.si/external_api.js';
+    script.async = true;
+    script.onload = () => {
+      console.log('Jitsi script loaded for broadcaster');
+      setJitsiLoaded(true);
+    };
+    script.onerror = () => {
+      console.error('Failed to load Jitsi script');
+      toast.error('Failed to load video streaming');
+    };
+    document.body.appendChild(script);
+  };
+
+  const startJitsiMeeting = () => {
+    if (!jitsiContainerRef.current || jitsiApiRef.current) return;
+
+    try {
+      const domain = 'meet.jit.si';
+      const options = {
+        roomName: roomName,
+        parentNode: jitsiContainerRef.current,
+        width: '100%',
+        height: '100%',
+        configOverwrite: {
+          startWithAudioMuted: false,
+          startWithVideoMuted: false,
+          prejoinPageEnabled: false,
+          disableDeepLinking: true,
+          enableWelcomePage: false,
+          enableClosePage: false,
+          disableInviteFunctions: true,
+          toolbarButtons: ['microphone', 'camera', 'settings'],
+          hideConferenceSubject: true,
+          hideConferenceTimer: true,
+          subject: ' ',
+        },
+        interfaceConfigOverwrite: {
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          SHOW_BRAND_WATERMARK: false,
+          TOOLBAR_BUTTONS: ['microphone', 'camera', 'settings'],
+          DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+          HIDE_INVITE_MORE_HEADER: true,
+          MOBILE_APP_PROMO: false,
+          FILM_STRIP_MAX_HEIGHT: 0,
+          VERTICAL_FILMSTRIP: false,
+        },
+        userInfo: {
+          displayName: user?.user_metadata?.full_name || 'Broadcaster',
+        }
+      };
+
+      // @ts-ignore
+      jitsiApiRef.current = new window.JitsiMeetExternalAPI(domain, options);
+      
+      jitsiApiRef.current.addListener('videoConferenceJoined', () => {
+        console.log('Broadcaster joined the stream');
+        // Store room name in stream_key field
+        (supabase as any)
+          .from('live_streams')
+          .update({ stream_key: roomName })
+          .eq('id', streamId);
+      });
+
+    } catch (error) {
+      console.error('Failed to initialize Jitsi:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (jitsiLoaded && jitsiContainerRef.current && !jitsiApiRef.current) {
+      startJitsiMeeting();
+    }
+  }, [jitsiLoaded]);
 
   const fetchStreamData = async () => {
     const { data } = await supabase
@@ -163,7 +236,6 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       setViewerCount(data.viewer_count);
     }
 
-    // Fetch comments
     const { data: commentsData } = await supabase
       .from('live_stream_comments')
       .select('*')
@@ -172,7 +244,6 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       .limit(100);
     
     if (commentsData) {
-      // Fetch profiles separately
       const userIds = [...new Set(commentsData.map(c => c.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
@@ -186,7 +257,6 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       })));
     }
 
-    // Fetch products - separate queries to ensure data loads
     const { data: streamProducts } = await supabase
       .from('live_stream_products')
       .select('product_id, display_order')
@@ -211,78 +281,34 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
     }
   };
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
-        audio: true 
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (error) {
-      console.error("Failed to access camera:", error);
-      toast.error("Failed to access camera");
-    }
-  };
-
-  const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-    }
-  };
-
-  const toggleVideo = () => {
-    if (videoRef.current?.srcObject) {
-      const videoTrack = (videoRef.current.srcObject as MediaStream)
-        .getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoOn(videoTrack.enabled);
-      }
-    }
-  };
-
-  const toggleAudio = () => {
-    if (videoRef.current?.srcObject) {
-      const audioTrack = (videoRef.current.srcObject as MediaStream)
-        .getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsAudioOn(audioTrack.enabled);
-      }
-    }
-  };
-
   const handleEndStream = async () => {
+    if (jitsiApiRef.current) {
+      jitsiApiRef.current.dispose();
+    }
+    
     await supabase
       .from('live_streams')
       .update({ 
         status: 'ended',
-        ended_at: new Date().toISOString()
+        ended_at: new Date().toISOString(),
+        stream_key: null
       })
       .eq('id', streamId);
     
-    stopCamera();
     toast.success("Stream ended");
     onEndStream();
   };
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      {/* Video preview */}
       <div className="relative flex-1 bg-gray-900">
-        <video 
-          ref={videoRef}
-          autoPlay 
-          muted 
-          playsInline
-          className="w-full h-full object-cover"
+        <div 
+          ref={jitsiContainerRef} 
+          className="w-full h-full"
+          style={{ minHeight: '300px' }}
         />
 
-        {/* Gift animations */}
-        <div className="absolute top-20 left-4 space-y-2">
+        <div className="absolute top-20 left-4 space-y-2 z-10 pointer-events-none">
           {gifts.map((gift) => (
             <div 
               key={gift.id}
@@ -293,8 +319,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           ))}
         </div>
 
-        {/* Top bar */}
-        <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent">
+        <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent z-10">
           <div className="flex items-center gap-3">
             <Badge variant="destructive" className="animate-pulse">● LIVE</Badge>
             <span className="text-white flex items-center gap-1">
@@ -306,9 +331,8 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           </Button>
         </div>
 
-        {/* Products panel */}
         <Button
-          className="absolute bottom-20 left-4 bg-orange-500 hover:bg-orange-600"
+          className="absolute bottom-20 left-4 bg-orange-500 hover:bg-orange-600 z-10"
           onClick={() => setShowProducts(!showProducts)}
         >
           <ShoppingBag className="w-4 h-4 mr-2" />
@@ -316,7 +340,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         </Button>
 
         {showProducts && (
-          <div className="absolute bottom-32 left-4 right-20 max-h-32">
+          <div className="absolute bottom-32 left-4 right-20 max-h-32 z-10">
             <ScrollArea className="h-full">
               <div className="flex gap-2 p-2">
                 {products.map((product) => (
@@ -335,8 +359,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           </div>
         )}
 
-        {/* Comments */}
-        <div className="absolute bottom-20 right-4 w-64 max-h-40">
+        <div className="absolute bottom-20 right-4 w-64 max-h-40 z-10">
           <ScrollArea className="h-full">
             <div className="space-y-2 p-2">
               {comments.slice(-15).map((comment) => (
@@ -357,22 +380,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         </div>
       </div>
 
-      {/* Controls */}
       <div className="bg-black p-4 flex items-center justify-center gap-4">
-        <Button
-          variant={isVideoOn ? "secondary" : "destructive"}
-          size="icon"
-          onClick={toggleVideo}
-        >
-          {isVideoOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-        </Button>
-        <Button
-          variant={isAudioOn ? "secondary" : "destructive"}
-          size="icon"
-          onClick={toggleAudio}
-        >
-          {isAudioOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-        </Button>
         <Button variant="outline" size="icon">
           <Settings className="w-5 h-5" />
         </Button>

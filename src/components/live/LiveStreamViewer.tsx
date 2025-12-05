@@ -87,8 +87,15 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const [userDiamonds, setUserDiamonds] = useState(0);
   const [reactions, setReactions] = useState<{ id: string; emoji: string; x: number }[]>([]);
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
+  const [jitsiLoaded, setJitsiLoaded] = useState(false);
+  const [streamRoomName, setStreamRoomName] = useState<string | null>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const jitsiContainerRef = useRef<HTMLDivElement>(null);
+  const jitsiApiRef = useRef<any>(null);
+
+  // Generate room name from stream ID
+  const roomName = `livestream_${stream.id.replace(/-/g, '')}`;
 
   useEffect(() => {
     fetchComments();
@@ -96,6 +103,8 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
     checkFollowStatus();
     incrementViewCount();
     fetchUserDiamonds();
+    fetchStreamRoomName();
+    initJitsi();
 
     // Subscribe to realtime comments
     const commentsChannel = supabase
@@ -209,6 +218,113 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments]);
+
+  // Initialize Jitsi for viewers
+  useEffect(() => {
+    if (jitsiLoaded && jitsiContainerRef.current && !jitsiApiRef.current) {
+      startJitsiViewer();
+    }
+  }, [jitsiLoaded, streamRoomName]);
+
+  // Cleanup Jitsi on unmount
+  useEffect(() => {
+    return () => {
+      if (jitsiApiRef.current) {
+        jitsiApiRef.current.dispose();
+      }
+    };
+  }, []);
+
+  const initJitsi = () => {
+    const script = document.createElement('script');
+    script.src = 'https://meet.jit.si/external_api.js';
+    script.async = true;
+    script.onload = () => {
+      console.log('Jitsi script loaded for viewer');
+      setJitsiLoaded(true);
+    };
+    script.onerror = () => {
+      console.error('Failed to load Jitsi script');
+    };
+    
+    // Check if script already exists
+    if (!document.querySelector('script[src="https://meet.jit.si/external_api.js"]')) {
+      document.body.appendChild(script);
+    } else {
+      setJitsiLoaded(true);
+    }
+  };
+
+  const fetchStreamRoomName = async () => {
+    const { data } = await supabase
+      .from('live_streams')
+      .select('stream_key')
+      .eq('id', stream.id)
+      .single();
+    
+    if (data?.stream_key) {
+      setStreamRoomName(data.stream_key);
+    } else {
+      // Use default room name based on stream ID
+      setStreamRoomName(roomName);
+    }
+  };
+
+  const startJitsiViewer = () => {
+    if (!jitsiContainerRef.current || jitsiApiRef.current || !streamRoomName) return;
+
+    try {
+      const domain = 'meet.jit.si';
+      const options = {
+        roomName: streamRoomName,
+        parentNode: jitsiContainerRef.current,
+        width: '100%',
+        height: '100%',
+        configOverwrite: {
+          startWithAudioMuted: true,
+          startWithVideoMuted: true,
+          prejoinPageEnabled: false,
+          disableDeepLinking: true,
+          enableWelcomePage: false,
+          enableClosePage: false,
+          disableInviteFunctions: true,
+          toolbarButtons: [],
+          hideConferenceSubject: true,
+          hideConferenceTimer: true,
+          subject: ' ',
+          disableRemoteMute: true,
+          remoteVideoMenu: { disabled: true },
+          disableKick: true,
+          startSilent: true,
+        },
+        interfaceConfigOverwrite: {
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          SHOW_BRAND_WATERMARK: false,
+          TOOLBAR_BUTTONS: [],
+          DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+          HIDE_INVITE_MORE_HEADER: true,
+          MOBILE_APP_PROMO: false,
+          FILM_STRIP_MAX_HEIGHT: 0,
+          VERTICAL_FILMSTRIP: false,
+          filmStripOnly: true,
+        },
+        userInfo: {
+          displayName: user?.user_metadata?.full_name || 'Viewer',
+        }
+      };
+
+      // @ts-ignore
+      jitsiApiRef.current = new window.JitsiMeetExternalAPI(domain, options);
+      
+      jitsiApiRef.current.addListener('videoConferenceJoined', () => {
+        console.log('Viewer joined the stream');
+      });
+
+    } catch (error) {
+      console.error('Failed to initialize Jitsi viewer:', error);
+    }
+  };
 
   const fetchUserDiamonds = async () => {
     if (!user) return;
@@ -478,17 +594,17 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Video/Stream Area */}
       <div className={`relative bg-black flex items-center justify-center overflow-hidden transition-all duration-300 ${showComments ? 'h-[35%] min-h-[200px]' : 'flex-1'}`}>
-        {/* Video display area - show thumbnail as background or placeholder */}
+        {/* Jitsi Video Container */}
         <div className="absolute inset-0 w-full h-full">
-          {stream.thumbnail_url ? (
-            <img 
-              src={stream.thumbnail_url} 
-              alt={stream.title}
-              className="w-full h-full object-cover"
+          {jitsiLoaded && streamRoomName ? (
+            <div 
+              ref={jitsiContainerRef} 
+              className="w-full h-full"
+              style={{ minHeight: '200px' }}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-b from-purple-900/80 to-black flex items-center justify-center">
-              {/* Streamer profile picture in center when no video */}
+              {/* Loading state or fallback */}
               <div className="flex flex-col items-center">
                 <Avatar className="w-20 h-20 md:w-28 md:h-28 border-4 border-pink-500 shadow-lg shadow-pink-500/50">
                   <AvatarImage src={stream.profiles?.avatar_url || ""} />
@@ -500,7 +616,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
                 <p className="text-gray-300 text-xs md:text-sm mt-1">{stream.profiles?.full_name || "Streamer"}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <Video className="w-4 h-4 text-red-500 animate-pulse" />
-                  <span className="text-white/80 text-xs">Live Now</span>
+                  <span className="text-white/80 text-xs">Connecting to stream...</span>
                 </div>
               </div>
             </div>
