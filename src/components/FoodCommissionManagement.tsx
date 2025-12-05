@@ -10,6 +10,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Settings, Store, Check, X } from "lucide-react";
 
+interface FoodVendor {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  cuisine_type: string | null;
+  address: string | null;
+  approval_status: string;
+  is_open: boolean;
+  owner: { full_name: string | null; email: string | null } | null;
+}
+
 export const FoodCommissionManagement = () => {
   const queryClient = useQueryClient();
   const [commissionSettings, setCommissionSettings] = useState({
@@ -51,7 +62,7 @@ export const FoodCommissionManagement = () => {
   const { data: pendingVendors } = useQuery({
     queryKey: ["pending-food-vendors"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("food_vendors")
         .select(`
           *,
@@ -61,7 +72,7 @@ export const FoodCommissionManagement = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as FoodVendor[];
     },
   });
 
@@ -69,7 +80,7 @@ export const FoodCommissionManagement = () => {
   const { data: allVendors } = useQuery({
     queryKey: ["all-food-vendors"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("food_vendors")
         .select(`
           *,
@@ -78,7 +89,7 @@ export const FoodCommissionManagement = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as FoodVendor[];
     },
   });
 
@@ -107,7 +118,7 @@ export const FoodCommissionManagement = () => {
 
   const updateVendorStatusMutation = useMutation({
     mutationFn: async ({ vendorId, status }: { vendorId: string; status: string }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("food_vendors")
         .update({ approval_status: status })
         .eq("id", vendorId);

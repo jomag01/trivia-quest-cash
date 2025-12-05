@@ -57,7 +57,7 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
         image_url = urlData.publicUrl;
       }
 
-      const { error } = await supabase.from("food_items").insert({
+      const { error } = await (supabase as any).from("food_items").insert({
         vendor_id: vendorId,
         name: formData.name,
         description: formData.description,

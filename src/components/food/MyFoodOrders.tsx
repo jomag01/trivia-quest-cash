@@ -14,13 +14,33 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-500",
 };
 
+interface FoodOrder {
+  id: string;
+  order_number: string;
+  status: string;
+  subtotal: number;
+  delivery_fee: number;
+  total_amount: number;
+  total_diamond_credits: number;
+  delivery_address: string;
+  delivery_notes: string | null;
+  created_at: string;
+  vendor: { name: string; logo_url: string | null } | null;
+  items: Array<{
+    id: string;
+    quantity: number;
+    subtotal: number;
+    food_item: { name: string; image_url: string | null } | null;
+  }>;
+}
+
 export const MyFoodOrders = () => {
   const { user } = useAuth();
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["my-food-orders", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("food_orders")
         .select(`
           *,
@@ -34,7 +54,7 @@ export const MyFoodOrders = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as FoodOrder[];
     },
     enabled: !!user,
   });
@@ -99,7 +119,7 @@ export const MyFoodOrders = () => {
             </div>
 
             <div className="space-y-2">
-              {order.items?.map((item: any) => (
+              {order.items?.map((item) => (
                 <div key={item.id} className="flex items-center gap-2 text-sm">
                   <span className="font-medium">{item.quantity}x</span>
                   <span>{item.food_item?.name}</span>

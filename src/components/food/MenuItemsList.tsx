@@ -24,6 +24,20 @@ interface MenuItemsListProps {
   vendorId: string;
 }
 
+interface MenuItem {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  category: string | null;
+  image_url: string | null;
+  is_available: boolean;
+  is_featured: boolean;
+  diamond_reward: number;
+  preparation_time: string | null;
+  referral_commission_diamonds: number;
+}
+
 export const MenuItemsList = ({ vendorId }: MenuItemsListProps) => {
   const queryClient = useQueryClient();
   const [editItem, setEditItem] = useState<any>(null);
@@ -32,19 +46,19 @@ export const MenuItemsList = ({ vendorId }: MenuItemsListProps) => {
   const { data: items, isLoading } = useQuery({
     queryKey: ["vendor-menu-items", vendorId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("food_items")
         .select("*")
         .eq("vendor_id", vendorId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as MenuItem[];
     },
   });
 
   const toggleAvailableMutation = useMutation({
     mutationFn: async ({ id, is_available }: { id: string; is_available: boolean }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("food_items")
         .update({ is_available })
         .eq("id", id);
@@ -57,7 +71,7 @@ export const MenuItemsList = ({ vendorId }: MenuItemsListProps) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("food_items").delete().eq("id", id);
+      const { error } = await (supabase as any).from("food_items").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

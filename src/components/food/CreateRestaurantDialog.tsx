@@ -15,6 +15,12 @@ interface CreateRestaurantDialogProps {
   onClose: () => void;
 }
 
+interface FoodCategory {
+  id: string;
+  name: string;
+  icon: string | null;
+}
+
 export const CreateRestaurantDialog = ({ onClose }: CreateRestaurantDialogProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -38,13 +44,13 @@ export const CreateRestaurantDialog = ({ onClose }: CreateRestaurantDialogProps)
   const { data: categories } = useQuery({
     queryKey: ["food-categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("food_categories")
         .select("*")
         .eq("is_active", true)
         .order("display_order");
       if (error) throw error;
-      return data;
+      return data as FoodCategory[];
     },
   });
 
@@ -90,7 +96,7 @@ export const CreateRestaurantDialog = ({ onClose }: CreateRestaurantDialogProps)
         cover_image_url = await uploadImage(coverFile, `covers/${user.id}-${Date.now()}`);
       }
 
-      const { error } = await supabase.from("food_vendors").insert({
+      const { error } = await (supabase as any).from("food_vendors").insert({
         owner_id: user.id,
         name: formData.name,
         description: formData.description,
