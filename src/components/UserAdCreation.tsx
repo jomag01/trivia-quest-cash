@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToStorage, getPublicUrl } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -206,31 +207,17 @@ export const UserAdCreation = () => {
       if (imageFile) {
         const fileExt = imageFile.name.split(".").pop();
         const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
-        const { data, error: uploadError } = await supabase.storage
-          .from("ads")
-          .upload(fileName, imageFile);
-
+        const { error: uploadError } = await uploadToStorage("ads", fileName, imageFile);
         if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("ads")
-          .getPublicUrl(data.path);
-        imageUrl = publicUrl;
+        imageUrl = getPublicUrl("ads", fileName);
       }
 
       if (videoFile) {
         const fileExt = videoFile.name.split(".").pop();
         const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
-        const { data, error: uploadError } = await supabase.storage
-          .from("ads")
-          .upload(fileName, videoFile);
-
+        const { error: uploadError } = await uploadToStorage("ads", fileName, videoFile);
         if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("ads")
-          .getPublicUrl(data.path);
-        videoUrl = publicUrl;
+        videoUrl = getPublicUrl("ads", fileName);
       }
 
       const { error: insertError } = await supabase.from("user_ads").insert({

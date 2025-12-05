@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToStorage, getPublicUrl } from "@/lib/storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Upload, X, Shield, Camera } from "lucide-react";
@@ -64,20 +65,12 @@ const ProviderVerificationDialog = ({ open, onOpenChange, onSuccess }: ProviderV
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/${folder}_${Date.now()}.${fileExt}`;
     
-    const { error, data } = await supabase.storage
-      .from("provider-verification")
-      .upload(fileName, file);
-
+    const { error } = await uploadToStorage("provider-verification", fileName, file);
     if (error) {
       console.error("Upload error:", error);
       return null;
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from("provider-verification")
-      .getPublicUrl(fileName);
-
-    return publicUrl;
+    return getPublicUrl("provider-verification", fileName);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToStorage, getPublicUrl } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -64,10 +65,8 @@ export const ProductImageGallery = ({ productId, onPrimaryImageChange }: Product
         const fileExt = file.name.split(".").pop();
         const fileName = `${user.id}/products/${productId}/${Date.now()}_${index}.${fileExt}`;
 
-        // Try uploading to ads bucket (which exists)
-        const { data, error: uploadError } = await supabase.storage
-          .from("ads")
-          .upload(fileName, compressedFile);
+        // Try uploading to ads bucket
+        const { error: uploadError } = await uploadToStorage("ads", fileName, compressedFile);
 
         if (uploadError) {
           // If storage fails, convert to base64
@@ -78,11 +77,7 @@ export const ProductImageGallery = ({ productId, onPrimaryImageChange }: Product
           });
         }
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("ads")
-          .getPublicUrl(data.path);
-
-        return publicUrl;
+        return getPublicUrl("ads", fileName);
       });
 
       const uploadedUrls = await Promise.all(uploadPromises);

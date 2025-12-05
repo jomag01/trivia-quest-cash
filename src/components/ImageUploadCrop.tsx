@@ -9,6 +9,7 @@ import { Upload, Crop as CropIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import imageCompression from "browser-image-compression";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToStorage, getPublicUrl } from "@/lib/storage";
 
 interface ImageUploadCropProps {
   onImageUploaded: (url: string) => void;
@@ -143,12 +144,7 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("product-images")
-        .upload(filePath, compressedFile, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+      const { error: uploadError } = await uploadToStorage("product-images", filePath, compressedFile);
 
       if (uploadError) {
         // Fallback: store as data URL in DB fields
@@ -161,9 +157,7 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
       }
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("product-images")
-        .getPublicUrl(filePath);
+      const publicUrl = getPublicUrl("product-images", filePath);
 
       onImageUploaded(publicUrl);
       setCropDialogOpen(false);
@@ -190,12 +184,7 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("product-images")
-        .upload(filePath, compressedFile, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+      const { error: uploadError } = await uploadToStorage("product-images", filePath, compressedFile);
 
       if (uploadError) {
         // Fallback: store as data URL in DB fields
@@ -208,9 +197,7 @@ export const ImageUploadCrop = ({ onImageUploaded, currentImage, maxSizeKB = 500
       }
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("product-images")
-        .getPublicUrl(filePath);
+      const publicUrl = getPublicUrl("product-images", filePath);
 
       onImageUploaded(publicUrl);
       setCropDialogOpen(false);
