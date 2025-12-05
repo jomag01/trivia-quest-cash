@@ -8,12 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Store, Package, AlertCircle, Plus, Edit2, Trash2 } from "lucide-react";
+import { Loader2, Store, Package, AlertCircle, Plus, Edit2, Trash2, Images } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploadCrop } from "@/components/ImageUploadCrop";
+import { ProductImageGallery } from "@/components/ProductImageGallery";
 export default function SellerDashboard() {
   const {
     user,
@@ -345,10 +346,21 @@ export default function SellerDashboard() {
                 shipping_fee: e.target.value
               })} /></div>}
             </div>
-            <div><Label>Image</Label><ImageUploadCrop currentImage={productForm.image_url} onImageUploaded={url => setProductForm({
+            <div><Label>Primary Image</Label><ImageUploadCrop currentImage={productForm.image_url} onImageUploaded={url => setProductForm({
               ...productForm,
               image_url: url
             })} /></div>
+            {editingProduct && (
+              <div className="border-t pt-4 mt-4">
+                <ProductImageGallery 
+                  productId={editingProduct.id}
+                  onPrimaryImageChange={(url) => setProductForm({
+                    ...productForm,
+                    image_url: url
+                  })}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setShowProductDialog(false)}>Cancel</Button><Button onClick={handleSaveProduct} disabled={submitting}>{submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save</Button></DialogFooter>
         </DialogContent>

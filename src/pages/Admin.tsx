@@ -48,7 +48,9 @@ import { UserAdManagement } from "@/components/UserAdManagement";
 import ServiceCommissionManagement from "@/components/ServiceCommissionManagement";
 import ServiceCategoryManagement from "@/components/ServiceCategoryManagement";
 import ServiceProviderVerificationManagement from "@/components/ServiceProviderVerificationManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags } from "lucide-react";
+import { HomePageManagement } from "@/components/HomePageManagement";
+import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -92,6 +94,7 @@ const Admin = () => {
 
   const menuItems = [
     { id: "sales-analytics", label: "Sales Analytics", icon: TrendingUp },
+    { id: "homepage", label: "Homepage Settings", icon: Home },
     { id: "credits", label: "Credit Purchases", icon: CreditCard },
     { id: "payouts", label: "Payout Requests", icon: DollarSign },
     { id: "categories", label: "Game Categories", icon: Gamepad2 },
@@ -114,6 +117,7 @@ const Admin = () => {
     { id: "service-categories", label: "Service Categories", icon: Tags },
     { id: "service-commissions", label: "Service Bookings", icon: CalendarCheck },
     { id: "provider-verification", label: "Provider Verification", icon: Shield },
+    { id: "food-vendors", label: "Food Vendors", icon: UtensilsCrossed },
   ];
 
   useEffect(() => {
@@ -501,6 +505,7 @@ const Admin = () => {
           )}
 
           {activeTab === "sales-analytics" && <SalesAnalytics />}
+          {activeTab === "homepage" && <HomePageManagement />}
           {activeTab === "ad-management" && <AdManagement />}
           {activeTab === "user-ads" && <UserAdManagement />}
           {activeTab === "categories" && <CategoryManagement />}
@@ -521,6 +526,7 @@ const Admin = () => {
           {activeTab === "service-categories" && <ServiceCategoryManagement />}
           {activeTab === "service-commissions" && <ServiceCommissionManagement />}
           {activeTab === "provider-verification" && <ServiceProviderVerificationManagement />}
+          {activeTab === "food-vendors" && <FoodCommissionManagement />}
         </main>
       </div>
 
