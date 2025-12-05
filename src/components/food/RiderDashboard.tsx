@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Phone, Package, Clock, CheckCircle, Navigation, Wallet, AlertCircle } from "lucide-react";
+import { MapPin, Phone, Package, Clock, CheckCircle, Navigation, Wallet, AlertCircle, Map } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DeliveryMap } from "./DeliveryMap";
 
 interface DeliveryAssignment {
   id: string;
@@ -328,67 +329,57 @@ export const RiderDashboard = () => {
             </Card>
           ) : (
             activeDeliveries.map((delivery) => (
-              <Card key={delivery.id}>
-                <CardContent className="p-3 space-y-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-medium text-sm">{delivery.food_vendors?.name}</h4>
-                      <Badge variant="outline" className="text-[10px]">{delivery.status}</Badge>
+              <div key={delivery.id} className="space-y-2">
+                <Card>
+                  <CardContent className="p-3 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-medium text-sm">{delivery.food_vendors?.name}</h4>
+                        <Badge variant="outline" className="text-[10px]">{delivery.status}</Badge>
+                      </div>
+                      <p className="font-bold text-sm">₱{delivery.rider_credits_deducted}</p>
                     </div>
-                    <p className="font-bold text-sm">₱{delivery.rider_credits_deducted}</p>
-                  </div>
-                  
-                  <div className="text-xs space-y-1">
-                    <div className="flex items-start gap-1">
-                      <Package className="w-3 h-3 mt-0.5 text-primary" />
-                      <span>Pickup: {delivery.pickup_address}</span>
-                    </div>
-                    <div className="flex items-start gap-1">
-                      <MapPin className="w-3 h-3 mt-0.5 text-destructive" />
-                      <span>Deliver: {delivery.customer_address}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
+                    
+                    <div className="flex items-center gap-1 text-xs">
                       <Phone className="w-3 h-3 text-muted-foreground" />
                       <a href={`tel:${delivery.customer_phone}`} className="text-primary">
-                        {delivery.customer_phone}
+                        {delivery.customer_phone} ({delivery.customer_name})
                       </a>
                     </div>
-                  </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 text-xs h-8"
-                      onClick={() => openInMaps(
-                        delivery.status === "assigned" ? delivery.pickup_latitude : delivery.customer_latitude,
-                        delivery.status === "assigned" ? delivery.pickup_longitude : delivery.customer_longitude,
-                        delivery.status === "assigned" ? delivery.pickup_address : delivery.customer_address
+                    <div className="flex gap-2">
+                      {delivery.status === "assigned" && (
+                        <Button
+                          size="sm"
+                          className="flex-1 text-xs h-8"
+                          onClick={() => updateStatusMutation.mutate({ assignmentId: delivery.id, status: "picked_up" })}
+                        >
+                          Picked Up
+                        </Button>
                       )}
-                    >
-                      <Navigation className="w-3 h-3 mr-1" /> Navigate
-                    </Button>
-                    {delivery.status === "assigned" && (
-                      <Button
-                        size="sm"
-                        className="flex-1 text-xs h-8"
-                        onClick={() => updateStatusMutation.mutate({ assignmentId: delivery.id, status: "picked_up" })}
-                      >
-                        Picked Up
-                      </Button>
-                    )}
-                    {delivery.status === "picked_up" && (
-                      <Button
-                        size="sm"
-                        className="flex-1 text-xs h-8"
-                        onClick={() => updateStatusMutation.mutate({ assignmentId: delivery.id, status: "delivered" })}
-                      >
-                        <CheckCircle className="w-3 h-3 mr-1" /> Delivered
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      {delivery.status === "picked_up" && (
+                        <Button
+                          size="sm"
+                          className="flex-1 text-xs h-8"
+                          onClick={() => updateStatusMutation.mutate({ assignmentId: delivery.id, status: "delivered" })}
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" /> Delivered
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <DeliveryMap
+                  pickupLat={delivery.pickup_latitude}
+                  pickupLng={delivery.pickup_longitude}
+                  pickupAddress={delivery.pickup_address}
+                  deliveryLat={delivery.customer_latitude}
+                  deliveryLng={delivery.customer_longitude}
+                  deliveryAddress={delivery.customer_address}
+                  showDirections={true}
+                />
+              </div>
             ))
           )}
         </TabsContent>
