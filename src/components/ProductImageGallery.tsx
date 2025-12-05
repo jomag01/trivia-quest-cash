@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadToStorage, getPublicUrl } from "@/lib/storage";
+import { uploadToStorage, getPublicUrl, deleteFromStorage } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -160,7 +160,7 @@ export const ProductImageGallery = ({ productId, onPrimaryImageChange }: Product
       if (image.image_url.includes("/ads/")) {
         const path = image.image_url.split("/ads/")[1];
         if (path) {
-          await supabase.storage.from("ads").remove([path]);
+          await deleteFromStorage("ads", [path]);
         }
       }
 
