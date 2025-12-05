@@ -14,6 +14,8 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Dedupe React to prevent multiple instances
+    dedupe: ['react', 'react-dom'],
   },
   build: {
     // Enable minification for smaller bundles
@@ -41,8 +43,10 @@ export default defineConfig(({ mode }) => ({
     // Enable source maps for debugging (can disable in prod)
     sourcemap: mode === 'development',
   },
-  // Optimize dependencies
+  // Optimize dependencies with deduplication
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'],
+    // Force pre-bundling to avoid multiple React instances
+    force: true,
   },
-}));
+}))
