@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Store, UtensilsCrossed, ShoppingBag, Settings, Menu } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Plus, Store, UtensilsCrossed, ShoppingBag, Settings, Menu, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import { MenuItemsList } from "./MenuItemsList";
 import { MenuManagement } from "./MenuManagement";
@@ -27,6 +28,7 @@ interface FoodVendor {
   cuisine_type: string | null;
   approval_status: string;
   is_open: boolean;
+  admin_notes: string | null;
 }
 
 export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
@@ -149,6 +151,17 @@ export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Admin Feedback Alert */}
+      {vendor.admin_notes && (
+        <Alert variant="destructive" className="border-orange-500 bg-orange-50 dark:bg-orange-950">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle className="text-orange-700 dark:text-orange-300">Admin Feedback</AlertTitle>
+          <AlertDescription className="text-orange-600 dark:text-orange-400">
+            {vendor.admin_notes}
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Tabs */}
