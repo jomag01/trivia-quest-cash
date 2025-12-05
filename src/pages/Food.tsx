@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Store, ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { Store, ShoppingBag, UtensilsCrossed, Bike, Truck } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { RestaurantList } from "@/components/food/RestaurantList";
 import { FoodCart } from "@/components/food/FoodCart";
 import { MyFoodOrders } from "@/components/food/MyFoodOrders";
 import { MyRestaurant } from "@/components/food/MyRestaurant";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { RiderApplication } from "@/components/food/RiderApplication";
+import { RiderDashboard } from "@/components/food/RiderDashboard";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CreateRestaurantDialog } from "@/components/food/CreateRestaurantDialog";
 
 const Food = () => {
@@ -31,18 +32,26 @@ const Food = () => {
 
       <div className="p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="browse" className="text-xs sm:text-sm">
-              <Store className="w-4 h-4 mr-1" />
+          <TabsList className="grid w-full grid-cols-5 mb-4">
+            <TabsTrigger value="browse" className="text-[10px] sm:text-xs px-1">
+              <Store className="w-3 h-3 mr-0.5" />
               Browse
             </TabsTrigger>
-            <TabsTrigger value="orders" className="text-xs sm:text-sm">
-              <ShoppingBag className="w-4 h-4 mr-1" />
-              My Orders
+            <TabsTrigger value="orders" className="text-[10px] sm:text-xs px-1">
+              <ShoppingBag className="w-3 h-3 mr-0.5" />
+              Orders
             </TabsTrigger>
-            <TabsTrigger value="restaurant" className="text-xs sm:text-sm">
-              <UtensilsCrossed className="w-4 h-4 mr-1" />
-              My Restaurant
+            <TabsTrigger value="restaurant" className="text-[10px] sm:text-xs px-1">
+              <UtensilsCrossed className="w-3 h-3 mr-0.5" />
+              Restaurant
+            </TabsTrigger>
+            <TabsTrigger value="rider" className="text-[10px] sm:text-xs px-1">
+              <Bike className="w-3 h-3 mr-0.5" />
+              Rider
+            </TabsTrigger>
+            <TabsTrigger value="deliver" className="text-[10px] sm:text-xs px-1">
+              <Truck className="w-3 h-3 mr-0.5" />
+              Deliver
             </TabsTrigger>
           </TabsList>
 
@@ -55,7 +64,7 @@ const Food = () => {
               <MyFoodOrders />
             ) : (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">Please log in to view your orders</p>
+                <p className="text-xs text-muted-foreground">Please log in to view your orders</p>
               </div>
             )}
           </TabsContent>
@@ -65,7 +74,27 @@ const Food = () => {
               <MyRestaurant onCreateNew={() => setCreateDialogOpen(true)} />
             ) : (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">Please log in to manage your restaurant</p>
+                <p className="text-xs text-muted-foreground">Please log in to manage your restaurant</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="rider">
+            {user ? (
+              <RiderApplication />
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-xs text-muted-foreground">Please log in to apply as a rider</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="deliver">
+            {user ? (
+              <RiderDashboard />
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-xs text-muted-foreground">Please log in to access deliveries</p>
               </div>
             )}
           </TabsContent>
