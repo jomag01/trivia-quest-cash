@@ -36,7 +36,6 @@ export const EditRestaurantDialog = ({ vendor, onClose }: EditRestaurantDialogPr
           cuisine_type: formData.cuisine_type,
           address: formData.address,
           phone: formData.phone,
-          email: formData.email,
           minimum_order: parseFloat(formData.minimum_order) || 0,
           delivery_fee: parseFloat(formData.delivery_fee) || 0,
           estimated_delivery_time: formData.estimated_delivery_time,
