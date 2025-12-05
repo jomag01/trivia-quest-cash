@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Paperclip, X, FileImage, File } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToStorage, getPublicUrl } from "@/lib/storage";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import imageCompression from "browser-image-compression";
@@ -63,19 +64,14 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       const fileExt = fileToUpload.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
-      const { data, error } = await supabase.storage
-        .from("message-attachments")
-        .upload(fileName, fileToUpload);
-
+      const { error } = await uploadToStorage("message-attachments", fileName, fileToUpload);
       if (error) throw error;
 
       // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("message-attachments")
-        .getPublicUrl(fileName);
+      const publicUrl = getPublicUrl("message-attachments", fileName);
 
       onFileUploaded(
-        urlData.publicUrl,
+        publicUrl,
         selectedFile.name,
         fileToUpload.size,
         fileToUpload.type

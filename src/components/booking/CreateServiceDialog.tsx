@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToStorage, getPublicUrl } from "@/lib/storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Upload, X, Plane, Car, Package, MapPin, Plus, Shield, AlertCircle } from "lucide-react";
@@ -147,15 +148,10 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
       const fileExt = imageFile.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
-      const { error: uploadError, data: uploadData } = await supabase.storage
-        .from("service-images")
-        .upload(fileName, imageFile);
+      const { error: uploadError } = await uploadToStorage("service-images", fileName, imageFile);
 
-      if (!uploadError && uploadData) {
-        const { data: { publicUrl } } = supabase.storage
-          .from("service-images")
-          .getPublicUrl(fileName);
-        imageUrl = publicUrl;
+      if (!uploadError) {
+        imageUrl = getPublicUrl("service-images", fileName);
       }
     }
 

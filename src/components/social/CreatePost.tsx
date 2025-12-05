@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Image, Video, Music, X, Upload, Users, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToStorage, getPublicUrl } from "@/lib/storage";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import imageCompression from "browser-image-compression";
@@ -85,18 +86,11 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
         const fileExt = fileToUpload.name.split(".").pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-        const { data, error: uploadError } = await supabase.storage
-          .from("post-media")
-          .upload(fileName, fileToUpload);
-
+        const { error: uploadError } = await uploadToStorage("post-media", fileName, fileToUpload);
         if (uploadError) throw uploadError;
 
         // Get public URL
-        const { data: urlData } = supabase.storage
-          .from("post-media")
-          .getPublicUrl(fileName);
-
-        mediaUrl = urlData.publicUrl;
+        mediaUrl = getPublicUrl("post-media", fileName);
       } catch (storageError) {
         console.warn("Storage upload failed, using data URL fallback:", storageError);
         // Fallback: Convert to data URL and store in database

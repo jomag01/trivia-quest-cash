@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToStorage, getPublicUrl } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,23 +84,12 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
 
       if (imageFile) {
         const path = `items/${vendorId}-${Date.now()}`;
-        const { data, error } = await supabase.storage
-          .from("food-images")
-          .upload(path, imageFile, {
-            cacheControl: "3600",
-            upsert: false,
-          });
-
+        const { error } = await uploadToStorage("food-images", path, imageFile);
         if (error) {
           console.error("Upload error:", error);
           throw new Error(`Upload failed: ${error.message}`);
         }
-
-        const { data: urlData } = supabase.storage
-          .from("food-images")
-          .getPublicUrl(data.path);
-
-        image_url = urlData.publicUrl;
+        image_url = getPublicUrl("food-images", path);
       }
 
       const { error } = await (supabase as any).from("food_items").insert({
