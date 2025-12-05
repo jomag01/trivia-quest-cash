@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { Upload, Plus, X } from "lucide-react";
 import imageCompression from "browser-image-compression";
 
 interface CreateMenuItemDialogProps {
@@ -21,6 +21,17 @@ interface CreateMenuItemDialogProps {
 interface FoodMenu {
   id: string;
   name: string;
+}
+
+interface Variation {
+  name: string;
+  options: { label: string; priceAdjustment: number }[];
+  isRequired: boolean;
+}
+
+interface AddOn {
+  name: string;
+  price: number;
 }
 
 export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialogProps) => {
@@ -38,6 +49,10 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [variations, setVariations] = useState<Variation[]>([]);
+  const [addOns, setAddOns] = useState<AddOn[]>([]);
+  const [newVariation, setNewVariation] = useState({ name: "", options: "", isRequired: false });
+  const [newAddOn, setNewAddOn] = useState({ name: "", price: "" });
 
   const { data: menus } = useQuery({
     queryKey: ["vendor-menus", vendorId],
@@ -78,6 +93,39 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
     }
   };
 
+  const addVariation = () => {
+    if (!newVariation.name || !newVariation.options) {
+      toast.error("Please fill in variation name and options");
+      return;
+    }
+    const options = newVariation.options.split(",").map((opt) => {
+      const parts = opt.trim().split(":");
+      return {
+        label: parts[0].trim(),
+        priceAdjustment: parts[1] ? parseFloat(parts[1]) : 0,
+      };
+    });
+    setVariations([...variations, { name: newVariation.name, options, isRequired: newVariation.isRequired }]);
+    setNewVariation({ name: "", options: "", isRequired: false });
+  };
+
+  const removeVariation = (index: number) => {
+    setVariations(variations.filter((_, i) => i !== index));
+  };
+
+  const addAddOn = () => {
+    if (!newAddOn.name || !newAddOn.price) {
+      toast.error("Please fill in add-on name and price");
+      return;
+    }
+    setAddOns([...addOns, { name: newAddOn.name, price: parseFloat(newAddOn.price) }]);
+    setNewAddOn({ name: "", price: "" });
+  };
+
+  const removeAddOn = (index: number) => {
+    setAddOns(addOns.filter((_, i) => i !== index));
+  };
+
   const createMutation = useMutation({
     mutationFn: async () => {
       let image_url = "";
@@ -92,7 +140,7 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
         image_url = data?.publicUrl || "";
       }
 
-      const { error } = await (supabase as any).from("food_items").insert({
+      const { data: item, error } = await (supabase as any).from("food_items").insert({
         vendor_id: vendorId,
         name: formData.name,
         description: formData.description,
@@ -104,9 +152,30 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
         referral_commission_diamonds: parseInt(formData.referral_commission_diamonds) || 0,
         is_featured: formData.is_featured,
         image_url,
-      });
+      }).select().single();
 
       if (error) throw error;
+
+      // Insert variations
+      if (variations.length > 0) {
+        const variationInserts = variations.map((v) => ({
+          item_id: item.id,
+          name: v.name,
+          options: v.options,
+          is_required: v.isRequired,
+        }));
+        await (supabase as any).from("food_item_variations").insert(variationInserts);
+      }
+
+      // Insert add-ons
+      if (addOns.length > 0) {
+        const addOnInserts = addOns.map((a) => ({
+          item_id: item.id,
+          name: a.name,
+          price: a.price,
+        }));
+        await (supabase as any).from("food_item_addons").insert(addOnInserts);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-menu-items"] });
@@ -119,7 +188,7 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-h-[80vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Add Menu Item</DialogTitle>
       </DialogHeader>
@@ -130,9 +199,9 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
           <Label>Item Image</Label>
           <div className="mt-2">
             {imagePreview ? (
-              <img src={imagePreview} alt="Preview" className="w-full h-40 rounded-lg object-cover mb-2" />
+              <img src={imagePreview} alt="Preview" className="w-full h-32 rounded-lg object-cover mb-2" />
             ) : (
-              <div className="w-full h-40 rounded-lg bg-muted flex items-center justify-center mb-2">
+              <div className="w-full h-32 rounded-lg bg-muted flex items-center justify-center mb-2">
                 <Upload className="w-8 h-8 text-muted-foreground" />
               </div>
             )}
@@ -140,25 +209,16 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
           </div>
         </div>
 
-        <div>
-          <Label>Item Name *</Label>
-          <Input
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="e.g., Chicken Adobo"
-          />
-        </div>
-
-        <div>
-          <Label>Description</Label>
-          <Textarea
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Describe the dish"
-          />
-        </div>
-
         <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">Item Name *</Label>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., Chicken Adobo"
+              className="h-9 text-sm"
+            />
+          </div>
           <div>
             <Label className="text-xs">Price (₱) *</Label>
             <Input
@@ -169,6 +229,20 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
               className="h-9 text-sm"
             />
           </div>
+        </div>
+
+        <div>
+          <Label className="text-xs">Description</Label>
+          <Textarea
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Describe the dish"
+            rows={2}
+            className="text-sm"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Menu</Label>
             <Select value={formData.menu_id} onValueChange={(v) => setFormData({ ...formData, menu_id: v })}>
@@ -182,48 +256,115 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
               </SelectContent>
             </Select>
           </div>
-        </div>
-
-        <div>
-          <Label className="text-xs">Category</Label>
-          <Input
-            value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            placeholder="e.g., Main Course"
-            className="h-9 text-sm"
-          />
-        </div>
-
-        <div>
-          <Label>Preparation Time</Label>
-          <Input
-            value={formData.preparation_time}
-            onChange={(e) => setFormData({ ...formData, preparation_time: e.target.value })}
-            placeholder="e.g., 15-20 min"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Diamond Reward</Label>
+            <Label className="text-xs">Category</Label>
+            <Input
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              placeholder="e.g., Main Course"
+              className="h-9 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Variations Section */}
+        <div className="border rounded-lg p-3 space-y-2">
+          <Label className="text-xs font-semibold">Variations (e.g., Size, Spice Level)</Label>
+          <p className="text-[10px] text-muted-foreground">
+            Options format: Small:0, Medium:20, Large:40 (name:price_adjustment)
+          </p>
+          
+          {variations.map((v, i) => (
+            <div key={i} className="flex items-center gap-2 bg-muted/50 p-2 rounded text-xs">
+              <span className="flex-1">{v.name}: {v.options.map(o => `${o.label}(+₱${o.priceAdjustment})`).join(", ")}</span>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeVariation(i)}>
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          ))}
+          
+          <div className="grid grid-cols-3 gap-2">
+            <Input
+              placeholder="Name (e.g., Size)"
+              value={newVariation.name}
+              onChange={(e) => setNewVariation({ ...newVariation, name: e.target.value })}
+              className="h-8 text-xs"
+            />
+            <Input
+              placeholder="Options: S:0,M:20,L:40"
+              value={newVariation.options}
+              onChange={(e) => setNewVariation({ ...newVariation, options: e.target.value })}
+              className="h-8 text-xs"
+            />
+            <Button size="sm" className="h-8 text-xs" onClick={addVariation}>
+              <Plus className="w-3 h-3 mr-1" /> Add
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={newVariation.isRequired}
+              onCheckedChange={(c) => setNewVariation({ ...newVariation, isRequired: c })}
+              className="scale-75"
+            />
+            <span className="text-xs">Required selection</span>
+          </div>
+        </div>
+
+        {/* Add-ons Section */}
+        <div className="border rounded-lg p-3 space-y-2">
+          <Label className="text-xs font-semibold">Add-ons (e.g., Extra Rice, Extra Sauce)</Label>
+          
+          {addOns.map((a, i) => (
+            <div key={i} className="flex items-center gap-2 bg-muted/50 p-2 rounded text-xs">
+              <span className="flex-1">{a.name}: +₱{a.price.toFixed(2)}</span>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAddOn(i)}>
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          ))}
+          
+          <div className="grid grid-cols-3 gap-2">
+            <Input
+              placeholder="Name"
+              value={newAddOn.name}
+              onChange={(e) => setNewAddOn({ ...newAddOn, name: e.target.value })}
+              className="h-8 text-xs"
+            />
+            <Input
+              type="number"
+              placeholder="Price"
+              value={newAddOn.price}
+              onChange={(e) => setNewAddOn({ ...newAddOn, price: e.target.value })}
+              className="h-8 text-xs"
+            />
+            <Button size="sm" className="h-8 text-xs" onClick={addAddOn}>
+              <Plus className="w-3 h-3 mr-1" /> Add
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">Preparation Time</Label>
+            <Input
+              value={formData.preparation_time}
+              onChange={(e) => setFormData({ ...formData, preparation_time: e.target.value })}
+              className="h-9 text-sm"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Diamond Reward</Label>
             <Input
               type="number"
               value={formData.diamond_reward}
               onChange={(e) => setFormData({ ...formData, diamond_reward: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>Referral Commission 💎</Label>
-            <Input
-              type="number"
-              value={formData.referral_commission_diamonds}
-              onChange={(e) => setFormData({ ...formData, referral_commission_diamonds: e.target.value })}
+              className="h-9 text-sm"
             />
           </div>
         </div>
 
         <div className="flex items-center justify-between">
-          <Label>Featured Item</Label>
+          <Label className="text-xs">Featured Item</Label>
           <Switch
             checked={formData.is_featured}
             onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
