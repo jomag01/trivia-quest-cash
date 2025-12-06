@@ -19,6 +19,7 @@ interface Post {
   content: string | null;
   media_url: string | null;
   media_type: "image" | "video" | "audio";
+  thumbnail_url?: string | null;
   likes_count: number;
   comments_count: number;
   views_count: number;
@@ -328,25 +329,33 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
         {post.content && <p>{post.content}</p>}
         
         {post.media_url && post.media_type === "image" && (
-          <div className="relative cursor-pointer" onClick={() => setShowFullscreenImage(true)}>
-            <img src={post.media_url} alt="Post" className="w-full rounded-lg" />
+          <div className="relative cursor-pointer max-h-[400px] overflow-hidden" onClick={() => setShowFullscreenImage(true)}>
+            <img 
+              src={post.media_url} 
+              alt="Post" 
+              className="w-full rounded-lg object-cover max-h-[400px]"
+              loading="lazy"
+              decoding="async"
+            />
           </div>
         )}
         {post.media_url && post.media_type === "video" && (
-          <div className="relative">
+          <div className="relative max-h-[400px] overflow-hidden">
             <div className="cursor-pointer" onClick={() => setShowInteractions(true)}>
               <video
                 ref={videoRef}
                 src={post.media_url}
-                className="w-full rounded-lg"
+                className="w-full rounded-lg object-cover max-h-[400px]"
                 loop
                 playsInline
                 controlsList="nodownload"
+                preload="metadata"
+                poster={post.thumbnail_url || undefined}
               />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 {!isPlaying && (
-                  <div className="bg-black/50 rounded-full p-4">
-                    <Play className="w-12 h-12 text-white" />
+                  <div className="bg-black/50 rounded-full p-3">
+                    <Play className="w-8 h-8 text-white" />
                   </div>
                 )}
               </div>
