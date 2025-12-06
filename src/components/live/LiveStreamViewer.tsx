@@ -90,9 +90,11 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const [hasVideo, setHasVideo] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<string>('Connecting...');
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewerConnectionRef = useRef<ViewerConnection | null>(null);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchComments();
@@ -221,10 +223,17 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const connectToStream = async () => {
     if (!user) {
       setIsConnecting(false);
+      setConnectionStatus('Login to view stream');
       return;
     }
 
     setIsConnecting(true);
+    setConnectionStatus('Connecting to stream...');
+    
+    // Clear any existing timeout
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+    }
     
     try {
       viewerConnectionRef.current = new ViewerConnection(
@@ -238,20 +247,42 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
             setHasVideo(true);
           }
           setIsConnecting(false);
+          setConnectionStatus('Connected');
+        },
+        (state) => {
+          console.log('Connection state changed:', state);
+          switch (state) {
+            case 'connecting':
+              setConnectionStatus('Connecting...');
+              break;
+            case 'connected':
+              setConnectionStatus('Connected');
+              setIsConnecting(false);
+              break;
+            case 'disconnected':
+              setConnectionStatus('Reconnecting...');
+              break;
+            case 'failed':
+              setConnectionStatus('Connection failed');
+              setIsConnecting(false);
+              break;
+          }
         }
       );
       
       await viewerConnectionRef.current.connect();
       
-      // Set timeout for connection
-      setTimeout(() => {
-        if (isConnecting) {
-          setIsConnecting(false);
+      // Set timeout for connection - use ref to get current state
+      connectionTimeoutRef.current = setTimeout(() => {
+        setIsConnecting(false);
+        if (!hasVideo) {
+          setConnectionStatus('Waiting for streamer video...');
         }
-      }, 10000);
+      }, 8000);
     } catch (error) {
       console.error('Failed to connect to stream:', error);
       setIsConnecting(false);
+      setConnectionStatus('Failed to connect');
     }
   };
 
@@ -538,7 +569,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
               {isConnecting ? (
                 <div className="flex flex-col items-center">
                   <Loader2 className="w-12 h-12 animate-spin text-white mb-4" />
-                  <p className="text-white text-sm">Connecting to stream...</p>
+                  <p className="text-white text-sm">{connectionStatus}</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center">
@@ -556,7 +587,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
                   <h2 className="text-white font-bold text-base md:text-lg mt-4 px-4 text-center">{stream.title}</h2>
                   <p className="text-gray-300 text-sm mt-1">{stream.profiles?.full_name || "Streamer"}</p>
                   <p className="text-gray-400 text-xs mt-2 px-6 text-center line-clamp-2">{stream.description}</p>
-                  <p className="text-yellow-400 text-xs mt-3">Waiting for streamer video...</p>
+                  <p className="text-yellow-400 text-xs mt-3">{connectionStatus}</p>
                 </div>
               )}
             </div>

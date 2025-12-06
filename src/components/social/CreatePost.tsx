@@ -71,12 +71,13 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
       let mediaUrl = "";
       let fileToUpload = selectedFile;
 
-      // Compress images
+      // Compress images more aggressively for feed
       if (mediaType === "image") {
         const options = {
-          maxSizeMB: 2,
-          maxWidthOrHeight: 1920,
+          maxSizeMB: 1, // Reduced from 2MB to 1MB for faster loading
+          maxWidthOrHeight: 1280, // Reduced from 1920 to 1280 for feed optimization
           useWebWorker: true,
+          initialQuality: 0.8, // Slightly reduce quality for smaller files
         };
         fileToUpload = await imageCompression(selectedFile, options);
       }

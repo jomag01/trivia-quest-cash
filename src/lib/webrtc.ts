@@ -5,6 +5,8 @@ const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun3.l.google.com:19302' },
+  { urls: 'stun:stun4.l.google.com:19302' },
 ];
 
 export interface SignalingMessage {
@@ -14,6 +16,8 @@ export interface SignalingMessage {
   targetId?: string;
   payload: any;
 }
+
+export type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'failed';
 
 export class BroadcasterConnection {
   private peerConnections: Map<string, RTCPeerConnection> = new Map();
@@ -115,22 +119,38 @@ export class ViewerConnection {
   private broadcasterId: string;
   private channel: any;
   private onStream: (stream: MediaStream) => void;
+  private onStateChange?: (state: ConnectionState) => void;
+  private iceCandidateQueue: RTCIceCandidateInit[] = [];
+  private hasRemoteDescription = false;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 3;
 
-  constructor(streamId: string, viewerId: string, broadcasterId: string, onStream: (stream: MediaStream) => void) {
+  constructor(
+    streamId: string, 
+    viewerId: string, 
+    broadcasterId: string, 
+    onStream: (stream: MediaStream) => void,
+    onStateChange?: (state: ConnectionState) => void
+  ) {
     this.streamId = streamId;
     this.viewerId = viewerId;
     this.broadcasterId = broadcasterId;
     this.onStream = onStream;
+    this.onStateChange = onStateChange;
   }
 
   async connect() {
+    this.onStateChange?.('connecting');
     this.peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    this.iceCandidateQueue = [];
+    this.hasRemoteDescription = false;
 
     // Handle incoming stream
     this.peerConnection.ontrack = (event) => {
       console.log('Received track:', event.track.kind);
       if (event.streams && event.streams[0]) {
         this.onStream(event.streams[0]);
+        this.onStateChange?.('connected');
       }
     };
 
@@ -144,14 +164,13 @@ export class ViewerConnection {
         }
       })
       .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
-        if (payload.targetId === this.viewerId) {
-          if (this.peerConnection && payload.candidate) {
-            await this.peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
-          }
+        if (payload.targetId === this.viewerId && payload.candidate) {
+          await this.addIceCandidate(payload.candidate);
         }
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
+          console.log('Viewer subscribed to channel, sending join request');
           // Notify broadcaster that viewer joined
           this.channel.send({
             type: 'broadcast',
@@ -177,26 +196,91 @@ export class ViewerConnection {
     };
 
     this.peerConnection.onconnectionstatechange = () => {
-      console.log('Connection state:', this.peerConnection?.connectionState);
+      const state = this.peerConnection?.connectionState;
+      console.log('Connection state:', state);
+      
+      if (state === 'connected') {
+        this.onStateChange?.('connected');
+        this.reconnectAttempts = 0;
+      } else if (state === 'disconnected' || state === 'failed') {
+        this.onStateChange?.(state as ConnectionState);
+        this.attemptReconnect();
+      }
     };
+
+    this.peerConnection.oniceconnectionstatechange = () => {
+      console.log('ICE connection state:', this.peerConnection?.iceConnectionState);
+    };
+  }
+
+  private async addIceCandidate(candidate: RTCIceCandidateInit) {
+    if (this.hasRemoteDescription && this.peerConnection) {
+      try {
+        await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (error) {
+        console.error('Error adding ICE candidate:', error);
+      }
+    } else {
+      // Queue candidates until remote description is set
+      this.iceCandidateQueue.push(candidate);
+    }
+  }
+
+  private async processIceCandidateQueue() {
+    if (!this.peerConnection) return;
+    
+    for (const candidate of this.iceCandidateQueue) {
+      try {
+        await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (error) {
+        console.error('Error processing queued ICE candidate:', error);
+      }
+    }
+    this.iceCandidateQueue = [];
+  }
+
+  private attemptReconnect() {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.log('Max reconnection attempts reached');
+      this.onStateChange?.('failed');
+      return;
+    }
+
+    this.reconnectAttempts++;
+    console.log(`Attempting reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    
+    setTimeout(() => {
+      this.disconnect();
+      this.connect();
+    }, 2000 * this.reconnectAttempts);
   }
 
   private async handleOffer(sdp: RTCSessionDescriptionInit) {
     if (!this.peerConnection) return;
 
-    await this.peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
-    const answer = await this.peerConnection.createAnswer();
-    await this.peerConnection.setLocalDescription(answer);
+    try {
+      await this.peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+      this.hasRemoteDescription = true;
+      
+      // Process any queued ICE candidates
+      await this.processIceCandidateQueue();
+      
+      const answer = await this.peerConnection.createAnswer();
+      await this.peerConnection.setLocalDescription(answer);
 
-    this.channel.send({
-      type: 'broadcast',
-      event: 'answer',
-      payload: {
-        senderId: this.viewerId,
-        targetId: this.broadcasterId,
-        sdp: this.peerConnection.localDescription
-      }
-    });
+      this.channel.send({
+        type: 'broadcast',
+        event: 'answer',
+        payload: {
+          senderId: this.viewerId,
+          targetId: this.broadcasterId,
+          sdp: this.peerConnection.localDescription
+        }
+      });
+    } catch (error) {
+      console.error('Error handling offer:', error);
+      this.onStateChange?.('failed');
+    }
   }
 
   disconnect() {
@@ -207,5 +291,7 @@ export class ViewerConnection {
     if (this.channel) {
       supabase.removeChannel(this.channel);
     }
+    this.iceCandidateQueue = [];
+    this.hasRemoteDescription = false;
   }
 }
