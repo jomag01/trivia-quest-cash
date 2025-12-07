@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,9 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Settings, Eye, ShoppingBag, Video, VideoOff, Mic, MicOff, Loader2 } from "lucide-react";
-import { BroadcasterConnection } from "@/lib/webrtc";
-
+import { Settings, Eye, ShoppingBag, Video, VideoOff, Mic, MicOff, Loader2, Wifi, WifiOff, Signal } from "lucide-react";
+import { 
+  SFUBroadcaster, 
+  StreamStats,
+  detectOptimalQuality,
+  getMediaConstraints,
+  QUALITY_PRESETS 
+} from "@/lib/streaming";
+import type { ConnectionState } from "@/lib/streaming/SFUConnection";
 interface BroadcasterViewProps {
   streamId: string;
   onEndStream: () => void;
@@ -54,9 +60,12 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   const [isAudioOn, setIsAudioOn] = useState(true);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
+  const [connectionState, setConnectionState] = useState<ConnectionState>('new');
+  const [streamStats, setStreamStats] = useState<StreamStats | null>(null);
+  const [currentQuality, setCurrentQuality] = useState('high');
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const broadcasterConnectionRef = useRef<BroadcasterConnection | null>(null);
+  const broadcasterConnectionRef = useRef<SFUBroadcaster | null>(null);
 
   useEffect(() => {
     fetchStreamData();
@@ -154,19 +163,45 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
     if (!user) return;
     
     setIsConnecting(true);
+    setConnectionState('connecting');
+    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: true
-      });
+      // Detect optimal quality based on network conditions
+      const optimalQuality = detectOptimalQuality();
+      const qualityKey = Object.entries(QUALITY_PRESETS).find(
+        ([, preset]) => preset.bitrate === optimalQuality.bitrate
+      )?.[0] || 'high';
+      setCurrentQuality(qualityKey);
+      
+      // Get optimized media constraints with hardware encoding
+      const constraints = getMediaConstraints(optimalQuality);
+      console.log('[Broadcaster] Starting with quality:', qualityKey, constraints);
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setMediaStream(stream);
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        // Enable low-latency playback for local preview
+        videoRef.current.playsInline = true;
       }
       
-      // Initialize WebRTC broadcaster connection
-      broadcasterConnectionRef.current = new BroadcasterConnection(streamId, user.id);
+      // Initialize SFU broadcaster connection with callbacks
+      broadcasterConnectionRef.current = new SFUBroadcaster(streamId, user.id, {
+        onStatsUpdate: (stats) => {
+          setStreamStats(stats);
+        },
+        onStateChange: (state) => {
+          setConnectionState(state);
+          if (state === 'connected') {
+            setIsConnecting(false);
+          }
+        },
+        onViewerCountChange: (count) => {
+          setViewerCount(count);
+        }
+      });
+      
       await broadcasterConnectionRef.current.start(stream);
       
       // Update stream status to live
@@ -180,11 +215,12 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         .eq('id', streamId);
         
       setIsConnecting(false);
-      toast.success("You're now live! Viewers can see your stream.");
+      toast.success("You're now live! Enterprise streaming enabled.");
     } catch (error) {
       console.error('Failed to access camera:', error);
       toast.error("Failed to access camera. Please check permissions.");
       setIsConnecting(false);
+      setConnectionState('failed');
     }
   };
 
@@ -337,11 +373,37 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
             <span className="text-white flex items-center gap-1 text-sm">
               <Eye className="w-4 h-4" /> {viewerCount}
             </span>
+            {/* Quality indicator */}
+            <span className="text-white flex items-center gap-1 text-xs bg-black/50 px-2 py-1 rounded">
+              <Signal className="w-3 h-3" /> {currentQuality.toUpperCase()}
+            </span>
+            {/* Connection status */}
+            <span className="flex items-center gap-1">
+              {connectionState === 'connected' ? (
+                <Wifi className="w-4 h-4 text-green-400" />
+              ) : connectionState === 'connecting' ? (
+                <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
+              ) : (
+                <WifiOff className="w-4 h-4 text-red-400" />
+              )}
+            </span>
           </div>
           <Button variant="destructive" size="sm" onClick={handleEndStream}>
             End
           </Button>
         </div>
+        
+        {/* Stream stats overlay */}
+        {streamStats && (
+          <div className="absolute top-16 right-4 bg-black/60 text-white text-xs p-2 rounded z-10 space-y-1">
+            <div>Bitrate: {Math.round(streamStats.bitrate)} kbps</div>
+            <div>FPS: {streamStats.frameRate}</div>
+            <div>RTT: {Math.round(streamStats.rtt)} ms</div>
+            {streamStats.qualityLimitationReason !== 'none' && (
+              <div className="text-yellow-400">Limited: {streamStats.qualityLimitationReason}</div>
+            )}
+          </div>
+        )}
 
         <Button
           className="absolute bottom-20 left-4 bg-orange-500 hover:bg-orange-600 z-10 text-xs px-3"
