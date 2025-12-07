@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,12 @@ import { useNavigate } from "react-router-dom";
 import { 
   Heart, MessageCircle, Gift, ShoppingBag, 
   X, Eye, Send, UserPlus, UserMinus, Sparkles,
-  Diamond, Star, Flame, Minimize2, ArrowDown, ThumbsUp, ThumbsDown, Reply, Radio, Loader2
+  Diamond, Star, Flame, Minimize2, ArrowDown, ThumbsUp, ThumbsDown, Reply, Radio, Loader2,
+  Wifi, WifiOff, Signal, Settings2
 } from "lucide-react";
 import { LiveStreamShareButton } from "./LiveStreamShareButton";
-import { ViewerConnection } from "@/lib/webrtc";
+import { SFUViewer, QUALITY_PRESETS, detectOptimalQuality } from "@/lib/streaming";
+import type { ConnectionState } from "@/lib/streaming/SFUConnection";
 
 interface LiveStream {
   id: string;
@@ -90,10 +92,12 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const [hasVideo, setHasVideo] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<string>('Connecting...');
+  const [connectionState, setConnectionState] = useState<ConnectionState>('new');
+  const [currentQuality, setCurrentQuality] = useState('auto');
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const viewerConnectionRef = useRef<ViewerConnection | null>(null);
+  const viewerConnectionRef = useRef<SFUViewer | null>(null);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -223,66 +227,91 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const connectToStream = async () => {
     if (!user) {
       setIsConnecting(false);
-      setConnectionStatus('Login to view stream');
+      setConnectionState('failed');
       return;
     }
 
     setIsConnecting(true);
-    setConnectionStatus('Connecting to stream...');
+    setConnectionState('connecting');
     
     // Clear any existing timeout
     if (connectionTimeoutRef.current) {
       clearTimeout(connectionTimeoutRef.current);
     }
     
+    // Detect optimal quality
+    const optimalQuality = detectOptimalQuality();
+    const qualityKey = Object.entries(QUALITY_PRESETS).find(
+      ([, preset]) => preset.bitrate === optimalQuality.bitrate
+    )?.[0] || 'auto';
+    setCurrentQuality(qualityKey);
+    
     try {
-      viewerConnectionRef.current = new ViewerConnection(
+      viewerConnectionRef.current = new SFUViewer(
         stream.id,
         user.id,
         stream.user_id,
         (remoteStream) => {
-          console.log('Received remote stream');
+          console.log('[SFU Viewer] Received remote stream');
           if (videoRef.current) {
             videoRef.current.srcObject = remoteStream;
+            // Configure for low-latency playback
+            videoRef.current.playsInline = true;
+            videoRef.current.muted = false;
             setHasVideo(true);
           }
           setIsConnecting(false);
-          setConnectionStatus('Connected');
+          setConnectionState('connected');
         },
-        (state) => {
-          console.log('Connection state changed:', state);
-          switch (state) {
-            case 'connecting':
-              setConnectionStatus('Connecting...');
-              break;
-            case 'connected':
-              setConnectionStatus('Connected');
+        {
+          onStateChange: (state) => {
+            console.log('[SFU Viewer] State changed:', state);
+            setConnectionState(state);
+            if (state === 'connected') {
               setIsConnecting(false);
-              break;
-            case 'disconnected':
-              setConnectionStatus('Reconnecting...');
-              break;
-            case 'failed':
-              setConnectionStatus('Connection failed');
+            } else if (state === 'failed') {
               setIsConnecting(false);
-              break;
+            }
+          },
+          onQualityChange: (quality) => {
+            setCurrentQuality(quality);
+            console.log('[SFU Viewer] Quality changed to:', quality);
           }
         }
       );
       
       await viewerConnectionRef.current.connect();
       
-      // Set timeout for connection - use ref to get current state
+      // Set timeout for connection
       connectionTimeoutRef.current = setTimeout(() => {
         setIsConnecting(false);
         if (!hasVideo) {
-          setConnectionStatus('Waiting for streamer video...');
+          console.log('[SFU Viewer] Connection timeout, waiting for streamer...');
         }
-      }, 8000);
+      }, 10000);
     } catch (error) {
-      console.error('Failed to connect to stream:', error);
+      console.error('[SFU Viewer] Failed to connect:', error);
       setIsConnecting(false);
-      setConnectionStatus('Failed to connect');
+      setConnectionState('failed');
+    }
+  };
+
+  const handleQualityChange = (quality: string) => {
+    setCurrentQuality(quality);
+    viewerConnectionRef.current?.setQuality(quality);
+    setShowQualityMenu(false);
+    toast.success(`Quality set to ${quality.toUpperCase()}`);
+  };
+
+  const getConnectionStatusText = (): string => {
+    switch (connectionState) {
+      case 'new': return 'Initializing...';
+      case 'connecting': return 'Connecting...';
+      case 'connected': return 'Connected';
+      case 'reconnecting': return 'Reconnecting...';
+      case 'disconnected': return 'Disconnected';
+      case 'failed': return 'Connection failed';
+      default: return 'Unknown';
     }
   };
 
@@ -569,7 +598,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
               {isConnecting ? (
                 <div className="flex flex-col items-center">
                   <Loader2 className="w-12 h-12 animate-spin text-white mb-4" />
-                  <p className="text-white text-sm">{connectionStatus}</p>
+                  <p className="text-white text-sm">{getConnectionStatusText()}</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center">
@@ -587,7 +616,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
                   <h2 className="text-white font-bold text-base md:text-lg mt-4 px-4 text-center">{stream.title}</h2>
                   <p className="text-gray-300 text-sm mt-1">{stream.profiles?.full_name || "Streamer"}</p>
                   <p className="text-gray-400 text-xs mt-2 px-6 text-center line-clamp-2">{stream.description}</p>
-                  <p className="text-yellow-400 text-xs mt-3">{connectionStatus}</p>
+                  <p className="text-yellow-400 text-xs mt-3">{getConnectionStatusText()}</p>
                 </div>
               )}
             </div>
