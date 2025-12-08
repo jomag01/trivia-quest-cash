@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, MessageCircle, Trash2, Eye, Share2, Smile, Laugh, Frown, ThumbsUp, UserPlus, UserCheck, Play, Pause, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Heart, MessageCircle, Trash2, Eye, Share2, Smile, Laugh, Frown, ThumbsUp, UserPlus, UserCheck, Play, Pause, X, Pencil, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -56,6 +57,9 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
   const [showFullscreenVideo, setShowFullscreenVideo] = useState(false);
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [showInteractions, setShowInteractions] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content || "");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -160,6 +164,38 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
       toast.success("Post deleted");
       onDelete();
     }
+  };
+
+  const handleEdit = () => {
+    setEditContent(post.content || "");
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!user || user.id !== post.user_id) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("posts")
+        .update({ content: editContent, updated_at: new Date().toISOString() })
+        .eq("id", post.id);
+
+      if (error) throw error;
+      
+      post.content = editContent;
+      setIsEditing(false);
+      toast.success("Post updated");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update post");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditContent(post.content || "");
+    setIsEditing(false);
   };
 
   const toggleComments = () => {
@@ -317,16 +353,41 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
               </Button>
             )}
             {user?.id === post.user_id && (
-              <Button variant="ghost" size="icon" onClick={handleDelete}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" onClick={handleEdit}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleDelete}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             )}
           </div>
         </div>
       </CardHeader>
       
       <CardContent className="space-y-3">
-        {post.content && <p>{post.content}</p>}
+        {isEditing ? (
+          <div className="space-y-2">
+            <Textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="min-h-[80px]"
+              placeholder="What's on your mind?"
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSaveEdit} disabled={isSaving}>
+                <Check className="w-4 h-4 mr-1" />
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleCancelEdit} disabled={isSaving}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          post.content && <p>{post.content}</p>
+        )}
         
         {post.media_url && post.media_type === "image" && (
           <div className="relative cursor-pointer max-h-[400px] overflow-hidden" onClick={() => setShowFullscreenImage(true)}>

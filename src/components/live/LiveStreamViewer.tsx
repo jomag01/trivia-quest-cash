@@ -252,16 +252,39 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
         user.id,
         stream.user_id,
         (remoteStream) => {
-          console.log('[SFU Viewer] Received remote stream');
+          console.log('[SFU Viewer] Received remote stream with tracks:', remoteStream.getTracks().length);
           if (videoRef.current) {
             videoRef.current.srcObject = remoteStream;
             // Configure for low-latency playback
             videoRef.current.playsInline = true;
             videoRef.current.muted = false;
-            setHasVideo(true);
+            
+            // Attempt to play the video
+            videoRef.current.play()
+              .then(() => {
+                console.log('[SFU Viewer] Video playback started');
+                setHasVideo(true);
+                setIsConnecting(false);
+                setConnectionState('connected');
+              })
+              .catch(err => {
+                console.warn('[SFU Viewer] Autoplay failed, trying muted:', err);
+                // Try muted autoplay as fallback
+                if (videoRef.current) {
+                  videoRef.current.muted = true;
+                  videoRef.current.play()
+                    .then(() => {
+                      setHasVideo(true);
+                      setIsConnecting(false);
+                      setConnectionState('connected');
+                      toast.info("Tap to unmute video");
+                    })
+                    .catch(() => {
+                      console.error('[SFU Viewer] Even muted playback failed');
+                    });
+                }
+              });
           }
-          setIsConnecting(false);
-          setConnectionState('connected');
         },
         {
           onStateChange: (state) => {
@@ -287,12 +310,22 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
         setIsConnecting(false);
         if (!hasVideo) {
           console.log('[SFU Viewer] Connection timeout, waiting for streamer...');
+          toast.info("Waiting for broadcaster to start streaming...");
         }
-      }, 10000);
+      }, 15000);
     } catch (error) {
       console.error('[SFU Viewer] Failed to connect:', error);
       setIsConnecting(false);
       setConnectionState('failed');
+      toast.error("Failed to connect to stream");
+    }
+  };
+
+  const handleVideoClick = () => {
+    // Unmute on tap if muted
+    if (videoRef.current && videoRef.current.muted) {
+      videoRef.current.muted = false;
+      toast.success("Audio enabled");
     }
   };
 
@@ -588,7 +621,8 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
           ref={videoRef}
           autoPlay
           playsInline
-          className={`absolute inset-0 w-full h-full object-cover ${hasVideo ? 'block' : 'hidden'}`}
+          onClick={handleVideoClick}
+          className={`absolute inset-0 w-full h-full object-cover cursor-pointer ${hasVideo ? 'block' : 'hidden'}`}
         />
         
         {/* Fallback/Loading when no video */}

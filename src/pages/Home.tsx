@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
 import { Trophy, Users, Gamepad2, Zap, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { AdSlider } from "@/components/AdSlider";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -14,6 +13,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+// Lazy load AdSlider for faster initial render
+const AdSlider = lazy(() => import("@/components/AdSlider").then(m => ({ default: m.AdSlider })));
 
 interface GameCategory {
   id: string;
@@ -28,12 +30,17 @@ interface GameCategory {
   game_type?: string;
 }
 
+// Simple in-memory cache for categories
+const categoryCache: { data: GameCategory[] | null; timestamp: number } = { data: null, timestamp: 0 };
+const CACHE_TTL = 60000; // 1 minute cache
+
 const Home = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [categories, setCategories] = useState<GameCategory[]>([]);
+  const [categories, setCategories] = useState<GameCategory[]>(categoryCache.data || []);
   const [completedCategories, setCompletedCategories] = useState<string[]>([]);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(!categoryCache.data);
 
   useEffect(() => {
     fetchCategories();
@@ -43,15 +50,25 @@ const Home = () => {
   }, [user]);
 
   const fetchCategories = async () => {
+    // Use cached data if still valid
+    if (categoryCache.data && Date.now() - categoryCache.timestamp < CACHE_TTL) {
+      setCategories(categoryCache.data);
+      setIsLoading(false);
+      return;
+    }
+
     const { data, error } = await (supabase as any)
       .from("game_categories")
-      .select("*")
+      .select("id, name, slug, icon, description, color_from, color_to, is_active, min_level_required, game_type")
       .eq("is_active", true)
       .order("created_at", { ascending: true });
 
     if (!error && data) {
+      categoryCache.data = data;
+      categoryCache.timestamp = Date.now();
       setCategories(data);
     }
+    setIsLoading(false);
   };
 
   const fetchCompletedCategories = async () => {
@@ -76,9 +93,11 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Ad Slider */}
+      {/* Ad Slider - Lazy loaded */}
       <div className="max-w-6xl mx-auto px-4 pt-4">
-        <AdSlider />
+        <Suspense fallback={<div className="h-32 bg-muted/20 rounded-lg animate-pulse" />}>
+          <AdSlider />
+        </Suspense>
       </div>
 
       {/* Hero Section */}
@@ -163,49 +182,61 @@ const Home = () => {
             Game Categories
           </h2>
           
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.map((category) => {
-              const isCompleted = completedCategories.includes(category.id);
-              
-              const linkPath = category.game_type === 'treasure-hunt' ? '/treasure-hunt' : `/game/${category.slug}`;
-              
-              return (
-                <Link to={linkPath} key={category.id} onClick={(e) => handleCategoryClick(e, category)}>
-                  <Card 
-                    className={`p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth cursor-pointer group relative ${
-                      isCompleted ? 'opacity-80' : ''
-                    }`}
-                  >
-                    {isCompleted && (
-                      <div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                        <Trophy className="w-3 h-3" />
-                        Completed
-                      </div>
-                    )}
-                    <div className="text-center">
-                      <div className="text-5xl mb-4 group-hover:scale-110 transition-smooth flex items-center justify-center">
-                        {category.icon.startsWith('http') || category.icon.startsWith('data:') ? (
-                          <img src={category.icon} alt={category.name} className="w-16 h-16 object-cover rounded-lg" />
-                        ) : (
-                          category.icon
+          {isLoading ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-48 bg-muted/20 rounded-lg animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categories.map((category) => {
+                const isCompleted = completedCategories.includes(category.id);
+                const linkPath = category.game_type === 'treasure-hunt' ? '/treasure-hunt' : `/game/${category.slug}`;
+                
+                return (
+                  <Link to={linkPath} key={category.id} onClick={(e) => handleCategoryClick(e, category)}>
+                    <Card 
+                      className={`p-6 gradient-accent border-primary/20 shadow-card hover:shadow-gold transition-smooth cursor-pointer group relative ${
+                        isCompleted ? 'opacity-80' : ''
+                      }`}
+                    >
+                      {isCompleted && (
+                        <div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                          <Trophy className="w-3 h-3" />
+                          Completed
+                        </div>
+                      )}
+                      <div className="text-center">
+                        <div className="text-5xl mb-4 group-hover:scale-110 transition-smooth flex items-center justify-center">
+                          {category.icon.startsWith('http') || category.icon.startsWith('data:') ? (
+                            <img 
+                              src={category.icon} 
+                              alt={category.name} 
+                              className="w-16 h-16 object-cover rounded-lg"
+                              loading="lazy"
+                            />
+                          ) : (
+                            category.icon
+                          )}
+                        </div>
+                        <h3 className="text-xl font-bold">{category.name}</h3>
+                        {category.description && (
+                          <p className="text-sm text-muted-foreground mt-2">{category.description}</p>
+                        )}
+                        {isCompleted && (
+                          <p className="text-xs text-green-500 mt-2 font-semibold">
+                            ✓ Play again to improve your score
+                          </p>
                         )}
                       </div>
-                      <h3 className="text-xl font-bold">{category.name}</h3>
-                      {category.description && (
-                        <p className="text-sm text-muted-foreground mt-2">{category.description}</p>
-                      )}
-                      {isCompleted && (
-                        <p className="text-xs text-green-500 mt-2 font-semibold">
-                          ✓ Play again to improve your score
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-          {categories.length === 0 && (
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          {!isLoading && categories.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
               No game categories available yet.
             </div>
