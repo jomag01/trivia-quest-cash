@@ -621,8 +621,10 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
           ref={videoRef}
           autoPlay
           playsInline
+          muted={false}
           onClick={handleVideoClick}
-          className={`absolute inset-0 w-full h-full object-cover cursor-pointer ${hasVideo ? 'block' : 'hidden'}`}
+          className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-300 ${hasVideo ? 'opacity-100' : 'opacity-0'}`}
+          style={{ backgroundColor: 'black' }}
         />
         
         {/* Fallback/Loading when no video */}
@@ -633,6 +635,20 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
                 <div className="flex flex-col items-center">
                   <Loader2 className="w-12 h-12 animate-spin text-white mb-4" />
                   <p className="text-white text-sm">{getConnectionStatusText()}</p>
+                  <p className="text-gray-400 text-xs mt-2">Optimizing connection...</p>
+                </div>
+              ) : connectionState === 'failed' ? (
+                <div className="flex flex-col items-center">
+                  <WifiOff className="w-12 h-12 text-red-400 mb-4" />
+                  <p className="text-white text-sm">Connection failed</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4"
+                    onClick={connectToStream}
+                  >
+                    Retry
+                  </Button>
                 </div>
               ) : (
                 <div className="flex flex-col items-center">

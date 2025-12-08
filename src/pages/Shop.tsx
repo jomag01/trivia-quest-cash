@@ -355,13 +355,13 @@ const Shop = () => {
           {/* Tabs for Shop/Seller */}
           <div className="py-2 flex justify-between items-center">
             <TabsList className="h-7 bg-white border border-gray-200 p-0.5">
-              <TabsTrigger value="shop" className="text-[10px] h-6 px-2 data-[state=active]:bg-gray-100">
-                <ShoppingCart className="w-2.5 h-2.5 mr-1 text-black" />
+              <TabsTrigger value="shop" className="text-[10px] h-6 px-2 data-[state=active]:bg-red-500 data-[state=active]:text-white">
+                <ShoppingCart className="w-2.5 h-2.5 mr-1" />
                 Shop
               </TabsTrigger>
             </TabsList>
             <TabsList className="h-7 bg-white border border-gray-200 p-0.5">
-              <TabsTrigger value="seller" className="text-[10px] h-6 px-2 data-[state=active]:bg-gray-100">
+              <TabsTrigger value="seller" className="text-[10px] h-6 px-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white text-orange-600">
                 <Store className="w-2.5 h-2.5 mr-1" />
                 Sell
               </TabsTrigger>
