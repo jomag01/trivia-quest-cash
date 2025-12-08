@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Settings, Eye, ShoppingBag, Video, VideoOff, Mic, MicOff, Loader2, Wifi, WifiOff, Signal } from "lucide-react";
+import { Settings, Eye, ShoppingBag, Video, VideoOff, Mic, MicOff, Loader2, Wifi, WifiOff, Signal, SwitchCamera } from "lucide-react";
 import { 
   SFUBroadcaster, 
   StreamStats,
@@ -63,6 +63,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   const [connectionState, setConnectionState] = useState<ConnectionState>('new');
   const [streamStats, setStreamStats] = useState<StreamStats | null>(null);
   const [currentQuality, setCurrentQuality] = useState('high');
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const broadcasterConnectionRef = useRef<SFUBroadcaster | null>(null);
@@ -159,8 +160,13 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments]);
 
-  const startCamera = async () => {
+  const startCamera = async (facing: 'user' | 'environment' = facingMode) => {
     if (!user) return;
+    
+    // Stop existing stream first
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.stop());
+    }
     
     setIsConnecting(true);
     setConnectionState('connecting');
@@ -173,9 +179,16 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       )?.[0] || 'high';
       setCurrentQuality(qualityKey);
       
-      // Get optimized media constraints with hardware encoding
-      const constraints = getMediaConstraints(optimalQuality);
-      console.log('[Broadcaster] Starting with quality:', qualityKey, constraints);
+      // Get optimized media constraints with hardware encoding and camera facing mode
+      const baseConstraints = getMediaConstraints(optimalQuality);
+      const constraints = {
+        ...baseConstraints,
+        video: {
+          ...(typeof baseConstraints.video === 'object' ? baseConstraints.video : {}),
+          facingMode: facing
+        }
+      };
+      console.log('[Broadcaster] Starting with quality:', qualityKey, 'camera:', facing);
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setMediaStream(stream);
@@ -249,6 +262,13 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         setIsAudioOn(audioTrack.enabled);
       }
     }
+  };
+
+  const switchCamera = async () => {
+    const newFacing = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(newFacing);
+    await startCamera(newFacing);
+    toast.success(newFacing === 'user' ? 'Front camera' : 'Back camera');
   };
 
   const fetchStreamData = async () => {
@@ -471,6 +491,14 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           onClick={toggleAudio}
         >
           {isAudioOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+        </Button>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          className="h-10 w-10"
+          onClick={switchCamera}
+        >
+          <SwitchCamera className="w-5 h-5" />
         </Button>
         <Button variant="outline" size="icon" className="h-10 w-10">
           <Settings className="w-5 h-5" />
