@@ -22,8 +22,6 @@ export const EditMenuItemDialog = ({ item, onClose }: EditMenuItemDialogProps) =
     price: item.price?.toString() || "",
     category: item.category || "",
     preparation_time: item.preparation_time || "15-20 min",
-    diamond_reward: item.diamond_reward?.toString() || "0",
-    referral_commission_diamonds: item.referral_commission_diamonds?.toString() || "0",
     is_featured: item.is_featured || false,
   });
 
@@ -37,9 +35,8 @@ export const EditMenuItemDialog = ({ item, onClose }: EditMenuItemDialogProps) =
           price: parseFloat(formData.price),
           category: formData.category,
           preparation_time: formData.preparation_time,
-          diamond_reward: parseInt(formData.diamond_reward) || 0,
-          referral_commission_diamonds: parseInt(formData.referral_commission_diamonds) || 0,
           is_featured: formData.is_featured,
+          // diamond_reward and referral_commission_diamonds are set by admin only
         })
         .eq("id", item.id);
 
@@ -102,25 +99,6 @@ export const EditMenuItemDialog = ({ item, onClose }: EditMenuItemDialogProps) =
             value={formData.preparation_time}
             onChange={(e) => setFormData({ ...formData, preparation_time: e.target.value })}
           />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Diamond Reward</Label>
-            <Input
-              type="number"
-              value={formData.diamond_reward}
-              onChange={(e) => setFormData({ ...formData, diamond_reward: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>Referral Commission 💎</Label>
-            <Input
-              type="number"
-              value={formData.referral_commission_diamonds}
-              onChange={(e) => setFormData({ ...formData, referral_commission_diamonds: e.target.value })}
-            />
-          </div>
         </div>
 
         <div className="flex items-center justify-between">

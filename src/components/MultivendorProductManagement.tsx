@@ -23,6 +23,7 @@ export default function MultivendorProductManagement() {
   const [markup, setMarkup] = useState("");
   const [commission, setCommission] = useState("");
   const [diamondReward, setDiamondReward] = useState("");
+  const [referralCommission, setReferralCommission] = useState("");
   const [diamondBasePrice, setDiamondBasePrice] = useState(10);
   const [processing, setProcessing] = useState(false);
 
@@ -71,6 +72,7 @@ export default function MultivendorProductManagement() {
     setMarkup(product.admin_markup_percentage?.toString() || "0");
     setCommission(product.commission_percentage?.toString() || "0");
     setDiamondReward(product.diamond_reward?.toString() || "0");
+    setReferralCommission(product.referral_commission_diamonds?.toString() || "0");
   };
 
   const handleApproveProduct = async (product: any, approved: boolean) => {
@@ -112,6 +114,7 @@ export default function MultivendorProductManagement() {
           admin_markup_percentage: markupValue,
           commission_percentage: parseInt(commission),
           diamond_reward: parseInt(diamondReward),
+          referral_commission_diamonds: parseInt(referralCommission),
         })
         .eq("id", selectedProduct.id);
 
@@ -267,7 +270,7 @@ export default function MultivendorProductManagement() {
             </div>
 
             <div>
-              <Label htmlFor="diamondReward">Diamond Reward (up to 100% of price)</Label>
+              <Label htmlFor="diamondReward">Diamond Reward for Buyer 💎</Label>
               <div className="flex gap-2">
                 <Input
                   id="diamondReward"
@@ -291,9 +294,23 @@ export default function MultivendorProductManagement() {
               </div>
               {selectedProduct && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Max: {Math.floor(selectedProduct.wholesale_price / diamondBasePrice)} diamonds (₱{selectedProduct.wholesale_price} ÷ ₱{diamondBasePrice})
+                  Diamonds credited to buyer's account upon delivery. Max: {Math.floor(selectedProduct.wholesale_price / diamondBasePrice)} diamonds
                 </p>
               )}
+            </div>
+
+            <div>
+              <Label htmlFor="referralCommission">Referral Commission 💎 (Affiliate Network)</Label>
+              <Input
+                id="referralCommission"
+                type="number"
+                min="0"
+                value={referralCommission}
+                onChange={(e) => setReferralCommission(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Diamonds × price per diamond (₱{diamondBasePrice}) distributed to affiliates via unilevel, stair-step & leadership bonuses
+              </p>
             </div>
 
             {selectedProduct && markup && (
