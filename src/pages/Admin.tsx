@@ -36,6 +36,7 @@ import { ImageMigrationTool } from "@/components/ImageMigrationTool";
 import StairStepManagement from "@/components/StairStepManagement";
 import { TreasureHuntManagement } from "@/components/TreasureHuntManagement";
 import TreasureAdminSettings from "@/components/TreasureAdminSettings";
+import UnilevelCommissionSettings from "@/components/UnilevelCommissionSettings";
 import { UplineTransferManagement } from "@/components/UplineTransferManagement";
 import { ShippingZoneManagement } from "@/components/ShippingZoneManagement";
 import { BulkShippingManagement } from "@/components/BulkShippingManagement";
@@ -106,6 +107,7 @@ const Admin = () => {
     { id: "categories", label: "Game Categories", icon: Gamepad2 },
     { id: "treasure-hunt", label: "Treasure Hunt", icon: MapPin },
     { id: "diamond-settings", label: "Diamond Settings", icon: Gem },
+    { id: "unilevel-settings", label: "Unilevel Network", icon: Users },
     { id: "prizes", label: "Prize Config", icon: Trophy },
     { id: "product-categories", label: "Product Categories", icon: FolderOpen },
     { id: "products", label: "Products", icon: ShoppingBag },
@@ -542,6 +544,7 @@ const Admin = () => {
           {activeTab === "rider-management" && <RiderManagement />}
           {activeTab === "cookie-policy" && <CookiePolicyManagement />}
           {activeTab === "pos-system" && <POSSystem />}
+          {activeTab === "unilevel-settings" && <UnilevelCommissionSettings />}
         </main>
       </div>
 
