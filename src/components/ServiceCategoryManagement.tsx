@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,13 +8,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, Settings2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import ServiceCategoryFieldsDialog from "@/components/booking/ServiceCategoryFieldsDialog";
 
 interface ServiceCategory {
   id: string;
@@ -23,18 +31,31 @@ interface ServiceCategory {
   icon: string | null;
   display_order: number | null;
   is_active: boolean | null;
+  category_type: string | null;
 }
+
+const CATEGORY_TYPES = [
+  { value: 'standard', label: 'Standard Service', description: 'Basic services like repairs, cleaning, etc.' },
+  { value: 'travel', label: 'Travel & Tours', description: 'Travel packages with destinations, activities, accommodations' },
+  { value: 'beauty', label: 'Beauty & Wellness', description: 'Spa, salon, massage services' },
+  { value: 'education', label: 'Education & Training', description: 'Tutoring, courses, workshops' },
+  { value: 'events', label: 'Events & Entertainment', description: 'Event planning, photography, music' },
+  { value: 'professional', label: 'Professional Services', description: 'Legal, accounting, consulting' },
+];
 
 const ServiceCategoryManagement = () => {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
+  const [showFieldsDialog, setShowFieldsDialog] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | null>(null);
   const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     icon: "🔧",
-    is_active: true
+    is_active: true,
+    category_type: "standard"
   });
 
   useEffect(() => {
@@ -71,7 +92,8 @@ const ServiceCategoryManagement = () => {
           name: formData.name,
           description: formData.description || null,
           icon: formData.icon || null,
-          is_active: formData.is_active
+          is_active: formData.is_active,
+          category_type: formData.category_type
         })
         .eq("id", editingCategory.id);
 
@@ -95,7 +117,8 @@ const ServiceCategoryManagement = () => {
           description: formData.description || null,
           icon: formData.icon || null,
           is_active: formData.is_active,
-          display_order: maxOrder
+          display_order: maxOrder,
+          category_type: formData.category_type
         });
 
       if (error) {
@@ -115,9 +138,15 @@ const ServiceCategoryManagement = () => {
       name: category.name,
       description: category.description || "",
       icon: category.icon || "🔧",
-      is_active: category.is_active ?? true
+      is_active: category.is_active ?? true,
+      category_type: category.category_type || "standard"
     });
     setShowDialog(true);
+  };
+
+  const handleCustomizeFields = (category: ServiceCategory) => {
+    setSelectedCategory(category);
+    setShowFieldsDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -155,8 +184,14 @@ const ServiceCategoryManagement = () => {
       name: "",
       description: "",
       icon: "🔧",
-      is_active: true
+      is_active: true,
+      category_type: "standard"
     });
+  };
+
+  const getCategoryTypeLabel = (type: string | null) => {
+    const found = CATEGORY_TYPES.find(t => t.value === type);
+    return found?.label || 'Standard';
   };
 
   const commonIcons = ["🔧", "✂️", "🏠", "🚗", "✈️", "🏝️", "🎨", "📸", "💅", "🧹", "👨‍🏫", "🏋️", "🍳", "🎵", "💻", "🔌", "🛠️", "🌿"];
@@ -168,7 +203,12 @@ const ServiceCategoryManagement = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Service Categories</h2>
+        <div>
+          <h2 className="text-xl font-semibold">Service Categories</h2>
+          <p className="text-sm text-muted-foreground">
+            Manage booking categories and customize their fields
+          </p>
+        </div>
         <Button onClick={() => { resetForm(); setShowDialog(true); }}>
           <Plus className="h-4 w-4 mr-2" />
           Add Category
@@ -184,7 +224,12 @@ const ServiceCategoryManagement = () => {
                   <GripVertical className="h-4 w-4 text-muted-foreground" />
                   <span className="text-2xl">{category.icon || "🔧"}</span>
                   <div>
-                    <h3 className="font-medium">{category.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium">{category.name}</h3>
+                      <Badge variant="outline" className="text-xs">
+                        {getCategoryTypeLabel(category.category_type)}
+                      </Badge>
+                    </div>
                     {category.description && (
                       <p className="text-sm text-muted-foreground line-clamp-1">
                         {category.description}
@@ -200,6 +245,15 @@ const ServiceCategoryManagement = () => {
                     checked={category.is_active ?? false}
                     onCheckedChange={() => toggleActive(category)}
                   />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCustomizeFields(category)}
+                    title="Customize Fields"
+                  >
+                    <Settings2 className="h-4 w-4 mr-1" />
+                    Fields
+                  </Button>
                   <Button 
                     variant="ghost" 
                     size="icon"
@@ -227,8 +281,9 @@ const ServiceCategoryManagement = () => {
         )}
       </div>
 
+      {/* Add/Edit Category Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editingCategory ? "Edit Category" : "Add New Category"}
@@ -240,9 +295,34 @@ const ServiceCategoryManagement = () => {
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Home Services"
+                placeholder="e.g., Travel & Tours"
                 required
               />
+            </div>
+
+            <div>
+              <Label>Category Type *</Label>
+              <Select
+                value={formData.category_type}
+                onValueChange={(value) => setFormData({ ...formData, category_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORY_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div>
+                        <div className="font-medium">{type.label}</div>
+                        <div className="text-xs text-muted-foreground">{type.description}</div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Different types have different default fields. You can customize fields after creating.
+              </p>
             </div>
 
             <div>
@@ -295,6 +375,16 @@ const ServiceCategoryManagement = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Customize Fields Dialog */}
+      {selectedCategory && (
+        <ServiceCategoryFieldsDialog
+          open={showFieldsDialog}
+          onOpenChange={setShowFieldsDialog}
+          categoryId={selectedCategory.id}
+          categoryName={selectedCategory.name}
+        />
+      )}
     </div>
   );
 };

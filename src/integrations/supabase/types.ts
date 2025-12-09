@@ -3161,6 +3161,7 @@ export type Database = {
       }
       service_categories: {
         Row: {
+          category_type: string | null
           created_at: string
           description: string | null
           display_order: number | null
@@ -3170,6 +3171,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          category_type?: string | null
           created_at?: string
           description?: string | null
           display_order?: number | null
@@ -3179,6 +3181,7 @@ export type Database = {
           name: string
         }
         Update: {
+          category_type?: string | null
           created_at?: string
           description?: string | null
           display_order?: number | null
@@ -3189,17 +3192,77 @@ export type Database = {
         }
         Relationships: []
       }
+      service_category_fields: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          display_order: number | null
+          field_label: string
+          field_name: string
+          field_options: Json | null
+          field_type: string
+          help_text: string | null
+          id: string
+          is_required: boolean | null
+          placeholder: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          display_order?: number | null
+          field_label: string
+          field_name: string
+          field_options?: Json | null
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          placeholder?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          display_order?: number | null
+          field_label?: string
+          field_name?: string
+          field_options?: Json | null
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          placeholder?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_category_fields_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
+          accommodations: Json | null
+          activities: Json | null
           approval_status: string | null
           category: string | null
           created_at: string
+          custom_data: Json | null
           description: string | null
+          destinations: Json | null
           diamond_reward: number | null
           duration_minutes: number | null
+          exclusions: Json | null
+          gallery_images: Json | null
           id: string
           image_url: string | null
+          inclusions: Json | null
           is_active: boolean | null
+          max_guests: number | null
+          meeting_point: string | null
+          min_guests: number | null
           price: number
           provider_id: string
           referral_commission_diamonds: number | null
@@ -3207,15 +3270,25 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accommodations?: Json | null
+          activities?: Json | null
           approval_status?: string | null
           category?: string | null
           created_at?: string
+          custom_data?: Json | null
           description?: string | null
+          destinations?: Json | null
           diamond_reward?: number | null
           duration_minutes?: number | null
+          exclusions?: Json | null
+          gallery_images?: Json | null
           id?: string
           image_url?: string | null
+          inclusions?: Json | null
           is_active?: boolean | null
+          max_guests?: number | null
+          meeting_point?: string | null
+          min_guests?: number | null
           price?: number
           provider_id: string
           referral_commission_diamonds?: number | null
@@ -3223,15 +3296,25 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accommodations?: Json | null
+          activities?: Json | null
           approval_status?: string | null
           category?: string | null
           created_at?: string
+          custom_data?: Json | null
           description?: string | null
+          destinations?: Json | null
           diamond_reward?: number | null
           duration_minutes?: number | null
+          exclusions?: Json | null
+          gallery_images?: Json | null
           id?: string
           image_url?: string | null
+          inclusions?: Json | null
           is_active?: boolean | null
+          max_guests?: number | null
+          meeting_point?: string | null
+          min_guests?: number | null
           price?: number
           provider_id?: string
           referral_commission_diamonds?: number | null
