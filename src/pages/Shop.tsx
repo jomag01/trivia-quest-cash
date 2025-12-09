@@ -362,15 +362,11 @@ const Shop = () => {
           {/* Account Overview - Compact */}
           <ShopAccountOverview />
 
-          {/* Seller Tab Only */}
-          <div className="py-2 flex justify-end">
-            <TabsList className="h-7 bg-white border border-gray-200 p-0.5">
-              <TabsTrigger value="seller" className="text-[10px] h-6 px-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white text-orange-600">
-                <Store className="w-2.5 h-2.5 mr-1" />
-                Sell
-              </TabsTrigger>
-            </TabsList>
-          </div>
+          {/* Hidden TabsList for programmatic tab switching */}
+          <TabsList className="hidden">
+            <TabsTrigger value="shop">Shop</TabsTrigger>
+            <TabsTrigger value="seller">Seller</TabsTrigger>
+          </TabsList>
 
           <TabsContent value="shop" className="space-y-3 mt-0">
             {/* Promotion Slider */}
