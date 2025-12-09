@@ -233,24 +233,97 @@ const Admin = () => {
   };
 
   const handleApprovePayoutRequest = async (id: string) => {
-    const { error } = await supabase
-      .from("payout_requests")
-      .update({
-        status: "approved",
-        admin_notes: adminNotes,
-        processed_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+    try {
+      // Get the payout request details
+      const payoutRequest = payoutRequests.find(p => p.id === id);
+      if (!payoutRequest) {
+        toast.error("Payout request not found");
+        return;
+      }
 
-    if (error) {
-      toast.error("Failed to approve payout");
-      return;
+      // Get diamond price to calculate diamonds to deduct
+      const { data: settingsData } = await supabase
+        .from("treasure_admin_settings")
+        .select("setting_value")
+        .eq("setting_key", "base_diamond_price")
+        .maybeSingle();
+
+      const diamondPrice = settingsData?.setting_value ? parseFloat(settingsData.setting_value) : 10;
+      const diamondsToDeduct = Math.ceil(payoutRequest.amount / diamondPrice);
+
+      // Get user's current diamond balance
+      const { data: walletData, error: walletFetchError } = await supabase
+        .from("treasure_wallet")
+        .select("diamonds")
+        .eq("user_id", payoutRequest.user_id)
+        .maybeSingle();
+
+      if (walletFetchError) {
+        toast.error("Failed to fetch user wallet");
+        return;
+      }
+
+      const currentDiamonds = walletData?.diamonds || 0;
+
+      if (currentDiamonds < diamondsToDeduct) {
+        toast.error(`Insufficient diamonds. User has ${currentDiamonds} but needs ${diamondsToDeduct}`);
+        return;
+      }
+
+      // Deduct diamonds from treasure_wallet
+      const { error: deductError } = await supabase
+        .from("treasure_wallet")
+        .update({ 
+          diamonds: currentDiamonds - diamondsToDeduct,
+          updated_at: new Date().toISOString()
+        })
+        .eq("user_id", payoutRequest.user_id);
+
+      if (deductError) {
+        toast.error("Failed to deduct diamonds from user wallet");
+        return;
+      }
+
+      // Update payout request status
+      const { error } = await supabase
+        .from("payout_requests")
+        .update({
+          status: "approved",
+          admin_notes: adminNotes,
+          processed_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (error) {
+        // Rollback diamond deduction if status update fails
+        await supabase
+          .from("treasure_wallet")
+          .update({ diamonds: currentDiamonds })
+          .eq("user_id", payoutRequest.user_id);
+        
+        toast.error("Failed to approve payout");
+        return;
+      }
+
+      // Send notification to user about approved payout
+      await supabase
+        .from("notifications")
+        .insert({
+          user_id: payoutRequest.user_id,
+          type: "payout",
+          title: "Payout Approved! 💰",
+          message: `Your payout request of ₱${payoutRequest.amount.toLocaleString()} has been approved. ${diamondsToDeduct} diamonds have been deducted from your balance. Processing may take 1-3 business days.`,
+          reference_id: id,
+        });
+
+      toast.success(`Payout approved! ${diamondsToDeduct} diamonds deducted from user.`);
+      setAdminNotes("");
+      setProcessingId(null);
+      fetchPayoutRequests();
+    } catch (error) {
+      console.error("Error approving payout:", error);
+      toast.error("An error occurred while approving payout");
     }
-
-    toast.success("Payout request approved!");
-    setAdminNotes("");
-    setProcessingId(null);
-    fetchPayoutRequests();
   };
 
   const handleRejectPayoutRequest = async (id: string) => {
