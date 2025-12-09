@@ -466,6 +466,59 @@ export type Database = {
           },
         ]
       }
+      delivery_personnel: {
+        Row: {
+          assigned_vehicle_id: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          hire_date: string | null
+          id: string
+          license_number: string | null
+          notes: string | null
+          phone: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          assigned_vehicle_id?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          hire_date?: string | null
+          id?: string
+          license_number?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          assigned_vehicle_id?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          hire_date?: string | null
+          id?: string
+          license_number?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_personnel_assigned_vehicle_id_fkey"
+            columns: ["assigned_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_riders: {
         Row: {
           admin_notes: string | null
@@ -526,6 +579,48 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           vehicle_type?: string | null
+        }
+        Relationships: []
+      }
+      delivery_vehicles: {
+        Row: {
+          capacity_kg: number | null
+          capacity_volume_cbm: number | null
+          created_at: string
+          current_driver_id: string | null
+          id: string
+          notes: string | null
+          plate_number: string | null
+          status: string
+          updated_at: string
+          vehicle_name: string
+          vehicle_type: string
+        }
+        Insert: {
+          capacity_kg?: number | null
+          capacity_volume_cbm?: number | null
+          created_at?: string
+          current_driver_id?: string | null
+          id?: string
+          notes?: string | null
+          plate_number?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_name: string
+          vehicle_type: string
+        }
+        Update: {
+          capacity_kg?: number | null
+          capacity_volume_cbm?: number | null
+          created_at?: string
+          current_driver_id?: string | null
+          id?: string
+          notes?: string | null
+          plate_number?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_name?: string
+          vehicle_type?: string
         }
         Relationships: []
       }
@@ -1238,6 +1333,72 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory: {
+        Row: {
+          barcode: string | null
+          created_at: string
+          food_item_id: string | null
+          id: string
+          last_restocked_at: string | null
+          location: string | null
+          max_stock_level: number | null
+          min_stock_level: number
+          notes: string | null
+          product_id: string | null
+          reorder_point: number | null
+          sku: string | null
+          stock_quantity: number
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          created_at?: string
+          food_item_id?: string | null
+          id?: string
+          last_restocked_at?: string | null
+          location?: string | null
+          max_stock_level?: number | null
+          min_stock_level?: number
+          notes?: string | null
+          product_id?: string | null
+          reorder_point?: number | null
+          sku?: string | null
+          stock_quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          created_at?: string
+          food_item_id?: string | null
+          id?: string
+          last_restocked_at?: string | null
+          location?: string | null
+          max_stock_level?: number | null
+          min_stock_level?: number
+          notes?: string | null
+          product_id?: string | null
+          reorder_point?: number | null
+          sku?: string | null
+          stock_quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_food_item_id_fkey"
+            columns: ["food_item_id"]
+            isOneToOne: false
+            referencedRelation: "food_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leadership_commissions: {
         Row: {
           amount: number
@@ -1871,6 +2032,50 @@ export type Database = {
             columns: ["live_stream_id"]
             isOneToOne: false
             referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packing_labels: {
+        Row: {
+          barcode: string
+          created_at: string
+          id: string
+          label_type: string
+          order_id: string
+          printed_at: string | null
+          printed_by: string | null
+          qr_code_data: string | null
+          status: string
+        }
+        Insert: {
+          barcode: string
+          created_at?: string
+          id?: string
+          label_type?: string
+          order_id: string
+          printed_at?: string | null
+          printed_by?: string | null
+          qr_code_data?: string | null
+          status?: string
+        }
+        Update: {
+          barcode?: string
+          created_at?: string
+          id?: string
+          label_type?: string
+          order_id?: string
+          printed_at?: string | null
+          printed_by?: string | null
+          qr_code_data?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packing_labels_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -3120,6 +3325,112 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          id: string
+          inventory_id: string
+          movement_type: string
+          new_quantity: number
+          notes: string | null
+          performed_by: string | null
+          previous_quantity: number
+          quantity: number
+          reference_id: string | null
+          reference_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inventory_id: string
+          movement_type: string
+          new_quantity: number
+          notes?: string | null
+          performed_by?: string | null
+          previous_quantity: number
+          quantity: number
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inventory_id?: string
+          movement_type?: string
+          new_quantity?: number
+          notes?: string | null
+          performed_by?: string | null
+          previous_quantity?: number
+          quantity?: number
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_replenishment: {
+        Row: {
+          approved_by: string | null
+          approved_quantity: number | null
+          created_at: string
+          expected_date: string | null
+          id: string
+          inventory_id: string
+          notes: string | null
+          received_date: string | null
+          requested_by: string | null
+          requested_quantity: number
+          status: string
+          supplier_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          approved_quantity?: number | null
+          created_at?: string
+          expected_date?: string | null
+          id?: string
+          inventory_id: string
+          notes?: string | null
+          received_date?: string | null
+          requested_by?: string | null
+          requested_quantity: number
+          status?: string
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          approved_quantity?: number | null
+          created_at?: string
+          expected_date?: string | null
+          id?: string
+          inventory_id?: string
+          notes?: string | null
+          received_date?: string | null
+          requested_by?: string | null
+          requested_quantity?: number
+          status?: string
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_replenishment_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       treasure_admin_settings: {
         Row: {

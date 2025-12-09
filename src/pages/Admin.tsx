@@ -52,7 +52,8 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode } from "lucide-react";
+import { POSSystem } from "@/components/admin/POSSystem";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
 import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
 import { cn } from "@/lib/utils";
@@ -126,6 +127,7 @@ const Admin = () => {
     { id: "food-item-rewards", label: "Food Item Rewards", icon: Gem },
     { id: "rider-management", label: "Rider Management", icon: Bike },
     { id: "cookie-policy", label: "Cookie Policy", icon: Cookie },
+    { id: "pos-system", label: "POS & Inventory", icon: Barcode },
   ];
 
   useEffect(() => {
