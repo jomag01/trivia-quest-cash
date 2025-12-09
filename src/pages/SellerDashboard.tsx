@@ -38,7 +38,10 @@ export default function SellerDashboard() {
     shipping_fee: "",
     weight_kg: "",
     dimensions_cm: "",
-    free_shipping: false
+    free_shipping: false,
+    bulk_enabled: false,
+    bulk_price: "",
+    bulk_min_quantity: "10"
   });
   const [diamondBasePrice, setDiamondBasePrice] = useState(10);
   useEffect(() => {
@@ -165,7 +168,10 @@ export default function SellerDashboard() {
         shipping_fee: productForm.free_shipping ? 0 : parseFloat(productForm.shipping_fee) || 0,
         weight_kg: productForm.weight_kg ? parseFloat(productForm.weight_kg) : null,
         dimensions_cm: productForm.dimensions_cm || null,
-        free_shipping: productForm.free_shipping
+        free_shipping: productForm.free_shipping,
+        bulk_enabled: productForm.bulk_enabled,
+        bulk_price: productForm.bulk_enabled && productForm.bulk_price ? parseFloat(productForm.bulk_price) : null,
+        bulk_min_quantity: productForm.bulk_enabled ? parseInt(productForm.bulk_min_quantity) || 10 : null
       };
       if (editingProduct) {
         const {
@@ -192,7 +198,10 @@ export default function SellerDashboard() {
         shipping_fee: "",
         weight_kg: "",
         dimensions_cm: "",
-        free_shipping: false
+        free_shipping: false,
+        bulk_enabled: false,
+        bulk_price: "",
+        bulk_min_quantity: "10"
       });
       fetchMyProducts();
     } catch (error: any) {
@@ -231,7 +240,10 @@ export default function SellerDashboard() {
               shipping_fee: "",
               weight_kg: "",
               dimensions_cm: "",
-              free_shipping: false
+              free_shipping: false,
+              bulk_enabled: false,
+              bulk_price: "",
+              bulk_min_quantity: "10"
             });
             setShowProductDialog(true);
           }}><Plus className="h-4 w-4 mr-2" />Add Product</Button>
@@ -256,7 +268,10 @@ export default function SellerDashboard() {
                       shipping_fee: p.shipping_fee?.toString() || "0",
                       weight_kg: p.weight_kg?.toString() || "",
                       dimensions_cm: p.dimensions_cm || "",
-                      free_shipping: p.free_shipping || false
+                      free_shipping: p.free_shipping || false,
+                      bulk_enabled: p.bulk_enabled || false,
+                      bulk_price: p.bulk_price?.toString() || "",
+                      bulk_min_quantity: p.bulk_min_quantity?.toString() || "10"
                     });
                     setShowProductDialog(true);
                   }}><Edit2 className="h-4 w-4" /></Button>
@@ -325,6 +340,54 @@ export default function SellerDashboard() {
                 shipping_fee: e.target.value
               })} /></div>}
             </div>
+            
+            {/* Bulk Purchase Section */}
+            <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Switch 
+                  checked={productForm.bulk_enabled} 
+                  onCheckedChange={checked => setProductForm({
+                    ...productForm,
+                    bulk_enabled: checked
+                  })} 
+                />
+                <Label className="font-medium">Enable Bulk Purchase Option</Label>
+              </div>
+              {productForm.bulk_enabled && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Bulk Price (₱)</Label>
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      value={productForm.bulk_price} 
+                      onChange={e => setProductForm({
+                        ...productForm,
+                        bulk_price: e.target.value
+                      })} 
+                      placeholder="Discounted bulk price"
+                    />
+                  </div>
+                  <div>
+                    <Label>Minimum Quantity</Label>
+                    <Input 
+                      type="number" 
+                      min="2"
+                      value={productForm.bulk_min_quantity} 
+                      onChange={e => setProductForm({
+                        ...productForm,
+                        bulk_min_quantity: e.target.value
+                      })} 
+                      placeholder="Min qty for bulk price"
+                    />
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Enable bulk pricing to offer discounts when customers order large quantities.
+              </p>
+            </div>
+            
             <div><Label>Primary Image</Label><ImageUploadCrop currentImage={productForm.image_url} onImageUploaded={url => setProductForm({
               ...productForm,
               image_url: url

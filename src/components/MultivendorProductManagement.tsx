@@ -209,6 +209,22 @@ export default function MultivendorProductManagement() {
                           <span className="text-muted-foreground">Stock:</span>{" "}
                           {product.stock_quantity}
                         </p>
+                        {product.bulk_enabled && (
+                          <p>
+                            <span className="text-muted-foreground">Bulk:</span>{" "}
+                            <Badge variant="outline" className="ml-1">
+                              ₱{product.bulk_price} (min {product.bulk_min_quantity} pcs)
+                            </Badge>
+                          </p>
+                        )}
+                        <p>
+                          <span className="text-muted-foreground">Diamond Reward:</span>{" "}
+                          {product.diamond_reward || 0} 💎
+                        </p>
+                        <p>
+                          <span className="text-muted-foreground">Referral Diamonds:</span>{" "}
+                          {product.referral_commission_diamonds || 0} 💎
+                        </p>
                       </div>
                     </div>
 

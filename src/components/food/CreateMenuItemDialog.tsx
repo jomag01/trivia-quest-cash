@@ -44,6 +44,9 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
     category: "",
     preparation_time: "15-20 min",
     is_featured: false,
+    bulk_enabled: false,
+    bulk_price: "",
+    bulk_min_quantity: "10",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -150,6 +153,9 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
         referral_commission_diamonds: 0, // Set by admin only
         is_featured: formData.is_featured,
         image_url,
+        bulk_enabled: formData.bulk_enabled,
+        bulk_price: formData.bulk_enabled && formData.bulk_price ? parseFloat(formData.bulk_price) : null,
+        bulk_min_quantity: formData.bulk_enabled ? parseInt(formData.bulk_min_quantity) || 10 : null,
       }).select().single();
 
       if (error) throw error;
@@ -356,6 +362,46 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
             checked={formData.is_featured}
             onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
           />
+        </div>
+
+        {/* Bulk Purchase Section */}
+        <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={formData.bulk_enabled}
+              onCheckedChange={(checked) => setFormData({ ...formData, bulk_enabled: checked })}
+              className="scale-75"
+            />
+            <Label className="text-xs font-semibold">Enable Bulk Purchase Option</Label>
+          </div>
+          {formData.bulk_enabled && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">Bulk Price (₱)</Label>
+                <Input
+                  type="number"
+                  value={formData.bulk_price}
+                  onChange={(e) => setFormData({ ...formData, bulk_price: e.target.value })}
+                  placeholder="Discounted bulk price"
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px]">Min Quantity</Label>
+                <Input
+                  type="number"
+                  min="2"
+                  value={formData.bulk_min_quantity}
+                  onChange={(e) => setFormData({ ...formData, bulk_min_quantity: e.target.value })}
+                  placeholder="Min qty"
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground">
+            Enable bulk pricing for large orders.
+          </p>
         </div>
       </div>
 
