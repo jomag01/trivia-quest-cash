@@ -50,6 +50,7 @@ import ServiceCategoryManagement from "@/components/ServiceCategoryManagement";
 import ServiceProviderVerificationManagement from "@/components/ServiceProviderVerificationManagement";
 import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
+import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
 import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie } from "lucide-react";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
@@ -120,6 +121,7 @@ const Admin = () => {
     { id: "service-commissions", label: "Service Bookings", icon: CalendarCheck },
     { id: "provider-verification", label: "Provider Verification", icon: Shield },
     { id: "food-vendors", label: "Food Vendors", icon: UtensilsCrossed },
+    { id: "food-item-rewards", label: "Food Item Rewards", icon: Gem },
     { id: "rider-management", label: "Rider Management", icon: Bike },
     { id: "cookie-policy", label: "Cookie Policy", icon: Cookie },
   ];
@@ -531,6 +533,7 @@ const Admin = () => {
           {activeTab === "service-commissions" && <ServiceCommissionManagement />}
           {activeTab === "provider-verification" && <ServiceProviderVerificationManagement />}
           {activeTab === "food-vendors" && <FoodCommissionManagement />}
+          {activeTab === "food-item-rewards" && <FoodItemRewardsManagement />}
           {activeTab === "rider-management" && <RiderManagement />}
           {activeTab === "cookie-policy" && <CookiePolicyManagement />}
         </main>

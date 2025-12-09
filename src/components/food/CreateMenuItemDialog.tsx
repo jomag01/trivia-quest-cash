@@ -43,8 +43,6 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
     menu_id: "",
     category: "",
     preparation_time: "15-20 min",
-    diamond_reward: "0",
-    referral_commission_diamonds: "0",
     is_featured: false,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -148,8 +146,8 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
         menu_id: formData.menu_id || null,
         category: formData.category,
         preparation_time: formData.preparation_time,
-        diamond_reward: parseInt(formData.diamond_reward) || 0,
-        referral_commission_diamonds: parseInt(formData.referral_commission_diamonds) || 0,
+        diamond_reward: 0, // Set by admin only
+        referral_commission_diamonds: 0, // Set by admin only
         is_featured: formData.is_featured,
         image_url,
       }).select().single();
@@ -343,24 +341,13 @@ export const CreateMenuItemDialog = ({ vendorId, onClose }: CreateMenuItemDialog
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs">Preparation Time</Label>
-            <Input
-              value={formData.preparation_time}
-              onChange={(e) => setFormData({ ...formData, preparation_time: e.target.value })}
-              className="h-9 text-sm"
-            />
-          </div>
-          <div>
-            <Label className="text-xs">Diamond Reward</Label>
-            <Input
-              type="number"
-              value={formData.diamond_reward}
-              onChange={(e) => setFormData({ ...formData, diamond_reward: e.target.value })}
-              className="h-9 text-sm"
-            />
-          </div>
+        <div>
+          <Label className="text-xs">Preparation Time</Label>
+          <Input
+            value={formData.preparation_time}
+            onChange={(e) => setFormData({ ...formData, preparation_time: e.target.value })}
+            className="h-9 text-sm"
+          />
         </div>
 
         <div className="flex items-center justify-between">

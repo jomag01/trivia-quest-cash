@@ -35,8 +35,6 @@ export default function SellerDashboard() {
     stock_quantity: "",
     category_id: "",
     image_url: "",
-    diamond_reward: "",
-    referral_commission_diamonds: "",
     shipping_fee: "",
     weight_kg: "",
     dimensions_cm: "",
@@ -162,8 +160,8 @@ export default function SellerDashboard() {
         seller_id: user?.id,
         approval_status: "pending",
         is_active: false,
-        diamond_reward: parseInt(productForm.diamond_reward) || 0,
-        referral_commission_diamonds: parseInt(productForm.referral_commission_diamonds) || 0,
+        diamond_reward: 0, // Set by admin only
+        referral_commission_diamonds: 0, // Set by admin only
         shipping_fee: productForm.free_shipping ? 0 : parseFloat(productForm.shipping_fee) || 0,
         weight_kg: productForm.weight_kg ? parseFloat(productForm.weight_kg) : null,
         dimensions_cm: productForm.dimensions_cm || null,
@@ -191,8 +189,6 @@ export default function SellerDashboard() {
         stock_quantity: "",
         category_id: "",
         image_url: "",
-        diamond_reward: "",
-        referral_commission_diamonds: "",
         shipping_fee: "",
         weight_kg: "",
         dimensions_cm: "",
@@ -232,8 +228,6 @@ export default function SellerDashboard() {
               stock_quantity: "",
               category_id: "",
               image_url: "",
-              diamond_reward: "",
-              referral_commission_diamonds: "",
               shipping_fee: "",
               weight_kg: "",
               dimensions_cm: "",
@@ -259,8 +253,6 @@ export default function SellerDashboard() {
                       stock_quantity: p.stock_quantity?.toString() || "0",
                       category_id: p.category_id || "",
                       image_url: p.image_url || "",
-                      diamond_reward: p.diamond_reward?.toString() || "0",
-                      referral_commission_diamonds: p.referral_commission_diamonds?.toString() || "0",
                       shipping_fee: p.shipping_fee?.toString() || "0",
                       weight_kg: p.weight_kg?.toString() || "",
                       dimensions_cm: p.dimensions_cm || "",
@@ -299,13 +291,9 @@ export default function SellerDashboard() {
             })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Wholesale Price *</Label><Input type="number" step="0.01" value={productForm.wholesale_price} onChange={e => {
-                const price = e.target.value;
-                const percent = parseFloat(sessionStorage.getItem("user_product_diamond_percent") || "10") / 100;
-                const calculatedDiamonds = price ? Math.floor(parseFloat(price) * percent / diamondBasePrice) : 0;
                 setProductForm({
                   ...productForm,
-                  wholesale_price: price,
-                  diamond_reward: calculatedDiamonds.toString()
+                  wholesale_price: e.target.value
                 });
               }} /></div>
               <div><Label>Stock</Label><Input type="number" value={productForm.stock_quantity} onChange={e => setProductForm({
@@ -313,16 +301,7 @@ export default function SellerDashboard() {
                 stock_quantity: e.target.value
               })} /></div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Diamond Reward (Auto-calculated by admin setting)</Label><Input type="number" value={productForm.diamond_reward} onChange={e => setProductForm({
-                ...productForm,
-                diamond_reward: e.target.value
-              })} placeholder="Auto-calculated" disabled /></div>
-              <div><Label>Referral Commission (💎)</Label><Input type="number" value={productForm.referral_commission_diamonds} onChange={e => setProductForm({
-                ...productForm,
-                referral_commission_diamonds: e.target.value
-              })} placeholder="Diamonds for referrer" /></div>
-            </div>
+            <p className="text-xs text-muted-foreground">Note: Diamond rewards and referral commissions are set by the admin after approval.</p>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Weight (kg)</Label><Input type="number" step="0.01" value={productForm.weight_kg} onChange={e => setProductForm({
                 ...productForm,
