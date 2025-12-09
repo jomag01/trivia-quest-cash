@@ -362,21 +362,9 @@ const Shop = () => {
           {/* Account Overview - Compact */}
           <ShopAccountOverview />
 
-          {/* Tabs for Shop/Seller/Cart/Wishlist */}
-          <div className="py-2">
-            <TabsList className="h-8 bg-white border border-gray-200 p-0.5 w-full justify-start gap-1">
-              <TabsTrigger value="shop" className="text-[10px] h-6 px-2 data-[state=active]:bg-red-500 data-[state=active]:text-white">
-                <ShoppingCart className="w-2.5 h-2.5 mr-1" />
-                Shop
-              </TabsTrigger>
-              <TabsTrigger value="cart" className="text-[10px] h-6 px-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                <ShoppingCart className="w-2.5 h-2.5 mr-1" />
-                Cart
-              </TabsTrigger>
-              <TabsTrigger value="wishlist" className="text-[10px] h-6 px-2 data-[state=active]:bg-pink-600 data-[state=active]:text-white">
-                <Heart className="w-2.5 h-2.5 mr-1" />
-                Wishlist
-              </TabsTrigger>
+          {/* Seller Tab Only */}
+          <div className="py-2 flex justify-end">
+            <TabsList className="h-7 bg-white border border-gray-200 p-0.5">
               <TabsTrigger value="seller" className="text-[10px] h-6 px-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white text-orange-600">
                 <Store className="w-2.5 h-2.5 mr-1" />
                 Sell
