@@ -34,6 +34,65 @@ export const SalesAnalytics = () => {
 
   useEffect(() => {
     fetchSalesAnalytics();
+
+    // Real-time subscription for orders updates
+    const ordersChannel = supabase
+      .channel('sales-orders-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: 'status=eq.delivered'
+        },
+        () => {
+          console.log('Order delivered - refreshing sales analytics');
+          fetchSalesAnalytics();
+        }
+      )
+      .subscribe();
+
+    // Real-time subscription for food orders
+    const foodOrdersChannel = supabase
+      .channel('sales-food-orders-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'food_orders',
+          filter: 'status=eq.delivered'
+        },
+        () => {
+          console.log('Food order delivered - refreshing sales analytics');
+          fetchSalesAnalytics();
+        }
+      )
+      .subscribe();
+
+    // Real-time subscription for commissions
+    const commissionsChannel = supabase
+      .channel('sales-commissions-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'commissions'
+        },
+        () => {
+          console.log('New commission added - refreshing sales analytics');
+          fetchSalesAnalytics();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(foodOrdersChannel);
+      supabase.removeChannel(commissionsChannel);
+    };
   }, []);
 
   const fetchSalesAnalytics = async () => {

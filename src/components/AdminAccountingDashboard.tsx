@@ -38,6 +38,86 @@ export default function AdminAccountingDashboard() {
   useEffect(() => {
     fetchSettings();
     fetchWeeklySales();
+
+    // Real-time subscription for product orders
+    const ordersChannel = supabase
+      .channel('accounting-orders-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          const newStatus = (payload.new as any)?.status;
+          if (newStatus === 'delivered' || newStatus === 'completed') {
+            console.log('Order delivered - refreshing accounting data');
+            fetchWeeklySales();
+          }
+        }
+      )
+      .subscribe();
+
+    // Real-time subscription for food orders
+    const foodOrdersChannel = supabase
+      .channel('accounting-food-orders-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'food_orders'
+        },
+        (payload) => {
+          const newStatus = (payload.new as any)?.status;
+          if (newStatus === 'delivered') {
+            console.log('Food order delivered - refreshing accounting data');
+            fetchWeeklySales();
+          }
+        }
+      )
+      .subscribe();
+
+    // Real-time for new orders
+    const newOrdersChannel = supabase
+      .channel('accounting-new-orders')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders'
+        },
+        () => {
+          console.log('New order placed - refreshing accounting data');
+          fetchWeeklySales();
+        }
+      )
+      .subscribe();
+
+    const newFoodOrdersChannel = supabase
+      .channel('accounting-new-food-orders')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'food_orders'
+        },
+        () => {
+          console.log('New food order placed - refreshing accounting data');
+          fetchWeeklySales();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(foodOrdersChannel);
+      supabase.removeChannel(newOrdersChannel);
+      supabase.removeChannel(newFoodOrdersChannel);
+    };
   }, []);
 
   const fetchSettings = async () => {

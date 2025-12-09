@@ -541,6 +541,7 @@ const Admin = () => {
           {activeTab === "food-item-rewards" && <FoodItemRewardsManagement />}
           {activeTab === "rider-management" && <RiderManagement />}
           {activeTab === "cookie-policy" && <CookiePolicyManagement />}
+          {activeTab === "pos-system" && <POSSystem />}
         </main>
       </div>
 
