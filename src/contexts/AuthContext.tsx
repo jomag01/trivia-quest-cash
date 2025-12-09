@@ -70,12 +70,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
       const { data: newProfile, error: insertError } = await supabase
         .from('profiles')
-        .insert([insertPayload])
+        .upsert([insertPayload], { onConflict: 'id' })
         .select()
         .single();
 
       if (insertError) {
         console.error("Failed to create missing profile:", insertError);
+        // Try fetching again in case it was created by the trigger
+        const { data: retryProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+        if (retryProfile) {
+          setProfile(retryProfile as Profile);
+        }
         return;
       }
 
