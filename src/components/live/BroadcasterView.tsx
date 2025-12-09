@@ -376,13 +376,18 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           </div>
         )}
 
-        <div className="absolute top-20 left-4 space-y-2 z-10 pointer-events-none">
+        {/* Gift/Reaction Notifications - visible to broadcaster */}
+        <div className="absolute top-20 left-4 right-4 space-y-2 z-20 pointer-events-none">
           {gifts.map((gift) => (
             <div 
               key={gift.id}
-              className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-4 py-2 rounded-full animate-bounce"
+              className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-4 py-3 rounded-xl shadow-lg animate-bounce flex items-center gap-2"
             >
-              {gift.profiles?.full_name} sent {gift.gift_type} 💎{gift.diamond_amount}
+              <span className="text-2xl">{gift.gift_type}</span>
+              <div>
+                <p className="font-bold text-sm">{gift.profiles?.full_name || 'Someone'}</p>
+                <p className="text-xs opacity-90">sent a gift! +{gift.diamond_amount} 💎</p>
+              </div>
             </div>
           ))}
         </div>

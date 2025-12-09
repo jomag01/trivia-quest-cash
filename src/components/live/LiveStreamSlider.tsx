@@ -111,8 +111,8 @@ export default function LiveStreamSlider({ onSelectStream }: LiveStreamSliderPro
     <div className="py-3">
       <div className="flex items-center gap-2 mb-2 px-1">
         <Radio className="w-4 h-4 text-red-500 animate-pulse" />
-        <span className="text-sm font-semibold text-foreground">
-          {liveCount > 0 ? 'Live Now' : 'Recent Streams'}
+        <span className="text-sm font-semibold text-gray-900">
+          {liveCount > 0 ? 'Live Now' : 'Was Live'}
         </span>
         {liveCount > 0 && (
           <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
@@ -171,10 +171,10 @@ export default function LiveStreamSlider({ onSelectStream }: LiveStreamSliderPro
                   ) : (
                     <Badge 
                       variant="secondary" 
-                      className="absolute top-2 left-2 text-[9px] px-1.5 py-0 h-4"
+                      className="absolute top-2 left-2 text-[9px] px-1.5 py-0 h-4 bg-gray-700 text-white"
                     >
                       <PlayCircle className="w-2.5 h-2.5 mr-0.5" />
-                      REPLAY
+                      WAS LIVE
                     </Badge>
                   )}
                   

@@ -23,6 +23,8 @@ import { Textarea } from "@/components/ui/textarea";
 import LiveStreamSlider from "@/components/live/LiveStreamSlider";
 import LiveStreamViewer from "@/components/live/LiveStreamViewer";
 import FloatingLiveStream from "@/components/live/FloatingLiveStream";
+import { CartView } from "@/components/CartView";
+import { WishlistView } from "@/components/WishlistView";
 
 const Shop = () => {
   const {
@@ -333,8 +335,12 @@ const Shop = () => {
         <Package className="w-16 h-16 text-black animate-pulse" />
       </div>;
   }
+  // Determine initial tab from URL params
+  const tabParam = searchParams.get('tab');
+  const initialTab = tabParam === 'cart' ? 'cart' : tabParam === 'wishlist' ? 'wishlist' : 'shop';
+
   return <div className="min-h-screen bg-white pb-20">
-      <Tabs defaultValue="shop" className="w-full">
+      <Tabs defaultValue={initialTab} className="w-full">
         {/* Top Header with Search and Cart */}
         <div className="sticky top-0 z-40 bg-white border-b border-gray-100 px-3 py-2">
           <div className="flex items-center gap-2 max-w-7xl mx-auto">
@@ -547,6 +553,14 @@ const Shop = () => {
 
           <TabsContent value="seller">
             <SellerDashboard />
+          </TabsContent>
+
+          <TabsContent value="cart">
+            <CartView />
+          </TabsContent>
+
+          <TabsContent value="wishlist">
+            <WishlistView />
           </TabsContent>
         </div>
       </Tabs>
