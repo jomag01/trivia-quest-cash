@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Package, Search, Heart, Store } from "lucide-react";
+import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +25,7 @@ import LiveStreamViewer from "@/components/live/LiveStreamViewer";
 import FloatingLiveStream from "@/components/live/FloatingLiveStream";
 import { CartView } from "@/components/CartView";
 import { WishlistView } from "@/components/WishlistView";
+import ServicesList from "@/components/booking/ServicesList";
 
 const Shop = () => {
   const {
@@ -54,6 +55,7 @@ const Shop = () => {
   const [detailProduct, setDetailProduct] = useState<any>(null);
   const [selectedStream, setSelectedStream] = useState<any>(null);
   const [minimizedStream, setMinimizedStream] = useState<any>(null);
+  const [showBookings, setShowBookings] = useState(false);
   
   const handleMinimizeStream = (stream: any) => {
     setMinimizedStream(stream);
@@ -369,6 +371,34 @@ const Shop = () => {
           </TabsList>
 
           <TabsContent value="shop" className="space-y-3 mt-0">
+            {/* Booking Services Panel */}
+            <Card className="overflow-hidden border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+              <button 
+                onClick={() => setShowBookings(!showBookings)}
+                className="w-full p-3 flex items-center justify-between hover:bg-primary/5 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-primary/20">
+                    <CalendarCheck className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-sm">Book Services</h3>
+                    <p className="text-xs text-muted-foreground">Browse and book approved services</p>
+                  </div>
+                </div>
+                {showBookings ? (
+                  <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                )}
+              </button>
+              {showBookings && (
+                <div className="p-4 border-t border-primary/10">
+                  <ServicesList />
+                </div>
+              )}
+            </Card>
+
             {/* Promotion Slider */}
             <div className="-mx-3">
               <AdSlider />
