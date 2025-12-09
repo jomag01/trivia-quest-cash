@@ -705,6 +705,9 @@ export type Database = {
       }
       food_items: {
         Row: {
+          bulk_enabled: boolean | null
+          bulk_min_quantity: number | null
+          bulk_price: number | null
           category: string | null
           created_at: string | null
           description: string | null
@@ -722,6 +725,9 @@ export type Database = {
           vendor_id: string
         }
         Insert: {
+          bulk_enabled?: boolean | null
+          bulk_min_quantity?: number | null
+          bulk_price?: number | null
           category?: string | null
           created_at?: string | null
           description?: string | null
@@ -739,6 +745,9 @@ export type Database = {
           vendor_id: string
         }
         Update: {
+          bulk_enabled?: boolean | null
+          bulk_min_quantity?: number | null
+          bulk_price?: number | null
           category?: string | null
           created_at?: string | null
           description?: string | null
@@ -2497,6 +2506,9 @@ export type Database = {
           admin_markup_percentage: number | null
           approval_status: string | null
           base_price: number
+          bulk_enabled: boolean | null
+          bulk_min_quantity: number | null
+          bulk_price: number | null
           category_id: string | null
           commission_percentage: number
           created_at: string | null
@@ -2525,6 +2537,9 @@ export type Database = {
           admin_markup_percentage?: number | null
           approval_status?: string | null
           base_price: number
+          bulk_enabled?: boolean | null
+          bulk_min_quantity?: number | null
+          bulk_price?: number | null
           category_id?: string | null
           commission_percentage?: number
           created_at?: string | null
@@ -2553,6 +2568,9 @@ export type Database = {
           admin_markup_percentage?: number | null
           approval_status?: string | null
           base_price?: number
+          bulk_enabled?: boolean | null
+          bulk_min_quantity?: number | null
+          bulk_price?: number | null
           category_id?: string | null
           commission_percentage?: number
           created_at?: string | null

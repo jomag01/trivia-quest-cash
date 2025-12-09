@@ -52,8 +52,9 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator } from "lucide-react";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
+import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -97,6 +98,7 @@ const Admin = () => {
 
   const menuItems = [
     { id: "sales-analytics", label: "Sales Analytics", icon: TrendingUp },
+    { id: "accounting", label: "Accounting & Payouts", icon: Calculator },
     { id: "homepage", label: "Homepage Settings", icon: Home },
     { id: "credits", label: "Credit Purchases", icon: CreditCard },
     { id: "payouts", label: "Payout Requests", icon: DollarSign },
@@ -511,6 +513,7 @@ const Admin = () => {
           )}
 
           {activeTab === "sales-analytics" && <SalesAnalytics />}
+          {activeTab === "accounting" && <AdminAccountingDashboard />}
           {activeTab === "homepage" && <HomePageManagement />}
           {activeTab === "ad-management" && <AdManagement />}
           {activeTab === "user-ads" && <UserAdManagement />}
