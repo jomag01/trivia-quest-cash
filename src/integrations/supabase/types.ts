@@ -1286,6 +1286,62 @@ export type Database = {
           },
         ]
       }
+      link_tracking: {
+        Row: {
+          conversion_type: string | null
+          converted: boolean | null
+          converted_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ip_hash: string | null
+          link_type: string
+          referrer_id: string | null
+          source_url: string | null
+          target_id: string | null
+          user_agent: string | null
+          visitor_id: string
+        }
+        Insert: {
+          conversion_type?: string | null
+          converted?: boolean | null
+          converted_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_hash?: string | null
+          link_type: string
+          referrer_id?: string | null
+          source_url?: string | null
+          target_id?: string | null
+          user_agent?: string | null
+          visitor_id: string
+        }
+        Update: {
+          conversion_type?: string | null
+          converted?: boolean | null
+          converted_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_hash?: string | null
+          link_type?: string
+          referrer_id?: string | null
+          source_url?: string | null
+          target_id?: string | null
+          user_agent?: string | null
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_tracking_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_stream_comments: {
         Row: {
           content: string
