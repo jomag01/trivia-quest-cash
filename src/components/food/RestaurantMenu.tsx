@@ -181,7 +181,19 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
   const canAddToCart = () => {
     if (!selectedItem) return false;
     const requiredVariations = selectedItem.variations?.filter((v) => v.is_required) || [];
-    return requiredVariations.every((v) => selectedVariations[v.name]);
+    
+    // If there are multiple single-option variations, check if combined selection is made
+    const singleOptionVariations = selectedItem.variations?.filter(v => v.options.length === 1) || [];
+    if (singleOptionVariations.length > 1) {
+      const hasAnyRequired = singleOptionVariations.some(v => v.is_required);
+      if (hasAnyRequired && !selectedVariations["combined"]) {
+        return false;
+      }
+    }
+    
+    // Check standard required variations
+    const multiOptionVariations = requiredVariations.filter(v => v.options.length > 1);
+    return multiOptionVariations.every((v) => selectedVariations[v.name]);
   };
 
   if (!vendor) return null;
@@ -406,41 +418,132 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
                 </div>
               </div>
 
-              {/* Variations */}
-              {selectedItem.variations?.map((variation) => (
-                <div key={variation.id} className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    {variation.name}
-                    {variation.is_required && <Badge variant="destructive" className="text-[10px]">Required</Badge>}
-                  </Label>
-                  <RadioGroup
-                    value={selectedVariations[variation.name]?.label || ""}
-                    onValueChange={(value) => {
-                      const option = variation.options.find((o) => o.label === value);
-                      if (option) handleVariationChange(variation.name, option);
-                    }}
-                  >
-                    {variation.options.map((option) => (
-                      <div key={option.label} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value={option.label} id={`${variation.name}-${option.label}`} />
-                          <Label htmlFor={`${variation.name}-${option.label}`} className="text-sm cursor-pointer">
-                            {option.label}
-                          </Label>
-                        </div>
-                        {option.priceAdjustment > 0 && (
-                          <span className="text-sm text-muted-foreground">+₱{option.priceAdjustment.toFixed(2)}</span>
+              {/* Variations - Group by similar names for single selection */}
+              {selectedItem.variations && selectedItem.variations.length > 0 && (
+                <div className="space-y-4">
+                  {/* Check if all variations have single options (size variants stored separately) */}
+                  {(() => {
+                    const singleOptionVariations = selectedItem.variations.filter(v => v.options.length === 1);
+                    const multiOptionVariations = selectedItem.variations.filter(v => v.options.length > 1);
+                    const hasAnyRequired = selectedItem.variations.some(v => v.is_required);
+                    
+                    return (
+                      <>
+                        {/* If all variations have single options, combine them into one radio group */}
+                        {singleOptionVariations.length > 1 && (
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-2">
+                              Select Option
+                              {hasAnyRequired && <Badge variant="destructive" className="text-[10px]">Required</Badge>}
+                            </Label>
+                            <RadioGroup
+                              value={selectedVariations["combined"]?.label || ""}
+                              onValueChange={(value) => {
+                                const variation = singleOptionVariations.find(v => v.options[0]?.label === value);
+                                if (variation && variation.options[0]) {
+                                  setSelectedVariations({ 
+                                    ...selectedVariations, 
+                                    combined: variation.options[0],
+                                    [variation.name]: variation.options[0]
+                                  });
+                                }
+                              }}
+                            >
+                              {singleOptionVariations.map((variation) => {
+                                const option = variation.options[0];
+                                if (!option) return null;
+                                return (
+                                  <div key={variation.id} className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value={option.label} id={`option-${variation.id}`} />
+                                      <Label htmlFor={`option-${variation.id}`} className="text-sm cursor-pointer">
+                                        {variation.name} - {option.label}
+                                      </Label>
+                                    </div>
+                                    {option.priceAdjustment > 0 && (
+                                      <span className="text-sm text-muted-foreground">+₱{option.priceAdjustment.toFixed(2)}</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </RadioGroup>
+                          </div>
                         )}
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
-              ))}
 
-              {/* Add-ons */}
+                        {/* Single variation with single option - just show as info */}
+                        {singleOptionVariations.length === 1 && (
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-2">
+                              {singleOptionVariations[0].name}
+                              {singleOptionVariations[0].is_required && <Badge variant="destructive" className="text-[10px]">Required</Badge>}
+                            </Label>
+                            <RadioGroup
+                              value={selectedVariations[singleOptionVariations[0].name]?.label || ""}
+                              onValueChange={(value) => {
+                                const option = singleOptionVariations[0].options.find((o) => o.label === value);
+                                if (option) handleVariationChange(singleOptionVariations[0].name, option);
+                              }}
+                            >
+                              {singleOptionVariations[0].options.map((option) => (
+                                <div key={option.label} className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value={option.label} id={`${singleOptionVariations[0].name}-${option.label}`} />
+                                    <Label htmlFor={`${singleOptionVariations[0].name}-${option.label}`} className="text-sm cursor-pointer">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                  {option.priceAdjustment > 0 && (
+                                    <span className="text-sm text-muted-foreground">+₱{option.priceAdjustment.toFixed(2)}</span>
+                                  )}
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          </div>
+                        )}
+
+                        {/* Multi-option variations - standard radio group */}
+                        {multiOptionVariations.map((variation) => (
+                          <div key={variation.id} className="space-y-2">
+                            <Label className="flex items-center gap-2">
+                              {variation.name}
+                              {variation.is_required && <Badge variant="destructive" className="text-[10px]">Required</Badge>}
+                            </Label>
+                            <RadioGroup
+                              value={selectedVariations[variation.name]?.label || ""}
+                              onValueChange={(value) => {
+                                const option = variation.options.find((o) => o.label === value);
+                                if (option) handleVariationChange(variation.name, option);
+                              }}
+                            >
+                              {variation.options.map((option) => (
+                                <div key={option.label} className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value={option.label} id={`${variation.name}-${option.label}`} />
+                                    <Label htmlFor={`${variation.name}-${option.label}`} className="text-sm cursor-pointer">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                  {option.priceAdjustment > 0 && (
+                                    <span className="text-sm text-muted-foreground">+₱{option.priceAdjustment.toFixed(2)}</span>
+                                  )}
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          </div>
+                        ))}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Add-ons - Optional */}
               {(selectedItem.addons?.length || 0) > 0 && (
                 <div className="space-y-2">
-                  <Label>Add-ons</Label>
+                  <Label className="flex items-center gap-2">
+                    Add-ons
+                    <Badge variant="secondary" className="text-[10px]">Optional</Badge>
+                  </Label>
                   {selectedItem.addons?.map((addon) => (
                     <div key={addon.id} className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
