@@ -3246,6 +3246,10 @@ export type Database = {
         Row: {
           accommodations: Json | null
           activities: Json | null
+          admin_diamond_override: number | null
+          admin_notes: string | null
+          admin_price_override: number | null
+          admin_referral_diamond_override: number | null
           approval_status: string | null
           category: string | null
           created_at: string
@@ -3268,10 +3272,15 @@ export type Database = {
           referral_commission_diamonds: number | null
           title: string
           updated_at: string
+          vendor_price: number | null
         }
         Insert: {
           accommodations?: Json | null
           activities?: Json | null
+          admin_diamond_override?: number | null
+          admin_notes?: string | null
+          admin_price_override?: number | null
+          admin_referral_diamond_override?: number | null
           approval_status?: string | null
           category?: string | null
           created_at?: string
@@ -3294,10 +3303,15 @@ export type Database = {
           referral_commission_diamonds?: number | null
           title: string
           updated_at?: string
+          vendor_price?: number | null
         }
         Update: {
           accommodations?: Json | null
           activities?: Json | null
+          admin_diamond_override?: number | null
+          admin_notes?: string | null
+          admin_price_override?: number | null
+          admin_referral_diamond_override?: number | null
           approval_status?: string | null
           category?: string | null
           created_at?: string
@@ -3320,6 +3334,7 @@ export type Database = {
           referral_commission_diamonds?: number | null
           title?: string
           updated_at?: string
+          vendor_price?: number | null
         }
         Relationships: [
           {
@@ -4183,6 +4198,10 @@ export type Database = {
       }
       can_become_seller: { Args: { p_user_id: string }; Returns: boolean }
       can_create_ads: { Args: { user_id_param: string }; Returns: boolean }
+      check_affiliate_eligibility: {
+        Args: { user_id_param: string }
+        Returns: Json
+      }
       check_and_update_affiliate_rank: {
         Args: { p_user_id: string }
         Returns: undefined

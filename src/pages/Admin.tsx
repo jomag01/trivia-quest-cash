@@ -49,6 +49,7 @@ import { UserAdManagement } from "@/components/UserAdManagement";
 import ServiceCommissionManagement from "@/components/ServiceCommissionManagement";
 import ServiceCategoryManagement from "@/components/ServiceCategoryManagement";
 import ServiceProviderVerificationManagement from "@/components/ServiceProviderVerificationManagement";
+import BookingServiceManagement from "@/components/booking/BookingServiceManagement";
 import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
@@ -123,7 +124,8 @@ const Admin = () => {
     { id: "seller-verification", label: "Seller Verification", icon: CheckCircle },
     { id: "multivendor-products", label: "User Products", icon: Package },
     { id: "service-categories", label: "Service Categories", icon: Tags },
-    { id: "service-commissions", label: "Service Bookings", icon: CalendarCheck },
+    { id: "booking-services", label: "Booking Services", icon: CalendarCheck },
+    { id: "service-commissions", label: "Service Commissions", icon: DollarSign },
     { id: "provider-verification", label: "Provider Verification", icon: Shield },
     { id: "food-vendors", label: "Food Vendors", icon: UtensilsCrossed },
     { id: "food-item-rewards", label: "Food Item Rewards", icon: Gem },
@@ -537,6 +539,7 @@ const Admin = () => {
           {activeTab === "seller-verification" && <SellerVerificationManagement />}
           {activeTab === "multivendor-products" && <MultivendorProductManagement />}
           {activeTab === "service-categories" && <ServiceCategoryManagement />}
+          {activeTab === "booking-services" && <BookingServiceManagement />}
           {activeTab === "service-commissions" && <ServiceCommissionManagement />}
           {activeTab === "provider-verification" && <ServiceProviderVerificationManagement />}
           {activeTab === "food-vendors" && <FoodCommissionManagement />}

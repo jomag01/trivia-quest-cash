@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadToStorage } from "@/lib/storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Upload, X, Plane, Car, Package, MapPin, Plus, Shield, AlertCircle } from "lucide-react";
+import { Upload, X, Plane, Car, Package, MapPin, Plus, Shield, AlertCircle, Check } from "lucide-react";
 import ProviderVerificationDialog from "./ProviderVerificationDialog";
 
 interface CreateServiceDialogProps {
@@ -34,6 +34,14 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
+  const [affiliateEligibility, setAffiliateEligibility] = useState<{
+    is_eligible: boolean;
+    referral_count: number;
+    diamond_balance: number;
+    required_referrals: number;
+    required_diamonds: number;
+  } | null>(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(true);
   const [destinations, setDestinations] = useState<string[]>([]);
   const [newDestination, setNewDestination] = useState("");
   const [includes, setIncludes] = useState<string[]>([]);
@@ -56,7 +64,10 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
 
   useEffect(() => {
     fetchCategories();
-    if (user) checkVerification();
+    if (user) {
+      checkVerification();
+      checkAffiliateEligibility();
+    }
   }, [user]);
 
   useEffect(() => {
@@ -85,6 +96,33 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
       .eq("id", user.id)
       .single() as any);
     setIsVerified(data?.is_verified_service_provider ?? false);
+  };
+
+  const checkAffiliateEligibility = async () => {
+    if (!user) return;
+    setCheckingEligibility(true);
+    
+    try {
+      const { data, error } = await supabase.rpc('check_affiliate_eligibility', {
+        user_id_param: user.id
+      });
+      
+      if (!error && data) {
+        // Cast the data to the expected type
+        const eligibilityData = data as unknown as {
+          is_eligible: boolean;
+          referral_count: number;
+          diamond_balance: number;
+          required_referrals: number;
+          required_diamonds: number;
+        };
+        setAffiliateEligibility(eligibilityData);
+      }
+    } catch (err) {
+      console.error('Error checking eligibility:', err);
+    } finally {
+      setCheckingEligibility(false);
+    }
   };
 
   const addDestination = () => {
@@ -225,31 +263,83 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
           <DialogTitle>Create New Service</DialogTitle>
         </DialogHeader>
 
-        {/* Verification Warning */}
-        {!isVerified && (
-          <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-lg">
+        {/* Affiliate Eligibility Check */}
+        {checkingEligibility ? (
+          <div className="bg-muted p-3 rounded-lg text-center">
+            <p className="text-sm text-muted-foreground">Checking eligibility...</p>
+          </div>
+        ) : affiliateEligibility && !affiliateEligibility.is_eligible ? (
+          <div className="bg-destructive/10 border border-destructive/30 p-4 rounded-lg">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-amber-600 dark:text-amber-400">
-                  Identity Verification Required
+                <p className="font-medium text-destructive">
+                  Affiliate Eligibility Required
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  For safety and trust, service providers must verify their identity before offering services.
+                  Only approved affiliates can post booking services. You need:
                 </p>
+                <ul className="text-sm mt-2 space-y-1">
+                  <li className="flex items-center gap-2">
+                    {affiliateEligibility.referral_count >= affiliateEligibility.required_referrals ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <X className="h-4 w-4 text-destructive" />
+                    )}
+                    <span>
+                      {affiliateEligibility.referral_count}/{affiliateEligibility.required_referrals} referred affiliates
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    {affiliateEligibility.diamond_balance >= affiliateEligibility.required_diamonds ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <X className="h-4 w-4 text-destructive" />
+                    )}
+                    <span>
+                      {affiliateEligibility.diamond_balance}/{affiliateEligibility.required_diamonds} diamonds
+                    </span>
+                  </li>
+                </ul>
                 <Button 
                   type="button"
+                  variant="outline"
                   size="sm" 
-                  className="mt-2"
-                  onClick={() => setShowVerification(true)}
+                  className="mt-3"
+                  onClick={() => onOpenChange(false)}
                 >
-                  <Shield className="h-4 w-4 mr-1" />
-                  Verify Now
+                  Close
                 </Button>
               </div>
             </div>
           </div>
-        )}
+        ) : (
+          <>
+            {/* Verification Warning */}
+            {!isVerified && (
+              <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-600 dark:text-amber-400">
+                      Identity Verification Required
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      For safety and trust, service providers must verify their identity before offering services.
+                    </p>
+                    <Button 
+                      type="button"
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => setShowVerification(true)}
+                    >
+                      <Shield className="h-4 w-4 mr-1" />
+                      Verify Now
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Image Upload */}
@@ -539,10 +629,12 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
             </p>
           </div>
 
-          <Button type="submit" disabled={loading || !isVerified} className="w-full">
-            {loading ? "Creating..." : !isVerified ? "Verify Identity First" : "Create Service"}
+          <Button type="submit" disabled={loading || !isVerified || !affiliateEligibility?.is_eligible} className="w-full">
+            {loading ? "Creating..." : !affiliateEligibility?.is_eligible ? "Not Eligible" : !isVerified ? "Verify Identity First" : "Create Service"}
           </Button>
         </form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
 
