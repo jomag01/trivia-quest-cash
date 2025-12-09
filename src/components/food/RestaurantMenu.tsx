@@ -66,6 +66,7 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, { label: string; priceAdjustment: number }>>({});
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
   const { addToCart, cart, updateQuantity } = useFoodCart();
 
   const { data: vendor } = useQuery({
@@ -147,23 +148,47 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
       setSelectedItem(item);
       setSelectedVariations({});
       setSelectedAddOns([]);
+      setSelectedQuantity(1);
       return;
     }
 
     const finalPrice = withOptions ? calculateItemTotal(item) : item.price;
+    const qty = withOptions ? selectedQuantity : 1;
     
-    addToCart({
-      id: withOptions ? `${item.id}-${Date.now()}` : item.id,
-      name: item.name,
-      price: finalPrice,
-      image_url: item.image_url,
-      vendor_id: vendorId,
-      vendor_name: vendor?.name || "",
-      diamond_reward: item.diamond_reward || 0,
-    });
+    // Build item name with customizations
+    let itemName = item.name;
+    if (withOptions) {
+      const customizations: string[] = [];
+      Object.entries(selectedVariations).forEach(([key, val]) => {
+        if (key !== "combined") customizations.push(val.label);
+      });
+      if (selectedAddOns.length > 0) {
+        const addonNames = selectedAddOns
+          .map(id => item.addons?.find(a => a.id === id)?.name)
+          .filter(Boolean);
+        customizations.push(...addonNames as string[]);
+      }
+      if (customizations.length > 0) {
+        itemName = `${item.name} (${customizations.join(", ")})`;
+      }
+    }
     
-    toast.success(`${item.name} added to cart`);
+    // Add the item with quantity
+    for (let i = 0; i < qty; i++) {
+      addToCart({
+        id: withOptions ? `${item.id}-${Date.now()}-${i}` : item.id,
+        name: itemName,
+        price: finalPrice,
+        image_url: item.image_url,
+        vendor_id: vendorId,
+        vendor_name: vendor?.name || "",
+        diamond_reward: item.diamond_reward || 0,
+      });
+    }
+    
+    toast.success(`${qty}x ${item.name} added to cart`);
     setSelectedItem(null);
+    setSelectedQuantity(1);
   };
 
   const handleVariationChange = (variationName: string, option: { label: string; priceAdjustment: number }) => {
@@ -562,16 +587,43 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
                 </div>
               )}
 
+              {/* Quantity Selector */}
+              <div className="space-y-2">
+                <Label>Quantity</Label>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="h-10 w-10"
+                    onClick={() => setSelectedQuantity(Math.max(1, selectedQuantity - 1))}
+                    disabled={selectedQuantity <= 1}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <span className="font-bold text-xl w-12 text-center">{selectedQuantity}</span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="h-10 w-10"
+                    onClick={() => setSelectedQuantity(selectedQuantity + 1)}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
               <div className="border-t pt-4 flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-xl font-bold">₱{calculateItemTotal(selectedItem).toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">Total ({selectedQuantity} item{selectedQuantity > 1 ? "s" : ""})</p>
+                  <p className="text-xl font-bold">₱{(calculateItemTotal(selectedItem) * selectedQuantity).toFixed(2)}</p>
                 </div>
                 <Button
                   onClick={() => handleAddToCart(selectedItem, true)}
                   disabled={!canAddToCart()}
                 >
-                  Add to Cart
+                  Add {selectedQuantity} to Cart
                 </Button>
               </div>
             </div>
