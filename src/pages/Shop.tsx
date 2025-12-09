@@ -335,12 +335,16 @@ const Shop = () => {
         <Package className="w-16 h-16 text-black animate-pulse" />
       </div>;
   }
-  // Determine initial tab from URL params
+  // Determine active tab from URL params
   const tabParam = searchParams.get('tab');
-  const initialTab = tabParam === 'cart' ? 'cart' : tabParam === 'wishlist' ? 'wishlist' : 'shop';
+  const activeTab = tabParam === 'cart' ? 'cart' : tabParam === 'wishlist' ? 'wishlist' : tabParam === 'seller' ? 'seller' : 'shop';
+
+  const handleTabChange = (value: string) => {
+    navigate(`/shop?tab=${value}`);
+  };
 
   return <div className="min-h-screen bg-white pb-20">
-      <Tabs defaultValue={initialTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         {/* Top Header with Search and Cart */}
         <div className="sticky top-0 z-40 bg-white border-b border-gray-100 px-3 py-2">
           <div className="flex items-center gap-2 max-w-7xl mx-auto">
