@@ -239,11 +239,11 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
       clearTimeout(connectionTimeoutRef.current);
     }
     
-    // Detect optimal quality
+    // Detect optimal quality - use lower quality for faster connection
     const optimalQuality = detectOptimalQuality();
     const qualityKey = Object.entries(QUALITY_PRESETS).find(
       ([, preset]) => preset.bitrate === optimalQuality.bitrate
-    )?.[0] || 'auto';
+    )?.[0] || 'medium';
     setCurrentQuality(qualityKey);
     
     try {
@@ -257,33 +257,34 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
             videoRef.current.srcObject = remoteStream;
             // Configure for low-latency playback
             videoRef.current.playsInline = true;
-            videoRef.current.muted = false;
             
-            // Attempt to play the video
-            videoRef.current.play()
-              .then(() => {
-                console.log('[SFU Viewer] Video playback started');
-                setHasVideo(true);
-                setIsConnecting(false);
-                setConnectionState('connected');
-              })
-              .catch(err => {
-                console.warn('[SFU Viewer] Autoplay failed, trying muted:', err);
-                // Try muted autoplay as fallback
-                if (videoRef.current) {
-                  videoRef.current.muted = true;
-                  videoRef.current.play()
-                    .then(() => {
-                      setHasVideo(true);
-                      setIsConnecting(false);
-                      setConnectionState('connected');
-                      toast.info("Tap to unmute video");
-                    })
-                    .catch(() => {
-                      console.error('[SFU Viewer] Even muted playback failed');
-                    });
-                }
-              });
+            // Start muted for faster autoplay, then unmute
+            videoRef.current.muted = true;
+            
+            // Attempt to play immediately
+            const playPromise = videoRef.current.play();
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  console.log('[SFU Viewer] Video playback started');
+                  setHasVideo(true);
+                  setIsConnecting(false);
+                  setConnectionState('connected');
+                  // Try to unmute after successful play
+                  setTimeout(() => {
+                    if (videoRef.current) {
+                      videoRef.current.muted = false;
+                    }
+                  }, 500);
+                })
+                .catch(err => {
+                  console.warn('[SFU Viewer] Autoplay failed:', err);
+                  setHasVideo(true);
+                  setIsConnecting(false);
+                  setConnectionState('connected');
+                  toast.info("Tap video to play");
+                });
+            }
           }
         },
         {
@@ -305,14 +306,13 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
       
       await viewerConnectionRef.current.connect();
       
-      // Set timeout for connection
+      // Shorter timeout for faster feedback
       connectionTimeoutRef.current = setTimeout(() => {
         setIsConnecting(false);
         if (!hasVideo) {
           console.log('[SFU Viewer] Connection timeout, waiting for streamer...');
-          toast.info("Waiting for broadcaster to start streaming...");
         }
-      }, 15000);
+      }, 8000);
     } catch (error) {
       console.error('[SFU Viewer] Failed to connect:', error);
       setIsConnecting(false);
