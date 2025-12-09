@@ -30,6 +30,7 @@ import EarningsCalculator from "@/components/EarningsCalculator";
 import LeadershipStatus from "@/components/LeadershipStatus";
 import { CustomerSupportChat } from "@/components/CustomerSupportChat";
 import { UserAdCreation } from "@/components/UserAdCreation";
+import { RecentTransactions } from "@/components/RecentTransactions";
 const Dashboard = () => {
   const navigate = useNavigate();
   const {
@@ -433,6 +434,12 @@ const Dashboard = () => {
                 }}>
                     Support
                   </Button>
+                  <Button variant={activeTab === "transactions" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  setActiveTab("transactions");
+                  setMobileMenuOpen(false);
+                }}>
+                    Transactions
+                  </Button>
                   <div className="border-t border-border my-2" />
                   <Button variant="ghost" className="justify-start text-destructive hover:text-destructive" onClick={async () => {
                   await signOut();
@@ -447,7 +454,7 @@ const Dashboard = () => {
           </div>
 
           {/* Desktop Tabs */}
-          <TabsList className="hidden lg:grid w-full grid-cols-12 gap-1">
+          <TabsList className="hidden lg:grid w-full grid-cols-13 gap-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="network">Network Tree</TabsTrigger>
             <TabsTrigger value="calculator">Calculator</TabsTrigger>
@@ -460,7 +467,7 @@ const Dashboard = () => {
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="stair-step">Stair Step</TabsTrigger>
             <TabsTrigger value="advertising">Advertising</TabsTrigger>
-            <TabsTrigger value="support">Support</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
@@ -788,6 +795,10 @@ const Dashboard = () => {
 
       <TabsContent value="support">
         <CustomerSupportChat />
+      </TabsContent>
+
+      <TabsContent value="transactions">
+        <RecentTransactions />
       </TabsContent>
     </Tabs>
   </div>
