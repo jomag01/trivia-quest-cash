@@ -725,6 +725,48 @@ export type Database = {
           },
         ]
       }
+      file_uploads: {
+        Row: {
+          base64_data: string | null
+          bucket: string
+          content_type: string | null
+          created_at: string
+          file_name: string
+          id: string
+          path: string
+          size_bytes: number | null
+          storage_url: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          base64_data?: string | null
+          bucket: string
+          content_type?: string | null
+          created_at?: string
+          file_name: string
+          id?: string
+          path: string
+          size_bytes?: number | null
+          storage_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          base64_data?: string | null
+          bucket?: string
+          content_type?: string | null
+          created_at?: string
+          file_name?: string
+          id?: string
+          path?: string
+          size_bytes?: number | null
+          storage_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       food_categories: {
         Row: {
           created_at: string | null
