@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -33,6 +33,7 @@ import { UserAdCreation } from "@/components/UserAdCreation";
 import { RecentTransactions } from "@/components/RecentTransactions";
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     user,
     profile,
@@ -52,9 +53,22 @@ const Dashboard = () => {
   const [walletLoading, setWalletLoading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [referralLoading, setReferralLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Sync activeTab with URL params
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -344,7 +358,7 @@ const Dashboard = () => {
         </div>
 
         {/* Tabs - Desktop only, Hamburger for Mobile/Tablet */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-8">
           {/* Mobile/Tablet Hamburger Menu */}
           <div className="lg:hidden mb-4">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -357,85 +371,85 @@ const Dashboard = () => {
               <SheetContent side="left" className="w-64 bg-background border-primary/20">
                 <div className="flex flex-col gap-2 mt-8">
                   <Button variant={activeTab === "overview" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("overview");
+                  handleTabChange("overview");
                   setMobileMenuOpen(false);
                 }}>
                     Overview
                   </Button>
                   <Button variant={activeTab === "network" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("network");
+                  handleTabChange("network");
                   setMobileMenuOpen(false);
                 }}>
                     Network Tree
                   </Button>
                   <Button variant={activeTab === "calculator" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("calculator");
+                  handleTabChange("calculator");
                   setMobileMenuOpen(false);
                 }}>
                     Calculator
                   </Button>
                   <Button variant={activeTab === "leadership" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("leadership");
+                  handleTabChange("leadership");
                   setMobileMenuOpen(false);
                 }}>
                     Leadership
                   </Button>
                   <Button variant={activeTab === "notifications" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("notifications");
+                  handleTabChange("notifications");
                   setMobileMenuOpen(false);
                 }}>
                     Notifications
                   </Button>
                   <Button variant={activeTab === "diamonds" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("diamonds");
+                  handleTabChange("diamonds");
                   setMobileMenuOpen(false);
                 }}>
                     Diamonds
                   </Button>
                   <Button variant={activeTab === "leaderboard" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("leaderboard");
+                  handleTabChange("leaderboard");
                   setMobileMenuOpen(false);
                 }}>
                     Leaderboard
                   </Button>
                   <Button variant={activeTab === "cart" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("cart");
+                  handleTabChange("cart");
                   setMobileMenuOpen(false);
                 }}>
                     Cart
                   </Button>
                   <Button variant={activeTab === "wishlist" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("wishlist");
+                  handleTabChange("wishlist");
                   setMobileMenuOpen(false);
                 }}>
                     Wishlist
                   </Button>
                   <Button variant={activeTab === "orders" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("orders");
+                  handleTabChange("orders");
                   setMobileMenuOpen(false);
                 }}>
                     Orders
                   </Button>
                   <Button variant={activeTab === "stair-step" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("stair-step");
+                  handleTabChange("stair-step");
                   setMobileMenuOpen(false);
                 }}>
                     Stair Step
                   </Button>
                   <Button variant={activeTab === "advertising" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("advertising");
+                  handleTabChange("advertising");
                   setMobileMenuOpen(false);
                 }}>
                     Advertising
                   </Button>
                   <Button variant={activeTab === "support" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("support");
+                  handleTabChange("support");
                   setMobileMenuOpen(false);
                 }}>
                     Support
                   </Button>
                   <Button variant={activeTab === "transactions" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  setActiveTab("transactions");
+                  handleTabChange("transactions");
                   setMobileMenuOpen(false);
                 }}>
                     Transactions
