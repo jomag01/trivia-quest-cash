@@ -55,6 +55,7 @@ export class IVSBroadcaster {
 
     try {
       // Create IVS channel via edge function
+      console.log('[IVS Broadcaster] Creating channel...');
       const { data: channelData, error: channelError } = await supabase.functions.invoke('ivs-stream', {
         body: {
           action: 'create-channel',
@@ -63,31 +64,50 @@ export class IVSBroadcaster {
         }
       });
 
-      if (channelError) throw channelError;
+      if (channelError) {
+        console.error('[IVS Broadcaster] Channel error:', channelError);
+        throw new Error(channelError.message || 'Failed to create channel');
+      }
+      
+      if (!channelData) {
+        throw new Error('No channel data returned from edge function');
+      }
+
+      // Check for error in response (graceful degradation)
+      if (channelData.error) {
+        console.warn('[IVS Broadcaster] Channel created with warning:', channelData.error);
+      }
+
       this.channelInfo = channelData;
       console.log('[IVS Broadcaster] Channel created:', this.channelInfo);
 
-      // For ultra-low latency, also create a Real-Time stage
-      const { data: stageData, error: stageError } = await supabase.functions.invoke('ivs-stream', {
-        body: {
-          action: 'create-stage',
-          streamId: this.config.streamId,
-          userId: this.config.userId
-        }
-      });
+      // Try to create a Real-Time stage (optional, for ultra-low latency)
+      try {
+        console.log('[IVS Broadcaster] Creating stage...');
+        const { data: stageData, error: stageError } = await supabase.functions.invoke('ivs-stream', {
+          body: {
+            action: 'create-stage',
+            streamId: this.config.streamId,
+            userId: this.config.userId
+          }
+        });
 
-      if (!stageError && stageData) {
-        this.stageInfo = {
-          stageArn: stageData.stageArn,
-          participantToken: stageData.participantTokens?.[0]?.token || ''
-        };
-        console.log('[IVS Broadcaster] Stage created for WebRTC');
+        if (!stageError && stageData && !stageData.error) {
+          this.stageInfo = {
+            stageArn: stageData.stageArn,
+            participantToken: stageData.participantTokens?.[0]?.token || ''
+          };
+          console.log('[IVS Broadcaster] Stage created for WebRTC');
+        } else {
+          console.warn('[IVS Broadcaster] Stage creation skipped or failed, using HLS fallback');
+        }
+      } catch (stageErr) {
+        console.warn('[IVS Broadcaster] Stage creation failed, continuing with HLS:', stageErr);
       }
 
       this.setState('connecting');
 
-      // For demo purposes, use WebRTC signaling through Supabase
-      // In production, you would use IVS Real-Time SDK
+      // Set up WebRTC broadcast for real-time streaming via Supabase Realtime signaling
       await this.setupWebRTCBroadcast();
 
       this.setState('connected');
@@ -95,7 +115,7 @@ export class IVSBroadcaster {
 
       return this.channelInfo!;
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('[IVS Broadcaster] Failed to start:', error);
       this.setState('failed');
       this.config.onError?.(error as Error);
