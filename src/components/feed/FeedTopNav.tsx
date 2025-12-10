@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Bell, User, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +25,22 @@ export default function FeedTopNav({ onSearchChange, showSearch = true }: FeedTo
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [appLogo, setAppLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadAppLogo = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "app_logo")
+        .maybeSingle();
+      
+      if (data?.value) {
+        setAppLogo(data.value);
+      }
+    };
+    loadAppLogo();
+  }, []);
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
@@ -39,9 +56,13 @@ export default function FeedTopNav({ onSearchChange, showSearch = true }: FeedTo
             onClick={() => navigate("/")}
             className="flex items-center gap-2 font-bold text-xl tracking-tight"
           >
-            <div className="w-8 h-8 rounded-lg gradient-accent flex items-center justify-center">
-              <span className="text-white text-sm font-bold">T</span>
-            </div>
+            {appLogo ? (
+              <img src={appLogo} alt="App Logo" className="w-8 h-8 rounded-lg object-contain" />
+            ) : (
+              <div className="w-8 h-8 rounded-lg gradient-accent flex items-center justify-center">
+                <span className="text-white text-sm font-bold">T</span>
+              </div>
+            )}
             <span className="hidden sm:block">TriviaBees</span>
           </button>
         </div>
