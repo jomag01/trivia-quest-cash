@@ -176,8 +176,12 @@ export default function MultivendorProductManagement() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="font-medium">{product.name}</span>
-                        <Badge variant={product.is_active ? "default" : "secondary"}>
-                          {product.is_active ? "Active" : "Pending"}
+                        <Badge variant={
+                          product.approval_status === "approved" ? "default" : 
+                          product.approval_status === "rejected" ? "destructive" : 
+                          "secondary"
+                        }>
+                          {product.approval_status || "pending"}
                         </Badge>
                         {product.admin_markup_percentage > 0 && (
                           <Badge variant="outline">
@@ -228,14 +232,35 @@ export default function MultivendorProductManagement() {
                       </div>
                     </div>
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEditProduct(product)}
-                    >
-                      <Edit2 className="h-4 w-4 mr-1" />
-                      Set Markup
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      {product.approval_status === "pending" && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => handleApproveProduct(product, true)}
+                            disabled={processing}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleApproveProduct(product, false)}
+                            disabled={processing}
+                          >
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditProduct(product)}
+                      >
+                        <Edit2 className="h-4 w-4 mr-1" />
+                        Set Markup
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
