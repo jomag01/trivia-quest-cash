@@ -1,9 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, UserCheck, ArrowLeft, Users, Trophy, Camera } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  UserPlus, UserCheck, ArrowLeft, Camera, Settings, Share2, 
+  Grid3X3, Heart, Video, ShoppingBag, Radio, MoreHorizontal,
+  Link as LinkIcon, MapPin, Calendar, Verified, TrendingUp, Eye, Diamond
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadToStorage } from "@/lib/storage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,14 +27,19 @@ const Profile = () => {
     followers: 0,
     following: 0,
     posts: 0,
+    likes: 0,
   });
+  const [posts, setPosts] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState("posts");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (userId) {
       fetchProfile();
       fetchStats();
+      fetchPosts();
       if (user && user.id !== userId) {
         checkFollowStatus();
       }
@@ -57,19 +66,37 @@ const Profile = () => {
 
   const fetchStats = async () => {
     try {
-      const [followersRes, followingRes, postsRes] = await Promise.all([
+      const [followersRes, followingRes, postsRes, likesRes] = await Promise.all([
         supabase.from("user_follows").select("id", { count: "exact" }).eq("following_id", userId),
         supabase.from("user_follows").select("id", { count: "exact" }).eq("follower_id", userId),
         supabase.from("posts").select("id", { count: "exact" }).eq("user_id", userId),
+        supabase.from("post_likes").select("id", { count: "exact" }).eq("user_id", userId),
       ]);
 
       setStats({
         followers: followersRes.count || 0,
         following: followingRes.count || 0,
         posts: postsRes.count || 0,
+        likes: likesRes.count || 0,
       });
     } catch (error: any) {
       console.error("Error fetching stats:", error);
+    }
+  };
+
+  const fetchPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      if (error) throw error;
+      setPosts(data || []);
+    } catch (error: any) {
+      console.error("Error fetching posts:", error);
     }
   };
 
@@ -125,19 +152,19 @@ const Profile = () => {
     }
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
     if (user.id !== userId) {
-      toast.error("You can only upload your own profile picture");
+      toast.error("You can only update your own profile");
       return;
     }
 
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}-${type}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { data: uploadData, error: uploadError } = await uploadToStorage('profile-pictures', filePath, file, { upsert: true });
@@ -145,31 +172,39 @@ const Profile = () => {
 
       const publicUrl = uploadData?.publicUrl || "";
 
+      const updateField = type === 'avatar' ? 'avatar_url' : 'cover_url';
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ avatar_url: publicUrl } as any)
+        .update({ [updateField]: publicUrl } as any)
         .eq("id", user.id);
 
       if (updateError) throw updateError;
 
-      toast.success("Profile picture updated!");
+      toast.success(`${type === 'avatar' ? 'Profile picture' : 'Cover photo'} updated!`);
       fetchProfile();
     } catch (error: any) {
       console.error("Error uploading image:", error);
-      toast.error("Failed to upload profile picture");
+      toast.error("Failed to upload image");
     } finally {
       setUploading(false);
     }
   };
 
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          <Skeleton className="h-64 w-full mb-8" />
-          <div className="space-y-4">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
+      <div className="min-h-screen bg-background">
+        <Skeleton className="h-48 w-full" />
+        <div className="px-4 -mt-16">
+          <Skeleton className="h-32 w-32 rounded-full border-4 border-background" />
+          <div className="mt-4 space-y-2">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-32" />
           </div>
         </div>
       </div>
@@ -189,123 +224,336 @@ const Profile = () => {
     );
   }
 
+  const isOwnProfile = user?.id === userId;
+
   return (
-    <div className="min-h-screen py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-background pb-20">
+      {/* Cover Photo */}
+      <div className="relative h-48 md:h-64 bg-gradient-to-br from-primary/30 via-accent/20 to-secondary/30 overflow-hidden">
+        {profile.cover_url && (
+          <img src={profile.cover_url} alt="Cover" className="w-full h-full object-cover" />
+        )}
+        
+        {/* Back Button */}
         <Button
           variant="ghost"
+          size="icon"
           onClick={() => navigate(-1)}
-          className="mb-4"
+          className="absolute top-4 left-4 bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 rounded-full"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
+          <ArrowLeft className="w-5 h-5" />
         </Button>
 
-        {/* Profile Header */}
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <div className="relative">
-                <Avatar className="w-32 h-32">
-                  {profile.avatar_url && <AvatarImage src={profile.avatar_url} />}
-                  <AvatarFallback className="text-4xl">
-                    {profile.full_name?.charAt(0) || profile.email?.charAt(0) || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                {user && user.id === userId && (
-                  <>
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="absolute bottom-0 right-0 rounded-full"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                    >
-                      <Camera className="w-4 h-4" />
-                    </Button>
-                    <Input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageUpload}
-                    />
-                  </>
-                )}
-              </div>
-
-              <div className="flex-1 text-center md:text-left">
-                <h1 className="text-3xl font-bold mb-2">
-                  {profile.full_name || "Anonymous User"}
-                </h1>
-                <p className="text-muted-foreground mb-4">{profile.email}</p>
-
-                <div className="flex gap-6 justify-center md:justify-start mb-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{stats.posts}</p>
-                    <p className="text-sm text-muted-foreground">Posts</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{stats.followers}</p>
-                    <p className="text-sm text-muted-foreground">Followers</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{stats.following}</p>
-                    <p className="text-sm text-muted-foreground">Following</p>
-                  </div>
-                </div>
-
-                {user && user.id !== userId && (
-                  <Button
-                    variant={isFollowing ? "outline" : "default"}
-                    onClick={handleFollow}
-                    disabled={followLoading}
-                  >
-                    {isFollowing ? (
-                      <>
-                        <UserCheck className="w-4 h-4 mr-2" />
-                        Following
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Follow
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
-
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Credits</p>
-                <p className="text-2xl font-bold">{profile.credits || 0}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Referral Code</p>
-                <p className="text-2xl font-bold">{profile.referral_code}</p>
-              </div>
-            </div>
-          </Card>
+        {/* Actions */}
+        <div className="absolute top-4 right-4 flex gap-2">
+          {isOwnProfile && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => coverInputRef.current?.click()}
+                className="bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 rounded-full"
+                disabled={uploading}
+              >
+                <Camera className="w-5 h-5" />
+              </Button>
+              <Input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleImageUpload(e, 'cover')}
+              />
+            </>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 rounded-full"
+          >
+            <MoreHorizontal className="w-5 h-5" />
+          </Button>
         </div>
       </div>
+
+      {/* Profile Info */}
+      <div className="px-4 -mt-16 relative z-10">
+        {/* Avatar */}
+        <div className="relative inline-block">
+          <Avatar className="w-32 h-32 border-4 border-background shadow-xl">
+            {profile.avatar_url && <AvatarImage src={profile.avatar_url} />}
+            <AvatarFallback className="text-4xl bg-gradient-to-br from-primary to-accent text-white">
+              {profile.full_name?.charAt(0) || profile.email?.charAt(0) || "U"}
+            </AvatarFallback>
+          </Avatar>
+          {isOwnProfile && (
+            <>
+              <Button
+                size="icon"
+                className="absolute bottom-0 right-0 rounded-full h-9 w-9 bg-primary shadow-lg"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                <Camera className="w-4 h-4" />
+              </Button>
+              <Input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleImageUpload(e, 'avatar')}
+              />
+            </>
+          )}
+          {profile.is_verified && (
+            <div className="absolute -right-1 top-2 bg-primary rounded-full p-1">
+              <Verified className="w-4 h-4 text-white" />
+            </div>
+          )}
+        </div>
+
+        {/* Name & Handle */}
+        <div className="mt-4">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{profile.full_name || "Anonymous User"}</h1>
+            {profile.is_verified && <Verified className="w-5 h-5 text-primary" />}
+          </div>
+          <p className="text-muted-foreground">@{profile.username || profile.email?.split('@')[0]}</p>
+        </div>
+
+        {/* Bio */}
+        {profile.bio && (
+          <p className="mt-3 text-foreground/80">{profile.bio}</p>
+        )}
+
+        {/* Meta Info */}
+        <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
+          {profile.location && (
+            <div className="flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
+              {profile.location}
+            </div>
+          )}
+          {profile.website && (
+            <a href={profile.website} className="flex items-center gap-1 text-primary hover:underline">
+              <LinkIcon className="w-4 h-4" />
+              {profile.website.replace(/https?:\/\//, '')}
+            </a>
+          )}
+          <div className="flex items-center gap-1">
+            <Calendar className="w-4 h-4" />
+            Joined {new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div className="flex gap-6 mt-4">
+          <button className="text-center hover:opacity-70 transition-opacity">
+            <span className="font-bold">{formatNumber(stats.following)}</span>
+            <span className="text-muted-foreground ml-1">Following</span>
+          </button>
+          <button className="text-center hover:opacity-70 transition-opacity">
+            <span className="font-bold">{formatNumber(stats.followers)}</span>
+            <span className="text-muted-foreground ml-1">Followers</span>
+          </button>
+          <button className="text-center hover:opacity-70 transition-opacity">
+            <span className="font-bold">{formatNumber(stats.likes)}</span>
+            <span className="text-muted-foreground ml-1">Likes</span>
+          </button>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 mt-4">
+          {isOwnProfile ? (
+            <>
+              <Button variant="outline" className="flex-1 rounded-full">
+                <Settings className="w-4 h-4 mr-2" />
+                Edit Profile
+              </Button>
+              <Button variant="outline" size="icon" className="rounded-full">
+                <Share2 className="w-4 h-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant={isFollowing ? "outline" : "default"}
+                className="flex-1 rounded-full"
+                onClick={handleFollow}
+                disabled={followLoading}
+              >
+                {isFollowing ? (
+                  <>
+                    <UserCheck className="w-4 h-4 mr-2" />
+                    Following
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Follow
+                  </>
+                )}
+              </Button>
+              <Button variant="outline" className="rounded-full">
+                Message
+              </Button>
+              <Button variant="outline" size="icon" className="rounded-full">
+                <Share2 className="w-4 h-4" />
+              </Button>
+            </>
+          )}
+        </div>
+
+        {/* Creator Stats (if applicable) */}
+        {profile.is_creator && (
+          <div className="mt-6 grid grid-cols-3 gap-4 p-4 bg-card rounded-2xl border">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-primary">
+                <Eye className="w-4 h-4" />
+                <span className="font-bold">{formatNumber(profile.total_views || 0)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Views</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-pink-500">
+                <TrendingUp className="w-4 h-4" />
+                <span className="font-bold">{formatNumber(profile.engagement_rate || 0)}%</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Engagement</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-amber-500">
+                <Diamond className="w-4 h-4" />
+                <span className="font-bold">{formatNumber(profile.diamonds || 0)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Diamonds</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Content Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+        <TabsList className="w-full justify-around bg-transparent border-b rounded-none h-12">
+          <TabsTrigger 
+            value="posts" 
+            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+          >
+            <Grid3X3 className="w-5 h-5" />
+          </TabsTrigger>
+          <TabsTrigger 
+            value="videos" 
+            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+          >
+            <Video className="w-5 h-5" />
+          </TabsTrigger>
+          <TabsTrigger 
+            value="liked" 
+            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+          >
+            <Heart className="w-5 h-5" />
+          </TabsTrigger>
+          <TabsTrigger 
+            value="live" 
+            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+          >
+            <Radio className="w-5 h-5" />
+          </TabsTrigger>
+          <TabsTrigger 
+            value="shop" 
+            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+          >
+            <ShoppingBag className="w-5 h-5" />
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="posts" className="mt-0">
+          {posts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <Grid3X3 className="w-16 h-16 mb-4 opacity-20" />
+              <p className="font-medium">No posts yet</p>
+              {isOwnProfile && <p className="text-sm">Share your first post!</p>}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-0.5">
+              {posts.map((post) => (
+                <div
+                  key={post.id}
+                  className="aspect-square bg-muted relative group cursor-pointer overflow-hidden"
+                >
+                  {post.media_url ? (
+                    <>
+                      {post.media_type === 'video' ? (
+                        <>
+                          <video
+                            src={post.media_url}
+                            className="w-full h-full object-cover"
+                            muted
+                          />
+                          <div className="absolute top-2 right-2">
+                            <Video className="w-4 h-4 text-white drop-shadow" />
+                          </div>
+                        </>
+                      ) : (
+                        <img
+                          src={post.thumbnail_url || post.media_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center p-2 bg-card">
+                      <p className="text-xs line-clamp-4 text-center">{post.content}</p>
+                    </div>
+                  )}
+                  
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                    <div className="flex items-center gap-1 text-white">
+                      <Heart className="w-5 h-5 fill-white" />
+                      <span className="font-semibold">{formatNumber(post.likes_count || 0)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-white">
+                      <Eye className="w-5 h-5" />
+                      <span className="font-semibold">{formatNumber(post.views_count || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="videos" className="mt-0">
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <Video className="w-16 h-16 mb-4 opacity-20" />
+            <p className="font-medium">No videos yet</p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="liked" className="mt-0">
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <Heart className="w-16 h-16 mb-4 opacity-20" />
+            <p className="font-medium">Liked content is private</p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="live" className="mt-0">
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <Radio className="w-16 h-16 mb-4 opacity-20" />
+            <p className="font-medium">No live replays</p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="shop" className="mt-0">
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <ShoppingBag className="w-16 h-16 mb-4 opacity-20" />
+            <p className="font-medium">No shop items</p>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
