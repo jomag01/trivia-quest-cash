@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import GoLiveDialog from "@/components/live/GoLiveDialog";
 import LiveStreamList from "@/components/live/LiveStreamList";
-import LiveStreamViewer from "@/components/live/LiveStreamViewer";
-import BroadcasterView from "@/components/live/BroadcasterView";
+import IVSViewerView from "@/components/live/IVSViewerView";
+import IVSBroadcasterView from "@/components/live/IVSBroadcasterView";
 import FloatingLiveStream from "@/components/live/FloatingLiveStream";
 
 interface Post {
@@ -220,19 +220,19 @@ export default function Feed() {
     setMinimizedStream(null);
   };
 
-  // Show broadcaster view when streaming
+  // Show broadcaster view when streaming (using new IVS component)
   if (currentStreamId) {
-    return <BroadcasterView streamId={currentStreamId} onEndStream={() => setCurrentStreamId(null)} />;
+    return <IVSBroadcasterView streamId={currentStreamId} onEndStream={() => setCurrentStreamId(null)} />;
   }
 
-  // Show viewer when watching a stream
+  // Show viewer when watching a stream (using new IVS component)
   if (watchingStream) {
     return (
       <>
-        <LiveStreamViewer 
+        <IVSViewerView 
           stream={watchingStream} 
           onClose={() => setWatchingStream(null)} 
-          onMinimize={handleMinimizeStream}
+          onMinimize={() => handleMinimizeStream(watchingStream)}
         />
         {minimizedStream && (
           <FloatingLiveStream
