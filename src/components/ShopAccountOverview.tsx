@@ -7,10 +7,10 @@ const ShopAccountOverview = () => {
   const quickLinks = [
     { icon: Package, label: "Orders", href: "/dashboard?tab=orders", color: "bg-blue-600 text-white" },
     { icon: Users, label: "Network", href: "/dashboard?tab=network", color: "bg-purple-600 text-white" },
-    { icon: Calculator, label: "Calculator", href: "/dashboard?tab=earnings", color: "bg-green-600 text-white" },
+    { icon: Calculator, label: "Calculator", href: "/dashboard?tab=calculator", color: "bg-green-600 text-white" },
     { icon: Award, label: "Leadership", href: "/dashboard?tab=leadership", color: "bg-amber-500 text-white" },
-    { icon: ShoppingCart, label: "Cart", href: "/shop?tab=cart", color: "bg-red-600 text-white" },
-    { icon: Heart, label: "Wishlist", href: "/shop?tab=wishlist", color: "bg-pink-600 text-white" },
+    { icon: ShoppingCart, label: "Cart", href: "/dashboard?tab=cart", color: "bg-red-600 text-white" },
+    { icon: Heart, label: "Wishlist", href: "/dashboard?tab=wishlist", color: "bg-pink-600 text-white" },
     { icon: Store, label: "Seller", href: "/shop?tab=seller", color: "bg-orange-600 text-white" },
   ];
 
