@@ -31,6 +31,7 @@ import LeadershipStatus from "@/components/LeadershipStatus";
 import { CustomerSupportChat } from "@/components/CustomerSupportChat";
 import { UserAdCreation } from "@/components/UserAdCreation";
 import { RecentTransactions } from "@/components/RecentTransactions";
+import ProfileImageUpload from "@/components/profile/ProfileImageUpload";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -317,9 +318,7 @@ const Dashboard = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-primary" />
-              </div>
+              <ProfileImageUpload size="md" />
               <div>
                 <h2 className="font-bold text-gradient-gold text-base">
                   {profile.full_name || profile.email}
@@ -688,14 +687,14 @@ const Dashboard = () => {
               </div>
             </Card>
 
-            <Card className="p-6 gradient-primary border-primary/20 shadow-card text-center">
-              <Trophy className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse-slow" />
-              <h3 className="text-xl font-bold mb-2">Level 10 Rewards</h3>
-              <p className="text-foreground/90 mb-4">
+            <Card className="p-6 bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-amber-500/30 shadow-card text-center">
+              <Trophy className="w-16 h-16 text-amber-500 mx-auto mb-4 animate-pulse-slow" />
+              <h3 className="text-xl font-bold mb-2 text-foreground">Level 10 Rewards</h3>
+              <p className="text-foreground font-medium mb-4">
                 Reach Level 10 to unlock residual income from your entire network and shop commissions!
               </p>
               <Progress value={userStats.currentLevel * 10} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="text-sm text-foreground/80 mt-2 font-medium">
                 {10 - userStats.currentLevel} levels to go
               </p>
             </Card>
