@@ -7,8 +7,9 @@ import {
   UserPlus, UserCheck, ArrowLeft, Camera, Settings, Share2, 
   Grid3X3, Heart, Video, ShoppingBag, Radio, MoreHorizontal,
   Link as LinkIcon, MapPin, Calendar, Verified, TrendingUp, Eye, Diamond,
-  Trash2, Play
+  Trash2, Play, FileText
 } from "lucide-react";
+import { PostCard } from "@/components/social/PostCard";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadToStorage } from "@/lib/storage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,7 +39,7 @@ const Profile = () => {
   const [liveStreams, setLiveStreams] = useState<any[]>([]);
   const [userProducts, setUserProducts] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState("posts");
+  const [activeTab, setActiveTab] = useState("feed");
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: "post" | "product"; id: string; title?: string } | null>(null);
@@ -552,6 +553,12 @@ const Profile = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
         <TabsList className="w-full justify-around bg-transparent border-b rounded-none h-12">
           <TabsTrigger 
+            value="feed" 
+            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+          >
+            <FileText className="w-5 h-5" />
+          </TabsTrigger>
+          <TabsTrigger 
             value="posts" 
             className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
           >
@@ -582,6 +589,41 @@ const Profile = () => {
             <ShoppingBag className="w-5 h-5" />
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="feed" className="mt-0">
+          {posts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <FileText className="w-16 h-16 mb-4 opacity-20" />
+              <p className="font-medium">No posts yet</p>
+              {isOwnProfile && <p className="text-sm">Share your first post!</p>}
+            </div>
+          ) : (
+            <div className="space-y-4 p-4">
+              {posts.map((post) => (
+                <PostCard 
+                  key={post.id} 
+                  post={{
+                    id: post.id,
+                    content: post.content || '',
+                    media_url: post.media_url,
+                    media_type: post.media_type,
+                    created_at: post.created_at,
+                    likes_count: post.likes_count || 0,
+                    comments_count: post.comments_count || 0,
+                    views_count: post.views_count || 0,
+                    shares_count: post.shares_count || 0,
+                    user_id: post.user_id,
+                    profiles: post.profiles
+                  }}
+                  onDelete={isOwnProfile ? () => {
+                    setDeleteTarget({ type: 'post', id: post.id, title: post.content?.substring(0, 50) || 'Post' });
+                    setDeleteDialogOpen(true);
+                  } : undefined}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
 
         <TabsContent value="posts" className="mt-0">
           {posts.length === 0 ? (
