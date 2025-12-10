@@ -2844,66 +2844,93 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           country: string | null
+          cover_url: string | null
           created_at: string
           credits: number
           currency: string
           currency_symbol: string
+          diamonds: number | null
           email: string | null
+          engagement_rate: number | null
           followers_count: number | null
           following_count: number | null
           full_name: string | null
           id: string
+          is_creator: boolean | null
           is_verified: boolean | null
           is_verified_rider: boolean | null
           is_verified_seller: boolean | null
+          location: string | null
           referral_code: string
           referred_by: string | null
           seller_rating: number | null
           total_reviews: number | null
+          total_views: number | null
           updated_at: string
+          username: string | null
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           country?: string | null
+          cover_url?: string | null
           created_at?: string
           credits?: number
           currency?: string
           currency_symbol?: string
+          diamonds?: number | null
           email?: string | null
+          engagement_rate?: number | null
           followers_count?: number | null
           following_count?: number | null
           full_name?: string | null
           id: string
+          is_creator?: boolean | null
           is_verified?: boolean | null
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null
+          location?: string | null
           referral_code: string
           referred_by?: string | null
           seller_rating?: number | null
           total_reviews?: number | null
+          total_views?: number | null
           updated_at?: string
+          username?: string | null
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           country?: string | null
+          cover_url?: string | null
           created_at?: string
           credits?: number
           currency?: string
           currency_symbol?: string
+          diamonds?: number | null
           email?: string | null
+          engagement_rate?: number | null
           followers_count?: number | null
           following_count?: number | null
           full_name?: string | null
           id?: string
+          is_creator?: boolean | null
           is_verified?: boolean | null
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null
+          location?: string | null
           referral_code?: string
           referred_by?: string | null
           seller_rating?: number | null
           total_reviews?: number | null
+          total_views?: number | null
           updated_at?: string
+          username?: string | null
+          website?: string | null
         }
         Relationships: [
           {
