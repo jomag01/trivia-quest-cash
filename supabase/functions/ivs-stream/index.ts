@@ -15,128 +15,165 @@ const AWS_SECRET_ACCESS_KEY = Deno.env.get('AWS_SECRET_ACCESS_KEY');
 
 console.log(`[IVS] Function initialized. Region: ${AWS_REGION}, Has credentials: ${!!AWS_ACCESS_KEY_ID && !!AWS_SECRET_ACCESS_KEY}`);
 
-// Helper: Convert ArrayBuffer to hex string
-function bufferToHex(buffer: ArrayBuffer): string {
+// ==================== AWS Signature V4 Implementation ====================
+
+function toHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 }
 
-// Helper: SHA-256 hash
-async function hash(data: string): Promise<string> {
+async function sha256(message: string): Promise<ArrayBuffer> {
   const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(data);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-  return bufferToHex(hashBuffer);
+  return await crypto.subtle.digest('SHA-256', encoder.encode(message));
 }
 
-// Helper: HMAC-SHA256
-async function hmac(key: ArrayBuffer, data: string): Promise<ArrayBuffer> {
-  const cryptoKey = await crypto.subtle.importKey(
+async function sha256Hex(message: string): Promise<string> {
+  return toHex(await sha256(message));
+}
+
+async function hmacSha256(keyData: ArrayBuffer, message: string): Promise<ArrayBuffer> {
+  const key = await crypto.subtle.importKey(
     'raw',
-    key,
-    { name: 'HMAC', hash: { name: 'SHA-256' } },
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
   );
   const encoder = new TextEncoder();
-  return await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(data));
+  return await crypto.subtle.sign('HMAC', key, encoder.encode(message));
 }
 
-// Helper: Get signing key for AWS SigV4
-async function getSigningKey(secretKey: string, dateStamp: string, region: string, service: string): Promise<ArrayBuffer> {
+async function getSigningKey(
+  secretKey: string,
+  dateStamp: string,
+  region: string,
+  service: string
+): Promise<ArrayBuffer> {
   const encoder = new TextEncoder();
-  const keyData = encoder.encode('AWS4' + secretKey);
-  const kDate = await hmac(keyData.buffer.slice(keyData.byteOffset, keyData.byteOffset + keyData.byteLength), dateStamp);
-  const kRegion = await hmac(kDate, region);
-  const kService = await hmac(kRegion, service);
-  const kSigning = await hmac(kService, 'aws4_request');
+  const kSecret = encoder.encode('AWS4' + secretKey);
+  const kDate = await hmacSha256(kSecret.buffer.slice(kSecret.byteOffset, kSecret.byteOffset + kSecret.byteLength), dateStamp);
+  const kRegion = await hmacSha256(kDate, region);
+  const kService = await hmacSha256(kRegion, service);
+  const kSigning = await hmacSha256(kService, 'aws4_request');
   return kSigning;
 }
 
-// AWS IVS API request with Signature V4
-async function ivsApiRequest(
-  operation: string, 
-  path: string, 
-  body: Record<string, unknown>,
-  service: string = 'ivs'
-): Promise<Record<string, unknown>> {
-  const host = service === 'ivsrealtime' 
-    ? `ivsrealtime.${AWS_REGION}.amazonaws.com`
-    : `ivs.${AWS_REGION}.amazonaws.com`;
+async function signAWSRequest(
+  method: string,
+  url: string,
+  body: string,
+  service: string
+): Promise<Headers> {
+  const parsedUrl = new URL(url);
+  const host = parsedUrl.host;
+  const path = parsedUrl.pathname;
   
-  const method = 'POST';
-  const bodyStr = JSON.stringify(body);
-  
-  // Generate timestamps
   const now = new Date();
   const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
   const dateStamp = amzDate.slice(0, 8);
   
   // Hash the payload
-  const payloadHash = await hash(bodyStr);
+  const payloadHash = await sha256Hex(body);
   
-  // Prepare headers for signing
-  const headers: Record<string, string> = {
-    'content-type': 'application/json',
-    'host': host,
-    'x-amz-date': amzDate,
-  };
+  // Create the canonical request
+  const signedHeadersList = ['content-type', 'host', 'x-amz-content-sha256', 'x-amz-date'];
+  const signedHeaders = signedHeadersList.join(';');
   
-  // Create canonical headers string (sorted by header name, lowercase)
-  const sortedHeaders = Object.keys(headers).sort();
-  const canonicalHeaders = sortedHeaders
-    .map(key => `${key}:${headers[key]}\n`)
-    .join('');
-  const signedHeaders = sortedHeaders.join(';');
+  const canonicalHeaders = 
+    `content-type:application/json\n` +
+    `host:${host}\n` +
+    `x-amz-content-sha256:${payloadHash}\n` +
+    `x-amz-date:${amzDate}\n`;
   
-  // Create canonical request
-  const canonicalRequest = [
-    method,
-    path,
-    '', // Query string (empty for these requests)
-    canonicalHeaders,
-    signedHeaders,
-    payloadHash
-  ].join('\n');
+  const canonicalRequest = 
+    `${method}\n` +
+    `${path}\n` +
+    `\n` + // empty query string
+    `${canonicalHeaders}\n` +
+    `${signedHeaders}\n` +
+    `${payloadHash}`;
   
-  console.log(`[IVS API] Canonical Request for ${operation}:`, canonicalRequest.slice(0, 300));
+  console.log(`[AWS Sign] Canonical Request:\n${canonicalRequest}`);
   
-  // Create string to sign
+  // Create the string to sign
   const algorithm = 'AWS4-HMAC-SHA256';
   const credentialScope = `${dateStamp}/${AWS_REGION}/${service}/aws4_request`;
-  const canonicalRequestHash = await hash(canonicalRequest);
+  const canonicalRequestHash = await sha256Hex(canonicalRequest);
   
-  const stringToSign = [
-    algorithm,
-    amzDate,
-    credentialScope,
-    canonicalRequestHash
-  ].join('\n');
+  const stringToSign = 
+    `${algorithm}\n` +
+    `${amzDate}\n` +
+    `${credentialScope}\n` +
+    `${canonicalRequestHash}`;
   
-  // Calculate signature
+  console.log(`[AWS Sign] String to Sign:\n${stringToSign}`);
+  
+  // Calculate the signature
   const signingKey = await getSigningKey(AWS_SECRET_ACCESS_KEY!, dateStamp, AWS_REGION, service);
-  const signatureBuffer = await hmac(signingKey, stringToSign);
-  const signature = bufferToHex(signatureBuffer);
+  const signatureBuffer = await hmacSha256(signingKey, stringToSign);
+  const signature = toHex(signatureBuffer);
   
-  // Create authorization header
-  const authorizationHeader = `${algorithm} Credential=${AWS_ACCESS_KEY_ID}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+  console.log(`[AWS Sign] Signature: ${signature}`);
   
-  // Make the request
-  const url = `https://${host}${path}`;
-  console.log(`[IVS API] ${operation}: ${url}`);
+  // Build the authorization header - CRITICAL: NO SPACES after commas or around equal signs!
+  const credential = `${AWS_ACCESS_KEY_ID}/${credentialScope}`;
+  const authHeader = `${algorithm} Credential=${credential},SignedHeaders=${signedHeaders},Signature=${signature}`;
+  
+  console.log(`[AWS Sign] Auth Header: ${authHeader.substring(0, 100)}...`);
+  
+  const headers = new Headers();
+  headers.set('Content-Type', 'application/json');
+  headers.set('Host', host);
+  headers.set('X-Amz-Date', amzDate);
+  headers.set('X-Amz-Content-Sha256', payloadHash);
+  headers.set('Authorization', authHeader);
+  
+  return headers;
+}
+
+// IVS Standard API (Channels, Streams)
+async function ivsRequest(operation: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const url = `https://ivs.${AWS_REGION}.amazonaws.com/${operation}`;
+  const payload = JSON.stringify(body);
+  
+  console.log(`[IVS] ${operation} request to ${url}`);
+  
+  const headers = await signAWSRequest('POST', url, payload, 'ivs');
   
   const response = await fetch(url, {
-    method,
-    headers: {
-      ...headers,
-      'Authorization': authorizationHeader,
-    },
-    body: bodyStr
+    method: 'POST',
+    headers,
+    body: payload,
   });
   
   const responseText = await response.text();
-  console.log(`[IVS API] ${operation} response: ${response.status}`, responseText.slice(0, 500));
+  console.log(`[IVS] ${operation} response: ${response.status} - ${responseText.substring(0, 500)}`);
+  
+  if (!response.ok) {
+    throw new Error(`${operation} failed: ${response.status} - ${responseText}`);
+  }
+  
+  return responseText ? JSON.parse(responseText) : {};
+}
+
+// IVS Real-Time API (Stages, Participants)
+async function ivsRealtimeRequest(operation: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const url = `https://ivsrealtime.${AWS_REGION}.amazonaws.com/${operation}`;
+  const payload = JSON.stringify(body);
+  
+  console.log(`[IVS RT] ${operation} request to ${url}`);
+  
+  const headers = await signAWSRequest('POST', url, payload, 'ivsrealtime');
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: payload,
+  });
+  
+  const responseText = await response.text();
+  console.log(`[IVS RT] ${operation} response: ${response.status} - ${responseText.substring(0, 500)}`);
   
   if (!response.ok) {
     throw new Error(`${operation} failed: ${response.status} - ${responseText}`);
@@ -202,7 +239,7 @@ serve(async (req) => {
         const channelName = `stream-${streamId}-${Date.now()}`;
         
         try {
-          const channelData = await ivsApiRequest('CreateChannel', '/CreateChannel', {
+          const channelData = await ivsRequest('CreateChannel', {
             name: channelName,
             type: 'STANDARD',
             latencyMode: 'LOW',
@@ -214,12 +251,12 @@ serve(async (req) => {
             }
           });
 
-          console.log('[IVS] Channel created:', (channelData as Record<string, unknown>).channel);
+          console.log('[IVS] Channel created successfully');
 
-          // Store channel info in database
           const channel = channelData.channel as Record<string, unknown>;
           const streamKey = channelData.streamKey as Record<string, unknown>;
           
+          // Update database with stream info
           await supabase
             .from('live_streams')
             .update({
@@ -239,7 +276,6 @@ serve(async (req) => {
         } catch (err) {
           const error = err as Error;
           console.error('[IVS] Channel creation failed:', error.message);
-          // Return fallback for WebRTC-only mode via Supabase Realtime
           result = {
             channelArn: null,
             ingestEndpoint: null,
@@ -258,7 +294,7 @@ serve(async (req) => {
             throw new Error('channelArn is required');
           }
           
-          const streamData = await ivsApiRequest('GetStream', '/GetStream', {
+          const streamData = await ivsRequest('GetStream', {
             channelArn
           });
 
@@ -288,9 +324,7 @@ serve(async (req) => {
             throw new Error('channelArn is required');
           }
           
-          await ivsApiRequest('StopStream', '/StopStream', {
-            channelArn
-          });
+          await ivsRequest('StopStream', { channelArn });
           result = { success: true };
         } catch (err) {
           const error = err as Error;
@@ -306,9 +340,7 @@ serve(async (req) => {
             throw new Error('channelArn is required');
           }
           
-          await ivsApiRequest('DeleteChannel', '/DeleteChannel', {
-            arn: channelArn
-          });
+          await ivsRequest('DeleteChannel', { arn: channelArn });
           result = { success: true };
         } catch (err) {
           const error = err as Error;
@@ -324,9 +356,7 @@ serve(async (req) => {
             throw new Error('channelArn is required');
           }
           
-          const channelInfo = await ivsApiRequest('GetChannel', '/GetChannel', {
-            arn: channelArn
-          });
+          const channelInfo = await ivsRequest('GetChannel', { arn: channelArn });
 
           const channel = channelInfo.channel as Record<string, unknown>;
           result = {
@@ -344,7 +374,7 @@ serve(async (req) => {
 
       case 'create-stage': {
         try {
-          const stageData = await ivsApiRequest('CreateStage', '/CreateStage', {
+          const stageData = await ivsRealtimeRequest('CreateStage', {
             name: `stage-${streamId}-${Date.now()}`,
             participantTokenConfigurations: [
               {
@@ -357,7 +387,7 @@ serve(async (req) => {
               streamId,
               userId
             }
-          }, 'ivsrealtime');
+          });
 
           const stage = stageData.stage as Record<string, unknown>;
           console.log('[IVS] Stage created:', stage?.arn);
@@ -370,7 +400,6 @@ serve(async (req) => {
         } catch (err) {
           const error = err as Error;
           console.error('[IVS] Stage creation failed:', error.message);
-          // Fall back to Supabase Realtime signaling (WebRTC peer-to-peer)
           result = {
             stageArn: null,
             participantTokens: [],
@@ -388,12 +417,12 @@ serve(async (req) => {
             throw new Error('stageArn is required');
           }
           
-          const tokenData = await ivsApiRequest('CreateParticipantToken', '/CreateParticipantToken', {
+          const tokenData = await ivsRealtimeRequest('CreateParticipantToken', {
             stageArn: targetStageArn,
             userId,
             capabilities: ['SUBSCRIBE'],
             duration: 7200
-          }, 'ivsrealtime');
+          });
 
           const token = tokenData.participantToken as Record<string, unknown>;
           result = {
@@ -419,9 +448,7 @@ serve(async (req) => {
             throw new Error('stageArn is required');
           }
           
-          await ivsApiRequest('DeleteStage', '/DeleteStage', {
-            arn: stageArn
-          }, 'ivsrealtime');
+          await ivsRealtimeRequest('DeleteStage', { arn: stageArn });
           result = { success: true };
         } catch (err) {
           const error = err as Error;
@@ -452,7 +479,7 @@ serve(async (req) => {
         );
     }
 
-    console.log(`[IVS] Action ${action} completed`);
+    console.log(`[IVS] Action ${action} completed successfully`);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
