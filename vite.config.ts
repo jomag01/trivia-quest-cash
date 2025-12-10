@@ -23,6 +23,10 @@ export default defineConfig(({ mode }) => ({
     sourcemap: mode === 'development',
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: ['react', 'react-dom', '@tanstack/react-query'],
+    exclude: [],
+  },
+  esbuild: {
+    jsxInject: undefined,
   },
 }))
