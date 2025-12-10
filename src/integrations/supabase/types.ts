@@ -3583,36 +3583,138 @@ export type Database = {
       }
       stories: {
         Row: {
+          comments_count: number | null
           created_at: string
           expires_at: string
           id: string
           media_type: string
           media_url: string
           metadata: Json | null
+          reactions_count: number | null
+          shares_count: number | null
           user_id: string
           views_count: number | null
         }
         Insert: {
+          comments_count?: number | null
           created_at?: string
           expires_at?: string
           id?: string
           media_type?: string
           media_url: string
           metadata?: Json | null
+          reactions_count?: number | null
+          shares_count?: number | null
           user_id: string
           views_count?: number | null
         }
         Update: {
+          comments_count?: number | null
           created_at?: string
           expires_at?: string
           id?: string
           media_type?: string
           media_url?: string
           metadata?: Json | null
+          reactions_count?: number | null
+          shares_count?: number | null
           user_id?: string
           views_count?: number | null
         }
         Relationships: []
+      }
+      story_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_comments_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          reaction_type: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reaction_type?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reaction_type?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_reactions_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_shares: {
+        Row: {
+          created_at: string
+          id: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_shares_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       treasure_admin_settings: {
         Row: {
