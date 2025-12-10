@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Image, Video, Music, X, Upload, Users, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadToStorage } from "@/lib/storage";
+import { uploadToAWS } from "@/lib/awsMedia";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import imageCompression from "browser-image-compression";
@@ -82,20 +83,29 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
         fileToUpload = await imageCompression(selectedFile, options);
       }
 
-      // Try to upload to Supabase Storage
-      try {
-        const fileExt = fileToUpload.name.split(".").pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      // Try AWS S3/CloudFront first for fastest global delivery
+      const awsResult = await uploadToAWS(fileToUpload, `posts/${user.id}`);
+      
+      if (awsResult?.cdnUrl) {
+        mediaUrl = awsResult.cdnUrl;
+        console.log("Uploaded to AWS CDN:", mediaUrl);
+      } else {
+        // Fallback to Supabase Storage
+        console.log("AWS upload failed, falling back to Supabase Storage");
+        try {
+          const fileExt = fileToUpload.name.split(".").pop();
+          const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-        const { data: uploadData, error: uploadError } = await uploadToStorage("post-media", fileName, fileToUpload);
-        if (uploadError) throw uploadError;
+          const { data: uploadData, error: uploadError } = await uploadToStorage("post-media", fileName, fileToUpload);
+          if (uploadError) throw uploadError;
 
-        // Get public URL from upload result
-        mediaUrl = uploadData?.publicUrl || "";
-      } catch (storageError) {
-        console.warn("Storage upload failed, using data URL fallback:", storageError);
-        // Fallback: Convert to data URL and store in database
-        mediaUrl = previewUrl || "";
+          // Get public URL from upload result
+          mediaUrl = uploadData?.publicUrl || "";
+        } catch (storageError) {
+          console.warn("Storage upload failed, using data URL fallback:", storageError);
+          // Fallback: Convert to data URL and store in database
+          mediaUrl = previewUrl || "";
+        }
       }
 
       // Create post in database

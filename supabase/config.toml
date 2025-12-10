@@ -3,6 +3,9 @@ project_id = "pcsancednuywpxvuruqb"
 [functions.ivs-stream]
 verify_jwt = false
 
+[functions.aws-media]
+verify_jwt = false
+
 [functions.create-payment]
 verify_jwt = true
 
@@ -19,4 +22,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.get-maps-key]
+verify_jwt = false
+
+[functions.calculate-courier-rate]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.storage-upload]
 verify_jwt = false
