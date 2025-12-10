@@ -24,7 +24,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const SellerDashboard = lazy(() => import("./pages/SellerDashboard"));
 const Booking = lazy(() => import("./pages/Booking"));
 const Food = lazy(() => import("./pages/Food"));
-
+const Notifications = lazy(() => import("./components/notifications/NotificationsPage"));
 // Configure QueryClient with aggressive caching
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,6 +82,7 @@ const App = () => (
               <Route path="/seller" element={<SellerDashboard />} />
               <Route path="/home" element={<Home />} />
               <Route path="/profile/:userId" element={<Profile />} />
+              <Route path="/notifications" element={<Notifications />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -11,6 +11,7 @@ import CommentsSheet from "@/components/feed/CommentsSheet";
 import LiveFeedGrid from "@/components/feed/LiveFeedGrid";
 import ShopFeedGrid from "@/components/feed/ShopFeedGrid";
 import GamesCategoryGrid from "@/components/feed/GamesCategoryGrid";
+import GamingHome from "@/components/feed/GamingHome";
 import VideoFeed from "@/components/feed/VideoFeed";
 import GoLiveDialog from "@/components/live/GoLiveDialog";
 import IVSViewerView from "@/components/live/IVSViewerView";
@@ -194,7 +195,7 @@ export default function Feed() {
       ) : activeTab === "shop" ? (
         <ShopFeedGrid />
       ) : activeTab === "games" ? (
-        <GamesCategoryGrid />
+        <GamingHome />
       ) : activeTab === "discover" ? (
         <div className="p-4 text-center text-muted-foreground">Explore content coming soon</div>
       ) : null}

@@ -88,7 +88,7 @@ export default function FeedTopNav({ onSearchChange, showSearch = true }: FeedTo
             variant="ghost"
             size="icon"
             className="h-9 w-9 relative"
-            onClick={() => navigate("/dashboard?tab=notifications")}
+            onClick={() => navigate("/notifications")}
           >
             <Bell className="w-5 h-5" />
             <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 p-0 text-[10px] flex items-center justify-center bg-accent text-accent-foreground">
@@ -110,7 +110,7 @@ export default function FeedTopNav({ onSearchChange, showSearch = true }: FeedTo
             <DropdownMenuContent align="end" className="w-56">
               {user ? (
                 <>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                  <DropdownMenuItem onClick={() => navigate(`/profile/${user.id}`)}>
                     <User className="w-4 h-4 mr-2" />
                     Profile
                   </DropdownMenuItem>
