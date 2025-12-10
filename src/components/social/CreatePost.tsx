@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Image, Video, Music, X, Upload, Users, Radio } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Image, Video, Music, X, Upload, Users, Radio, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadToStorage } from "@/lib/storage";
-import { uploadToAWS } from "@/lib/awsMedia";
+import { uploadToAWS, validateFile, getFileSizeLimits } from "@/lib/awsMedia";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import imageCompression from "browser-image-compression";
@@ -18,7 +19,11 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
   const [mediaType, setMediaType] = useState<"image" | "video" | "audio" | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fileSizeLimits = getFileSizeLimits();
 
   const handleFileSelect = (type: "image" | "video" | "audio") => {
     setMediaType(type);
@@ -26,11 +31,11 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
     if (!input) return;
 
     if (type === "image") {
-      input.accept = "image/*";
+      input.accept = "image/jpeg,image/png,image/gif,image/webp";
     } else if (type === "video") {
-      input.accept = "video/*";
+      input.accept = "video/mp4,video/webm,video/quicktime";
     } else if (type === "audio") {
-      input.accept = "audio/*";
+      input.accept = "audio/mpeg,audio/wav,audio/ogg,audio/mp3";
     }
     input.click();
   };
@@ -39,10 +44,10 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size limits
-    const maxSize = mediaType === "image" ? 10 * 1024 * 1024 : 100 * 1024 * 1024; // 10MB for images, 100MB for videos/audio
-    if (file.size > maxSize) {
-      toast.error(`File too large. Max size: ${mediaType === "image" ? "10MB" : "100MB"}`);
+    // Validate file
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error);
       return;
     }
 
@@ -68,29 +73,47 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
     }
 
     setUploading(true);
+    setUploadProgress(0);
+    setUploadStatus("Preparing upload...");
+
     try {
       let mediaUrl = "";
       let fileToUpload = selectedFile;
 
-      // Compress images more aggressively for feed
+      // Compress images for optimal feed performance
       if (mediaType === "image") {
+        setUploadStatus("Compressing image...");
         const options = {
-          maxSizeMB: 1, // Reduced from 2MB to 1MB for faster loading
-          maxWidthOrHeight: 1280, // Reduced from 1920 to 1280 for feed optimization
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1280,
           useWebWorker: true,
-          initialQuality: 0.8, // Slightly reduce quality for smaller files
+          initialQuality: 0.85,
         };
         fileToUpload = await imageCompression(selectedFile, options);
+        setUploadProgress(10);
       }
 
-      // Try AWS S3/CloudFront first for fastest global delivery
-      const awsResult = await uploadToAWS(fileToUpload, `posts/${user.id}`);
+      setUploadStatus("Uploading to AWS S3...");
+
+      // Upload to AWS S3/CloudFront for fast global delivery
+      const awsResult = await uploadToAWS(
+        fileToUpload, 
+        `posts/${user.id}`,
+        (progress) => {
+          // Map progress to 10-90% range (compression takes 0-10%, DB insert takes 90-100%)
+          const mappedProgress = 10 + Math.round(progress.percentage * 0.8);
+          setUploadProgress(mappedProgress);
+          setUploadStatus(`Uploading... ${progress.percentage}%`);
+        }
+      );
       
       if (awsResult?.cdnUrl) {
         mediaUrl = awsResult.cdnUrl;
         console.log("Uploaded to AWS CDN:", mediaUrl);
+        setUploadStatus("Upload complete!");
       } else {
         // Fallback to Supabase Storage
+        setUploadStatus("Falling back to backup storage...");
         console.log("AWS upload failed, falling back to Supabase Storage");
         try {
           const fileExt = fileToUpload.name.split(".").pop();
@@ -99,14 +122,15 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
           const { data: uploadData, error: uploadError } = await uploadToStorage("post-media", fileName, fileToUpload);
           if (uploadError) throw uploadError;
 
-          // Get public URL from upload result
           mediaUrl = uploadData?.publicUrl || "";
         } catch (storageError) {
           console.warn("Storage upload failed, using data URL fallback:", storageError);
-          // Fallback: Convert to data URL and store in database
           mediaUrl = previewUrl || "";
         }
       }
+
+      setUploadProgress(95);
+      setUploadStatus("Saving post...");
 
       // Create post in database
       const { error: insertError } = await supabase
@@ -120,21 +144,29 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
 
       if (insertError) throw insertError;
 
+      setUploadProgress(100);
+      setUploadStatus("Post created!");
+
       toast.success("Post created successfully!");
       
-      // Reset form
-      setContent("");
-      setSelectedFile(null);
-      setMediaType(null);
-      setPreviewUrl(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      
-      onPostCreated();
+      // Reset form after short delay to show completion
+      setTimeout(() => {
+        setContent("");
+        setSelectedFile(null);
+        setMediaType(null);
+        setPreviewUrl(null);
+        setUploadProgress(0);
+        setUploadStatus("");
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        onPostCreated();
+      }, 500);
     } catch (error: any) {
       console.error("Error creating post:", error);
       toast.error(error.message || "Failed to create post");
+      setUploadStatus("");
+      setUploadProgress(0);
     } finally {
       setUploading(false);
     }
@@ -144,9 +176,21 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
     setSelectedFile(null);
     setMediaType(null);
     setPreviewUrl(null);
+    setUploadProgress(0);
+    setUploadStatus("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const getFileSizeLabel = (type: "image" | "video" | "audio") => {
+    const limits: Record<string, number> = {
+      image: fileSizeLimits.image,
+      video: fileSizeLimits.video,
+      audio: fileSizeLimits.audio,
+    };
+    const mb = limits[type] / (1024 * 1024);
+    return `Max ${mb}MB`;
   };
 
   return (
@@ -235,6 +279,13 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
           </Button>
         </div>
 
+        {uploading && (
+          <div className="space-y-2">
+            <Progress value={uploadProgress} className="h-2" />
+            <p className="text-xs text-muted-foreground text-center">{uploadStatus}</p>
+          </div>
+        )}
+
             <Button
               onClick={handlePost}
               disabled={uploading || !selectedFile}
@@ -243,7 +294,12 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
               {uploading ? (
                 <>
                   <Upload className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
+                  {uploadProgress}% Uploading...
+                </>
+              ) : uploadProgress === 100 ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Posted!
                 </>
               ) : (
                 "Post"
