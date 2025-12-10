@@ -1,5 +1,8 @@
 project_id = "pcsancednuywpxvuruqb"
 
+[functions.ivs-stream]
+verify_jwt = false
+
 [functions.create-payment]
 verify_jwt = true
 
