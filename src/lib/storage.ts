@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Convert a File/Blob to base64 data URL
+ * Convert a File/Blob to base64 data URL (fallback)
  */
 async function fileToBase64(file: File | Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -13,8 +13,7 @@ async function fileToBase64(file: File | Blob): Promise<string> {
 }
 
 /**
- * Upload to storage - uses base64 encoding as primary method since 
- * Supabase Storage has schema issues on this instance
+ * Upload to storage using Edge Function (primary) or base64 fallback
  */
 export async function uploadToStorage(
   bucket: string,
@@ -23,10 +22,47 @@ export async function uploadToStorage(
   options?: { contentType?: string; upsert?: boolean }
 ): Promise<{ data: { path: string; publicUrl?: string } | null; error: Error | null }> {
   try {
-    // Convert file to base64 data URL - this bypasses all Supabase Storage issues
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    
+    // Try Edge Function upload first
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/storage-upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          'Content-Type': file.type || 'application/octet-stream',
+          'x-bucket': bucket,
+          'x-path': path,
+        },
+        body: file,
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.publicUrl) {
+          return { 
+            data: { 
+              path: result.path, 
+              publicUrl: result.publicUrl 
+            }, 
+            error: null 
+          };
+        }
+      }
+      
+      // If edge function fails, log and fall through to base64
+      const errorText = await response.text();
+      console.warn('Edge function upload failed, falling back to base64:', errorText);
+    } catch (edgeFnError) {
+      console.warn('Edge function error, falling back to base64:', edgeFnError);
+    }
+    
+    // Fallback: Convert file to base64 data URL
     const base64Url = await fileToBase64(file);
     
-    // Return the base64 URL directly - components can use this as the image source
     return { 
       data: { 
         path: path, 
