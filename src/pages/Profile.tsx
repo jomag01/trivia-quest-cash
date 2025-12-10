@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   UserPlus, UserCheck, ArrowLeft, Camera, Settings, Share2, 
   Grid3X3, Heart, Video, ShoppingBag, Radio, MoreHorizontal,
-  Link as LinkIcon, MapPin, Calendar, Verified, TrendingUp, Eye, Diamond
+  Link as LinkIcon, MapPin, Calendar, Verified, TrendingUp, Eye, Diamond,
+  Trash2, Play
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadToStorage } from "@/lib/storage";
@@ -14,6 +15,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
+import { DeleteContentDialog } from "@/components/profile/DeleteContentDialog";
 
 const Profile = () => {
   const { userId } = useParams();
@@ -30,8 +33,15 @@ const Profile = () => {
     likes: 0,
   });
   const [posts, setPosts] = useState<any[]>([]);
+  const [videoPosts, setVideoPosts] = useState<any[]>([]);
+  const [likedPosts, setLikedPosts] = useState<any[]>([]);
+  const [liveStreams, setLiveStreams] = useState<any[]>([]);
+  const [userProducts, setUserProducts] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState("posts");
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "post" | "product"; id: string; title?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -39,7 +49,7 @@ const Profile = () => {
     if (userId) {
       fetchProfile();
       fetchStats();
-      fetchPosts();
+      fetchAllContent();
       if (user && user.id !== userId) {
         checkFollowStatus();
       }
@@ -84,20 +94,48 @@ const Profile = () => {
     }
   };
 
-  const fetchPosts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(30);
+  const fetchAllContent = async () => {
+    // Fetch all posts
+    const { data: allPosts } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
 
-      if (error) throw error;
-      setPosts(data || []);
-    } catch (error: any) {
-      console.error("Error fetching posts:", error);
-    }
+    setPosts(allPosts || []);
+    setVideoPosts((allPosts || []).filter(p => p.media_type === 'video'));
+
+    // Fetch liked posts
+    const { data: likes } = await supabase
+      .from("post_likes")
+      .select("post_id, posts(*)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    setLikedPosts(likes?.map(l => l.posts).filter(Boolean) || []);
+
+    // Fetch live streams (ended ones as replays)
+    const { data: streams } = await supabase
+      .from("live_streams")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("status", "ended")
+      .order("ended_at", { ascending: false })
+      .limit(20);
+
+    setLiveStreams(streams || []);
+
+    // Fetch user's products
+    const { data: products } = await supabase
+      .from("products")
+      .select("*")
+      .eq("seller_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    setUserProducts(products || []);
   };
 
   const checkFollowStatus = async () => {
@@ -190,6 +228,16 @@ const Profile = () => {
     }
   };
 
+  const handleDeleteContent = (type: "post" | "product", id: string, title?: string) => {
+    setDeleteTarget({ type, id, title });
+    setDeleteDialogOpen(true);
+  };
+
+  const onContentDeleted = () => {
+    fetchAllContent();
+    fetchStats();
+  };
+
   const formatNumber = (num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -225,6 +273,70 @@ const Profile = () => {
   }
 
   const isOwnProfile = user?.id === userId;
+
+  const renderPostGrid = (postList: any[], showDelete: boolean = false) => (
+    <div className="grid grid-cols-3 gap-0.5">
+      {postList.map((post) => (
+        <div
+          key={post.id}
+          className="aspect-square bg-muted relative group cursor-pointer overflow-hidden"
+        >
+          {post.media_url ? (
+            <>
+              {post.media_type === 'video' ? (
+                <>
+                  <video
+                    src={post.media_url}
+                    className="w-full h-full object-cover"
+                    muted
+                  />
+                  <div className="absolute top-2 right-2">
+                    <Play className="w-4 h-4 text-white drop-shadow fill-white" />
+                  </div>
+                </>
+              ) : (
+                <img
+                  src={post.thumbnail_url || post.media_url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center p-2 bg-card">
+              <p className="text-xs line-clamp-4 text-center">{post.content}</p>
+            </div>
+          )}
+          
+          {/* Hover Overlay */}
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+            <div className="flex items-center gap-1 text-white">
+              <Heart className="w-5 h-5 fill-white" />
+              <span className="font-semibold">{formatNumber(post.likes_count || 0)}</span>
+            </div>
+            <div className="flex items-center gap-1 text-white">
+              <Eye className="w-5 h-5" />
+              <span className="font-semibold">{formatNumber(post.views_count || 0)}</span>
+            </div>
+            {showDelete && isOwnProfile && (
+              <Button
+                size="icon"
+                variant="destructive"
+                className="h-8 w-8 rounded-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteContent("post", post.id, post.content?.substring(0, 30));
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -366,7 +478,11 @@ const Profile = () => {
         <div className="flex gap-3 mt-4">
           {isOwnProfile ? (
             <>
-              <Button variant="outline" className="flex-1 rounded-full">
+              <Button 
+                variant="outline" 
+                className="flex-1 rounded-full"
+                onClick={() => setEditProfileOpen(true)}
+              >
                 <Settings className="w-4 h-4 mr-2" />
                 Edit Profile
               </Button>
@@ -475,50 +591,63 @@ const Profile = () => {
               {isOwnProfile && <p className="text-sm">Share your first post!</p>}
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-0.5">
-              {posts.map((post) => (
-                <div
-                  key={post.id}
-                  className="aspect-square bg-muted relative group cursor-pointer overflow-hidden"
-                >
-                  {post.media_url ? (
-                    <>
-                      {post.media_type === 'video' ? (
-                        <>
-                          <video
-                            src={post.media_url}
-                            className="w-full h-full object-cover"
-                            muted
-                          />
-                          <div className="absolute top-2 right-2">
-                            <Video className="w-4 h-4 text-white drop-shadow" />
-                          </div>
-                        </>
-                      ) : (
-                        <img
-                          src={post.thumbnail_url || post.media_url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      )}
-                    </>
+            renderPostGrid(posts, true)
+          )}
+        </TabsContent>
+
+        <TabsContent value="videos" className="mt-0">
+          {videoPosts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <Video className="w-16 h-16 mb-4 opacity-20" />
+              <p className="font-medium">No videos yet</p>
+              {isOwnProfile && <p className="text-sm">Upload your first video!</p>}
+            </div>
+          ) : (
+            renderPostGrid(videoPosts, true)
+          )}
+        </TabsContent>
+
+        <TabsContent value="liked" className="mt-0">
+          {!isOwnProfile ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <Heart className="w-16 h-16 mb-4 opacity-20" />
+              <p className="font-medium">Liked content is private</p>
+            </div>
+          ) : likedPosts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <Heart className="w-16 h-16 mb-4 opacity-20" />
+              <p className="font-medium">No liked posts yet</p>
+              <p className="text-sm">Posts you like will appear here</p>
+            </div>
+          ) : (
+            renderPostGrid(likedPosts, false)
+          )}
+        </TabsContent>
+
+        <TabsContent value="live" className="mt-0">
+          {liveStreams.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <Radio className="w-16 h-16 mb-4 opacity-20" />
+              <p className="font-medium">No live replays</p>
+              {isOwnProfile && <p className="text-sm">Your past live streams will appear here</p>}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 p-2">
+              {liveStreams.map((stream) => (
+                <div key={stream.id} className="aspect-video bg-muted rounded-lg overflow-hidden relative group cursor-pointer">
+                  {stream.thumbnail_url ? (
+                    <img src={stream.thumbnail_url} alt={stream.title} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center p-2 bg-card">
-                      <p className="text-xs line-clamp-4 text-center">{post.content}</p>
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                      <Radio className="w-8 h-8 text-muted-foreground" />
                     </div>
                   )}
-                  
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                    <div className="flex items-center gap-1 text-white">
-                      <Heart className="w-5 h-5 fill-white" />
-                      <span className="font-semibold">{formatNumber(post.likes_count || 0)}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-white">
-                      <Eye className="w-5 h-5" />
-                      <span className="font-semibold">{formatNumber(post.views_count || 0)}</span>
-                    </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2">
+                    <p className="text-white text-sm font-medium line-clamp-1">{stream.title}</p>
+                    <p className="text-white/70 text-xs">{formatNumber(stream.total_views || 0)} views</p>
+                  </div>
+                  <div className="absolute top-2 right-2 bg-black/60 px-2 py-0.5 rounded text-xs text-white">
+                    Replay
                   </div>
                 </div>
               ))}
@@ -526,34 +655,79 @@ const Profile = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="videos" className="mt-0">
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Video className="w-16 h-16 mb-4 opacity-20" />
-            <p className="font-medium">No videos yet</p>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="liked" className="mt-0">
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Heart className="w-16 h-16 mb-4 opacity-20" />
-            <p className="font-medium">Liked content is private</p>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="live" className="mt-0">
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Radio className="w-16 h-16 mb-4 opacity-20" />
-            <p className="font-medium">No live replays</p>
-          </div>
-        </TabsContent>
-
         <TabsContent value="shop" className="mt-0">
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <ShoppingBag className="w-16 h-16 mb-4 opacity-20" />
-            <p className="font-medium">No shop items</p>
-          </div>
+          {userProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <ShoppingBag className="w-16 h-16 mb-4 opacity-20" />
+              <p className="font-medium">No shop items</p>
+              {isOwnProfile && <p className="text-sm">List your first product!</p>}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 p-2">
+              {userProducts.map((product) => (
+                <div key={product.id} className="bg-card rounded-lg overflow-hidden border relative group">
+                  <div className="aspect-square bg-muted">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ShoppingBag className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-2">
+                    <p className="font-medium text-sm line-clamp-1">{product.name}</p>
+                    <p className="text-primary font-bold">₱{product.final_price || product.base_price}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${
+                        product.approval_status === 'approved' 
+                          ? 'bg-green-500/20 text-green-600' 
+                          : product.approval_status === 'rejected'
+                          ? 'bg-red-500/20 text-red-600'
+                          : 'bg-yellow-500/20 text-yellow-600'
+                      }`}>
+                        {product.approval_status || 'pending'}
+                      </span>
+                    </div>
+                  </div>
+                  {isOwnProfile && (
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDeleteContent("product", product.id, product.name)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
+
+      {/* Edit Profile Dialog */}
+      {profile && (
+        <EditProfileDialog
+          open={editProfileOpen}
+          onOpenChange={setEditProfileOpen}
+          profile={profile}
+          onProfileUpdated={fetchProfile}
+        />
+      )}
+
+      {/* Delete Content Dialog */}
+      {deleteTarget && (
+        <DeleteContentDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          contentType={deleteTarget.type}
+          contentId={deleteTarget.id}
+          contentTitle={deleteTarget.title}
+          onDeleted={onContentDeleted}
+        />
+      )}
     </div>
   );
 };
