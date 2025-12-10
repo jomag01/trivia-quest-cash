@@ -30,12 +30,17 @@ export default function GamesCategoryGrid() {
   }, []);
 
   const fetchCategories = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("game_categories")
       .select("*")
       .eq("is_active", true)
       .order("created_at", { ascending: true });
 
+    if (error) {
+      console.error("Error fetching game categories:", error);
+      setLoading(false);
+      return;
+    }
     if (data) {
       setCategories(data);
     }
@@ -60,6 +65,14 @@ export default function GamesCategoryGrid() {
             <div key={i} className="aspect-square bg-muted rounded-xl animate-pulse" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (categories.length === 0) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        <p>No game categories available</p>
       </div>
     );
   }

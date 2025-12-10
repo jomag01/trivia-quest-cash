@@ -49,6 +49,7 @@ const featuredStream = {
 
 export default function GamingHome() {
   const [categories, setCategories] = useState<GameCategory[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,13 +57,21 @@ export default function GamingHome() {
   }, []);
 
   const fetchCategories = async () => {
-    const { data } = await (supabase as any)
-      .from("game_categories")
-      .select("*")
-      .eq("is_active", true)
-      .order("name");
-    
-    if (data) setCategories(data);
+    try {
+      const { data, error } = await supabase
+        .from("game_categories")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+      
+      if (error) {
+        console.error("Error fetching game categories:", error);
+        return;
+      }
+      if (data) setCategories(data);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatViews = (views: number) => {
@@ -147,25 +156,37 @@ export default function GamingHome() {
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </div>
-        <ScrollArea className="w-full whitespace-nowrap">
+        {loading ? (
           <div className="flex gap-3">
-            {categories.map((category) => (
-              <Card
-                key={category.id}
-                className="flex-shrink-0 w-28 p-3 cursor-pointer hover:scale-105 transition-transform overflow-hidden"
-                style={{
-                  background: `linear-gradient(135deg, ${category.color_from}20, ${category.color_to}20)`,
-                  borderColor: `${category.color_from}40`,
-                }}
-                onClick={() => navigate(`/game/${category.slug}`)}
-              >
-                <div className="text-3xl mb-2">{category.icon}</div>
-                <p className="text-sm font-medium truncate">{category.name}</p>
-              </Card>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="flex-shrink-0 w-28 h-24 bg-muted rounded-lg animate-pulse" />
             ))}
           </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        ) : categories.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No game categories available</p>
+          </div>
+        ) : (
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-3">
+              {categories.map((category) => (
+                <Card
+                  key={category.id}
+                  className="flex-shrink-0 w-28 p-3 cursor-pointer hover:scale-105 transition-transform overflow-hidden"
+                  style={{
+                    background: `linear-gradient(135deg, ${category.color_from}20, ${category.color_to}20)`,
+                    borderColor: `${category.color_from}40`,
+                  }}
+                  onClick={() => navigate(`/game/${category.slug}`)}
+                >
+                  <div className="text-3xl mb-2">{category.icon}</div>
+                  <p className="text-sm font-medium truncate">{category.name}</p>
+                </Card>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        )}
       </section>
 
       {/* Popular Clips */}
