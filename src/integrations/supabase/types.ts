@@ -3588,6 +3588,7 @@ export type Database = {
           id: string
           media_type: string
           media_url: string
+          metadata: Json | null
           user_id: string
           views_count: number | null
         }
@@ -3597,6 +3598,7 @@ export type Database = {
           id?: string
           media_type?: string
           media_url: string
+          metadata?: Json | null
           user_id: string
           views_count?: number | null
         }
@@ -3606,6 +3608,7 @@ export type Database = {
           id?: string
           media_type?: string
           media_url?: string
+          metadata?: Json | null
           user_id?: string
           views_count?: number | null
         }
