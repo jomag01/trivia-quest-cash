@@ -21,12 +21,21 @@ export default function AppLogoManagement() {
       .from("app_settings")
       .select("value")
       .eq("key", "app_logo")
-      .single();
+      .maybeSingle();
 
     if (data?.value) {
       setLogoUrl(data.value);
     }
     setLoading(false);
+  };
+
+  const convertToBase64 = (file: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,38 +49,41 @@ export default function AppLogoManagement() {
 
     setUploading(true);
     try {
-      // Compress image
+      // Compress image aggressively for base64 storage
       const compressed = await imageCompression(file, {
-        maxSizeMB: 0.5,
-        maxWidthOrHeight: 512,
+        maxSizeMB: 0.1,
+        maxWidthOrHeight: 256,
         useWebWorker: true
       });
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `app-logo.${fileExt}`;
+      // Convert to base64 data URL
+      const base64Url = await convertToBase64(compressed);
 
-      // Upload to ads bucket (reuse existing bucket)
-      const { error: uploadError } = await supabase.storage
-        .from("ads")
-        .upload(fileName, compressed, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("ads")
-        .getPublicUrl(fileName);
-
-      const newUrl = `${publicUrl}?t=${Date.now()}`;
-
-      // Update app_settings
-      const { error: updateError } = await supabase
+      // Check if app_logo setting exists
+      const { data: existing } = await supabase
         .from("app_settings")
-        .update({ value: newUrl, updated_at: new Date().toISOString() })
-        .eq("key", "app_logo");
+        .select("id")
+        .eq("key", "app_logo")
+        .maybeSingle();
 
-      if (updateError) throw updateError;
+      if (existing) {
+        // Update existing
+        const { error: updateError } = await supabase
+          .from("app_settings")
+          .update({ value: base64Url, updated_at: new Date().toISOString() })
+          .eq("key", "app_logo");
 
-      setLogoUrl(newUrl);
+        if (updateError) throw updateError;
+      } else {
+        // Insert new
+        const { error: insertError } = await supabase
+          .from("app_settings")
+          .insert({ key: "app_logo", value: base64Url });
+
+        if (insertError) throw insertError;
+      }
+
+      setLogoUrl(base64Url);
       toast.success("App logo updated!");
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -151,7 +163,7 @@ export default function AppLogoManagement() {
           >
             <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground">Click to upload app logo</p>
-            <p className="text-xs text-muted-foreground mt-1">Recommended: 512x512 PNG</p>
+            <p className="text-xs text-muted-foreground mt-1">Recommended: 256x256 PNG</p>
           </div>
         )}
 
