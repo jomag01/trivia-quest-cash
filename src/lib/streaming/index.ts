@@ -1,8 +1,9 @@
 // Enterprise streaming infrastructure exports
-// SFU architecture, adaptive bitrate, hardware encoding
+// AWS IVS integration, SFU architecture, adaptive bitrate, hardware encoding
 
 export * from './StreamingConfig';
 export * from './SFUConnection';
+export * from './IVSConnection';
 
 // Re-export legacy connections for backward compatibility
 export { BroadcasterConnection, ViewerConnection } from '../webrtc';
