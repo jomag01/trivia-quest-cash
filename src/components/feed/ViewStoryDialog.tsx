@@ -1,10 +1,33 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Music } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+
+interface TextOverlay {
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  color: string;
+  fontWeight: string;
+  fontStyle: string;
+  textAlign: string;
+}
+
+interface EmojiOverlay {
+  emoji: string;
+  x: number;
+  y: number;
+  size: number;
+}
+
+interface StoryMetadata {
+  textOverlays?: TextOverlay[];
+  emojiOverlays?: EmojiOverlay[];
+  musicTrack?: string | null;
+}
 
 interface Story {
   id: string;
@@ -12,6 +35,7 @@ interface Story {
   media_url: string;
   media_type: string;
   created_at: string;
+  metadata?: StoryMetadata;
   profiles?: {
     full_name: string | null;
     avatar_url?: string | null;
@@ -25,6 +49,14 @@ interface ViewStoryDialogProps {
   username: string;
   avatarUrl?: string;
 }
+
+const MUSIC_TRACKS: Record<string, string> = {
+  "1": "Happy Vibes",
+  "2": "Chill Beats",
+  "3": "Party Time",
+  "4": "Emotional",
+  "5": "Upbeat Energy"
+};
 
 export default function ViewStoryDialog({ 
   open, 
@@ -74,7 +106,7 @@ export default function ViewStoryDialog({
       .order("created_at", { ascending: true });
 
     if (data) {
-      setStories(data);
+      setStories(data as Story[]);
       setCurrentIndex(0);
       setProgress(0);
     }
@@ -97,6 +129,7 @@ export default function ViewStoryDialog({
   };
 
   const currentStory = stories[currentIndex];
+  const metadata = currentStory?.metadata as StoryMetadata | undefined;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,23 +174,77 @@ export default function ViewStoryDialog({
           </div>
 
           {/* Story content */}
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center relative">
             {currentStory && (
-              currentStory.media_type === "video" ? (
-                <video 
-                  src={currentStory.media_url} 
-                  className="max-h-full max-w-full object-contain"
-                  autoPlay
-                  playsInline
-                  muted
-                />
-              ) : (
-                <img 
-                  src={currentStory.media_url} 
-                  alt="Story"
-                  className="max-h-full max-w-full object-contain"
-                />
-              )
+              <>
+                {currentStory.media_type === "video" ? (
+                  <video 
+                    src={currentStory.media_url} 
+                    className="max-h-full max-w-full object-contain"
+                    autoPlay
+                    playsInline
+                    muted
+                  />
+                ) : (
+                  <img 
+                    src={currentStory.media_url} 
+                    alt="Story"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                )}
+
+                {/* Text overlays */}
+                {metadata?.textOverlays?.map((overlay, idx) => (
+                  <div
+                    key={idx}
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: `${overlay.x}%`,
+                      top: `${overlay.y}%`,
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: `${overlay.fontSize}px`,
+                      color: overlay.color,
+                      fontWeight: overlay.fontWeight,
+                      fontStyle: overlay.fontStyle,
+                      textAlign: overlay.textAlign as any,
+                      textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                      zIndex: 10
+                    }}
+                  >
+                    {overlay.text}
+                  </div>
+                ))}
+
+                {/* Emoji overlays */}
+                {metadata?.emojiOverlays?.map((overlay, idx) => (
+                  <div
+                    key={idx}
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: `${overlay.x}%`,
+                      top: `${overlay.y}%`,
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: `${overlay.size}px`,
+                      zIndex: 10
+                    }}
+                  >
+                    {overlay.emoji}
+                  </div>
+                ))}
+
+                {/* Music indicator */}
+                {metadata?.musicTrack && (
+                  <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg p-3 flex items-center gap-3 z-10">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center animate-pulse">
+                      <Music className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium text-sm">{MUSIC_TRACKS[metadata.musicTrack] || "Music"}</p>
+                      <p className="text-white/60 text-xs">Lovable Music</p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
