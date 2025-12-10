@@ -54,10 +54,11 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image } from "lucide-react";
 import { POSSystem } from "@/components/admin/POSSystem";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
 import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
+import AppLogoManagement from "@/components/admin/AppLogoManagement";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -103,6 +104,7 @@ const Admin = () => {
     { id: "sales-analytics", label: "Sales Analytics", icon: TrendingUp },
     { id: "accounting", label: "Accounting & Payouts", icon: Calculator },
     { id: "homepage", label: "Homepage Settings", icon: Home },
+    { id: "app-logo", label: "App Logo", icon: Image },
     { id: "credits", label: "Credit Purchases", icon: CreditCard },
     { id: "payouts", label: "Payout Requests", icon: DollarSign },
     { id: "categories", label: "Game Categories", icon: Gamepad2 },
@@ -594,6 +596,7 @@ const Admin = () => {
           {activeTab === "sales-analytics" && <SalesAnalytics />}
           {activeTab === "accounting" && <AdminAccountingDashboard />}
           {activeTab === "homepage" && <HomePageManagement />}
+          {activeTab === "app-logo" && <AppLogoManagement />}
           {activeTab === "ad-management" && <AdManagement />}
           {activeTab === "user-ads" && <UserAdManagement />}
           {activeTab === "categories" && <CategoryManagement />}
