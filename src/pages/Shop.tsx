@@ -345,17 +345,17 @@ const Shop = () => {
     navigate(`/shop?tab=${value}`);
   };
 
-  return <div className="min-h-screen bg-white pb-20">
+  return <div className="min-h-screen bg-background pb-20">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         {/* Top Header with Search and Cart */}
-        <div className="sticky top-0 z-40 bg-white border-b border-gray-100 px-3 py-2">
+        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border shadow-sm px-3 py-2">
           <div className="flex items-center gap-2 max-w-7xl mx-auto">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input placeholder="Search products..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm bg-gray-50 border-gray-200" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Search products..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm bg-muted/50 border-border" />
             </div>
             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/dashboard?tab=cart")}>
-              <ShoppingCart className="w-5 h-5 text-black" />
+              <ShoppingCart className="w-5 h-5 text-foreground" />
             </Button>
           </div>
         </div>
