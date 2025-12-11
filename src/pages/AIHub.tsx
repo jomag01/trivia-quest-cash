@@ -1,12 +1,15 @@
-import React, { useState, memo } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   ImageIcon, 
   VideoIcon, 
@@ -16,23 +19,151 @@ import {
   Loader2,
   Download,
   Copy,
-  Wand2
+  Wand2,
+  Crown,
+  X,
+  ImagePlus
 } from 'lucide-react';
 
 const AIHub = memo(() => {
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState('text-to-image');
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [imageDescription, setImageDescription] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [videoDescription, setVideoDescription] = useState<string | null>(null);
+  
+  // Usage tracking
+  const [imageGenerationCount, setImageGenerationCount] = useState(0);
+  const [freeImageLimit, setFreeImageLimit] = useState(3);
+  const [videoCreditCost, setVideoCreditCost] = useState(10);
+  const [userCredits, setUserCredits] = useState(0);
+
+  useEffect(() => {
+    fetchSettings();
+    if (user) {
+      fetchUsageStats();
+      fetchUserCredits();
+    }
+  }, [user]);
+
+  const fetchSettings = async () => {
+    try {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('key, value')
+        .in('key', ['ai_free_image_limit', 'ai_video_credit_cost']);
+      
+      data?.forEach(setting => {
+        if (setting.key === 'ai_free_image_limit') {
+          setFreeImageLimit(parseInt(setting.value || '3'));
+        } else if (setting.key === 'ai_video_credit_cost') {
+          setVideoCreditCost(parseInt(setting.value || '10'));
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
+  };
+
+  const fetchUsageStats = async () => {
+    if (!user) return;
+    try {
+      const { count } = await supabase
+        .from('ai_generations')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('generation_type', 'text-to-image');
+      
+      setImageGenerationCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching usage stats:', error);
+    }
+  };
+
+  const fetchUserCredits = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+      
+      setUserCredits(data?.credits || 0);
+    } catch (error) {
+      console.error('Error fetching credits:', error);
+    }
+  };
+
+  const canGenerateImage = () => {
+    if (!user) return false;
+    return imageGenerationCount < freeImageLimit || userCredits > 0;
+  };
+
+  const canGenerateVideo = () => {
+    if (!user) return false;
+    return userCredits >= videoCreditCost;
+  };
+
+  const trackGeneration = async (type: string, creditsUsed: number = 0) => {
+    if (!user) return;
+    try {
+      await supabase.from('ai_generations').insert({
+        user_id: user.id,
+        generation_type: type,
+        prompt: prompt,
+        credits_used: creditsUsed
+      });
+    } catch (error) {
+      console.error('Error tracking generation:', error);
+    }
+  };
+
+  const deductCredits = async (amount: number) => {
+    if (!user) return false;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ credits: userCredits - amount })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      setUserCredits(prev => prev - amount);
+      return true;
+    } catch (error) {
+      console.error('Error deducting credits:', error);
+      return false;
+    }
+  };
 
   const handleTextToImage = async () => {
     if (!prompt.trim()) {
       toast.error('Please enter a prompt');
       return;
+    }
+
+    if (!user) {
+      toast.error('Please login to generate images');
+      return;
+    }
+
+    // Check if user has reached free limit
+    if (imageGenerationCount >= freeImageLimit) {
+      if (userCredits <= 0) {
+        toast.error('You have reached your free image limit. Please buy credits to continue.');
+        return;
+      }
+      // Deduct 1 credit for image generation beyond free limit
+      const deducted = await deductCredits(1);
+      if (!deducted) {
+        toast.error('Failed to deduct credits');
+        return;
+      }
     }
 
     setIsGenerating(true);
@@ -42,7 +173,8 @@ const AIHub = memo(() => {
       const { data, error } = await supabase.functions.invoke('ai-generate', {
         body: { 
           type: 'text-to-image',
-          prompt: prompt.trim()
+          prompt: prompt.trim(),
+          referenceImage: referenceImage
         }
       });
 
@@ -50,6 +182,8 @@ const AIHub = memo(() => {
 
       if (data?.imageUrl) {
         setGeneratedImage(data.imageUrl);
+        await trackGeneration('text-to-image', imageGenerationCount >= freeImageLimit ? 1 : 0);
+        setImageGenerationCount(prev => prev + 1);
         toast.success('Image generated successfully!');
       } else {
         throw new Error('No image returned');
@@ -62,7 +196,7 @@ const AIHub = memo(() => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'reference') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -72,9 +206,11 @@ const AIHub = memo(() => {
       if (type === 'image') {
         setUploadedImage(base64);
         setImageDescription(null);
-      } else {
+      } else if (type === 'video') {
         setUploadedVideo(base64);
         setVideoDescription(null);
+      } else if (type === 'reference') {
+        setReferenceImage(base64);
       }
     };
     reader.readAsDataURL(file);
@@ -152,7 +288,25 @@ const AIHub = memo(() => {
       return;
     }
 
-    toast.info('Text-to-video generation coming soon! Currently in development.');
+    if (!user) {
+      toast.error('Please login to generate videos');
+      return;
+    }
+
+    if (!canGenerateVideo()) {
+      toast.error(`You need at least ${videoCreditCost} credits to generate a video`);
+      return;
+    }
+
+    // Deduct credits
+    const deducted = await deductCredits(videoCreditCost);
+    if (!deducted) {
+      toast.error('Failed to deduct credits');
+      return;
+    }
+
+    await trackGeneration('text-to-video', videoCreditCost);
+    toast.info('Text-to-video generation coming soon! Your credits have been reserved.');
   };
 
   const copyToClipboard = (text: string) => {
@@ -167,6 +321,8 @@ const AIHub = memo(() => {
     link.download = `ai-generated-${Date.now()}.png`;
     link.click();
   };
+
+  const remainingFreeImages = Math.max(0, freeImageLimit - imageGenerationCount);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-24">
@@ -185,6 +341,37 @@ const AIHub = memo(() => {
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Transform your ideas into stunning visuals. Generate images from text, analyze images and videos with AI.
             </p>
+            
+            {/* Usage Stats */}
+            {user && (
+              <div className="flex flex-wrap justify-center gap-4 mt-6">
+                <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    <span className="text-sm">
+                      Free Images: <strong>{remainingFreeImages}/{freeImageLimit}</strong>
+                    </span>
+                  </div>
+                  <Progress value={(remainingFreeImages / freeImageLimit) * 100} className="h-1 mt-1" />
+                </Card>
+                <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
+                  <div className="flex items-center gap-2">
+                    <Crown className="h-4 w-4 text-yellow-500" />
+                    <span className="text-sm">
+                      Credits: <strong>{userCredits}</strong>
+                    </span>
+                  </div>
+                </Card>
+                <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
+                  <div className="flex items-center gap-2">
+                    <VideoIcon className="h-4 w-4 text-purple-500" />
+                    <span className="text-sm">
+                      Video Cost: <strong>{videoCreditCost} credits</strong>
+                    </span>
+                  </div>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -222,9 +409,17 @@ const AIHub = memo(() => {
                 <CardTitle className="flex items-center gap-2">
                   <Wand2 className="h-5 w-5 text-primary" />
                   Text to Image
+                  {remainingFreeImages > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {remainingFreeImages} free left
+                    </Badge>
+                  )}
                 </CardTitle>
                 <CardDescription>
-                  Describe what you want to create and let AI generate it for you
+                  Describe what you want to create and let AI generate it for you. 
+                  {remainingFreeImages === 0 && userCredits > 0 && (
+                    <span className="text-amber-500"> (1 credit per image)</span>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -237,9 +432,68 @@ const AIHub = memo(() => {
                     className="min-h-[120px] resize-none"
                   />
                 </div>
+
+                {/* Reference Image Upload */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <ImagePlus className="h-4 w-4" />
+                    Reference Image (Optional)
+                  </Label>
+                  <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, 'reference')}
+                      className="hidden"
+                      id="reference-upload"
+                    />
+                    <label htmlFor="reference-upload" className="cursor-pointer">
+                      {referenceImage ? (
+                        <div className="relative inline-block">
+                          <img src={referenceImage} alt="Reference" className="max-h-32 rounded-lg" />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setReferenceImage(null);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 py-2">
+                          <Upload className="h-8 w-8 text-muted-foreground" />
+                          <p className="text-xs text-muted-foreground">
+                            Add a reference image to guide the AI
+                          </p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </div>
+
+                {!user && (
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-sm text-amber-600">
+                      Please login to generate images
+                    </p>
+                  </div>
+                )}
+
+                {user && !canGenerateImage() && (
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-sm text-amber-600">
+                      You've used all {freeImageLimit} free images. Buy credits to continue generating!
+                    </p>
+                  </div>
+                )}
+
                 <Button 
                   onClick={handleTextToImage} 
-                  disabled={isGenerating || !prompt.trim()}
+                  disabled={isGenerating || !prompt.trim() || !canGenerateImage()}
                   className="w-full gap-2"
                   size="lg"
                 >
@@ -252,6 +506,9 @@ const AIHub = memo(() => {
                     <>
                       <Sparkles className="h-4 w-4" />
                       Generate Image
+                      {remainingFreeImages === 0 && userCredits > 0 && (
+                        <Badge variant="outline" className="ml-2">1 credit</Badge>
+                      )}
                     </>
                   )}
                 </Button>
@@ -357,9 +614,10 @@ const AIHub = memo(() => {
                 <CardTitle className="flex items-center gap-2">
                   <VideoIcon className="h-5 w-5 text-primary" />
                   Text to Video
+                  <Badge variant="secondary">{videoCreditCost} credits</Badge>
                 </CardTitle>
                 <CardDescription>
-                  Generate videos from text descriptions (Coming Soon)
+                  Generate videos from text descriptions. Requires {videoCreditCost} credits per video.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -372,14 +630,24 @@ const AIHub = memo(() => {
                     className="min-h-[120px] resize-none"
                   />
                 </div>
+
+                {user && !canGenerateVideo() && (
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-sm text-amber-600">
+                      You need at least {videoCreditCost} credits to generate a video. Current balance: {userCredits} credits.
+                    </p>
+                  </div>
+                )}
+
                 <Button 
                   onClick={handleTextToVideo} 
-                  disabled={isGenerating || !prompt.trim()}
+                  disabled={isGenerating || !prompt.trim() || !canGenerateVideo()}
                   className="w-full gap-2"
                   size="lg"
                 >
                   <VideoIcon className="h-4 w-4" />
-                  Generate Video (Coming Soon)
+                  Generate Video
+                  <Badge variant="outline" className="ml-2">{videoCreditCost} credits</Badge>
                 </Button>
                 <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
                   <p className="text-sm text-amber-600">

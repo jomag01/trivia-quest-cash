@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, prompt, imageUrl, videoUrl } = await req.json();
+    const { type, prompt, imageUrl, videoUrl, referenceImage } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -21,6 +21,27 @@ serve(async (req) => {
     console.log(`Processing ${type} request`);
 
     if (type === 'text-to-image') {
+      // Build message content based on whether reference image is provided
+      let messageContent: any;
+      
+      if (referenceImage) {
+        // Use reference image for style/content guidance
+        messageContent = [
+          {
+            type: "text",
+            text: `Generate a high-quality image based on this prompt: "${prompt}". Use the provided reference image as a style and composition guide.`
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: referenceImage
+            }
+          }
+        ];
+      } else {
+        messageContent = `Generate a high-quality image: ${prompt}`;
+      }
+
       // Use Nano Banana for image generation
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -33,7 +54,7 @@ serve(async (req) => {
           messages: [
             {
               role: "user",
-              content: `Generate a high-quality image: ${prompt}`
+              content: messageContent
             }
           ],
           modalities: ["image", "text"]
