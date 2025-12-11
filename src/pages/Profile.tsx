@@ -572,44 +572,47 @@ const Profile = () => {
 
       {/* Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-        <TabsList className="w-full justify-around bg-transparent border-b rounded-none h-12">
-          <TabsTrigger 
-            value="feed" 
-            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
-          >
-            <FileText className="w-5 h-5" />
-          </TabsTrigger>
-          <TabsTrigger 
-            value="posts" 
-            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
-          >
-            <Grid3X3 className="w-5 h-5" />
-          </TabsTrigger>
-          <TabsTrigger 
-            value="videos" 
-            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
-          >
-            <Video className="w-5 h-5" />
-          </TabsTrigger>
-          <TabsTrigger 
-            value="liked" 
-            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
-          >
-            <Heart className="w-5 h-5" />
-          </TabsTrigger>
-          <TabsTrigger 
-            value="live" 
-            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
-          >
-            <Radio className="w-5 h-5" />
-          </TabsTrigger>
-          <TabsTrigger 
-            value="shop" 
-            className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
-          >
-            <ShoppingBag className="w-5 h-5" />
-          </TabsTrigger>
-        </TabsList>
+        {/* Sticky Tabs */}
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border shadow-sm">
+          <TabsList className="w-full justify-around bg-transparent rounded-none h-12">
+            <TabsTrigger 
+              value="feed" 
+              className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+            >
+              <FileText className="w-5 h-5" />
+            </TabsTrigger>
+            <TabsTrigger 
+              value="posts" 
+              className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+            >
+              <Grid3X3 className="w-5 h-5" />
+            </TabsTrigger>
+            <TabsTrigger 
+              value="videos" 
+              className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+            >
+              <Video className="w-5 h-5" />
+            </TabsTrigger>
+            <TabsTrigger 
+              value="liked" 
+              className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+            >
+              <Heart className="w-5 h-5" />
+            </TabsTrigger>
+            <TabsTrigger 
+              value="live" 
+              className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+            >
+              <Radio className="w-5 h-5" />
+            </TabsTrigger>
+            <TabsTrigger 
+              value="shop" 
+              className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+            >
+              <ShoppingBag className="w-5 h-5" />
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="feed" className="mt-0">
           {posts.length === 0 ? (
