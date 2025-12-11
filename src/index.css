@@ -107,9 +107,15 @@
     @apply border-border;
   }
 
+  html, body {
+    height: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    position: relative;
   }
 
   h1, h2, h3, h4, h5, h6 {
