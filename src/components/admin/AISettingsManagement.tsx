@@ -13,6 +13,7 @@ interface CreditTier {
   credits: string;
   images: string;
   videos: string;
+  cost: string; // Admin's actual cost for this tier
 }
 
 const AISettingsManagement = () => {
@@ -22,11 +23,14 @@ const AISettingsManagement = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Credit tiers
+  // Cost markup percentage
+  const [costMarkupPercent, setCostMarkupPercent] = useState('100'); // 100% markup = 2x price
+
+  // Credit tiers with cost
   const [tiers, setTiers] = useState<CreditTier[]>([
-    { price: '100', credits: '50', images: '30', videos: '10' },
-    { price: '250', credits: '150', images: '100', videos: '30' },
-    { price: '500', credits: '400', images: '300', videos: '80' }
+    { price: '100', credits: '50', images: '30', videos: '10', cost: '30' },
+    { price: '250', credits: '150', images: '100', videos: '30', cost: '75' },
+    { price: '500', credits: '400', images: '300', videos: '80', cost: '150' }
   ]);
 
   // Commission settings
@@ -65,6 +69,10 @@ const AISettingsManagement = () => {
           setLeadershipPercent(setting.value || '25');
         }
 
+        if (setting.key === 'ai_cost_markup_percent') {
+          setCostMarkupPercent(setting.value || '100');
+        }
+
         // Parse tier settings
         const match = setting.key.match(/ai_credit_tier_(\d)_(\w+)/);
         if (match) {
@@ -77,6 +85,7 @@ const AISettingsManagement = () => {
               if (field === 'credits') newTiers[tierIndex].credits = setting.value || '0';
               if (field === 'image') newTiers[tierIndex].images = setting.value || '0';
               if (field === 'video') newTiers[tierIndex].videos = setting.value || '0';
+              if (field === 'cost') newTiers[tierIndex].cost = setting.value || '0';
               return newTiers;
             });
           }
@@ -97,6 +106,7 @@ const AISettingsManagement = () => {
         { key: 'ai_free_image_limit', value: freeImageLimit },
         { key: 'ai_video_credit_cost', value: videoCreditCost },
         { key: 'ai_credit_to_diamond_rate', value: creditToDiamondRate },
+        { key: 'ai_cost_markup_percent', value: costMarkupPercent },
         { key: 'ai_admin_earnings_percent', value: adminEarningsPercent },
         { key: 'ai_unilevel_percent', value: unilevelPercent },
         { key: 'ai_stairstep_percent', value: stairstepPercent },
@@ -106,16 +116,19 @@ const AISettingsManagement = () => {
         { key: 'ai_credit_tier_1_credits', value: tiers[0].credits },
         { key: 'ai_credit_tier_1_image', value: tiers[0].images },
         { key: 'ai_credit_tier_1_video', value: tiers[0].videos },
+        { key: 'ai_credit_tier_1_cost', value: tiers[0].cost },
         // Tier 2
         { key: 'ai_credit_tier_2_price', value: tiers[1].price },
         { key: 'ai_credit_tier_2_credits', value: tiers[1].credits },
         { key: 'ai_credit_tier_2_image', value: tiers[1].images },
         { key: 'ai_credit_tier_2_video', value: tiers[1].videos },
+        { key: 'ai_credit_tier_2_cost', value: tiers[1].cost },
         // Tier 3
         { key: 'ai_credit_tier_3_price', value: tiers[2].price },
         { key: 'ai_credit_tier_3_credits', value: tiers[2].credits },
         { key: 'ai_credit_tier_3_image', value: tiers[2].images },
         { key: 'ai_credit_tier_3_video', value: tiers[2].videos },
+        { key: 'ai_credit_tier_3_cost', value: tiers[2].cost },
       ];
 
       for (const update of updates) {
@@ -225,6 +238,29 @@ const AISettingsManagement = () => {
               </p>
             </div>
           </div>
+
+          {/* Cost Markup Percentage */}
+          <div className="pt-4 border-t">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-green-500" />
+                Cost Markup Percentage
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  value={costMarkupPercent}
+                  onChange={(e) => setCostMarkupPercent(e.target.value)}
+                  className="max-w-[120px]"
+                />
+                <span className="text-sm text-muted-foreground">% markup on cost</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {costMarkupPercent}% markup means: If cost is ₱100, selling price is ₱{(100 * (1 + parseFloat(costMarkupPercent) / 100)).toFixed(0)}
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -240,49 +276,68 @@ const AISettingsManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {['Starter', 'Popular', 'Pro'].map((tierName, index) => (
-            <div key={index} className="space-y-4">
-              <h4 className="font-medium flex items-center gap-2">
-                Tier {index + 1}: {tierName}
-                {index === 1 && <span className="text-xs text-primary">(Best Value)</span>}
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">Price (₱)</Label>
-                  <Input
-                    type="number"
-                    value={tiers[index].price}
-                    onChange={(e) => updateTier(index, 'price', e.target.value)}
-                  />
+          {['Starter', 'Popular', 'Pro'].map((tierName, index) => {
+            const cost = parseFloat(tiers[index].cost) || 0;
+            const price = parseFloat(tiers[index].price) || 0;
+            const profit = price - cost;
+            const profitMargin = price > 0 ? ((profit / price) * 100).toFixed(1) : '0';
+            
+            return (
+              <div key={index} className="space-y-4">
+                <h4 className="font-medium flex items-center gap-2">
+                  Tier {index + 1}: {tierName}
+                  {index === 1 && <span className="text-xs text-primary">(Best Value)</span>}
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-orange-600">Cost (₱)</Label>
+                    <Input
+                      type="number"
+                      value={tiers[index].cost}
+                      onChange={(e) => updateTier(index, 'cost', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Price (₱)</Label>
+                    <Input
+                      type="number"
+                      value={tiers[index].price}
+                      onChange={(e) => updateTier(index, 'price', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Credits</Label>
+                    <Input
+                      type="number"
+                      value={tiers[index].credits}
+                      onChange={(e) => updateTier(index, 'credits', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">~Images</Label>
+                    <Input
+                      type="number"
+                      value={tiers[index].images}
+                      onChange={(e) => updateTier(index, 'images', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">~Videos</Label>
+                    <Input
+                      type="number"
+                      value={tiers[index].videos}
+                      onChange={(e) => updateTier(index, 'videos', e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Credits</Label>
-                  <Input
-                    type="number"
-                    value={tiers[index].credits}
-                    onChange={(e) => updateTier(index, 'credits', e.target.value)}
-                  />
+                <div className="text-xs text-muted-foreground flex gap-4">
+                  <span>Profit: <strong className="text-green-600">₱{profit.toLocaleString()}</strong></span>
+                  <span>Margin: <strong className={profit > 0 ? 'text-green-600' : 'text-destructive'}>{profitMargin}%</strong></span>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">~Images</Label>
-                  <Input
-                    type="number"
-                    value={tiers[index].images}
-                    onChange={(e) => updateTier(index, 'images', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">~Videos</Label>
-                  <Input
-                    type="number"
-                    value={tiers[index].videos}
-                    onChange={(e) => updateTier(index, 'videos', e.target.value)}
-                  />
-                </div>
+                {index < 2 && <Separator />}
               </div>
-              {index < 2 && <Separator />}
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
 
@@ -355,13 +410,49 @@ const AISettingsManagement = () => {
             </p>
           </div>
 
-          <div className="p-4 rounded-lg bg-muted/50 border">
-            <h4 className="font-medium text-sm mb-2">Example Calculation:</h4>
-            <p className="text-xs text-muted-foreground">
-              For a ₱{tiers[1].price} purchase: Admin earns ₱{(parseFloat(tiers[1].price) * parseFloat(adminEarningsPercent) / 100).toFixed(2)}, 
-              Affiliate pool: ₱{(parseFloat(tiers[1].price) * (100 - parseFloat(adminEarningsPercent)) / 100).toFixed(2)} 
-              (distributed across Unilevel, Stair-Step, Leadership based on ratios)
-            </p>
+          {/* Cost-Based Commission Example */}
+          <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
+            <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <p className="font-semibold text-primary text-sm mb-1">💡 Profitability Protection</p>
+              <p className="text-xs text-muted-foreground">
+                Commissions are calculated on <strong>PROFIT ONLY</strong> (Sale Price - Cost), not total sale amount.
+                This ensures admin never loses money on commissions.
+              </p>
+            </div>
+            
+            <h4 className="font-medium text-sm">Example: Tier 2 (₱{tiers[1].price}) Purchase</h4>
+            <div className="space-y-3 text-xs">
+              <div className="grid gap-1">
+                <p>• Your Cost: <strong className="text-orange-600">₱{tiers[1].cost}</strong></p>
+                <p>• Sale Price: <strong>₱{tiers[1].price}</strong></p>
+                <p>• Gross Profit: <strong className="text-green-600">₱{(parseFloat(tiers[1].price) - parseFloat(tiers[1].cost)).toLocaleString()}</strong></p>
+              </div>
+              
+              <div className="border-t pt-2">
+                <p className="font-medium mb-1">Commission Distribution (from ₱{(parseFloat(tiers[1].price) - parseFloat(tiers[1].cost)).toLocaleString()} profit):</p>
+                {(() => {
+                  const profit = parseFloat(tiers[1].price) - parseFloat(tiers[1].cost);
+                  const adminShare = profit * parseFloat(adminEarningsPercent) / 100;
+                  const affiliatePool = profit - adminShare;
+                  const totalRatio = parseFloat(unilevelPercent) + parseFloat(stairstepPercent) + parseFloat(leadershipPercent);
+                  const unilevelShare = affiliatePool * (parseFloat(unilevelPercent) / totalRatio);
+                  const stairstepShare = affiliatePool * (parseFloat(stairstepPercent) / totalRatio);
+                  const leadershipShare = affiliatePool * (parseFloat(leadershipPercent) / totalRatio);
+                  
+                  return (
+                    <div className="ml-2 space-y-1">
+                      <p>• Admin Earnings ({adminEarningsPercent}%): <strong className="text-green-600">₱{adminShare.toFixed(2)}</strong></p>
+                      <p>• Affiliate Pool: <strong>₱{affiliatePool.toFixed(2)}</strong></p>
+                      <div className="ml-4 text-muted-foreground">
+                        <p>→ Unilevel ({unilevelPercent}%): ₱{unilevelShare.toFixed(2)}</p>
+                        <p>→ Stair-Step ({stairstepPercent}%): ₱{stairstepShare.toFixed(2)}</p>
+                        <p>→ Leadership ({leadershipPercent}%): ₱{leadershipShare.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

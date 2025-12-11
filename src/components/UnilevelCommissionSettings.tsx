@@ -168,25 +168,71 @@ export default function UnilevelCommissionSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Commission Calculation Example</CardTitle>
+          <CardTitle>Commission Calculation Example (Cost-Based)</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="bg-muted/30 p-4 rounded-lg space-y-3 text-sm">
-            <p><strong>Scenario:</strong> Josh orders products worth ₱250,000</p>
-            <p><strong>Josh's Upline (Level 1 - Joseph):</strong></p>
-            <ul className="list-disc list-inside ml-4 space-y-1">
-              <li>Joseph is Josh's direct referrer (Level 1)</li>
-              <li>Level 1 percentage: {percentages[0]}%</li>
-              <li>Commission: ₱250,000 × {percentages[0]}% = <strong>₱{(250000 * parseFloat(percentages[0]) / 100).toLocaleString()}</strong></li>
-            </ul>
-            <p className="pt-2"><strong>If Joseph has an upline (Level 2 to Josh):</strong></p>
-            <ul className="list-disc list-inside ml-4 space-y-1">
-              <li>Level 2 percentage: {percentages[1]}%</li>
-              <li>Commission: ₱250,000 × {percentages[1]}% = <strong>₱{(250000 * parseFloat(percentages[1]) / 100).toLocaleString()}</strong></li>
-            </ul>
-            <p className="text-muted-foreground pt-2 italic">
-              This continues up to 7 levels, with each upline earning their level's percentage.
-            </p>
+          <div className="bg-muted/30 p-4 rounded-lg space-y-4 text-sm">
+            <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <p className="font-semibold text-primary mb-2">💡 Profitability Protection</p>
+              <p className="text-muted-foreground">
+                Commissions are calculated on <strong>PROFIT ONLY</strong> (Sale Price - Cost), not total sale amount. 
+                This ensures admin never loses money on commissions.
+              </p>
+            </div>
+            
+            <div className="border-t pt-4">
+              <p className="font-semibold mb-2">Scenario: Josh orders products worth ₱250,000</p>
+              <div className="grid gap-2 text-muted-foreground">
+                <p>• Product Cost (Your Expense): <strong className="text-foreground">₱150,000</strong></p>
+                <p>• Sale Price: <strong className="text-foreground">₱250,000</strong></p>
+                <p>• Gross Profit: <strong className="text-green-600">₱100,000</strong> (Sale - Cost)</p>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <p className="font-semibold mb-2">Commission Distribution (from ₱100,000 profit):</p>
+              <ul className="space-y-2 ml-4">
+                <li className="flex justify-between">
+                  <span>Level 1 (Direct - Joseph): {percentages[0]}%</span>
+                  <strong className="text-green-600">₱{(100000 * parseFloat(percentages[0]) / 100).toLocaleString()}</strong>
+                </li>
+                <li className="flex justify-between">
+                  <span>Level 2: {percentages[1]}%</span>
+                  <strong>₱{(100000 * parseFloat(percentages[1]) / 100).toLocaleString()}</strong>
+                </li>
+                <li className="flex justify-between">
+                  <span>Level 3: {percentages[2]}%</span>
+                  <strong>₱{(100000 * parseFloat(percentages[2]) / 100).toLocaleString()}</strong>
+                </li>
+                <li className="flex justify-between">
+                  <span>Level 4: {percentages[3]}%</span>
+                  <strong>₱{(100000 * parseFloat(percentages[3]) / 100).toLocaleString()}</strong>
+                </li>
+                <li className="flex justify-between">
+                  <span>Level 5: {percentages[4]}%</span>
+                  <strong>₱{(100000 * parseFloat(percentages[4]) / 100).toLocaleString()}</strong>
+                </li>
+                <li className="flex justify-between">
+                  <span>Level 6: {percentages[5]}%</span>
+                  <strong>₱{(100000 * parseFloat(percentages[5]) / 100).toLocaleString()}</strong>
+                </li>
+                <li className="flex justify-between">
+                  <span>Level 7: {percentages[6]}%</span>
+                  <strong>₱{(100000 * parseFloat(percentages[6]) / 100).toLocaleString()}</strong>
+                </li>
+              </ul>
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex justify-between font-semibold">
+                <span>Total Commission Payout:</span>
+                <span className="text-orange-600">₱{(100000 * totalPercentage / 100).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between font-semibold text-green-600">
+                <span>Admin Net Profit:</span>
+                <span>₱{(100000 - (100000 * totalPercentage / 100)).toLocaleString()}</span>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
