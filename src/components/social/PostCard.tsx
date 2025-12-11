@@ -325,7 +325,7 @@ export const PostCard = ({ post, onDelete }: { post: Post; onDelete: () => void 
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-semibold hover:text-primary transition-colors">{post.profiles?.full_name || post.profiles?.email || "Unknown User"}</p>
+              <p className="font-semibold hover:text-primary transition-colors">{post.profiles?.full_name || post.profiles?.email?.split('@')[0] || "User"}</p>
               <p className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })} • {post.views_count} views
               </p>

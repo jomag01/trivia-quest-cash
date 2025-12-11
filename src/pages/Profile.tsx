@@ -487,7 +487,28 @@ const Profile = () => {
                 <Settings className="w-4 h-4 mr-2" />
                 Edit Profile
               </Button>
-              <Button variant="outline" size="icon" className="rounded-full">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-full"
+                onClick={async () => {
+                  const shareUrl = `${window.location.origin}/profile/${userId}?ref=${profile.referral_code || userId}`;
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: `${profile.full_name || 'User'}'s Profile`,
+                        text: `Check out ${profile.full_name || 'this user'}'s profile!`,
+                        url: shareUrl,
+                      });
+                    } catch (e) {
+                      // User cancelled
+                    }
+                  } else {
+                    await navigator.clipboard.writeText(shareUrl);
+                    toast.success("Profile link copied to clipboard!");
+                  }
+                }}
+              >
                 <Share2 className="w-4 h-4" />
               </Button>
             </>
