@@ -463,6 +463,53 @@ const AIHub = memo(() => {
 
   const remainingFreeImages = Math.max(0, freeImageLimit - imageGenerationCount);
 
+  // Login required wall for non-authenticated users
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 p-4 rounded-full bg-primary/10">
+              <Sparkles className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">Welcome to AI Hub</CardTitle>
+            <CardDescription>
+              Create stunning images, videos, and music with AI. Login or sign up to get started.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                <ImageIcon className="h-4 w-4 text-primary" />
+                <span>{freeImageLimit} free image generations</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                <VideoIcon className="h-4 w-4 text-purple-500" />
+                <span>AI video creation</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                <Music className="h-4 w-4 text-pink-500" />
+                <span>AI music generation</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                <Film className="h-4 w-4 text-orange-500" />
+                <span>Full content creator pipeline</span>
+              </div>
+            </div>
+            <div className="pt-4 space-y-2">
+              <Button className="w-full" asChild>
+                <a href="/auth">Login to Get Started</a>
+              </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                Don't have an account? <a href="/auth" className="text-primary underline">Sign up</a>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-24">
       {/* Hero Section */}
@@ -487,55 +534,51 @@ const AIHub = memo(() => {
             </p>
             
             {/* Buy Credits Button */}
-            {user && (
-              <Button 
-                onClick={() => setShowBuyCredits(true)} 
-                variant="outline" 
-                className="gap-2"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                Buy AI Credits
-              </Button>
-            )}
+            <Button 
+              onClick={() => setShowBuyCredits(true)} 
+              variant="outline" 
+              className="gap-2"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Buy AI Credits
+            </Button>
             
             {/* Usage Stats */}
-            {user && (
-              <div className="flex flex-wrap justify-center gap-4 mt-6">
-                <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4 text-primary" />
-                    <span className="text-sm">
-                      Free Images: <strong>{remainingFreeImages}/{freeImageLimit}</strong>
-                    </span>
-                  </div>
-                  <Progress value={(remainingFreeImages / freeImageLimit) * 100} className="h-1 mt-1" />
-                </Card>
-                <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
-                  <div className="flex items-center gap-2">
-                    <Crown className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm">
-                      Credits: <strong>{userCredits}</strong>
-                    </span>
-                  </div>
-                </Card>
-                <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
-                  <div className="flex items-center gap-2">
-                    <VideoIcon className="h-4 w-4 text-purple-500" />
-                    <span className="text-sm">
-                      Video Cost: <strong>{videoCreditCost} credits</strong>
-                    </span>
-                  </div>
-                </Card>
-                <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-yellow-500/20">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">💎</span>
-                    <span className="text-sm">
-                      Rate: <strong>{creditToDiamondRate} credits = 1 💎</strong>
-                    </span>
-                  </div>
-                </Card>
-              </div>
-            )}
+            <div className="flex flex-wrap justify-center gap-4 mt-6">
+              <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-primary" />
+                  <span className="text-sm">
+                    Free Images: <strong>{remainingFreeImages}/{freeImageLimit}</strong>
+                  </span>
+                </div>
+                <Progress value={(remainingFreeImages / freeImageLimit) * 100} className="h-1 mt-1" />
+              </Card>
+              <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-4 w-4 text-yellow-500" />
+                  <span className="text-sm">
+                    Credits: <strong>{userCredits}</strong>
+                  </span>
+                </div>
+              </Card>
+              <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
+                <div className="flex items-center gap-2">
+                  <VideoIcon className="h-4 w-4 text-purple-500" />
+                  <span className="text-sm">
+                    Video Cost: <strong>{videoCreditCost} credits</strong>
+                  </span>
+                </div>
+              </Card>
+              <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-yellow-500/20">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">💎</span>
+                  <span className="text-sm">
+                    Rate: <strong>{creditToDiamondRate} credits = 1 💎</strong>
+                  </span>
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

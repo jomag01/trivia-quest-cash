@@ -3,10 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Crown, ImageIcon, VideoIcon, Sparkles, Check, Loader2 } from 'lucide-react';
+import { Crown, ImageIcon, VideoIcon, Sparkles, Check, Loader2, CreditCard, Wallet } from 'lucide-react';
 
 interface CreditTier {
   price: number;
@@ -27,6 +28,8 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'credits' | 'paymongo'>('credits');
+  const [userCredits, setUserCredits] = useState(0);
   const [commissionSettings, setCommissionSettings] = useState({
     adminPercent: 35,
     unilevelPercent: 40,
@@ -37,8 +40,23 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
   useEffect(() => {
     if (open) {
       fetchSettings();
+      fetchUserCredits();
     }
   }, [open]);
+
+  const fetchUserCredits = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+      setUserCredits(data?.credits || 0);
+    } catch (error) {
+      console.error('Error fetching credits:', error);
+    }
+  };
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -88,19 +106,10 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
     }
   };
 
-  const handlePurchase = async () => {
+  const handlePurchaseWithCredits = async () => {
     if (selectedTier === null || !user) return;
 
     const tier = tiers[selectedTier];
-
-    // Fetch current user credits
-    const { data: userData } = await supabase
-      .from('profiles')
-      .select('credits')
-      .eq('id', user.id)
-      .single();
-
-    const userCredits = (userData as any)?.credits || 0;
 
     if (userCredits < tier.price) {
       toast.error(`Insufficient credits. You need ₱${tier.price} worth of credits.`);
@@ -125,43 +134,31 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
         .eq('id', user.id)
         .single();
 
-      // Deduct credits from user's balance
-      const { error: deductError } = await supabase
+      // Deduct credits and add AI credits
+      const newCredits = (userCredits - tier.price) + tier.credits;
+      const { error: updateError } = await supabase
         .from('profiles')
-        .update({ credits: userCredits - tier.price })
+        .update({ credits: newCredits })
         .eq('id', user.id);
 
-      if (deductError) throw deductError;
+      if (updateError) throw updateError;
 
       // Record the purchase
-      const { error: purchaseError } = await supabase
-        .from('ai_credit_purchases')
-        .insert({
-          user_id: user.id,
-          amount: tier.price,
-          credits_received: tier.credits,
-          referrer_id: profileData?.referred_by || null,
-          admin_earnings: adminEarnings,
-          unilevel_commission: unilevelCommission,
-          stairstep_commission: stairstepCommission,
-          leadership_commission: leadershipCommission,
-          status: 'completed'
-        });
+      await supabase.from('ai_credit_purchases').insert({
+        user_id: user.id,
+        amount: tier.price,
+        credits_received: tier.credits,
+        payment_method: 'credits',
+        referrer_id: profileData?.referred_by || null,
+        admin_earnings: adminEarnings,
+        unilevel_commission: unilevelCommission,
+        stairstep_commission: stairstepCommission,
+        leadership_commission: leadershipCommission,
+        status: 'completed'
+      });
 
-      if (purchaseError) throw purchaseError;
-
-      // Add AI credits to user (using a separate column or the same credits)
-      // For simplicity, we'll add to the same credits field
-      const { error: addError } = await supabase
-        .from('profiles')
-        .update({ credits: (userCredits - tier.price) + tier.credits })
-        .eq('id', user.id);
-
-      if (addError) throw addError;
-
-      // If user has a referrer, distribute commissions
+      // Distribute commissions if referrer exists
       if (profileData?.referred_by) {
-        // Record commission for referrer (simplified - real implementation would use the full commission system)
         await supabase.from('commissions').insert({
           user_id: profileData.referred_by,
           from_user_id: user.id,
@@ -180,6 +177,48 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
       toast.error(error.message || 'Failed to complete purchase');
     } finally {
       setPurchasing(false);
+    }
+  };
+
+  const handlePurchaseWithPayMongo = async () => {
+    if (selectedTier === null || !user) return;
+
+    const tier = tiers[selectedTier];
+
+    setPurchasing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
+          amount: tier.price * 100, // PayMongo uses centavos
+          description: `AI Credits - ${tier.credits} credits`,
+          metadata: {
+            user_id: user.id,
+            purchase_type: 'ai_credits',
+            credits: tier.credits,
+            tier_index: selectedTier
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast.error(error.message || 'Failed to create payment');
+      setPurchasing(false);
+    }
+  };
+
+  const handlePurchase = () => {
+    if (paymentMethod === 'credits') {
+      handlePurchaseWithCredits();
+    } else {
+      handlePurchaseWithPayMongo();
     }
   };
 
@@ -207,6 +246,7 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Credit Packages */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {tiers.map((tier, index) => (
                 <Card
@@ -248,6 +288,39 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
               ))}
             </div>
 
+            {/* Payment Method Selection */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Payment Method</h4>
+              <Tabs value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'credits' | 'paymongo')}>
+                <TabsList className="grid grid-cols-2 w-full">
+                  <TabsTrigger value="credits" className="gap-2">
+                    <Wallet className="h-4 w-4" />
+                    Use Credits/Diamonds
+                  </TabsTrigger>
+                  <TabsTrigger value="paymongo" className="gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    Pay with Card/GCash
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="credits" className="mt-3">
+                  <div className="p-3 rounded-lg bg-muted/50 border text-sm">
+                    <p>Your balance: <strong>₱{userCredits}</strong></p>
+                    {selectedTier !== null && userCredits < tiers[selectedTier].price && (
+                      <p className="text-destructive mt-1">
+                        Insufficient credits. You need ₱{tiers[selectedTier].price - userCredits} more.
+                      </p>
+                    )}
+                  </div>
+                </TabsContent>
+                <TabsContent value="paymongo" className="mt-3">
+                  <div className="p-3 rounded-lg bg-muted/50 border text-sm">
+                    <p>Pay securely with GCash, Maya, or Credit/Debit Card via PayMongo.</p>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Affiliate Benefits */}
             <div className="p-4 rounded-lg bg-muted/50 border">
               <h4 className="font-medium text-sm mb-2">Affiliate Benefits</h4>
               <p className="text-xs text-muted-foreground">
@@ -258,18 +331,22 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
               </p>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                Your balance: <strong>Check your profile</strong>
-              </div>
+            {/* Purchase Button */}
+            <div className="flex items-center justify-end pt-4 border-t">
               <Button
                 onClick={handlePurchase}
-                disabled={selectedTier === null || purchasing}
+                disabled={
+                  selectedTier === null || 
+                  purchasing || 
+                  (paymentMethod === 'credits' && selectedTier !== null && userCredits < tiers[selectedTier].price)
+                }
                 className="gap-2"
               >
                 {purchasing && <Loader2 className="h-4 w-4 animate-spin" />}
                 {selectedTier !== null
-                  ? `Purchase ${tiers[selectedTier]?.credits} Credits`
+                  ? paymentMethod === 'credits' 
+                    ? `Purchase ${tiers[selectedTier]?.credits} Credits`
+                    : `Pay ₱${tiers[selectedTier]?.price}`
                   : 'Select a Package'}
               </Button>
             </div>
