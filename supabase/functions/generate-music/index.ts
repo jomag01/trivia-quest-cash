@@ -72,6 +72,7 @@ serve(async (req) => {
         customMode: false,
         instrumental: instrumental,
         model: 'V4',
+        callBackUrl: 'https://placeholder-callback.example.com/webhook', // Required by API, we use polling instead
       }),
     });
 
