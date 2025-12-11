@@ -26,7 +26,10 @@ import {
   X,
   ImagePlus,
   ShoppingCart,
-  Film
+  Film,
+  Music,
+  Play,
+  Pause
 } from 'lucide-react';
 
 const AIHub = memo(() => {
@@ -42,6 +45,13 @@ const AIHub = memo(() => {
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [videoDescription, setVideoDescription] = useState<string | null>(null);
   const [videoPrompt, setVideoPrompt] = useState('');
+  
+  // Music generation
+  const [musicPrompt, setMusicPrompt] = useState('');
+  const [generatedMusic, setGeneratedMusic] = useState<string | null>(null);
+  const [musicTitle, setMusicTitle] = useState<string | null>(null);
+  const [isInstrumental, setIsInstrumental] = useState(false);
+  const [musicCreditCost] = useState(5);
   
   // Usage tracking
   const [imageGenerationCount, setImageGenerationCount] = useState(0);
@@ -374,6 +384,70 @@ const AIHub = memo(() => {
     }
   };
 
+  const handleGenerateMusic = async () => {
+    if (!musicPrompt.trim()) {
+      toast.error('Please enter a music description');
+      return;
+    }
+
+    if (!user) {
+      toast.error('Please login to generate music');
+      return;
+    }
+
+    if (userCredits < musicCreditCost) {
+      toast.error(`You need at least ${musicCreditCost} credits to generate music`);
+      setShowBuyCredits(true);
+      return;
+    }
+
+    setIsGenerating(true);
+    setGeneratedMusic(null);
+    setMusicTitle(null);
+
+    try {
+      const deducted = await deductCredits(musicCreditCost);
+      if (!deducted) {
+        toast.error('Failed to deduct credits');
+        return;
+      }
+
+      toast.info('Generating music... This may take a minute.');
+
+      const { data, error } = await supabase.functions.invoke('generate-music', {
+        body: { 
+          prompt: musicPrompt.trim(),
+          duration: 30,
+          instrumental: isInstrumental
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.audioUrl) {
+        setGeneratedMusic(data.audioUrl);
+        setMusicTitle(data.title || 'AI Generated Music');
+        await trackGeneration('text-to-music', musicCreditCost);
+        toast.success('Music generated successfully!');
+      } else if (data?.error) {
+        throw new Error(data.error);
+      } else {
+        throw new Error('No audio returned');
+      }
+    } catch (error: any) {
+      console.error('Music generation error:', error);
+      toast.error(error.message || 'Failed to generate music');
+      // Refund credits on failure
+      await supabase
+        .from('profiles')
+        .update({ credits: userCredits })
+        .eq('id', user.id);
+      fetchUserCredits();
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard!');
@@ -469,28 +543,33 @@ const AIHub = memo(() => {
       {/* Main Content */}
       <div className="container mx-auto px-4 -mt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full max-w-3xl mx-auto bg-background/50 backdrop-blur-sm border">
-            <TabsTrigger value="text-to-image" className="gap-2 text-xs sm:text-sm">
+          <TabsList className="grid grid-cols-6 w-full max-w-4xl mx-auto bg-background/50 backdrop-blur-sm border">
+            <TabsTrigger value="text-to-image" className="gap-1 text-xs sm:text-sm">
               <Wand2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Text→Image</span>
-              <span className="sm:hidden">T→I</span>
+              <span className="hidden sm:inline">Image</span>
+              <span className="sm:hidden">Img</span>
             </TabsTrigger>
-            <TabsTrigger value="image-to-text" className="gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="text-to-video" className="gap-1 text-xs sm:text-sm">
+              <VideoIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Video</span>
+              <span className="sm:hidden">Vid</span>
+            </TabsTrigger>
+            <TabsTrigger value="text-to-music" className="gap-1 text-xs sm:text-sm">
+              <Music className="h-4 w-4" />
+              <span className="hidden sm:inline">Music</span>
+              <span className="sm:hidden">🎵</span>
+            </TabsTrigger>
+            <TabsTrigger value="image-to-text" className="gap-1 text-xs sm:text-sm">
               <ImageIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Image→Text</span>
+              <span className="hidden sm:inline">Analyze</span>
               <span className="sm:hidden">I→T</span>
             </TabsTrigger>
-            <TabsTrigger value="text-to-video" className="gap-2 text-xs sm:text-sm">
-              <VideoIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Text→Video</span>
-              <span className="sm:hidden">T→V</span>
-            </TabsTrigger>
-            <TabsTrigger value="video-to-text" className="gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="video-to-text" className="gap-1 text-xs sm:text-sm">
               <TypeIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Video→Text</span>
+              <span className="hidden sm:inline">V→Text</span>
               <span className="sm:hidden">V→T</span>
             </TabsTrigger>
-            <TabsTrigger value="content-creator" className="gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="content-creator" className="gap-1 text-xs sm:text-sm">
               <Film className="h-4 w-4" />
               <span className="hidden sm:inline">Creator</span>
               <span className="sm:hidden">Create</span>
@@ -860,6 +939,121 @@ const AIHub = memo(() => {
                       <Copy className="h-4 w-4" />
                       Copy Description
                     </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Text to Music */}
+          <TabsContent value="text-to-music">
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Music className="h-5 w-5 text-primary" />
+                  Text to Music
+                  <Badge variant="secondary">{musicCreditCost} credits</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Generate original AI music from text descriptions using Suno AI
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Describe Your Music</Label>
+                  <Textarea
+                    placeholder="Upbeat electronic dance track with heavy bass and synth melodies, perfect for workout videos..."
+                    value={musicPrompt}
+                    onChange={(e) => setMusicPrompt(e.target.value)}
+                    className="min-h-[120px] resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="instrumental"
+                    checked={isInstrumental}
+                    onChange={(e) => setIsInstrumental(e.target.checked)}
+                    className="rounded"
+                  />
+                  <Label htmlFor="instrumental" className="cursor-pointer">
+                    Instrumental only (no vocals)
+                  </Label>
+                </div>
+
+                {user && userCredits < musicCreditCost && (
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-sm text-amber-600">
+                      You need at least {musicCreditCost} credits to generate music. Current balance: {userCredits} credits.
+                    </p>
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-amber-600 underline"
+                      onClick={() => setShowBuyCredits(true)}
+                    >
+                      Buy credits now
+                    </Button>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleGenerateMusic} 
+                  disabled={isGenerating || !musicPrompt.trim() || userCredits < musicCreditCost}
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating Music...
+                    </>
+                  ) : (
+                    <>
+                      <Music className="h-4 w-4" />
+                      Generate Music
+                      <Badge variant="outline" className="ml-2">{musicCreditCost} credits</Badge>
+                    </>
+                  )}
+                </Button>
+
+                {generatedMusic && (
+                  <div className="space-y-3 animate-in fade-in">
+                    <div className="p-4 rounded-lg bg-muted/50 border">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-3 rounded-full bg-primary/10">
+                          <Music className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{musicTitle}</h4>
+                          <p className="text-xs text-muted-foreground">AI Generated</p>
+                        </div>
+                      </div>
+                      <audio 
+                        controls 
+                        src={generatedMusic} 
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 gap-2" 
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = generatedMusic;
+                          link.download = `ai-music-${Date.now()}.mp3`;
+                          link.click();
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
+                      </Button>
+                      <Button variant="outline" className="flex-1 gap-2" onClick={() => copyToClipboard(generatedMusic)}>
+                        <Copy className="h-4 w-4" />
+                        Copy URL
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>

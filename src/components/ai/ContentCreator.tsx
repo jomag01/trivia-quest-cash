@@ -110,7 +110,10 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
   const [imagePrompts, setImagePrompts] = useState<string[]>([]);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   
-  // Step 5: Video
+  // Step 5: Music & Video
+  const [musicPrompt, setMusicPrompt] = useState('');
+  const [generatedMusicUrl, setGeneratedMusicUrl] = useState<string | null>(null);
+  const [isGeneratingMusic, setIsGeneratingMusic] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState(VIDEO_DURATIONS[1]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -613,47 +616,116 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
         </Card>
       )}
 
-      {/* Step 5: Video Creation */}
+      {/* Step 5: Music & Video Creation */}
       {currentStep === 5 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Video className="h-5 w-5 text-primary" />
-              Step 5: Create Video
+              Step 5: Music & Video
             </CardTitle>
             <CardDescription>
-              Combine images, voice-over, and music into your final video
+              Generate AI background music and combine into your final video
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Video Duration</Label>
-              <Select 
-                value={selectedDuration.seconds.toString()} 
-                onValueChange={(val) => setSelectedDuration(VIDEO_DURATIONS.find(d => d.seconds.toString() === val) || VIDEO_DURATIONS[1])}
+          <CardContent className="space-y-6">
+            {/* Music Generation Section */}
+            <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Music className="h-5 w-5 text-purple-500" />
+                <h4 className="font-medium">Background Music</h4>
+                <Badge variant="secondary">5 credits</Badge>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Describe the music style</Label>
+                <Textarea
+                  placeholder="e.g., Upbeat corporate background music, motivational and inspiring..."
+                  value={musicPrompt}
+                  onChange={(e) => setMusicPrompt(e.target.value)}
+                  className="min-h-[80px] resize-none"
+                />
+              </div>
+
+              <Button 
+                onClick={async () => {
+                  if (!musicPrompt.trim()) {
+                    toast.error('Please enter a music description');
+                    return;
+                  }
+                  if (userCredits < 5) {
+                    toast.error('You need at least 5 credits for music generation');
+                    return;
+                  }
+                  setIsGeneratingMusic(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke('generate-music', {
+                      body: { 
+                        prompt: musicPrompt.trim(),
+                        duration: 30,
+                        instrumental: true
+                      }
+                    });
+                    if (error) throw error;
+                    if (data?.audioUrl) {
+                      setGeneratedMusicUrl(data.audioUrl);
+                      toast.success('Music generated!');
+                    }
+                  } catch (error: any) {
+                    toast.error(error.message || 'Failed to generate music');
+                  } finally {
+                    setIsGeneratingMusic(false);
+                  }
+                }} 
+                disabled={isGeneratingMusic || !musicPrompt.trim() || userCredits < 5} 
+                variant="outline"
+                className="gap-2"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {VIDEO_DURATIONS.map((duration) => (
-                    <SelectItem key={duration.seconds} value={duration.seconds.toString()}>
-                      {duration.label} - {duration.credits} credits
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                You have {userCredits} credits. Selected: {selectedDuration.credits} credits
-              </p>
+                {isGeneratingMusic ? <Loader2 className="h-4 w-4 animate-spin" /> : <Music className="h-4 w-4" />}
+                Generate Music
+              </Button>
+
+              {generatedMusicUrl && (
+                <div className="p-3 rounded-lg bg-background border">
+                  <Label className="mb-2 block text-sm">Preview Music:</Label>
+                  <audio controls src={generatedMusicUrl} className="w-full" />
+                </div>
+              )}
             </div>
 
-            <Button onClick={handleCreateVideo} disabled={isLoading || userCredits < selectedDuration.credits} className="gap-2">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
-              Create Video ({selectedDuration.credits} credits)
-            </Button>
+            <Separator />
 
-            <Button onClick={() => setCurrentStep(6)} variant="outline">
+            {/* Video Settings */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Video Duration</Label>
+                <Select 
+                  value={selectedDuration.seconds.toString()} 
+                  onValueChange={(val) => setSelectedDuration(VIDEO_DURATIONS.find(d => d.seconds.toString() === val) || VIDEO_DURATIONS[1])}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VIDEO_DURATIONS.map((duration) => (
+                      <SelectItem key={duration.seconds} value={duration.seconds.toString()}>
+                        {duration.label} - {duration.credits} credits
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  You have {userCredits} credits. Selected: {selectedDuration.credits} credits
+                </p>
+              </div>
+
+              <Button onClick={handleCreateVideo} disabled={isLoading || userCredits < selectedDuration.credits} className="w-full gap-2">
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+                Create Video ({selectedDuration.credits} credits)
+              </Button>
+            </div>
+
+            <Button onClick={() => setCurrentStep(6)} variant="outline" className="w-full">
               Next: Publish <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </CardContent>
