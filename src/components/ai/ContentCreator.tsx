@@ -24,8 +24,11 @@ import {
   Play,
   Download,
   Share2,
-  Lock
+  Lock,
+  RefreshCw,
+  Eye
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Scene {
   sceneNumber: number;
@@ -115,6 +118,9 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
   const [generatedMusicUrl, setGeneratedMusicUrl] = useState<string | null>(null);
   const [isGeneratingMusic, setIsGeneratingMusic] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState(VIDEO_DURATIONS[1]);
+  const [isRegeneratingImages, setIsRegeneratingImages] = useState(false);
+  const [isRegeneratingVideo, setIsRegeneratingVideo] = useState(false);
+  const [showVideoPreview, setShowVideoPreview] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   const isPaidUser = userCredits >= 10;
@@ -274,7 +280,7 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
     }
   };
 
-  const handleCreateVideo = async () => {
+  const handleCreateVideo = async (isRegenerate = false) => {
     if (!isPaidUser) {
       toast.error('Video creation requires credits. Please purchase credits.');
       return;
@@ -285,8 +291,108 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
       return;
     }
 
-    toast.info('Video generation is being processed. This may take several minutes.');
-    // Video generation would integrate with a video API here
+    if (isRegenerate) {
+      setIsRegeneratingVideo(true);
+    } else {
+      setIsLoading(true);
+    }
+
+    try {
+      // Deduct credits
+      const { error: creditError } = await supabase
+        .from('profiles')
+        .update({ credits: userCredits - selectedDuration.credits })
+        .eq('id', user?.id);
+
+      if (creditError) throw creditError;
+
+      // Generate video using text-to-video edge function
+      const videoPrompt = script 
+        ? `Create a video about: ${script.title}. ${script.description}` 
+        : topic;
+
+      const { data, error } = await supabase.functions.invoke('text-to-video', {
+        body: { 
+          prompt: videoPrompt,
+          duration: Math.min(selectedDuration.seconds, 8) // API max is 8 seconds per clip
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.videoUrl) {
+        setVideoUrl(data.videoUrl);
+        onCreditsChange();
+        toast.success(isRegenerate ? 'Video regenerated successfully!' : 'Video created successfully!');
+      } else {
+        throw new Error('No video URL returned');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create video');
+    } finally {
+      setIsLoading(false);
+      setIsRegeneratingVideo(false);
+    }
+  };
+
+  const handleRegenerateImages = async () => {
+    if (!script) {
+      toast.error('Please generate a script first');
+      return;
+    }
+
+    const regenerateCost = 5;
+    if (userCredits < regenerateCost) {
+      toast.error(`You need ${regenerateCost} credits to regenerate images`);
+      return;
+    }
+
+    setIsRegeneratingImages(true);
+    try {
+      // Deduct credits
+      const { error: creditError } = await supabase
+        .from('profiles')
+        .update({ credits: userCredits - regenerateCost })
+        .eq('id', user?.id);
+
+      if (creditError) throw creditError;
+
+      // Generate new images
+      const images: string[] = [];
+      const prompts = imagePrompts.length > 0 
+        ? imagePrompts 
+        : script.scenes.map(s => s.visualDescription);
+
+      for (const prompt of prompts.slice(0, 5)) {
+        const { data, error } = await supabase.functions.invoke('ai-generate', {
+          body: { type: 'text-to-image', prompt }
+        });
+        
+        if (!error && data.imageUrl) {
+          images.push(data.imageUrl);
+        }
+      }
+      
+      setGeneratedImages(images);
+      onCreditsChange();
+      toast.success(`Regenerated ${images.length} images!`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to regenerate images');
+    } finally {
+      setIsRegeneratingImages(false);
+    }
+  };
+
+  const handleDownloadVideo = () => {
+    if (!videoUrl) return;
+    
+    const link = document.createElement('a');
+    link.href = videoUrl;
+    link.download = `${script?.title || 'video'}.mp4`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Video download started!');
   };
 
   const steps = [
@@ -719,10 +825,79 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
                 </p>
               </div>
 
-              <Button onClick={handleCreateVideo} disabled={isLoading || userCredits < selectedDuration.credits} className="w-full gap-2">
+              <Button onClick={() => handleCreateVideo(false)} disabled={isLoading || userCredits < selectedDuration.credits} className="w-full gap-2">
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
                 Create Video ({selectedDuration.credits} credits)
               </Button>
+
+              {/* Video Output Section */}
+              {videoUrl && (
+                <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Video className="h-5 w-5 text-green-500" />
+                      Video Created!
+                    </h4>
+                    <Badge variant="secondary">Ready</Badge>
+                  </div>
+
+                  {/* Video Preview Thumbnail */}
+                  <div className="relative aspect-video rounded-lg overflow-hidden bg-black/50 border">
+                    <video 
+                      src={videoUrl} 
+                      className="w-full h-full object-contain"
+                      poster={generatedImages[0]}
+                    />
+                    <button 
+                      onClick={() => setShowVideoPreview(true)}
+                      className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors"
+                    >
+                      <div className="p-4 rounded-full bg-primary/90 text-primary-foreground">
+                        <Play className="h-8 w-8" />
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button onClick={() => setShowVideoPreview(true)} variant="outline" className="gap-2">
+                      <Eye className="h-4 w-4" />
+                      Preview Video
+                    </Button>
+                    <Button onClick={handleDownloadVideo} variant="outline" className="gap-2">
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+
+                  <Separator />
+
+                  {/* Editing Options */}
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">Need changes? Regenerate with credits:</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        onClick={handleRegenerateImages} 
+                        variant="secondary" 
+                        disabled={isRegeneratingImages || userCredits < 5}
+                        className="gap-2"
+                      >
+                        {isRegeneratingImages ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                        New Images (5 cr)
+                      </Button>
+                      <Button 
+                        onClick={() => handleCreateVideo(true)} 
+                        variant="secondary" 
+                        disabled={isRegeneratingVideo || userCredits < selectedDuration.credits}
+                        className="gap-2"
+                      >
+                        {isRegeneratingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                        New Video ({selectedDuration.credits} cr)
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <Button onClick={() => setCurrentStep(6)} variant="outline" className="w-full">
@@ -759,6 +934,34 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
           </CardContent>
         </Card>
       )}
+
+      {/* Video Preview Dialog */}
+      <Dialog open={showVideoPreview} onOpenChange={setShowVideoPreview}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>{script?.title || 'Video Preview'}</DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video bg-black">
+            {videoUrl && (
+              <video 
+                src={videoUrl} 
+                controls 
+                autoPlay
+                className="w-full h-full object-contain"
+              />
+            )}
+          </div>
+          <div className="p-4 flex gap-3 justify-end">
+            <Button onClick={handleDownloadVideo} variant="outline" className="gap-2">
+              <Download className="h-4 w-4" />
+              Download Video
+            </Button>
+            <Button onClick={() => setShowVideoPreview(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
