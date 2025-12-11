@@ -12,6 +12,7 @@ import { parseAndTrackFromUrl } from "@/lib/cookieTracking";
 const Feed = lazy(() => import("./pages/Feed"));
 const Home = lazy(() => import("./pages/Home"));
 const Game = lazy(() => import("./pages/Game"));
+const MobaGame = lazy(() => import("./pages/MobaGame"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -71,6 +72,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/game" element={<Game />} />
               <Route path="/game/:category" element={<Game />} />
+              <Route path="/moba-game" element={<MobaGame />} />
               <Route path="/treasure-hunt" element={<TreasureHunt />} />
               <Route path="/diamond-marketplace" element={<DiamondMarketplace />} />
               <Route path="/community" element={<Community />} />
