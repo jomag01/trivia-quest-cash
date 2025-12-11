@@ -256,6 +256,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_provider_pricing: {
+        Row: {
+          audio_cost_per_minute: number | null
+          created_at: string | null
+          id: string
+          image_cost: number | null
+          input_cost_per_1k: number | null
+          model_name: string
+          notes: string | null
+          output_cost_per_1k: number | null
+          provider_name: string
+          updated_at: string | null
+          video_cost_per_second: number | null
+        }
+        Insert: {
+          audio_cost_per_minute?: number | null
+          created_at?: string | null
+          id?: string
+          image_cost?: number | null
+          input_cost_per_1k?: number | null
+          model_name: string
+          notes?: string | null
+          output_cost_per_1k?: number | null
+          provider_name: string
+          updated_at?: string | null
+          video_cost_per_second?: number | null
+        }
+        Update: {
+          audio_cost_per_minute?: number | null
+          created_at?: string | null
+          id?: string
+          image_cost?: number | null
+          input_cost_per_1k?: number | null
+          model_name?: string
+          notes?: string | null
+          output_cost_per_1k?: number | null
+          provider_name?: string
+          updated_at?: string | null
+          video_cost_per_second?: number | null
+        }
+        Relationships: []
+      }
       ai_request_queue: {
         Row: {
           created_at: string
@@ -325,6 +367,33 @@ export type Database = {
           response_text?: string | null
           response_type?: string
           response_url?: string | null
+        }
+        Relationships: []
+      }
+      ai_video_pricing: {
+        Row: {
+          created_at: string | null
+          credit_cost: number
+          duration_label: string
+          duration_seconds: number
+          id: string
+          is_active: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          credit_cost: number
+          duration_label: string
+          duration_seconds: number
+          id?: string
+          is_active?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          credit_cost?: number
+          duration_label?: string
+          duration_seconds?: number
+          id?: string
+          is_active?: boolean | null
         }
         Relationships: []
       }
@@ -476,6 +545,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      content_creator_projects: {
+        Row: {
+          audio_url: string | null
+          created_at: string | null
+          credits_used: number | null
+          id: string
+          images: Json | null
+          music_url: string | null
+          script: string | null
+          status: string | null
+          target_duration_seconds: number | null
+          title: string
+          topic: string | null
+          updated_at: string | null
+          user_id: string
+          video_url: string | null
+          voice_id: string | null
+          voice_language: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          id?: string
+          images?: Json | null
+          music_url?: string | null
+          script?: string | null
+          status?: string | null
+          target_duration_seconds?: number | null
+          title: string
+          topic?: string | null
+          updated_at?: string | null
+          user_id: string
+          video_url?: string | null
+          voice_id?: string | null
+          voice_language?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          id?: string
+          images?: Json | null
+          music_url?: string | null
+          script?: string | null
+          status?: string | null
+          target_duration_seconds?: number | null
+          title?: string
+          topic?: string | null
+          updated_at?: string | null
+          user_id?: string
+          video_url?: string | null
+          voice_id?: string | null
+          voice_language?: string | null
+        }
+        Relationships: []
       }
       credit_purchases: {
         Row: {
@@ -3981,6 +4107,98 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      social_media_connections: {
+        Row: {
+          access_token: string | null
+          account_name: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          platform: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_name?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          platform: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          account_name?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          platform?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      social_media_uploads: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          error_message: string | null
+          id: string
+          platform: string
+          post_id: string | null
+          project_id: string | null
+          status: string | null
+          title: string | null
+          uploaded_at: string | null
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          platform: string
+          post_id?: string | null
+          project_id?: string | null
+          status?: string | null
+          title?: string | null
+          uploaded_at?: string | null
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          platform?: string
+          post_id?: string | null
+          project_id?: string | null
+          status?: string | null
+          title?: string | null
+          uploaded_at?: string | null
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_media_uploads_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "content_creator_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stair_step_config: {
         Row: {

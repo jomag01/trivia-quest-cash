@@ -32,3 +32,12 @@ verify_jwt = false
 
 [functions.storage-upload]
 verify_jwt = false
+
+[functions.ai-generate]
+verify_jwt = false
+
+[functions.elevenlabs-voiceover]
+verify_jwt = false
+
+[functions.content-creator]
+verify_jwt = false

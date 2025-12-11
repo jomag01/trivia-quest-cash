@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
+import ContentCreator from '@/components/ai/ContentCreator';
 import { 
   ImageIcon, 
   VideoIcon, 
@@ -24,7 +25,8 @@ import {
   Crown,
   X,
   ImagePlus,
-  ShoppingCart
+  ShoppingCart,
+  Film
 } from 'lucide-react';
 
 const AIHub = memo(() => {
@@ -419,26 +421,31 @@ const AIHub = memo(() => {
       {/* Main Content */}
       <div className="container mx-auto px-4 -mt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl mx-auto bg-background/50 backdrop-blur-sm border">
+          <TabsList className="grid grid-cols-5 w-full max-w-3xl mx-auto bg-background/50 backdrop-blur-sm border">
             <TabsTrigger value="text-to-image" className="gap-2 text-xs sm:text-sm">
               <Wand2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Text to Image</span>
+              <span className="hidden sm:inline">Text→Image</span>
               <span className="sm:hidden">T→I</span>
             </TabsTrigger>
             <TabsTrigger value="image-to-text" className="gap-2 text-xs sm:text-sm">
               <ImageIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Image to Text</span>
+              <span className="hidden sm:inline">Image→Text</span>
               <span className="sm:hidden">I→T</span>
             </TabsTrigger>
             <TabsTrigger value="text-to-video" className="gap-2 text-xs sm:text-sm">
               <VideoIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Text to Video</span>
+              <span className="hidden sm:inline">Text→Video</span>
               <span className="sm:hidden">T→V</span>
             </TabsTrigger>
             <TabsTrigger value="video-to-text" className="gap-2 text-xs sm:text-sm">
               <TypeIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Video to Text</span>
+              <span className="hidden sm:inline">Video→Text</span>
               <span className="sm:hidden">V→T</span>
+            </TabsTrigger>
+            <TabsTrigger value="content-creator" className="gap-2 text-xs sm:text-sm">
+              <Film className="h-4 w-4" />
+              <span className="hidden sm:inline">Creator</span>
+              <span className="sm:hidden">Create</span>
             </TabsTrigger>
           </TabsList>
 
@@ -765,6 +772,14 @@ const AIHub = memo(() => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Content Creator */}
+          <TabsContent value="content-creator">
+            <ContentCreator 
+              userCredits={userCredits} 
+              onCreditsChange={fetchUserCredits} 
+            />
           </TabsContent>
         </Tabs>
       </div>

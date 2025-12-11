@@ -61,6 +61,7 @@ import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
 import AppLogoManagement from "@/components/admin/AppLogoManagement";
 import SystemResetManagement from "@/components/admin/SystemResetManagement";
 import AISettingsManagement from "@/components/admin/AISettingsManagement";
+import AIProviderPricing from "@/components/admin/AIProviderPricing";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -137,6 +138,7 @@ const Admin = () => {
     { id: "cookie-policy", label: "Cookie Policy", icon: Cookie },
     { id: "pos-system", label: "POS & Inventory", icon: Barcode },
     { id: "ai-settings", label: "AI Hub Settings", icon: Sparkles },
+    { id: "ai-pricing", label: "AI Provider Costs", icon: DollarSign },
     { id: "system-reset", label: "System Reset", icon: RotateCcw },
   ];
 
@@ -629,6 +631,7 @@ const Admin = () => {
           {activeTab === "pos-system" && <POSSystem />}
           {activeTab === "unilevel-settings" && <UnilevelCommissionSettings />}
           {activeTab === "ai-settings" && <AISettingsManagement />}
+          {activeTab === "ai-pricing" && <AIProviderPricing />}
           {activeTab === "system-reset" && <SystemResetManagement />}
         </main>
       </div>
