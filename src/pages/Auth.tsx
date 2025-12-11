@@ -155,18 +155,22 @@ const Auth = () => {
         toast.success("Welcome back!");
         navigate("/dashboard");
       } else {
-        // Validate referral code if provided
+        // Validate referral code - REQUIRED
         const normalizedCode = referralCode.trim().toUpperCase();
-        if (normalizedCode) {
-          const { data, error } = await supabase.functions.invoke('validate-referral', {
-            body: { referralCode: normalizedCode }
-          });
+        if (!normalizedCode) {
+          toast.error("Referral code is required to create an account.");
+          setLoading(false);
+          return;
+        }
+        
+        const { data: validateData, error: validateError } = await supabase.functions.invoke('validate-referral', {
+          body: { referralCode: normalizedCode }
+        });
 
-          if (error || !data?.valid) {
-            toast.error(data?.error || "Invalid referral code. Please check and try again.");
-            setLoading(false);
-            return;
-          }
+        if (validateError || !validateData?.valid) {
+          toast.error(validateData?.error || "Invalid referral code. Please check and try again.");
+          setLoading(false);
+          return;
         }
 
         // Prepare user metadata with referral_code for the trigger
@@ -210,7 +214,7 @@ const Auth = () => {
         <div className="text-center mb-8">
           <Trophy className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse-slow" />
           <h1 className="text-3xl font-bold text-gradient-gold mb-2">
-            {isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Join GameWin"}
+            {isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Join TriviaBees"}
           </h1>
           <p className="text-muted-foreground">
             {isForgotPassword 
@@ -422,18 +426,19 @@ const Auth = () => {
               <div className="space-y-2">
                 <Label htmlFor="referralCode" className="flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  Referral Code (Optional)
+                  Referral Code <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="referralCode"
                   type="text"
                   value={referralCode}
                   onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                  placeholder="Enter referrer's code (optional)"
+                  placeholder="Enter referrer's code"
                   maxLength={50}
+                  required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter a referral code if you have one
+                  A valid referral code is required to create an account
                 </p>
               </div>
             </>
