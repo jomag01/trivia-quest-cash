@@ -9,7 +9,9 @@ import Navigation from "./components/Navigation";
 import { parseAndTrackFromUrl } from "@/lib/cookieTracking";
 
 // Lazy load all pages for code splitting
+const AIHub = lazy(() => import("./pages/AIHub"));
 const Feed = lazy(() => import("./pages/Feed"));
+const Games = lazy(() => import("./pages/Games"));
 const Home = lazy(() => import("./pages/Home"));
 const Game = lazy(() => import("./pages/Game"));
 const MobaGame = lazy(() => import("./pages/MobaGame"));
@@ -68,7 +70,9 @@ const App = () => (
           <Navigation />
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              <Route path="/" element={<Feed />} />
+              <Route path="/" element={<AIHub />} />
+              <Route path="/feed" element={<Feed />} />
+              <Route path="/games" element={<Games />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/game" element={<Game />} />
               <Route path="/game/:category" element={<Game />} />
