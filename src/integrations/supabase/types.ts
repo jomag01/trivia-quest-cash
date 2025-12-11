@@ -184,6 +184,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_generations: {
+        Row: {
+          created_at: string
+          credits_used: number | null
+          generation_type: string
+          id: string
+          prompt: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credits_used?: number | null
+          generation_type: string
+          id?: string
+          prompt?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credits_used?: number | null
+          generation_type?: string
+          id?: string
+          prompt?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string

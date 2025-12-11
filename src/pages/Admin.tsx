@@ -54,12 +54,13 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles } from "lucide-react";
 import { POSSystem } from "@/components/admin/POSSystem";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
 import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
 import AppLogoManagement from "@/components/admin/AppLogoManagement";
 import SystemResetManagement from "@/components/admin/SystemResetManagement";
+import AISettingsManagement from "@/components/admin/AISettingsManagement";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -135,6 +136,7 @@ const Admin = () => {
     { id: "rider-management", label: "Rider Management", icon: Bike },
     { id: "cookie-policy", label: "Cookie Policy", icon: Cookie },
     { id: "pos-system", label: "POS & Inventory", icon: Barcode },
+    { id: "ai-settings", label: "AI Hub Settings", icon: Sparkles },
     { id: "system-reset", label: "System Reset", icon: RotateCcw },
   ];
 
@@ -626,6 +628,7 @@ const Admin = () => {
           {activeTab === "cookie-policy" && <CookiePolicyManagement />}
           {activeTab === "pos-system" && <POSSystem />}
           {activeTab === "unilevel-settings" && <UnilevelCommissionSettings />}
+          {activeTab === "ai-settings" && <AISettingsManagement />}
           {activeTab === "system-reset" && <SystemResetManagement />}
         </main>
       </div>
