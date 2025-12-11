@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Store, ShoppingBag, UtensilsCrossed, Bike, Truck } from "lucide-react";
-import Navigation from "@/components/Navigation";
 import { RestaurantList } from "@/components/food/RestaurantList";
 import { FoodCart } from "@/components/food/FoodCart";
 import { MyFoodOrders } from "@/components/food/MyFoodOrders";
@@ -109,8 +108,6 @@ const Food = () => {
           <CreateRestaurantDialog onClose={() => setCreateDialogOpen(false)} />
         </DialogContent>
       </Dialog>
-
-      <Navigation />
     </div>
   );
 };
