@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import { 
   ImageIcon, 
   VideoIcon, 
@@ -22,7 +23,8 @@ import {
   Wand2,
   Crown,
   X,
-  ImagePlus
+  ImagePlus,
+  ShoppingCart
 } from 'lucide-react';
 
 const AIHub = memo(() => {
@@ -42,14 +44,35 @@ const AIHub = memo(() => {
   const [freeImageLimit, setFreeImageLimit] = useState(3);
   const [videoCreditCost, setVideoCreditCost] = useState(10);
   const [userCredits, setUserCredits] = useState(0);
+  
+  // Logo and dialogs
+  const [appLogo, setAppLogo] = useState<string | null>(null);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   useEffect(() => {
     fetchSettings();
+    fetchAppLogo();
     if (user) {
       fetchUsageStats();
       fetchUserCredits();
     }
   }, [user]);
+
+  const fetchAppLogo = async () => {
+    try {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'app_logo')
+        .maybeSingle();
+      
+      if (data?.value) {
+        setAppLogo(data.value);
+      }
+    } catch (error) {
+      console.error('Error fetching app logo:', error);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -335,12 +358,29 @@ const AIHub = memo(() => {
               <Sparkles className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">AI-Powered Creation</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              AI Hub
-            </h1>
+            <div className="flex items-center justify-center gap-3">
+              {appLogo && (
+                <img src={appLogo} alt="Logo" className="h-12 w-12 object-contain rounded-lg" />
+              )}
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                AI Hub
+              </h1>
+            </div>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Transform your ideas into stunning visuals. Generate images from text, analyze images and videos with AI.
             </p>
+            
+            {/* Buy Credits Button */}
+            {user && (
+              <Button 
+                onClick={() => setShowBuyCredits(true)} 
+                variant="outline" 
+                className="gap-2"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Buy AI Credits
+              </Button>
+            )}
             
             {/* Usage Stats */}
             {user && (
@@ -728,6 +768,15 @@ const AIHub = memo(() => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Buy Credits Dialog */}
+      <BuyAICreditsDialog 
+        open={showBuyCredits} 
+        onOpenChange={setShowBuyCredits}
+        onPurchaseComplete={() => {
+          fetchUserCredits();
+        }}
+      />
     </div>
   );
 });
