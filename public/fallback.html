@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Triviabees - Play. Win. Earn.</title>
+  <meta name="description" content="Test your knowledge, climb the levels, and unlock unlimited earning potential through our revolutionary trivia platform">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#fff;min-height:100vh}
+    .hero{text-align:center;padding:4rem 1rem}
+    .hero h1{font-size:clamp(2rem,8vw,4rem);font-weight:700;background:linear-gradient(135deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:1rem}
+    .hero p{font-size:1.25rem;opacity:0.9;max-width:40rem;margin:0 auto 2rem}
+    .btn{display:inline-block;background:#fbbf24;color:#1a1a2e;font-weight:600;padding:0.875rem 2rem;border-radius:0.5rem;text-decoration:none;transition:transform 0.2s}
+    .btn:hover{transform:scale(1.05)}
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;max-width:72rem;margin:0 auto;padding:2rem 1rem}
+    .card{background:rgba(255,255,255,0.05);border:1px solid rgba(251,191,36,0.2);border-radius:1rem;padding:1.5rem}
+    .card h3{font-size:1.25rem;margin-bottom:0.5rem}
+    .card p{opacity:0.8;font-size:0.95rem}
+    .loading{text-align:center;padding:2rem;opacity:0.7}
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <h1>Play. Win. Earn.</h1>
+    <p>Test your knowledge, climb the levels, and unlock unlimited earning potential through our revolutionary trivia platform</p>
+    <a href="/auth" class="btn">Get Started</a>
+  </section>
+  <section class="features">
+    <div class="card">
+      <h3>⚡ Play & Progress</h3>
+      <p>Answer trivia questions through 10 exciting levels. Use lifelines and strategy to reach the top!</p>
+    </div>
+    <div class="card">
+      <h3>👥 Refer & Earn</h3>
+      <p>Build your network with our 7-level affiliate system. Earn commissions from your downline's activities.</p>
+    </div>
+    <div class="card">
+      <h3>⭐ Win Rewards</h3>
+      <p>Unlock Level 10 for exclusive rewards and special achievements. Keep climbing!</p>
+    </div>
+  </section>
+  <p class="loading">Loading full experience...</p>
+  <script>
+    // Redirect to main app after brief display
+    setTimeout(function(){window.location.reload()},3000);
+  </script>
+</body>
+</html>
