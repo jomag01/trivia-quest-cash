@@ -312,7 +312,7 @@ const Dashboard = () => {
     setSelectedLevel(level);
     setShowGenealogy(true);
   };
-  return <div className="min-h-screen py-8 px-4">
+  return <div className="min-h-screen py-8 px-4 pb-20">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
