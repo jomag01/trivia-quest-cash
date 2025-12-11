@@ -1874,6 +1874,369 @@ export type Database = {
           },
         ]
       }
+      moba_heroes: {
+        Row: {
+          base_attack: number
+          base_defense: number
+          base_hp: number
+          base_speed: number
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_starter: boolean | null
+          name: string
+          role: string
+          skill_1: Json | null
+          skill_2: Json | null
+          slug: string
+          sprite_url: string | null
+          ultimate: Json | null
+          unlock_cost_diamonds: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          base_attack?: number
+          base_defense?: number
+          base_hp?: number
+          base_speed?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_starter?: boolean | null
+          name: string
+          role?: string
+          skill_1?: Json | null
+          skill_2?: Json | null
+          slug: string
+          sprite_url?: string | null
+          ultimate?: Json | null
+          unlock_cost_diamonds?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          base_attack?: number
+          base_defense?: number
+          base_hp?: number
+          base_speed?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_starter?: boolean | null
+          name?: string
+          role?: string
+          skill_1?: Json | null
+          skill_2?: Json | null
+          slug?: string
+          sprite_url?: string | null
+          ultimate?: Json | null
+          unlock_cost_diamonds?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      moba_level_completions: {
+        Row: {
+          completed_at: string | null
+          diamonds_earned: number | null
+          hero_used: string | null
+          id: string
+          level_id: string
+          score: number | null
+          stars_earned: number | null
+          time_seconds: number | null
+          user_id: string
+          xp_earned: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          diamonds_earned?: number | null
+          hero_used?: string | null
+          id?: string
+          level_id: string
+          score?: number | null
+          stars_earned?: number | null
+          time_seconds?: number | null
+          user_id: string
+          xp_earned?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          diamonds_earned?: number | null
+          hero_used?: string | null
+          id?: string
+          level_id?: string
+          score?: number | null
+          stars_earned?: number | null
+          time_seconds?: number | null
+          user_id?: string
+          xp_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moba_level_completions_hero_used_fkey"
+            columns: ["hero_used"]
+            isOneToOne: false
+            referencedRelation: "moba_heroes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moba_level_completions_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "moba_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moba_levels: {
+        Row: {
+          boss_config: Json | null
+          created_at: string | null
+          description: string | null
+          difficulty: string
+          difficulty_multiplier: number | null
+          enemy_config: Json | null
+          entry_cost_diamonds: number | null
+          id: string
+          is_active: boolean | null
+          level_number: number
+          map_config: Json | null
+          min_player_level: number | null
+          name: string
+          reward_diamonds: number | null
+          reward_xp: number | null
+          story_chapter: string | null
+          story_cutscene: Json | null
+          time_limit_seconds: number | null
+          unlock_ability: string | null
+          unlock_hero_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          boss_config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string
+          difficulty_multiplier?: number | null
+          enemy_config?: Json | null
+          entry_cost_diamonds?: number | null
+          id?: string
+          is_active?: boolean | null
+          level_number: number
+          map_config?: Json | null
+          min_player_level?: number | null
+          name: string
+          reward_diamonds?: number | null
+          reward_xp?: number | null
+          story_chapter?: string | null
+          story_cutscene?: Json | null
+          time_limit_seconds?: number | null
+          unlock_ability?: string | null
+          unlock_hero_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          boss_config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string
+          difficulty_multiplier?: number | null
+          enemy_config?: Json | null
+          entry_cost_diamonds?: number | null
+          id?: string
+          is_active?: boolean | null
+          level_number?: number
+          map_config?: Json | null
+          min_player_level?: number | null
+          name?: string
+          reward_diamonds?: number | null
+          reward_xp?: number | null
+          story_chapter?: string | null
+          story_cutscene?: Json | null
+          time_limit_seconds?: number | null
+          unlock_ability?: string | null
+          unlock_hero_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moba_levels_unlock_hero_id_fkey"
+            columns: ["unlock_hero_id"]
+            isOneToOne: false
+            referencedRelation: "moba_heroes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moba_player_heroes: {
+        Row: {
+          hero_id: string
+          hero_level: number | null
+          hero_xp: number | null
+          id: string
+          is_favorite: boolean | null
+          skin_equipped: string | null
+          unlocked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          hero_id: string
+          hero_level?: number | null
+          hero_xp?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          skin_equipped?: string | null
+          unlocked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          hero_id?: string
+          hero_level?: number | null
+          hero_xp?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          skin_equipped?: string | null
+          unlocked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moba_player_heroes_hero_id_fkey"
+            columns: ["hero_id"]
+            isOneToOne: false
+            referencedRelation: "moba_heroes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moba_player_progress: {
+        Row: {
+          created_at: string | null
+          current_level: number | null
+          highest_level_completed: number | null
+          id: string
+          play_time_minutes: number | null
+          player_level: number | null
+          total_games_played: number | null
+          total_kills: number | null
+          total_wins: number | null
+          total_xp: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_level?: number | null
+          highest_level_completed?: number | null
+          id?: string
+          play_time_minutes?: number | null
+          player_level?: number | null
+          total_games_played?: number | null
+          total_kills?: number | null
+          total_wins?: number | null
+          total_xp?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_level?: number | null
+          highest_level_completed?: number | null
+          id?: string
+          play_time_minutes?: number | null
+          player_level?: number | null
+          total_games_played?: number | null
+          total_kills?: number | null
+          total_wins?: number | null
+          total_xp?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      moba_purchases: {
+        Row: {
+          affiliate_commission_paid: boolean | null
+          diamonds_spent: number
+          id: string
+          item_id: string | null
+          item_type: string
+          purchased_at: string | null
+          referrer_id: string | null
+          user_id: string
+        }
+        Insert: {
+          affiliate_commission_paid?: boolean | null
+          diamonds_spent: number
+          id?: string
+          item_id?: string | null
+          item_type: string
+          purchased_at?: string | null
+          referrer_id?: string | null
+          user_id: string
+        }
+        Update: {
+          affiliate_commission_paid?: boolean | null
+          diamonds_spent?: number
+          id?: string
+          item_id?: string | null
+          item_type?: string
+          purchased_at?: string | null
+          referrer_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moba_purchases_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "moba_store_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moba_store_items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration_seconds: number | null
+          effect_config: Json | null
+          icon_url: string | null
+          id: string
+          is_active: boolean | null
+          item_type: string
+          name: string
+          price_diamonds: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          effect_config?: Json | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_type: string
+          name: string
+          price_diamonds?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          effect_config?: Json | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_type?: string
+          name?: string
+          price_diamonds?: number
+        }
+        Relationships: []
+      }
       muted_group_users: {
         Row: {
           created_at: string
@@ -4416,6 +4779,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_player_level: { Args: { total_xp: number }; Returns: number }
       can_access_category_level: {
         Args: { p_category_id: string; p_level: number; p_user_id: string }
         Returns: boolean
