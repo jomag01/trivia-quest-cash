@@ -8,7 +8,7 @@ interface FeedTabsProps {
 
 export default function FeedTabs({ activeTab, onTabChange }: FeedTabsProps) {
   return (
-    <div className="sticky top-14 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
+    <div className="sticky top-14 z-50 bg-background/95 backdrop-blur-lg border-b border-border shadow-sm">
       <Tabs value={activeTab} onValueChange={onTabChange}>
         <TabsList className="w-full h-12 justify-start gap-0 rounded-none bg-transparent p-0 overflow-x-auto scrollbar-hide">
           <TabsTrigger

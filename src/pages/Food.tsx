@@ -20,7 +20,7 @@ const Food = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-background border-b">
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border shadow-sm">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-2">
             <UtensilsCrossed className="w-6 h-6 text-primary" />
@@ -30,9 +30,10 @@ const Food = () => {
         </div>
       </div>
 
-      <div className="p-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        {/* Sticky Tabs */}
+        <div className="sticky top-[73px] z-40 bg-background/95 backdrop-blur-lg border-b border-border px-4 py-2">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="browse" className="text-[10px] sm:text-xs px-1">
               <Store className="w-3 h-3 mr-0.5" />
               Browse
@@ -54,7 +55,9 @@ const Food = () => {
               Deliver
             </TabsTrigger>
           </TabsList>
+        </div>
 
+        <div className="p-4">
           <TabsContent value="browse">
             <RestaurantList />
           </TabsContent>
@@ -98,8 +101,8 @@ const Food = () => {
               </div>
             )}
           </TabsContent>
-        </Tabs>
-      </div>
+        </div>
+      </Tabs>
 
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
