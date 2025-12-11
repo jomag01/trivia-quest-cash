@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { 
   Play, Eye, Clock, Flame, Gamepad2, Trophy, 
-  ChevronRight, Star, Users, Zap
+  ChevronRight, Star, Users, Zap, Sword, Shield
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -143,6 +143,46 @@ export default function GamingHome() {
           Following
         </Button>
       </div>
+
+      {/* Featured MOBA Game */}
+      <section className="px-4 mb-6">
+        <Card 
+          className="p-4 bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-purple-500/30 cursor-pointer hover:scale-[1.02] transition-transform"
+          onClick={() => navigate('/moba-game')}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+              <Sword className="w-8 h-8 text-white" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge className="bg-green-500 text-white text-xs">NEW</Badge>
+                <Badge variant="outline" className="text-xs">MOBA</Badge>
+              </div>
+              <h3 className="text-lg font-bold">Battle Arena</h3>
+              <p className="text-sm text-muted-foreground">Epic MOBA battles with progressive levels & rewards</p>
+            </div>
+            <Button size="sm" className="rounded-full">
+              <Play className="w-4 h-4 mr-1" />
+              Play
+            </Button>
+          </div>
+          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Shield className="w-3 h-3" />
+              3 Heroes
+            </span>
+            <span className="flex items-center gap-1">
+              <Trophy className="w-3 h-3" />
+              5 Levels
+            </span>
+            <span className="flex items-center gap-1">
+              <Star className="w-3 h-3 text-yellow-500" />
+              Earn Diamonds
+            </span>
+          </div>
+        </Card>
+      </section>
 
       {/* Game Categories */}
       <section className="px-4 mb-6">
