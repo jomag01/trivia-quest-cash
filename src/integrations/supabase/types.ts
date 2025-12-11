@@ -256,6 +256,78 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_request_queue: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          priority: number | null
+          processed_at: string | null
+          prompt_hash: string
+          request_type: string
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          priority?: number | null
+          processed_at?: string | null
+          prompt_hash: string
+          request_type: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          priority?: number | null
+          processed_at?: string | null
+          prompt_hash?: string
+          request_type?: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_response_cache: {
+        Row: {
+          created_at: string
+          expires_at: string
+          hit_count: number | null
+          id: string
+          prompt: string
+          prompt_hash: string
+          response_text: string | null
+          response_type: string
+          response_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          hit_count?: number | null
+          id?: string
+          prompt: string
+          prompt_hash: string
+          response_text?: string | null
+          response_type: string
+          response_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          hit_count?: number | null
+          id?: string
+          prompt?: string
+          prompt_hash?: string
+          response_text?: string | null
+          response_type?: string
+          response_url?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -4875,6 +4947,7 @@ export type Database = {
         Args: { _level: number; _user_id: string }
         Returns: Json
       }
+      clean_ai_cache: { Args: never; Returns: undefined }
       convert_gems_to_diamonds: {
         Args: { p_gem_amount: number; p_user_id: string }
         Returns: Json
