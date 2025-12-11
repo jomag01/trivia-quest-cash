@@ -45,6 +45,7 @@ const AIHub = memo(() => {
   const [imageGenerationCount, setImageGenerationCount] = useState(0);
   const [freeImageLimit, setFreeImageLimit] = useState(3);
   const [videoCreditCost, setVideoCreditCost] = useState(10);
+  const [creditToDiamondRate, setCreditToDiamondRate] = useState(10);
   const [userCredits, setUserCredits] = useState(0);
   
   // Logo and dialogs
@@ -81,13 +82,15 @@ const AIHub = memo(() => {
       const { data } = await supabase
         .from('app_settings')
         .select('key, value')
-        .in('key', ['ai_free_image_limit', 'ai_video_credit_cost']);
+        .in('key', ['ai_free_image_limit', 'ai_video_credit_cost', 'ai_credit_to_diamond_rate']);
       
       data?.forEach(setting => {
         if (setting.key === 'ai_free_image_limit') {
           setFreeImageLimit(parseInt(setting.value || '3'));
         } else if (setting.key === 'ai_video_credit_cost') {
           setVideoCreditCost(parseInt(setting.value || '10'));
+        } else if (setting.key === 'ai_credit_to_diamond_rate') {
+          setCreditToDiamondRate(parseInt(setting.value || '10'));
         }
       });
     } catch (error) {
@@ -409,6 +412,14 @@ const AIHub = memo(() => {
                     <VideoIcon className="h-4 w-4 text-purple-500" />
                     <span className="text-sm">
                       Video Cost: <strong>{videoCreditCost} credits</strong>
+                    </span>
+                  </div>
+                </Card>
+                <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-yellow-500/20">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">💎</span>
+                    <span className="text-sm">
+                      Rate: <strong>{creditToDiamondRate} credits = 1 💎</strong>
                     </span>
                   </div>
                 </Card>

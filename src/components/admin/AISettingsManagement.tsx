@@ -18,6 +18,7 @@ interface CreditTier {
 const AISettingsManagement = () => {
   const [freeImageLimit, setFreeImageLimit] = useState('3');
   const [videoCreditCost, setVideoCreditCost] = useState('10');
+  const [creditToDiamondRate, setCreditToDiamondRate] = useState('10'); // 10 credits = 1 diamond
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -52,6 +53,8 @@ const AISettingsManagement = () => {
           setFreeImageLimit(setting.value || '3');
         } else if (setting.key === 'ai_video_credit_cost') {
           setVideoCreditCost(setting.value || '10');
+        } else if (setting.key === 'ai_credit_to_diamond_rate') {
+          setCreditToDiamondRate(setting.value || '10');
         } else if (setting.key === 'ai_admin_earnings_percent') {
           setAdminEarningsPercent(setting.value || '35');
         } else if (setting.key === 'ai_unilevel_percent') {
@@ -93,6 +96,7 @@ const AISettingsManagement = () => {
       const updates = [
         { key: 'ai_free_image_limit', value: freeImageLimit },
         { key: 'ai_video_credit_cost', value: videoCreditCost },
+        { key: 'ai_credit_to_diamond_rate', value: creditToDiamondRate },
         { key: 'ai_admin_earnings_percent', value: adminEarningsPercent },
         { key: 'ai_unilevel_percent', value: unilevelPercent },
         { key: 'ai_stairstep_percent', value: stairstepPercent },
@@ -195,6 +199,29 @@ const AISettingsManagement = () => {
               />
               <p className="text-xs text-muted-foreground">
                 Credits required per video generation
+              </p>
+            </div>
+          </div>
+
+          {/* Credit to Diamond Exchange Rate */}
+          <div className="pt-4 border-t">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-yellow-500" />
+                Credit to Diamond Exchange Rate
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="1"
+                  value={creditToDiamondRate}
+                  onChange={(e) => setCreditToDiamondRate(e.target.value)}
+                  className="max-w-[120px]"
+                />
+                <span className="text-sm text-muted-foreground">credits = 1 diamond</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Set how many AI credits equal 1 diamond for conversion (e.g., {creditToDiamondRate} credits = 1 💎)
               </p>
             </div>
           </div>
