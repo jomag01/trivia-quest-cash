@@ -375,6 +375,38 @@ export default function StairStepManagement() {
             <li>Step 3 affiliates earn <strong>2% breakaway override</strong> from their Step 3 downline organizations</li>
           </ul>
         </div>
+
+        {/* Cost-Based Commission Example */}
+        <div className="mt-6 p-4 rounded-lg bg-muted/30 border">
+          <h4 className="font-semibold mb-3">💰 Cost-Based Commission Example (Profitability Protected)</h4>
+          <div className="space-y-3 text-sm">
+            <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <p className="text-muted-foreground">
+                Commissions are calculated on <strong>PROFIT ONLY</strong> (Sale Price - Product Cost), 
+                ensuring admin profitability is protected.
+              </p>
+            </div>
+            
+            <div className="grid gap-2">
+              <p className="font-medium">Scenario: Affiliate at Step 2 (5%) sells ₱100,000 worth of products</p>
+              <div className="ml-4 space-y-1 text-muted-foreground">
+                <p>• Product Cost: <strong className="text-foreground">₱60,000</strong></p>
+                <p>• Sale Price: <strong className="text-foreground">₱100,000</strong></p>
+                <p>• Gross Profit: <strong className="text-green-600">₱40,000</strong></p>
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <p className="font-medium">Commission Calculation (from ₱40,000 profit):</p>
+              <div className="ml-4 space-y-1">
+                <p>• Step 2 Affiliate (5%): <strong className="text-green-600">₱{(40000 * 0.05).toLocaleString()}</strong></p>
+                <p>• Step 3 Upline (8% - 5% = 3% differential): <strong className="text-green-600">₱{(40000 * 0.03).toLocaleString()}</strong></p>
+                <p>• Total Stair-Step Payout: <strong className="text-orange-600">₱{(40000 * 0.08).toLocaleString()}</strong></p>
+                <p>• Admin Net Profit: <strong className="text-green-600">₱{(40000 - (40000 * 0.08)).toLocaleString()}</strong></p>
+              </div>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
