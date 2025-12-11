@@ -11,9 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    const SUNO_API_KEY = Deno.env.get('SUNO_API_KEY');
-    if (!SUNO_API_KEY) {
-      throw new Error('SUNO_API_KEY is not configured');
+    const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
+    if (!FAL_API_KEY) {
+      throw new Error('FAL_API_KEY is not configured');
     }
 
     const { prompt, duration = 30, instrumental = false } = await req.json();
@@ -27,78 +27,41 @@ serve(async (req) => {
 
     console.log('Generating music with prompt:', prompt, 'duration:', duration, 'instrumental:', instrumental);
 
-    // Generate music using Suno API
-    const response = await fetch('https://api.suno.ai/v1/generate', {
+    // Generate music using fal.ai's MusicGen model (more reliable than Suno API)
+    const response = await fetch('https://queue.fal.run/fal-ai/stable-audio', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUNO_API_KEY}`,
+        'Authorization': `Key ${FAL_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: prompt,
-        duration: duration,
-        make_instrumental: instrumental,
-        wait_audio: true, // Wait for audio to be generated
+        prompt: instrumental ? `${prompt}, instrumental, no vocals` : prompt,
+        seconds_total: Math.min(duration, 45), // Max 45 seconds
+        steps: 100,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Suno API error:', response.status, errorText);
-      
-      // Try alternative endpoint format
-      const altResponse = await fetch('https://studio-api.suno.ai/api/external/generate/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUNO_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: prompt,
-          make_instrumental: instrumental,
-        }),
-      });
-
-      if (!altResponse.ok) {
-        const altError = await altResponse.text();
-        console.error('Suno Alt API error:', altResponse.status, altError);
-        throw new Error(`Suno API error: ${response.status}`);
-      }
-
-      const altResult = await altResponse.json();
-      console.log('Suno Alt response:', JSON.stringify(altResult));
-      
-      const audioUrl = altResult.audio_url || altResult[0]?.audio_url || altResult.clips?.[0]?.audio_url;
-      
-      if (!audioUrl) {
-        throw new Error('No audio URL returned from Suno');
-      }
-
-      return new Response(
-        JSON.stringify({ 
-          audioUrl,
-          title: altResult.title || altResult[0]?.title || 'AI Generated Music',
-          success: true
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error('Fal.ai music error:', response.status, errorText);
+      throw new Error(`Music generation error: ${response.status}`);
     }
 
     const result = await response.json();
-    console.log('Suno response:', JSON.stringify(result));
+    console.log('Fal.ai music response:', JSON.stringify(result));
 
     // Extract audio URL from response
-    const audioUrl = result.audio_url || result[0]?.audio_url || result.clips?.[0]?.audio_url;
+    const audioUrl = result.audio_file?.url || result.audio?.url || result.output?.audio?.url;
     
     if (!audioUrl) {
       console.error('No audio URL in response:', result);
-      throw new Error('No audio URL returned from Suno');
+      throw new Error('No audio URL returned');
     }
 
     return new Response(
       JSON.stringify({ 
         audioUrl,
-        title: result.title || result[0]?.title || 'AI Generated Music',
+        title: 'AI Generated Music',
         success: true,
         message: 'Music generated successfully'
       }),
