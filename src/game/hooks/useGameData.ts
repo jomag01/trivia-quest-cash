@@ -189,18 +189,24 @@ export const useUnlockHero = () => {
     mutationFn: async (heroId: string) => {
       if (!user?.id) throw new Error('Not authenticated');
 
+      // Use upsert to handle duplicates gracefully
       const { error } = await supabase
         .from('moba_player_heroes')
-        .insert({ user_id: user.id, hero_id: heroId });
+        .upsert(
+          { user_id: user.id, hero_id: heroId },
+          { onConflict: 'user_id,hero_id', ignoreDuplicates: true }
+        );
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['moba-player-heroes'] });
-      toast.success('Hero unlocked!');
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Failed to unlock hero');
+      // Silently ignore duplicate key errors for starter heroes
+      if (!error.message?.includes('duplicate')) {
+        toast.error(error.message || 'Failed to unlock hero');
+      }
     },
   });
 };
