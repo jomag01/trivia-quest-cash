@@ -190,7 +190,7 @@ export default function FeedCard({ post, onCommentsClick, onDelete, variant = "d
               onClick={() => navigate(`/profile/${post.user_id}`)}
               className="font-semibold text-sm hover:text-accent transition-colors text-left"
             >
-              {post.profiles?.full_name || "Anonymous"}
+              {post.profiles?.full_name || post.profiles?.email?.split('@')[0] || "User"}
             </button>
             <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
@@ -344,7 +344,7 @@ export default function FeedCard({ post, onCommentsClick, onDelete, variant = "d
               onClick={() => navigate(`/profile/${post.user_id}`)}
               className="font-semibold mr-1 hover:text-accent transition-colors"
             >
-              {post.profiles?.full_name || "Anonymous"}
+              {post.profiles?.full_name || post.profiles?.email?.split('@')[0] || "User"}
             </button>
             {isLongCaption && !showFullCaption ? (
               <>
