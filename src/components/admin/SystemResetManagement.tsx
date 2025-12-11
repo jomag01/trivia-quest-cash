@@ -547,7 +547,7 @@ export default function SystemResetManagement() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="system" className="gap-2">
@@ -655,7 +655,7 @@ export default function SystemResetManagement() {
               <div className="flex justify-end pt-4 border-t">
                 <Button
                   variant="destructive"
-                  size="lg"
+                  size="sm"
                   disabled={selectedOptions.length === 0 || isResetting}
                   onClick={() => setShowConfirmDialog(true)}
                   className="gap-2"
