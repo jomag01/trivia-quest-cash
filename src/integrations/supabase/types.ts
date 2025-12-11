@@ -184,6 +184,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_credit_purchases: {
+        Row: {
+          admin_earnings: number | null
+          amount: number
+          created_at: string
+          credits_received: number
+          id: string
+          leadership_commission: number | null
+          payment_method: string
+          referrer_id: string | null
+          stairstep_commission: number | null
+          status: string | null
+          unilevel_commission: number | null
+          user_id: string
+        }
+        Insert: {
+          admin_earnings?: number | null
+          amount: number
+          created_at?: string
+          credits_received: number
+          id?: string
+          leadership_commission?: number | null
+          payment_method?: string
+          referrer_id?: string | null
+          stairstep_commission?: number | null
+          status?: string | null
+          unilevel_commission?: number | null
+          user_id: string
+        }
+        Update: {
+          admin_earnings?: number | null
+          amount?: number
+          created_at?: string
+          credits_received?: number
+          id?: string
+          leadership_commission?: number | null
+          payment_method?: string
+          referrer_id?: string | null
+          stairstep_commission?: number | null
+          status?: string | null
+          unilevel_commission?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_generations: {
         Row: {
           created_at: string
