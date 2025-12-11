@@ -121,6 +121,16 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
   const [isRegeneratingImages, setIsRegeneratingImages] = useState(false);
   const [isRegeneratingVideo, setIsRegeneratingVideo] = useState(false);
   const [showVideoPreview, setShowVideoPreview] = useState(false);
+  
+  // Blotato publishing state
+  const [blotatorAccountIds, setBlotatorAccountIds] = useState<Record<string, string>>({
+    tiktok: '',
+    youtube: '',
+    facebook: '',
+    instagram: '',
+  });
+  const [isPublishing, setIsPublishing] = useState<string | null>(null);
+  const [publishedPlatforms, setPublishedPlatforms] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   const isPaidUser = userCredits >= 10;
@@ -393,6 +403,55 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
     link.click();
     document.body.removeChild(link);
     toast.success('Video download started!');
+  };
+
+  const handlePublishToBlotato = async (platform: string) => {
+    const accountId = blotatorAccountIds[platform];
+    if (!accountId) {
+      toast.error(`Please enter your ${platform} account ID from Blotato`);
+      return;
+    }
+
+    if (!videoUrl && generatedImages.length === 0) {
+      toast.error('Please create a video or images first');
+      return;
+    }
+
+    setIsPublishing(platform);
+    try {
+      const { data, error } = await supabase.functions.invoke('blotato-publish', {
+        body: {
+          action: 'publish',
+          platform: platform.toLowerCase(),
+          accountId,
+          text: script?.description || topic,
+          title: script?.title,
+          description: `${script?.description || ''}\n\n${script?.hashtags?.map(h => `#${h}`).join(' ') || ''}`,
+          mediaUrls: generatedImages,
+          videoUrl: videoUrl,
+          platformConfig: platform === 'youtube' ? {
+            privacyStatus: 'public',
+            shouldNotifySubscribers: true,
+          } : platform === 'tiktok' ? {
+            privacyLevel: 'PUBLIC_TO_EVERYONE',
+            disabledComments: false,
+            disabledDuet: false,
+            disabledStitch: false,
+            isBrandedContent: false,
+            isYourBrand: false,
+          } : undefined,
+        }
+      });
+
+      if (error) throw error;
+      
+      setPublishedPlatforms(prev => [...prev, platform]);
+      toast.success(`Published to ${platform}!`);
+    } catch (error: any) {
+      toast.error(error.message || `Failed to publish to ${platform}`);
+    } finally {
+      setIsPublishing(null);
+    }
   };
 
   const steps = [
@@ -916,21 +975,91 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
               Step 6: Publish to Social Media
             </CardTitle>
             <CardDescription>
-              Upload your video to TikTok, YouTube, Facebook, and more
+              Upload your video to TikTok, YouTube, Facebook, and more using Blotato
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {['TikTok', 'YouTube', 'Facebook', 'Instagram'].map((platform) => (
-                <Button key={platform} variant="outline" className="h-20 flex-col gap-2">
-                  <Share2 className="h-6 w-6" />
-                  <span>{platform}</span>
-                </Button>
-              ))}
+          <CardContent className="space-y-6">
+            {/* Account IDs Setup */}
+            <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-yellow-500" />
+                <h4 className="font-medium text-sm">Blotato Account IDs</h4>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enter your account IDs from{' '}
+                <a href="https://my.blotato.com/settings" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                  Blotato Settings
+                </a>
+                . Connect your social accounts there first.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {['tiktok', 'youtube', 'facebook', 'instagram'].map((platform) => (
+                  <div key={platform} className="space-y-1">
+                    <Label className="text-xs capitalize">{platform} Account ID</Label>
+                    <Input
+                      placeholder={`acc_xxxxx`}
+                      value={blotatorAccountIds[platform]}
+                      onChange={(e) => setBlotatorAccountIds(prev => ({ ...prev, [platform]: e.target.value }))}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground text-center">
-              Connect your social media accounts to enable one-click publishing
-            </p>
+
+            <Separator />
+
+            {/* Publish Buttons */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Publish Your Content</h4>
+              {!videoUrl && generatedImages.length === 0 ? (
+                <p className="text-sm text-muted-foreground p-4 text-center border rounded-lg bg-muted/30">
+                  Create a video or generate images first to publish
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { name: 'TikTok', platform: 'tiktok', icon: '🎵' },
+                    { name: 'YouTube', platform: 'youtube', icon: '▶️' },
+                    { name: 'Facebook', platform: 'facebook', icon: '📘' },
+                    { name: 'Instagram', platform: 'instagram', icon: '📷' },
+                  ].map(({ name, platform, icon }) => {
+                    const isPublished = publishedPlatforms.includes(platform);
+                    const isCurrentlyPublishing = isPublishing === platform;
+                    const hasAccountId = !!blotatorAccountIds[platform];
+
+                    return (
+                      <Button
+                        key={platform}
+                        variant={isPublished ? 'default' : 'outline'}
+                        className={`h-20 flex-col gap-2 ${isPublished ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                        disabled={isCurrentlyPublishing || !hasAccountId}
+                        onClick={() => handlePublishToBlotato(platform)}
+                      >
+                        {isCurrentlyPublishing ? (
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                        ) : isPublished ? (
+                          <span className="text-lg">✅</span>
+                        ) : (
+                          <span className="text-2xl">{icon}</span>
+                        )}
+                        <span className="text-xs">
+                          {isPublished ? 'Published!' : hasAccountId ? name : 'Add ID'}
+                        </span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {publishedPlatforms.length > 0 && (
+              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+                <p className="text-sm text-green-700 dark:text-green-400 text-center">
+                  🎉 Successfully published to {publishedPlatforms.length} platform(s)!
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
