@@ -35,11 +35,13 @@ const AIHub = memo(() => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [imageDescription, setImageDescription] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [videoDescription, setVideoDescription] = useState<string | null>(null);
+  const [videoPrompt, setVideoPrompt] = useState('');
   
   // Usage tracking
   const [imageGenerationCount, setImageGenerationCount] = useState(0);
@@ -311,7 +313,7 @@ const AIHub = memo(() => {
   };
 
   const handleTextToVideo = async () => {
-    if (!prompt.trim()) {
+    if (!videoPrompt.trim()) {
       toast.error('Please enter a prompt');
       return;
     }
@@ -323,18 +325,53 @@ const AIHub = memo(() => {
 
     if (!canGenerateVideo()) {
       toast.error(`You need at least ${videoCreditCost} credits to generate a video`);
+      setShowBuyCredits(true);
       return;
     }
 
-    // Deduct credits
-    const deducted = await deductCredits(videoCreditCost);
-    if (!deducted) {
-      toast.error('Failed to deduct credits');
-      return;
-    }
+    setIsGenerating(true);
+    setGeneratedVideo(null);
 
-    await trackGeneration('text-to-video', videoCreditCost);
-    toast.info('Text-to-video generation coming soon! Your credits have been reserved.');
+    try {
+      // Deduct credits first
+      const deducted = await deductCredits(videoCreditCost);
+      if (!deducted) {
+        toast.error('Failed to deduct credits');
+        return;
+      }
+
+      toast.info('Generating video... This may take a minute.');
+
+      const { data, error } = await supabase.functions.invoke('text-to-video', {
+        body: { 
+          prompt: videoPrompt.trim(),
+          duration: 5
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.videoUrl) {
+        setGeneratedVideo(data.videoUrl);
+        await trackGeneration('text-to-video', videoCreditCost);
+        toast.success('Video generated successfully!');
+      } else if (data?.error) {
+        throw new Error(data.error);
+      } else {
+        throw new Error('No video returned');
+      }
+    } catch (error: any) {
+      console.error('Video generation error:', error);
+      toast.error(error.message || 'Failed to generate video');
+      // Refund credits on failure
+      await supabase
+        .from('profiles')
+        .update({ credits: userCredits })
+        .eq('id', user.id);
+      fetchUserCredits();
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -683,8 +720,8 @@ const AIHub = memo(() => {
                   <Label>Your Prompt</Label>
                   <Textarea
                     placeholder="A peaceful river flowing through a forest, with sunlight filtering through the trees..."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
+                    value={videoPrompt}
+                    onChange={(e) => setVideoPrompt(e.target.value)}
                     className="min-h-[120px] resize-none"
                   />
                 </div>
@@ -694,24 +731,68 @@ const AIHub = memo(() => {
                     <p className="text-sm text-amber-600">
                       You need at least {videoCreditCost} credits to generate a video. Current balance: {userCredits} credits.
                     </p>
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-amber-600 underline"
+                      onClick={() => setShowBuyCredits(true)}
+                    >
+                      Buy credits now
+                    </Button>
                   </div>
                 )}
 
                 <Button 
                   onClick={handleTextToVideo} 
-                  disabled={isGenerating || !prompt.trim() || !canGenerateVideo()}
+                  disabled={isGenerating || !videoPrompt.trim() || !canGenerateVideo()}
                   className="w-full gap-2"
                   size="lg"
                 >
-                  <VideoIcon className="h-4 w-4" />
-                  Generate Video
-                  <Badge variant="outline" className="ml-2">{videoCreditCost} credits</Badge>
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating Video...
+                    </>
+                  ) : (
+                    <>
+                      <VideoIcon className="h-4 w-4" />
+                      Generate Video
+                      <Badge variant="outline" className="ml-2">{videoCreditCost} credits</Badge>
+                    </>
+                  )}
                 </Button>
-                <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
-                  <p className="text-sm text-amber-600">
-                    Text-to-video generation is in development. Stay tuned!
-                  </p>
-                </div>
+
+                {generatedVideo && (
+                  <div className="space-y-3 animate-in fade-in">
+                    <div className="relative rounded-lg overflow-hidden border">
+                      <video 
+                        src={generatedVideo} 
+                        controls 
+                        autoPlay
+                        loop
+                        className="w-full max-h-[500px] object-contain bg-muted"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 gap-2" 
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = generatedVideo;
+                          link.download = `ai-video-${Date.now()}.mp4`;
+                          link.click();
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
+                      </Button>
+                      <Button variant="outline" className="flex-1 gap-2" onClick={() => copyToClipboard(generatedVideo)}>
+                        <Copy className="h-4 w-4" />
+                        Copy URL
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

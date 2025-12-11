@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.content-creator]
 verify_jwt = false
+
+[functions.text-to-video]
+verify_jwt = false
