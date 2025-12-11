@@ -1,6 +1,18 @@
 import * as PIXI from 'pixi.js';
 import { GameState, InputState, PlayerEntity, EnemyEntity, GameLevel, Hero, Projectile } from '../types';
 
+export interface GameSoundCallbacks {
+  onGameStart?: () => void;
+  onGameOver?: () => void;
+  onVictory?: () => void;
+  onEnemyHit?: () => void;
+  onEnemyDeath?: () => void;
+  onPlayerHit?: () => void;
+  onAttack?: () => void;
+  onLevelUp?: () => void;
+  onBossAppear?: () => void;
+}
+
 export class GameEngine {
   private app: PIXI.Application;
   private gameState: GameState;
@@ -12,13 +24,16 @@ export class GameEngine {
   private projectileSprites: Map<string, PIXI.Graphics> = new Map();
   private healthBars: Map<string, PIXI.Graphics> = new Map();
   private onGameEnd: (victory: boolean, score: number, kills: number, timeUsed: number) => void;
+  private soundCallbacks: GameSoundCallbacks;
   private startTime: number = 0;
+  private lastPlayerHp: number = 0;
 
   constructor(
     canvas: HTMLCanvasElement,
     width: number,
     height: number,
-    onGameEnd: (victory: boolean, score: number, kills: number, timeUsed: number) => void
+    onGameEnd: (victory: boolean, score: number, kills: number, timeUsed: number) => void,
+    soundCallbacks: GameSoundCallbacks = {}
   ) {
     this.app = new PIXI.Application({
       view: canvas,
@@ -31,6 +46,7 @@ export class GameEngine {
     });
 
     this.onGameEnd = onGameEnd;
+    this.soundCallbacks = soundCallbacks;
     this.gameContainer = new PIXI.Container();
     this.uiContainer = new PIXI.Container();
     this.app.stage.addChild(this.gameContainer);
@@ -132,6 +148,7 @@ export class GameEngine {
       level: 1,
       activeBuffs: [],
     };
+    this.lastPlayerHp = hero.baseHp;
 
     // Create enemies
     this.spawnEnemies(level);
@@ -150,6 +167,15 @@ export class GameEngine {
     this.gameContainer.addChild(this.playerSprite);
 
     this.gameState.isRunning = true;
+    
+    // Play game start sound
+    this.soundCallbacks.onGameStart?.();
+    
+    // Play boss appear sound if boss level
+    if (level.bossConfig) {
+      setTimeout(() => this.soundCallbacks.onBossAppear?.(), 500);
+    }
+    
     this.gameLoop();
   }
 
@@ -461,6 +487,12 @@ export class GameEngine {
         // Deal damage to player
         const damage = Math.max(1, enemy.attack - player.defense / 2);
         player.hp -= damage * (1 / 60); // Damage over time while close
+        
+        // Play player hit sound when HP drops significantly
+        if (this.lastPlayerHp - player.hp > 5) {
+          this.soundCallbacks.onPlayerHit?.();
+          this.lastPlayerHp = player.hp;
+        }
       }
 
       // Update sprite position
@@ -518,11 +550,17 @@ export class GameEngine {
         if (dist < 30) {
           const damage = Math.max(1, proj.damage - enemy.defense);
           enemy.hp -= damage;
+          
+          // Play enemy hit sound (scream)
+          this.soundCallbacks.onEnemyHit?.();
 
           if (enemy.hp <= 0) {
             enemy.isAlive = false;
             this.gameState.killCount++;
             this.gameState.score += enemy.isBoss ? 1000 : 100;
+
+            // Play enemy death sound with evil laugh
+            this.soundCallbacks.onEnemyDeath?.();
 
             const sprite = this.enemySprites.get(enemy.id);
             if (sprite) {
@@ -552,6 +590,9 @@ export class GameEngine {
     if (skillNumber === 1) player.skill1Cooldown = skill.cooldown;
     else if (skillNumber === 2) player.skill2Cooldown = skill.cooldown;
     else player.ultimateCooldown = skill.cooldown;
+
+    // Play attack sound
+    this.soundCallbacks.onAttack?.();
 
     // Create projectile towards mouse/nearest enemy
     const targetX = this.inputState.mouseX || player.x + 100;
@@ -613,6 +654,13 @@ export class GameEngine {
     this.gameState.isRunning = false;
     this.gameState.isVictory = victory;
     this.gameState.isDefeat = !victory;
+
+    // Play appropriate end game sound
+    if (victory) {
+      this.soundCallbacks.onVictory?.();
+    } else {
+      this.soundCallbacks.onGameOver?.();
+    }
 
     const timeUsed = Math.floor((Date.now() - this.startTime) / 1000);
     this.onGameEnd(victory, this.gameState.score, this.gameState.killCount, timeUsed);

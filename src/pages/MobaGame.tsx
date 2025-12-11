@@ -20,6 +20,7 @@ import {
   useStoreItems, useUnlockHero, useRecordLevelCompletion, usePurchaseItem 
 } from '@/game/hooks/useGameData';
 import { Hero, GameLevel, StoreItem } from '@/game/types';
+import { useMobaSounds } from '@/game/hooks/useMobaSounds';
 
 const MobaGame = () => {
   const navigate = useNavigate();
@@ -36,6 +37,20 @@ const MobaGame = () => {
   const unlockHeroMutation = useUnlockHero();
   const recordCompletionMutation = useRecordLevelCompletion();
   const purchaseItemMutation = usePurchaseItem();
+  
+  // Sound effects
+  const {
+    playGameStart,
+    playGameOver,
+    playVictory,
+    playEvilLaugh,
+    playEnemyScream,
+    playEnemyDeath,
+    playPlayerHit,
+    playAttack,
+    playLevelUp,
+    playBossAppear,
+  } = useMobaSounds();
 
   // Game state
   const [gamePhase, setGamePhase] = useState<'menu' | 'hero-select' | 'level-select' | 'store' | 'playing' | 'paused' | 'result'>('menu');
@@ -113,7 +128,24 @@ const MobaGame = () => {
       canvasRef.current,
       Math.min(window.innerWidth - 32, 1200),
       Math.min(window.innerHeight - 200, 700),
-      handleGameEnd
+      handleGameEnd,
+      {
+        onGameStart: playGameStart,
+        onGameOver: playGameOver,
+        onVictory: playVictory,
+        onEnemyHit: playEnemyScream,
+        onEnemyDeath: () => {
+          playEnemyDeath();
+          // Random chance to play evil laugh on kill
+          if (Math.random() > 0.5) {
+            setTimeout(playEvilLaugh, 200);
+          }
+        },
+        onPlayerHit: playPlayerHit,
+        onAttack: playAttack,
+        onLevelUp: playLevelUp,
+        onBossAppear: playBossAppear,
+      }
     );
 
     engineRef.current = engine;
