@@ -27,8 +27,8 @@ serve(async (req) => {
 
     console.log('Generating video with prompt:', prompt, 'duration:', duration);
 
-    // Submit video generation request to fal.ai
-    const submitResponse = await fetch('https://queue.fal.run/fal-ai/fast-svd-lcm', {
+    // Submit video generation request to fal.ai using Vidu text-to-video model
+    const submitResponse = await fetch('https://queue.fal.run/fal-ai/vidu/q1/text-to-video', {
       method: 'POST',
       headers: {
         'Authorization': `Key ${FAL_API_KEY}`,
@@ -36,9 +36,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         prompt: prompt,
-        num_frames: duration * 8, // ~8 frames per second for smooth video
-        num_inference_steps: 4,
-        guidance_scale: 1.0,
+        aspect_ratio: "16:9",
+        duration: duration <= 4 ? "4s" : "8s",
       }),
     });
 
