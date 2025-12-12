@@ -4,9 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
@@ -466,22 +467,29 @@ const Dashboard = () => {
             </Sheet>
           </div>
 
-          {/* Desktop Tabs */}
-          <TabsList className="hidden lg:grid w-full grid-cols-13 gap-1">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="network">Network Tree</TabsTrigger>
-            <TabsTrigger value="calculator">Calculator</TabsTrigger>
-            <TabsTrigger value="leadership">Leadership</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="diamonds">Diamonds</TabsTrigger>
-            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-            <TabsTrigger value="cart">Cart</TabsTrigger>
-            <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
-            <TabsTrigger value="stair-step">Stair Step</TabsTrigger>
-            <TabsTrigger value="advertising">Advertising</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          </TabsList>
+          {/* Desktop Dropdown Navigation */}
+          <div className="hidden lg:block mb-6">
+            <Select value={activeTab} onValueChange={handleTabChange}>
+              <SelectTrigger className="w-64 bg-background border-border">
+                <SelectValue placeholder="Select section" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border-border z-50">
+                <SelectItem value="overview">Overview</SelectItem>
+                <SelectItem value="network">Network Tree</SelectItem>
+                <SelectItem value="calculator">Calculator</SelectItem>
+                <SelectItem value="leadership">Leadership</SelectItem>
+                <SelectItem value="notifications">Notifications</SelectItem>
+                <SelectItem value="diamonds">Diamonds</SelectItem>
+                <SelectItem value="leaderboard">Leaderboard</SelectItem>
+                <SelectItem value="cart">Cart</SelectItem>
+                <SelectItem value="wishlist">Wishlist</SelectItem>
+                <SelectItem value="orders">Orders</SelectItem>
+                <SelectItem value="stair-step">Stair Step</SelectItem>
+                <SelectItem value="advertising">Advertising</SelectItem>
+                <SelectItem value="transactions">Transactions</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <TabsContent value="overview" className="space-y-8">
             {/* Main Stats Grid */}
