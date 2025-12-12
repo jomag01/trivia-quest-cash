@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShoppingCart, Heart, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductReviews } from "./ProductReviews";
 import { useInteractionTracking } from "@/hooks/useInteractionTracking";
-
+import { VirtualTryOn } from "./shop/VirtualTryOn";
 interface Product {
   id: string;
   name: string;
@@ -47,8 +47,29 @@ export const ProductDetailDialog = ({
   const [images, setImages] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [showTryOn, setShowTryOn] = useState(false);
   const { trackInteraction } = useInteractionTracking();
 
+  // Check if product is in a fashion/clothing category
+  const isFashionItem = () => {
+    const categoryName = product?.product_categories?.name?.toLowerCase() || '';
+    const productName = product?.name?.toLowerCase() || '';
+    const description = product?.description?.toLowerCase() || '';
+    
+    const fashionKeywords = [
+      'clothing', 'clothes', 'fashion', 'apparel', 'wear',
+      'shirt', 'pants', 'dress', 'jacket', 'coat', 'shorts',
+      'skirt', 'blouse', 'top', 'bottom', 'jeans', 'sweater',
+      'hoodie', 'tshirt', 't-shirt', 'polo', 'suit', 'blazer',
+      'outfit', 'garment', 'attire', 'uniform', 'costume'
+    ];
+    
+    return fashionKeywords.some(keyword => 
+      categoryName.includes(keyword) || 
+      productName.includes(keyword) || 
+      description.includes(keyword)
+    );
+  };
   useEffect(() => {
     if (product && open) {
       fetchProductImages();
@@ -277,6 +298,18 @@ export const ProductDetailDialog = ({
                   {inWishlist ? "Saved" : "Wishlist"}
                 </Button>
               </div>
+
+              {/* Virtual Try-On Button for Fashion Items */}
+              {isFashionItem() && (
+                <Button
+                  variant="outline"
+                  className="w-full border-primary text-primary hover:bg-primary/10"
+                  onClick={() => setShowTryOn(true)}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Virtual Try-On (AI)
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -286,6 +319,20 @@ export const ProductDetailDialog = ({
           <ProductReviews productId={product.id} sellerId={null} />
         </div>
       </DialogContent>
+
+      {/* Virtual Try-On Dialog */}
+      {product && (
+        <VirtualTryOn
+          product={{
+            id: product.id,
+            name: product.name,
+            image_url: images[0] || product.image_url,
+            description: product.description
+          }}
+          open={showTryOn}
+          onOpenChange={setShowTryOn}
+        />
+      )}
     </Dialog>
   );
 };
