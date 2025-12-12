@@ -54,16 +54,26 @@ interface ContentCreatorProps {
   onCreditsChange: () => void;
 }
 
+// Google Cloud TTS voices - one male, one female per language
 const VOICES = [
-  { name: 'Sarah', id: 'EXAVITQu4vr4xnSDxMaL' },
-  { name: 'Charlie', id: 'IKne3meq5aSn9XLyUdCD' },
-  { name: 'George', id: 'JBFqnCBsd6RMkjVDRZzb' },
-  { name: 'Emily', id: 'LcfcDJNUP1GQjkzn1xUU' },
-  { name: 'Liam', id: 'TX3LPaxmHKxFdv7VOQHJ' },
-  { name: 'Charlotte', id: 'XB0fDUnXU5powFXDhCwa' },
-  { name: 'Alice', id: 'Xb7hH8MSUJpSbSDYk0k2' },
-  { name: 'Daniel', id: 'onwK4e9ZLuTAKqWW03F9' },
-  { name: 'Lily', id: 'pFZP5JQG7iQjIQuC4Bku' },
+  { name: 'Emma (Female)', id: 'en-US-Neural2-C', gender: 'FEMALE', lang: 'en' },
+  { name: 'James (Male)', id: 'en-US-Neural2-D', gender: 'MALE', lang: 'en' },
+  { name: 'Sofia (Female)', id: 'es-ES-Neural2-A', gender: 'FEMALE', lang: 'es' },
+  { name: 'Carlos (Male)', id: 'es-ES-Neural2-B', gender: 'MALE', lang: 'es' },
+  { name: 'Marie (Female)', id: 'fr-FR-Neural2-A', gender: 'FEMALE', lang: 'fr' },
+  { name: 'Pierre (Male)', id: 'fr-FR-Neural2-B', gender: 'MALE', lang: 'fr' },
+  { name: 'Anna (Female)', id: 'de-DE-Neural2-A', gender: 'FEMALE', lang: 'de' },
+  { name: 'Hans (Male)', id: 'de-DE-Neural2-B', gender: 'MALE', lang: 'de' },
+  { name: 'Yuki (Female)', id: 'ja-JP-Neural2-B', gender: 'FEMALE', lang: 'ja' },
+  { name: 'Kenji (Male)', id: 'ja-JP-Neural2-C', gender: 'MALE', lang: 'ja' },
+  { name: 'Maria (Female)', id: 'fil-PH-Standard-A', gender: 'FEMALE', lang: 'fil' },
+  { name: 'Jose (Male)', id: 'fil-PH-Standard-C', gender: 'MALE', lang: 'fil' },
+  { name: 'Priya (Female)', id: 'hi-IN-Neural2-A', gender: 'FEMALE', lang: 'hi' },
+  { name: 'Raj (Male)', id: 'hi-IN-Neural2-B', gender: 'MALE', lang: 'hi' },
+  { name: 'Mei (Female)', id: 'cmn-CN-Standard-A', gender: 'FEMALE', lang: 'zh' },
+  { name: 'Wei (Male)', id: 'cmn-CN-Standard-B', gender: 'MALE', lang: 'zh' },
+  { name: 'Ingrid (Female)', id: 'sv-SE-Standard-A', gender: 'FEMALE', lang: 'sv' },
+  { name: 'Erik (Male)', id: 'sv-SE-Standard-D', gender: 'MALE', lang: 'sv' },
 ];
 
 const LANGUAGES = [
@@ -79,6 +89,7 @@ const LANGUAGES = [
   { code: 'hi', name: 'Hindi' },
   { code: 'ar', name: 'Arabic' },
   { code: 'fil', name: 'Filipino' },
+  { code: 'sv', name: 'Swedish' },
 ];
 
 const VIDEO_DURATIONS = [
@@ -284,15 +295,17 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
     }
 
     const fullText = script.scenes.map(s => s.voiceOver).join(' ');
+    const selectedVoiceData = VOICES.find(v => v.id === selectedVoice);
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('elevenlabs-voiceover', {
+      const { data, error } = await supabase.functions.invoke('google-tts', {
         body: { 
           action: 'generate',
           text: fullText,
-          voiceId: selectedVoice,
-          language: selectedLanguage
+          voiceName: selectedVoice,
+          language: selectedLanguage,
+          gender: selectedVoiceData?.gender || 'FEMALE'
         }
       });
 
