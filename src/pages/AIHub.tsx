@@ -34,19 +34,19 @@ const AIHub = memo(() => {
 
   // Ad presets with dimensions and prompt enhancements
   const AD_PRESETS = {
-    none: { label: 'No Preset', dimensions: '', promptSuffix: '' },
-    'facebook-feed': { label: 'Facebook Feed Ad (1200x628)', dimensions: '1200x628', promptSuffix: ', optimized for Facebook feed advertisement, eye-catching, professional marketing design, clean layout with space for text overlay' },
-    'facebook-story': { label: 'Facebook/IG Story (1080x1920)', dimensions: '1080x1920', promptSuffix: ', vertical format for Stories, bold visuals, mobile-optimized advertisement design, engaging and scroll-stopping' },
-    'instagram-square': { label: 'Instagram Square (1080x1080)', dimensions: '1080x1080', promptSuffix: ', square format for Instagram, vibrant colors, lifestyle aesthetic, professional product photography style' },
-    'instagram-post': { label: 'Instagram Post (1080x1350)', dimensions: '1080x1350', promptSuffix: ', portrait format for Instagram feed, trendy aesthetic, high engagement design, influencer-style visual' },
-    'youtube-thumbnail': { label: 'YouTube Thumbnail (1280x720)', dimensions: '1280x720', promptSuffix: ', YouTube thumbnail style, high contrast, bold and dramatic, attention-grabbing with clear focal point' },
-    'youtube-banner': { label: 'YouTube Banner (2560x1440)', dimensions: '2560x1440', promptSuffix: ', YouTube channel art banner, wide panoramic format, professional branding design' },
-    'google-display': { label: 'Google Display Ad (300x250)', dimensions: '300x250', promptSuffix: ', Google display advertisement format, clean and professional, clear call-to-action space, corporate design' },
-    'google-leaderboard': { label: 'Google Leaderboard (728x90)', dimensions: '728x90', promptSuffix: ', horizontal banner advertisement, website header ad format, minimal but impactful design' },
-    'linkedin-sponsored': { label: 'LinkedIn Sponsored (1200x627)', dimensions: '1200x627', promptSuffix: ', LinkedIn professional advertisement, corporate and business style, trustworthy and authoritative design' },
-    'twitter-post': { label: 'Twitter/X Post (1600x900)', dimensions: '1600x900', promptSuffix: ', Twitter post image, trending visual style, shareable and viral-worthy design' },
-    'tiktok-ad': { label: 'TikTok Ad (1080x1920)', dimensions: '1080x1920', promptSuffix: ', TikTok vertical format, Gen-Z aesthetic, trendy and dynamic, bold colors and modern design' },
-    'pinterest-pin': { label: 'Pinterest Pin (1000x1500)', dimensions: '1000x1500', promptSuffix: ', Pinterest pin format, aesthetic and inspirational, lifestyle imagery, save-worthy visual' },
+    none: { label: 'Normal Image', dimensions: '', promptSuffix: '', isAd: false },
+    'facebook-feed': { label: 'Facebook Feed', dimensions: '1200x628', promptSuffix: ', optimized for Facebook feed advertisement, eye-catching, professional marketing design', isAd: true },
+    'facebook-story': { label: 'FB/IG Story', dimensions: '1080x1920', promptSuffix: ', vertical format for Stories, bold visuals, mobile-optimized advertisement', isAd: true },
+    'instagram-square': { label: 'IG Square', dimensions: '1080x1080', promptSuffix: ', square format for Instagram, vibrant colors, lifestyle aesthetic', isAd: true },
+    'instagram-post': { label: 'IG Post', dimensions: '1080x1350', promptSuffix: ', portrait format for Instagram feed, trendy aesthetic, high engagement', isAd: true },
+    'youtube-thumbnail': { label: 'YT Thumbnail', dimensions: '1280x720', promptSuffix: ', YouTube thumbnail style, high contrast, bold and attention-grabbing', isAd: true },
+    'youtube-banner': { label: 'YT Banner', dimensions: '2560x1440', promptSuffix: ', YouTube channel art banner, wide panoramic format, professional branding', isAd: true },
+    'google-display': { label: 'Google Display', dimensions: '300x250', promptSuffix: ', Google display advertisement, clean and professional design', isAd: true },
+    'google-leaderboard': { label: 'Google Banner', dimensions: '728x90', promptSuffix: ', horizontal banner advertisement, minimal but impactful', isAd: true },
+    'linkedin-sponsored': { label: 'LinkedIn', dimensions: '1200x627', promptSuffix: ', LinkedIn professional advertisement, corporate and business style', isAd: true },
+    'twitter-post': { label: 'Twitter/X', dimensions: '1600x900', promptSuffix: ', Twitter post image, trending visual style, shareable design', isAd: true },
+    'tiktok-ad': { label: 'TikTok', dimensions: '1080x1920', promptSuffix: ', TikTok vertical format, Gen-Z aesthetic, trendy and dynamic', isAd: true },
+    'pinterest-pin': { label: 'Pinterest', dimensions: '1000x1500', promptSuffix: ', Pinterest pin format, aesthetic and inspirational, lifestyle imagery', isAd: true },
   };
 
   // Music generation
@@ -594,35 +594,36 @@ const AIHub = memo(() => {
                   <Textarea placeholder="A majestic dragon flying over a crystal lake at sunset, fantasy art style, highly detailed..." value={prompt} onChange={e => setPrompt(e.target.value)} className="min-h-[120px] resize-none" />
                 </div>
 
-                {/* Social Media Ad Preset */}
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Megaphone className="h-4 w-4" />
-                    Social Media Ad Preset (Optional)
+                {/* Image Format Preset */}
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Megaphone className="h-3.5 w-3.5" />
+                    Image Format
                   </Label>
                   <Select value={adPreset} onValueChange={setAdPreset}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select ad format..." />
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Select format..." />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Preset - Custom Image</SelectItem>
-                      <SelectItem value="facebook-feed">📘 Facebook Feed Ad (1200x628)</SelectItem>
-                      <SelectItem value="facebook-story">📱 Facebook/IG Story (1080x1920)</SelectItem>
-                      <SelectItem value="instagram-square">📷 Instagram Square (1080x1080)</SelectItem>
-                      <SelectItem value="instagram-post">📸 Instagram Post (1080x1350)</SelectItem>
-                      <SelectItem value="youtube-thumbnail">▶️ YouTube Thumbnail (1280x720)</SelectItem>
-                      <SelectItem value="youtube-banner">🎬 YouTube Banner (2560x1440)</SelectItem>
-                      <SelectItem value="google-display">🔍 Google Display Ad (300x250)</SelectItem>
-                      <SelectItem value="google-leaderboard">📊 Google Leaderboard (728x90)</SelectItem>
-                      <SelectItem value="linkedin-sponsored">💼 LinkedIn Sponsored (1200x627)</SelectItem>
-                      <SelectItem value="twitter-post">🐦 Twitter/X Post (1600x900)</SelectItem>
-                      <SelectItem value="tiktok-ad">🎵 TikTok Ad (1080x1920)</SelectItem>
-                      <SelectItem value="pinterest-pin">📌 Pinterest Pin (1000x1500)</SelectItem>
+                    <SelectContent className="max-h-[280px]">
+                      <SelectItem value="none" className="text-sm">🖼️ Normal Image</SelectItem>
+                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Social Media Ads</div>
+                      <SelectItem value="facebook-feed" className="text-sm">📘 Facebook Feed <span className="text-muted-foreground text-xs ml-1">1200×628</span></SelectItem>
+                      <SelectItem value="facebook-story" className="text-sm">📱 FB/IG Story <span className="text-muted-foreground text-xs ml-1">1080×1920</span></SelectItem>
+                      <SelectItem value="instagram-square" className="text-sm">📷 IG Square <span className="text-muted-foreground text-xs ml-1">1080×1080</span></SelectItem>
+                      <SelectItem value="instagram-post" className="text-sm">📸 IG Post <span className="text-muted-foreground text-xs ml-1">1080×1350</span></SelectItem>
+                      <SelectItem value="youtube-thumbnail" className="text-sm">▶️ YT Thumbnail <span className="text-muted-foreground text-xs ml-1">1280×720</span></SelectItem>
+                      <SelectItem value="youtube-banner" className="text-sm">🎬 YT Banner <span className="text-muted-foreground text-xs ml-1">2560×1440</span></SelectItem>
+                      <SelectItem value="google-display" className="text-sm">🔍 Google Display <span className="text-muted-foreground text-xs ml-1">300×250</span></SelectItem>
+                      <SelectItem value="google-leaderboard" className="text-sm">📊 Google Banner <span className="text-muted-foreground text-xs ml-1">728×90</span></SelectItem>
+                      <SelectItem value="linkedin-sponsored" className="text-sm">💼 LinkedIn <span className="text-muted-foreground text-xs ml-1">1200×627</span></SelectItem>
+                      <SelectItem value="twitter-post" className="text-sm">🐦 Twitter/X <span className="text-muted-foreground text-xs ml-1">1600×900</span></SelectItem>
+                      <SelectItem value="tiktok-ad" className="text-sm">🎵 TikTok <span className="text-muted-foreground text-xs ml-1">1080×1920</span></SelectItem>
+                      <SelectItem value="pinterest-pin" className="text-sm">📌 Pinterest <span className="text-muted-foreground text-xs ml-1">1000×1500</span></SelectItem>
                     </SelectContent>
                   </Select>
                   {adPreset !== 'none' && (
                     <p className="text-xs text-muted-foreground">
-                      AI will optimize your image for {AD_PRESETS[adPreset as keyof typeof AD_PRESETS]?.label}
+                      Optimized for {AD_PRESETS[adPreset as keyof typeof AD_PRESETS]?.label} ({AD_PRESETS[adPreset as keyof typeof AD_PRESETS]?.dimensions})
                     </p>
                   )}
                 </div>
