@@ -56,6 +56,11 @@ const AIHub = memo(() => {
   const [isInstrumental, setIsInstrumental] = useState(false);
   const [musicCreditCost] = useState(5);
 
+  // Animate image state
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animatedVideoUrl, setAnimatedVideoUrl] = useState<string | null>(null);
+  const [animationDuration, setAnimationDuration] = useState(4);
+
   // Usage tracking
   const [imageGenerationCount, setImageGenerationCount] = useState(0);
   const [freeImageLimit, setFreeImageLimit] = useState(3);
@@ -419,6 +424,85 @@ const AIHub = memo(() => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard!');
   };
+
+  const getAnimationCreditCost = (duration: number) => {
+    if (duration <= 4) return 3;
+    if (duration <= 8) return 5;
+    if (duration <= 10) return 8;
+    if (duration <= 30) return 15;
+    if (duration <= 60) return 25;
+    if (duration <= 300) return 100;
+    return 250; // 15 minutes
+  };
+
+  const handleAnimateImage = async () => {
+    if (!generatedImage) {
+      toast.error('Please generate an image first');
+      return;
+    }
+    if (!user) {
+      toast.error('Please login to animate images');
+      return;
+    }
+    
+    const creditCost = getAnimationCreditCost(animationDuration);
+    
+    if (userCredits < creditCost) {
+      toast.error(`You need at least ${creditCost} credits to animate for ${animationDuration} seconds`);
+      setShowBuyCredits(true);
+      return;
+    }
+
+    // Check duration limits based on credits (paid access for longer durations)
+    if (animationDuration > 10 && userCredits < 15) {
+      toast.error('You need a paid plan (15+ credits) for animations longer than 10 seconds');
+      setShowBuyCredits(true);
+      return;
+    }
+
+    setIsAnimating(true);
+    setAnimatedVideoUrl(null);
+
+    try {
+      const deducted = await deductCredits(creditCost);
+      if (!deducted) {
+        toast.error('Failed to deduct credits');
+        return;
+      }
+
+      toast.info('Animating your image... This may take a moment.');
+
+      const { data, error } = await supabase.functions.invoke('animate-image', {
+        body: {
+          imageUrl: generatedImage,
+          duration: animationDuration,
+          prompt: prompt
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.videoUrl) {
+        setAnimatedVideoUrl(data.videoUrl);
+        await trackGeneration('image-animation', creditCost);
+        toast.success('Image animated successfully!');
+      } else if (data?.error) {
+        throw new Error(data.error);
+      } else {
+        throw new Error('No video returned');
+      }
+    } catch (error: any) {
+      console.error('Animation error:', error);
+      toast.error(error.message || 'Failed to animate image');
+      // Refund credits on failure
+      await supabase.from('profiles').update({
+        credits: userCredits
+      }).eq('id', user.id);
+      fetchUserCredits();
+    } finally {
+      setIsAnimating(false);
+    }
+  };
   const downloadImage = () => {
     if (!generatedImage) return;
     const link = document.createElement('a');
@@ -678,7 +762,7 @@ const AIHub = memo(() => {
                     </>}
                 </Button>
 
-                {generatedImage && <div className="space-y-3 animate-in fade-in">
+                {generatedImage && <div className="space-y-4 animate-in fade-in">
                     <div className="relative rounded-lg overflow-hidden border">
                       <img src={generatedImage} alt="Generated" className="w-full max-h-[500px] object-contain bg-muted" />
                     </div>
@@ -692,6 +776,101 @@ const AIHub = memo(() => {
                         Copy URL
                       </Button>
                     </div>
+                    
+                    {/* Animate Image Section */}
+                    <div className="p-4 rounded-lg border bg-gradient-to-r from-purple-500/10 to-pink-500/10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Film className="h-5 w-5 text-purple-500" />
+                        <span className="font-medium">Animate This Image</span>
+                        <Badge variant="outline" className="ml-auto">
+                          {userCredits > 0 ? `${getAnimationCreditCost(animationDuration)} credits` : 'Paid Feature'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Transform your static image into an animated video. Free: up to 10 sec. Paid: up to 15 min.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex-1">
+                          <Label className="text-xs mb-1.5 block">Duration (seconds)</Label>
+                          <Select 
+                            value={String(animationDuration)} 
+                            onValueChange={(v) => setAnimationDuration(parseInt(v))}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="4">4 seconds (3 credits)</SelectItem>
+                              <SelectItem value="8">8 seconds (5 credits)</SelectItem>
+                              <SelectItem value="10">10 seconds (8 credits)</SelectItem>
+                              {userCredits >= 15 && (
+                                <>
+                                  <SelectItem value="30">30 seconds (15 credits)</SelectItem>
+                                  <SelectItem value="60">1 minute (25 credits)</SelectItem>
+                                  <SelectItem value="300">5 minutes (100 credits)</SelectItem>
+                                  <SelectItem value="900">15 minutes (250 credits)</SelectItem>
+                                </>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button 
+                          onClick={handleAnimateImage} 
+                          disabled={isAnimating || userCredits < 3}
+                          className="gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                        >
+                          {isAnimating ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Animating...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4" />
+                              Animate
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      {userCredits < 3 && (
+                        <p className="text-xs text-amber-500 mt-2">
+                          You need at least 3 credits to animate images. 
+                          <Button variant="link" className="h-auto p-0 pl-1 text-xs" onClick={() => setShowBuyCredits(true)}>
+                            Buy credits
+                          </Button>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Animated Video Result */}
+                    {animatedVideoUrl && (
+                      <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
+                        <div className="flex items-center gap-2">
+                          <Film className="h-5 w-5 text-green-500" />
+                          <span className="font-medium">Animated Video Ready!</span>
+                        </div>
+                        <video 
+                          src={animatedVideoUrl} 
+                          controls 
+                          className="w-full rounded-lg max-h-[400px]"
+                          autoPlay
+                          loop
+                        />
+                        <Button 
+                          variant="outline" 
+                          className="w-full gap-2" 
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = animatedVideoUrl;
+                            link.download = `animated-${Date.now()}.mp4`;
+                            link.click();
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                          Download Animated Video
+                        </Button>
+                      </div>
+                    )}
                   </div>}
               </CardContent>
             </Card>
