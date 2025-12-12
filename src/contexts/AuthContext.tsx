@@ -7,6 +7,7 @@ interface Profile {
   id: string;
   email: string | null;
   full_name: string | null;
+  avatar_url: string | null;
   country: string | null;
   currency: CurrencyCode;
   currency_symbol: string;

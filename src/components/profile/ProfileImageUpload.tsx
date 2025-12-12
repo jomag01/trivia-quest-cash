@@ -80,7 +80,7 @@ export default function ProfileImageUpload({ size = "md", showEditButton = true 
     }
   };
 
-  const avatarUrl = (profile as any)?.avatar_url;
+  const avatarUrl = profile?.avatar_url;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
