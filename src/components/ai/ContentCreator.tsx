@@ -28,7 +28,9 @@ import {
   RefreshCw,
   Eye,
   Camera,
-  X
+  X,
+  User,
+  UserCircle
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -139,6 +141,12 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
   const [isRegeneratingVideo, setIsRegeneratingVideo] = useState(false);
   const [showVideoPreview, setShowVideoPreview] = useState(false);
   
+  // Avatar state
+  const [useAvatar, setUseAvatar] = useState(false);
+  const [avatarImage, setAvatarImage] = useState<string | null>(null);
+  const [isGeneratingAvatarVideo, setIsGeneratingAvatarVideo] = useState(false);
+  const avatarFileInputRef = useRef<HTMLInputElement>(null);
+  
   // Video state
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -219,6 +227,111 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
     setImageAnalysis(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleAvatarImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setAvatarImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearAvatarImage = () => {
+    setAvatarImage(null);
+    if (avatarFileInputRef.current) {
+      avatarFileInputRef.current.value = '';
+    }
+  };
+
+  const handleCreateAvatarVideo = async () => {
+    if (!avatarImage) {
+      toast.error('Please upload an avatar image first');
+      return;
+    }
+
+    if (!audioUrl) {
+      toast.error('Please generate a voice-over first');
+      return;
+    }
+
+    const avatarCredits = 15;
+    if (userCredits < avatarCredits) {
+      toast.error(`You need ${avatarCredits} credits for avatar video`);
+      return;
+    }
+
+    setIsGeneratingAvatarVideo(true);
+    try {
+      // First, upload avatar image to get a URL
+      const { data: uploadData, error: uploadError } = await supabase.functions.invoke('storage-upload', {
+        body: { 
+          file: avatarImage,
+          bucket: 'avatars',
+          path: `content-creator/${user?.id}/${Date.now()}.jpg`
+        }
+      });
+
+      if (uploadError) throw uploadError;
+      const imageUrl = uploadData?.publicUrl || avatarImage;
+
+      // Upload audio to get a URL
+      const audioBlob = await fetch(audioUrl).then(r => r.blob());
+      const audioBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(audioBlob);
+      });
+
+      const { data: audioUploadData, error: audioUploadError } = await supabase.functions.invoke('storage-upload', {
+        body: { 
+          file: audioBase64,
+          bucket: 'audio',
+          path: `content-creator/${user?.id}/${Date.now()}.mp3`
+        }
+      });
+
+      if (audioUploadError) throw audioUploadError;
+      const audioFileUrl = audioUploadData?.publicUrl || audioUrl;
+
+      // Generate avatar video using SadTalker
+      const { data, error } = await supabase.functions.invoke('avatar-video', {
+        body: { 
+          imageUrl,
+          audioUrl: audioFileUrl,
+          enhancer: 'gfpgan'
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.videoUrl) {
+        // Deduct credits
+        await supabase
+          .from('profiles')
+          .update({ credits: userCredits - avatarCredits })
+          .eq('id', user?.id);
+
+        setVideoUrl(data.videoUrl);
+        onCreditsChange();
+        toast.success('Avatar video created successfully!');
+      } else {
+        throw new Error('No video URL returned');
+      }
+    } catch (error: any) {
+      console.error('Avatar video error:', error);
+      toast.error(error.message || 'Failed to create avatar video');
+    } finally {
+      setIsGeneratingAvatarVideo(false);
     }
   };
 
@@ -984,10 +1097,112 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
 
             <Separator />
 
+            {/* Avatar Speaking Option */}
+            <div className="space-y-4 p-4 rounded-lg border bg-gradient-to-r from-purple-500/10 to-pink-500/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <UserCircle className="h-5 w-5 text-purple-500" />
+                  <h4 className="font-medium">Speaking Avatar (Explainer Video)</h4>
+                  <Badge variant="secondary">15 credits</Badge>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-sm text-muted-foreground">Use Avatar</span>
+                  <input 
+                    type="checkbox" 
+                    checked={useAvatar}
+                    onChange={(e) => setUseAvatar(e.target.checked)}
+                    className="w-4 h-4 rounded border-input"
+                  />
+                </label>
+              </div>
+
+              {useAvatar && (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Upload your avatar image and it will speak with lip-sync to your voice-over
+                  </p>
+                  
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarImageUpload}
+                    ref={avatarFileInputRef}
+                    className="hidden"
+                    id="avatar-image-upload"
+                  />
+                  
+                  {!avatarImage ? (
+                    <label
+                      htmlFor="avatar-image-upload"
+                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-purple-500/50 rounded-lg cursor-pointer hover:bg-purple-500/10 transition-colors"
+                    >
+                      <User className="h-8 w-8 text-purple-500 mb-2" />
+                      <span className="text-sm text-muted-foreground">Upload avatar photo</span>
+                      <span className="text-xs text-muted-foreground mt-1">Best: front-facing portrait</span>
+                    </label>
+                  ) : (
+                    <div className="flex items-start gap-4">
+                      <div className="relative">
+                        <img
+                          src={avatarImage}
+                          alt="Avatar"
+                          className="h-32 w-32 rounded-lg border-2 border-purple-500/50 object-cover"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6"
+                          onClick={clearAvatarImage}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <p className="text-sm font-medium text-green-500">Avatar uploaded!</p>
+                        <p className="text-xs text-muted-foreground">
+                          Make sure you have generated a voice-over in Step 3 before creating the avatar video.
+                        </p>
+                        {!audioUrl && (
+                          <Badge variant="outline" className="text-yellow-500 border-yellow-500">
+                            Voice-over required
+                          </Badge>
+                        )}
+                        {audioUrl && (
+                          <Badge variant="outline" className="text-green-500 border-green-500">
+                            Voice-over ready
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <Button 
+                    onClick={handleCreateAvatarVideo} 
+                    disabled={isGeneratingAvatarVideo || !avatarImage || !audioUrl || userCredits < 15}
+                    className="w-full gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  >
+                    {isGeneratingAvatarVideo ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Creating Avatar Video...
+                      </>
+                    ) : (
+                      <>
+                        <UserCircle className="h-4 w-4" />
+                        Create Speaking Avatar Video (15 credits)
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
             {/* Video Settings */}
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Video Duration</Label>
+                <Label>Video Duration (Scene-based video)</Label>
                 <Select 
                   value={selectedDuration.seconds.toString()} 
                   onValueChange={(val) => setSelectedDuration(VIDEO_DURATIONS.find(d => d.seconds.toString() === val) || VIDEO_DURATIONS[1])}
@@ -1010,7 +1225,7 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
 
               <Button onClick={() => handleCreateVideo(false)} disabled={isLoading || userCredits < selectedDuration.credits} className="w-full gap-2">
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
-                Create Video ({selectedDuration.credits} credits)
+                Create Scene Video ({selectedDuration.credits} credits)
               </Button>
 
               {/* Video Output Section */}
