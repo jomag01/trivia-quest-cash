@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 const AIHub = memo(() => {
   const {
@@ -60,6 +60,14 @@ const AIHub = memo(() => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [animatedVideoUrl, setAnimatedVideoUrl] = useState<string | null>(null);
   const [animationDuration, setAnimationDuration] = useState(4);
+
+  // Image enhancement state
+  const [enhanceImage, setEnhanceImage] = useState<string | null>(null);
+  const [enhancedResult, setEnhancedResult] = useState<string | null>(null);
+  const [enhanceOperation, setEnhanceOperation] = useState<string>('enhance');
+  const [newBackgroundPrompt, setNewBackgroundPrompt] = useState('');
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhanceCreditCost] = useState(2);
 
   // Usage tracking
   const [imageGenerationCount, setImageGenerationCount] = useState(0);
@@ -228,7 +236,7 @@ const AIHub = memo(() => {
       setIsGenerating(false);
     }
   };
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'reference') => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'reference' | 'enhance') => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -242,6 +250,9 @@ const AIHub = memo(() => {
         setVideoDescription(null);
       } else if (type === 'reference') {
         setReferenceImage(base64);
+      } else if (type === 'enhance') {
+        setEnhanceImage(base64);
+        setEnhancedResult(null);
       }
     };
     reader.readAsDataURL(file);
@@ -423,6 +434,69 @@ const AIHub = memo(() => {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard!');
+  };
+
+  const handleEnhanceImage = async () => {
+    if (!enhanceImage) {
+      toast.error('Please upload an image first');
+      return;
+    }
+    if (!user) {
+      toast.error('Please login to enhance images');
+      return;
+    }
+    if (enhanceOperation === 'change-bg' && !newBackgroundPrompt.trim()) {
+      toast.error('Please describe the new background');
+      return;
+    }
+    if (userCredits < enhanceCreditCost) {
+      toast.error(`You need at least ${enhanceCreditCost} credits for this operation`);
+      setShowBuyCredits(true);
+      return;
+    }
+
+    setIsEnhancing(true);
+    setEnhancedResult(null);
+
+    try {
+      const deducted = await deductCredits(enhanceCreditCost);
+      if (!deducted) {
+        toast.error('Failed to deduct credits');
+        return;
+      }
+
+      toast.info('Processing your image... This may take a moment.');
+
+      const { data, error } = await supabase.functions.invoke('enhance-image', {
+        body: {
+          imageUrl: enhanceImage,
+          operation: enhanceOperation,
+          newBackground: enhanceOperation === 'change-bg' ? newBackgroundPrompt : undefined
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.imageUrl) {
+        setEnhancedResult(data.imageUrl);
+        await trackGeneration(`image-${enhanceOperation}`, enhanceCreditCost);
+        toast.success('Image processed successfully!');
+      } else if (data?.error) {
+        throw new Error(data.error);
+      } else {
+        throw new Error('No result returned');
+      }
+    } catch (error: any) {
+      console.error('Enhancement error:', error);
+      toast.error(error.message || 'Failed to process image');
+      // Refund credits on failure
+      await supabase.from('profiles').update({
+        credits: userCredits
+      }).eq('id', user.id);
+      fetchUserCredits();
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   const getAnimationCreditCost = (duration: number) => {
@@ -623,7 +697,7 @@ const AIHub = memo(() => {
       {/* Main Content */}
       <div className="container mx-auto px-4 -mt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-6 w-full max-w-4xl mx-auto bg-background/50 backdrop-blur-sm border">
+          <TabsList className="grid grid-cols-7 w-full max-w-4xl mx-auto bg-background/50 backdrop-blur-sm border">
             <TabsTrigger value="text-to-image" className="gap-1 text-xs sm:text-sm">
               <Wand2 className="h-4 w-4" />
               <span className="hidden sm:inline">Image</span>
@@ -638,6 +712,11 @@ const AIHub = memo(() => {
               <Music className="h-4 w-4" />
               <span className="hidden sm:inline">Music</span>
               <span className="sm:hidden">🎵</span>
+            </TabsTrigger>
+            <TabsTrigger value="enhance" className="gap-1 text-xs sm:text-sm">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Enhance</span>
+              <span className="sm:hidden">Fix</span>
             </TabsTrigger>
             <TabsTrigger value="image-to-text" className="gap-1 text-xs sm:text-sm">
               <ImageIcon className="h-4 w-4" />
@@ -1110,6 +1189,239 @@ const AIHub = memo(() => {
                       </Button>
                     </div>
                   </div>}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Image Enhancement */}
+          <TabsContent value="enhance">
+            <Card className="border-purple-500/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-purple-500" />
+                  Image Enhancement & Correction
+                  <Badge variant="secondary" className="ml-2">{enhanceCreditCost} credits</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Restore old photos, remove backgrounds, enhance quality, and fix lighting. Perfect for IDs and precious memories.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Upload Section */}
+                <div className="space-y-4">
+                  <Label>Upload Image</Label>
+                  <div className="flex flex-col items-center gap-4">
+                    {enhanceImage ? (
+                      <div className="relative w-full max-w-md">
+                        <img 
+                          src={enhanceImage} 
+                          alt="Image to enhance" 
+                          className="w-full rounded-lg border shadow-sm"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2"
+                          onClick={() => {
+                            setEnhanceImage(null);
+                            setEnhancedResult(null);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="w-full max-w-md border-2 border-dashed rounded-lg p-8 flex flex-col items-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-all">
+                        <Upload className="h-10 w-10 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Click to upload your image</span>
+                        <span className="text-xs text-muted-foreground">Supports JPG, PNG, WEBP</span>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleImageUpload(e, 'enhance')}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* Operation Selection */}
+                <div className="space-y-3">
+                  <Label>Select Enhancement Operation</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Button
+                      variant={enhanceOperation === 'enhance' ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-4 gap-2"
+                      onClick={() => setEnhanceOperation('enhance')}
+                    >
+                      <Wand2 className="h-5 w-5" />
+                      <span className="text-xs">Enhance Quality</span>
+                    </Button>
+                    <Button
+                      variant={enhanceOperation === 'remove-bg' ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-4 gap-2"
+                      onClick={() => setEnhanceOperation('remove-bg')}
+                    >
+                      <Eraser className="h-5 w-5" />
+                      <span className="text-xs">Remove Background</span>
+                    </Button>
+                    <Button
+                      variant={enhanceOperation === 'change-bg' ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-4 gap-2"
+                      onClick={() => setEnhanceOperation('change-bg')}
+                    >
+                      <Palette className="h-5 w-5" />
+                      <span className="text-xs">Change Background</span>
+                    </Button>
+                    <Button
+                      variant={enhanceOperation === 'restore' ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-4 gap-2"
+                      onClick={() => setEnhanceOperation('restore')}
+                    >
+                      <ImagePlus className="h-5 w-5" />
+                      <span className="text-xs">Restore Old Photo</span>
+                    </Button>
+                    <Button
+                      variant={enhanceOperation === 'upscale' ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-4 gap-2"
+                      onClick={() => setEnhanceOperation('upscale')}
+                    >
+                      <ImageIcon className="h-5 w-5" />
+                      <span className="text-xs">Upscale HD</span>
+                    </Button>
+                    <Button
+                      variant={enhanceOperation === 'colorize' ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-4 gap-2"
+                      onClick={() => setEnhanceOperation('colorize')}
+                    >
+                      <Palette className="h-5 w-5" />
+                      <span className="text-xs">Colorize B&W</span>
+                    </Button>
+                    <Button
+                      variant={enhanceOperation === 'fix-lighting' ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-4 gap-2"
+                      onClick={() => setEnhanceOperation('fix-lighting')}
+                    >
+                      <Sun className="h-5 w-5" />
+                      <span className="text-xs">Fix Lighting</span>
+                    </Button>
+                    <Button
+                      variant={enhanceOperation === 'denoise' ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-4 gap-2"
+                      onClick={() => setEnhanceOperation('denoise')}
+                    >
+                      <Sparkles className="h-5 w-5" />
+                      <span className="text-xs">Remove Noise</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* New Background Prompt (only for change-bg) */}
+                {enhanceOperation === 'change-bg' && (
+                  <div className="space-y-2">
+                    <Label>Describe New Background</Label>
+                    <Textarea
+                      placeholder="A professional studio background with soft gradient lighting, clean white wall, nature landscape with mountains..."
+                      value={newBackgroundPrompt}
+                      onChange={(e) => setNewBackgroundPrompt(e.target.value)}
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                )}
+
+                {/* Credits Warning */}
+                {user && userCredits < enhanceCreditCost && (
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-sm text-amber-600">
+                      You need at least {enhanceCreditCost} credits for this operation. Current balance: {userCredits} credits.
+                    </p>
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto text-amber-600 underline"
+                      onClick={() => setShowBuyCredits(true)}
+                    >
+                      Buy credits now
+                    </Button>
+                  </div>
+                )}
+
+                {/* Process Button */}
+                <Button
+                  onClick={handleEnhanceImage}
+                  disabled={isEnhancing || !enhanceImage || userCredits < enhanceCreditCost || (enhanceOperation === 'change-bg' && !newBackgroundPrompt.trim())}
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  {isEnhancing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing Image...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Process Image
+                      <Badge variant="outline" className="ml-2">{enhanceCreditCost} credits</Badge>
+                    </>
+                  )}
+                </Button>
+
+                {/* Result Display */}
+                {enhancedResult && (
+                  <div className="space-y-4 animate-in fade-in">
+                    <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
+                      <div className="flex items-center gap-2 text-sm font-medium text-green-600">
+                        <Sparkles className="h-4 w-4" />
+                        Enhanced Result
+                      </div>
+                      
+                      {/* Before/After Comparison */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground text-center">Before</p>
+                          <img
+                            src={enhanceImage!}
+                            alt="Original"
+                            className="w-full rounded-lg border"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground text-center">After</p>
+                          <img
+                            src={enhancedResult}
+                            alt="Enhanced"
+                            className="w-full rounded-lg border"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = enhancedResult;
+                          link.download = `enhanced-${enhanceOperation}-${Date.now()}.png`;
+                          link.click();
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        onClick={() => copyToClipboard(enhancedResult)}
+                      >
+                        <Copy className="h-4 w-4" />
+                        Copy URL
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
