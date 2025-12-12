@@ -37,11 +37,12 @@ export default function ProfileImageUpload({ size = "md", showEditButton = true 
 
     setUploading(true);
     try {
-      // Compress image
+      // Compress image aggressively for avatar (small size needed)
       const compressed = await imageCompression(file, {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 500,
-        useWebWorker: true
+        maxSizeMB: 0.1, // 100KB max for avatars
+        maxWidthOrHeight: 256, // Small avatar size
+        useWebWorker: true,
+        fileType: 'image/jpeg' // Force JPEG for smaller size
       });
 
       const fileExt = file.name.split(".").pop();
