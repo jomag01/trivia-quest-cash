@@ -9,8 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Trophy, Mail, Lock, User, Globe, Eye, EyeOff, Chrome } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CURRENCIES, getCurrencyFromCountry, detectUserCountry, type CurrencyCode } from "@/lib/currencies";
 import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -32,6 +34,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -178,6 +181,13 @@ const Auth = () => {
         toast.success("Welcome back!");
         navigate("/dashboard");
       } else {
+        // Check terms acceptance
+        if (!acceptedTerms) {
+          toast.error("You must accept the Privacy Policy and Terms of Service to sign up.");
+          setLoading(false);
+          return;
+        }
+        
         // Validate referral code - REQUIRED
         const normalizedCode = referralCode.trim().toUpperCase();
         if (!normalizedCode) {
@@ -509,7 +519,30 @@ const Auth = () => {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          {!isLogin && (
+            <div className="flex items-start space-x-2">
+              <Checkbox 
+                id="terms" 
+                checked={acceptedTerms}
+                onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+              />
+              <label 
+                htmlFor="terms" 
+                className="text-sm text-muted-foreground leading-tight cursor-pointer"
+              >
+                I agree to the{" "}
+                <Link to="/privacy-policy" className="text-primary hover:underline" target="_blank">
+                  Privacy Policy
+                </Link>{" "}
+                and{" "}
+                <Link to="/terms-of-service" className="text-primary hover:underline" target="_blank">
+                  Terms of Service
+                </Link>
+              </label>
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" disabled={loading || (!isLogin && !acceptedTerms)}>
             {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
           </Button>
 
