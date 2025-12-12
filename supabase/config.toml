@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.animate-image]
 verify_jwt = false
+
+[functions.enhance-image]
+verify_jwt = false
