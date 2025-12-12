@@ -47,6 +47,12 @@ const getLanguageName = (langCode: string): string => {
   return languageMap[baseLang] || 'English';
 };
 
+// ElevenLabs voice IDs - one for each gender
+const ELEVENLABS_VOICES = {
+  female: 'EXAVITQu4vr4xnSDxMaL', // Sarah
+  male: 'JBFqnCBsd6RMkjVDRZzb', // George
+};
+
 const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
   product,
   onAddToCart,
@@ -106,16 +112,13 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
       const pitch = await generateSalesPitch();
       setSalesPitch(pitch);
       
-      // Get language code for Google TTS
-      const langCode = userLanguage.split('-')[0].toLowerCase();
+      // Use ElevenLabs for high-quality voice
+      const voiceId = isMale ? ELEVENLABS_VOICES.male : ELEVENLABS_VOICES.female;
       
-      // Use Google Cloud TTS for realistic voice
-      const { data, error } = await supabase.functions.invoke('google-tts', {
+      const { data, error } = await supabase.functions.invoke('elevenlabs-voiceover', {
         body: {
-          action: 'generate',
           text: pitch,
-          language: langCode,
-          gender: isMale ? 'MALE' : 'FEMALE'
+          voiceId: voiceId
         }
       });
 
@@ -150,18 +153,46 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
       }
     } catch (error: any) {
       console.error('Avatar error:', error);
-      toast.error('Avatar unavailable');
+      // Fallback to browser TTS if ElevenLabs fails
+      if (salesPitch) {
+        fallbackToWebSpeech(salesPitch);
+      } else {
+        toast.error('Avatar unavailable');
+      }
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const fallbackToWebSpeech = (text: string) => {
+    if (!window.speechSynthesis) {
+      toast.error('Speech not supported');
+      return;
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = isMale ? 0.9 : 1.1;
+    utterance.lang = userLanguage;
+    
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setHasSpoken(true);
+    };
+    
+    window.speechSynthesis.speak(utterance);
   };
 
   const stopSpeaking = () => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      setIsSpeaking(false);
     }
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
   };
 
   const toggleGender = () => {
