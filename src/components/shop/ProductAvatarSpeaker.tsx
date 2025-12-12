@@ -26,7 +26,7 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [salesPitch, setSalesPitch] = useState<string | null>(null);
   const [hasSpoken, setHasSpoken] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // Auto-generate and speak when component mounts
   useEffect(() => {
@@ -35,9 +35,8 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
     }
     
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
       }
     };
   }, [product.id]);
@@ -65,39 +64,52 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
   const generateAndSpeak = async () => {
     if (isGenerating || isSpeaking) return;
     
+    // Check if Web Speech API is supported
+    if (!window.speechSynthesis) {
+      toast.error('Speech not supported in this browser');
+      return;
+    }
+    
     setIsGenerating(true);
     try {
       // Generate or use existing sales pitch
       const pitch = salesPitch || await generateSalesPitch();
       setSalesPitch(pitch);
       
-      // Generate voice-over
-      const { data, error } = await supabase.functions.invoke('elevenlabs-voiceover', {
-        body: {
-          action: 'generate',
-          text: pitch,
-          voiceName: 'Sarah' // Friendly female voice
-        }
-      });
-
-      if (error) throw error;
-
-      // Play the audio
-      const audioBlob = base64ToBlob(data.audioBase64, 'audio/mpeg');
-      const audioUrl = URL.createObjectURL(audioBlob);
+      // Use free browser TTS
+      const utterance = new SpeechSynthesisUtterance(pitch);
+      speechRef.current = utterance;
       
-      audioRef.current = new Audio(audioUrl);
-      audioRef.current.onplay = () => setIsSpeaking(true);
-      audioRef.current.onended = () => {
+      // Configure voice settings
+      utterance.rate = 1.0;
+      utterance.pitch = 1.1;
+      utterance.volume = 1.0;
+      
+      // Try to use a female voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const femaleVoice = voices.find(v => 
+        v.name.toLowerCase().includes('female') || 
+        v.name.toLowerCase().includes('samantha') ||
+        v.name.toLowerCase().includes('victoria') ||
+        v.name.toLowerCase().includes('karen') ||
+        v.name.toLowerCase().includes('moira')
+      ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+      
+      if (femaleVoice) {
+        utterance.voice = femaleVoice;
+      }
+      
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => {
         setIsSpeaking(false);
         setHasSpoken(true);
       };
-      audioRef.current.onerror = () => {
+      utterance.onerror = () => {
         setIsSpeaking(false);
-        toast.error('Failed to play audio');
+        toast.error('Speech failed');
       };
       
-      await audioRef.current.play();
+      window.speechSynthesis.speak(utterance);
     } catch (error: any) {
       console.error('Avatar error:', error);
       toast.error('Avatar unavailable');
@@ -107,21 +119,10 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
   };
 
   const stopSpeaking = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
       setIsSpeaking(false);
     }
-  };
-
-  const base64ToBlob = (base64: string, mimeType: string): Blob => {
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: mimeType });
   };
 
   return (
