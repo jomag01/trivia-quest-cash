@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductReviews } from "./ProductReviews";
 import { useInteractionTracking } from "@/hooks/useInteractionTracking";
 import { VirtualTryOn } from "./shop/VirtualTryOn";
+import ProductAvatarSpeaker from "./shop/ProductAvatarSpeaker";
 interface Product {
   id: string;
   name: string;
@@ -254,6 +255,19 @@ export const ProductDetailDialog = ({
                 Stock: {product.stock_quantity || 0} available
               </p>
             </div>
+
+            {/* AI Avatar Speaker */}
+            <ProductAvatarSpeaker
+              product={{
+                id: product.id,
+                name: product.name,
+                description: product.description,
+                price: effectivePrice,
+                category: product.product_categories?.name
+              }}
+              onAddToCart={onAddToCart}
+              isInCart={inCart}
+            />
 
             <div>
               <h3 className="font-semibold mb-2">Description</h3>
