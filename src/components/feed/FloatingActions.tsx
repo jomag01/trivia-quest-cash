@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { CreatePost } from "@/components/social/CreatePost";
 import { useAuth } from "@/contexts/AuthContext";
-
+import { useNavigate } from "react-router-dom";
 interface FloatingActionsProps {
   onGoLive?: () => void;
   showScrollTop?: boolean;
@@ -12,9 +12,9 @@ interface FloatingActionsProps {
 
 export default function FloatingActions({ onGoLive, showScrollTop = true }: FloatingActionsProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showTopButton, setShowTopButton] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-
   useEffect(() => {
     const handleScroll = () => {
       setShowTopButton(window.scrollY > 500);
@@ -68,11 +68,12 @@ export default function FloatingActions({ onGoLive, showScrollTop = true }: Floa
             </DialogContent>
           </Dialog>
 
-          {/* AI/Sparkles button */}
+          {/* AI Hub button */}
           <Button
+            onClick={() => navigate('/ai-hub')}
             variant="secondary"
             size="icon"
-            className="h-12 w-12 rounded-full shadow-lg"
+            className="h-12 w-12 rounded-full shadow-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
           >
             <Sparkles className="w-5 h-5" />
           </Button>
