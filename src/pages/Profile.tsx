@@ -394,7 +394,11 @@ const Profile = () => {
         {/* Avatar */}
         <div className="relative inline-block">
           <Avatar className="w-32 h-32 border-4 border-background shadow-xl">
-            {profile.avatar_url && <AvatarImage src={profile.avatar_url} />}
+            <AvatarImage 
+              src={profile.avatar_url || ""} 
+              className="object-cover"
+              loading="eager"
+            />
             <AvatarFallback className="text-4xl bg-gradient-to-br from-primary to-accent text-white">
               {profile.full_name?.charAt(0) || profile.email?.charAt(0) || "U"}
             </AvatarFallback>
