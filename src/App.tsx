@@ -71,6 +71,7 @@ const App = () => (
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<AIHub />} />
+              <Route path="/ai-hub" element={<AIHub />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/games" element={<Games />} />
               <Route path="/auth" element={<Auth />} />
