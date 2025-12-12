@@ -7,7 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trophy, Mail, Lock, User, Globe, Eye, EyeOff } from "lucide-react";
+import { Trophy, Mail, Lock, User, Globe, Eye, EyeOff, Chrome } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { CURRENCIES, getCurrencyFromCountry, detectUserCountry, type CurrencyCode } from "@/lib/currencies";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -30,6 +31,28 @@ const Auth = () => {
   const [referralCode, setReferralCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to sign in with Google");
+      setGoogleLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -489,6 +512,28 @@ const Auth = () => {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
           </Button>
+
+          {isLogin && (
+            <>
+              <div className="relative my-4">
+                <Separator />
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                  or
+                </span>
+              </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading}
+              >
+                <Chrome className="w-4 h-4" />
+                {googleLoading ? "Connecting..." : "Sign in with Google"}
+              </Button>
+            </>
+          )}
 
           {isLogin && (
             <div className="text-center">
