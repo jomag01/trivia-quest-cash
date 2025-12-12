@@ -16,6 +16,7 @@ interface CreditTier {
   images: string;
   videos: string;
   cost: string;
+  maxAnimationMinutes: string;
 }
 
 const generateTierId = () => `tier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -30,9 +31,9 @@ const AISettingsManagement = () => {
   const [costMarkupPercent, setCostMarkupPercent] = useState('100');
 
   const [tiers, setTiers] = useState<CreditTier[]>([
-    { id: generateTierId(), name: 'Starter', price: '100', credits: '50', images: '30', videos: '10', cost: '30' },
-    { id: generateTierId(), name: 'Popular', price: '250', credits: '150', images: '100', videos: '30', cost: '75' },
-    { id: generateTierId(), name: 'Pro', price: '500', credits: '400', images: '300', videos: '80', cost: '150' }
+    { id: generateTierId(), name: 'Starter', price: '100', credits: '50', images: '30', videos: '10', cost: '30', maxAnimationMinutes: '0.17' },
+    { id: generateTierId(), name: 'Popular', price: '250', credits: '150', images: '100', videos: '30', cost: '75', maxAnimationMinutes: '1' },
+    { id: generateTierId(), name: 'Pro', price: '500', credits: '400', images: '300', videos: '80', cost: '150', maxAnimationMinutes: '15' }
   ]);
 
   const [adminEarningsPercent, setAdminEarningsPercent] = useState('35');
@@ -67,7 +68,8 @@ const AISettingsManagement = () => {
           credits: '0',
           images: '0',
           videos: '0',
-          cost: '0'
+          cost: '0',
+          maxAnimationMinutes: '0'
         });
       }
 
@@ -102,6 +104,7 @@ const AISettingsManagement = () => {
             if (field === 'image') loadedTiers[tierIndex].images = setting.value || '0';
             if (field === 'video') loadedTiers[tierIndex].videos = setting.value || '0';
             if (field === 'cost') loadedTiers[tierIndex].cost = setting.value || '0';
+            if (field === 'animationminutes') loadedTiers[tierIndex].maxAnimationMinutes = setting.value || '0';
           }
         }
       });
@@ -141,7 +144,8 @@ const AISettingsManagement = () => {
           { key: `ai_credit_tier_${tierNum}_credits`, value: tier.credits },
           { key: `ai_credit_tier_${tierNum}_image`, value: tier.images },
           { key: `ai_credit_tier_${tierNum}_video`, value: tier.videos },
-          { key: `ai_credit_tier_${tierNum}_cost`, value: tier.cost }
+          { key: `ai_credit_tier_${tierNum}_cost`, value: tier.cost },
+          { key: `ai_credit_tier_${tierNum}_animationminutes`, value: tier.maxAnimationMinutes }
         );
       });
 
@@ -178,7 +182,8 @@ const AISettingsManagement = () => {
       credits: '0',
       images: '0',
       videos: '0',
-      cost: '0'
+      cost: '0',
+      maxAnimationMinutes: '0'
     };
     setTiers(prev => [...prev, newTier]);
   };
@@ -346,7 +351,7 @@ const AISettingsManagement = () => {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                   <div className="space-y-1">
                     <Label className="text-xs text-orange-600">Cost (₱)</Label>
                     <Input
@@ -385,6 +390,17 @@ const AISettingsManagement = () => {
                       type="number"
                       value={tier.videos}
                       onChange={(e) => updateTier(index, 'videos', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-purple-500">Max Anim (min)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={tier.maxAnimationMinutes}
+                      onChange={(e) => updateTier(index, 'maxAnimationMinutes', e.target.value)}
+                      placeholder="e.g., 15"
                     />
                   </div>
                 </div>
