@@ -12,7 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 const AIHub = memo(() => {
   const {
     user,
@@ -29,6 +30,24 @@ const AIHub = memo(() => {
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [videoDescription, setVideoDescription] = useState<string | null>(null);
   const [videoPrompt, setVideoPrompt] = useState('');
+  const [adPreset, setAdPreset] = useState<string>('none');
+
+  // Ad presets with dimensions and prompt enhancements
+  const AD_PRESETS = {
+    none: { label: 'No Preset', dimensions: '', promptSuffix: '' },
+    'facebook-feed': { label: 'Facebook Feed Ad (1200x628)', dimensions: '1200x628', promptSuffix: ', optimized for Facebook feed advertisement, eye-catching, professional marketing design, clean layout with space for text overlay' },
+    'facebook-story': { label: 'Facebook/IG Story (1080x1920)', dimensions: '1080x1920', promptSuffix: ', vertical format for Stories, bold visuals, mobile-optimized advertisement design, engaging and scroll-stopping' },
+    'instagram-square': { label: 'Instagram Square (1080x1080)', dimensions: '1080x1080', promptSuffix: ', square format for Instagram, vibrant colors, lifestyle aesthetic, professional product photography style' },
+    'instagram-post': { label: 'Instagram Post (1080x1350)', dimensions: '1080x1350', promptSuffix: ', portrait format for Instagram feed, trendy aesthetic, high engagement design, influencer-style visual' },
+    'youtube-thumbnail': { label: 'YouTube Thumbnail (1280x720)', dimensions: '1280x720', promptSuffix: ', YouTube thumbnail style, high contrast, bold and dramatic, attention-grabbing with clear focal point' },
+    'youtube-banner': { label: 'YouTube Banner (2560x1440)', dimensions: '2560x1440', promptSuffix: ', YouTube channel art banner, wide panoramic format, professional branding design' },
+    'google-display': { label: 'Google Display Ad (300x250)', dimensions: '300x250', promptSuffix: ', Google display advertisement format, clean and professional, clear call-to-action space, corporate design' },
+    'google-leaderboard': { label: 'Google Leaderboard (728x90)', dimensions: '728x90', promptSuffix: ', horizontal banner advertisement, website header ad format, minimal but impactful design' },
+    'linkedin-sponsored': { label: 'LinkedIn Sponsored (1200x627)', dimensions: '1200x627', promptSuffix: ', LinkedIn professional advertisement, corporate and business style, trustworthy and authoritative design' },
+    'twitter-post': { label: 'Twitter/X Post (1600x900)', dimensions: '1600x900', promptSuffix: ', Twitter post image, trending visual style, shareable and viral-worthy design' },
+    'tiktok-ad': { label: 'TikTok Ad (1080x1920)', dimensions: '1080x1920', promptSuffix: ', TikTok vertical format, Gen-Z aesthetic, trendy and dynamic, bold colors and modern design' },
+    'pinterest-pin': { label: 'Pinterest Pin (1000x1500)', dimensions: '1000x1500', promptSuffix: ', Pinterest pin format, aesthetic and inspirational, lifestyle imagery, save-worthy visual' },
+  };
 
   // Music generation
   const [musicPrompt, setMusicPrompt] = useState('');
@@ -173,14 +192,19 @@ const AIHub = memo(() => {
     setIsGenerating(true);
     setGeneratedImage(null);
     try {
+      // Build the final prompt with ad preset suffix
+      const selectedPreset = AD_PRESETS[adPreset as keyof typeof AD_PRESETS];
+      const finalPrompt = prompt.trim() + (selectedPreset?.promptSuffix || '');
+      
       const {
         data,
         error
       } = await supabase.functions.invoke('ai-generate', {
         body: {
           type: 'text-to-image',
-          prompt: prompt.trim(),
-          referenceImage: referenceImage
+          prompt: finalPrompt,
+          referenceImage: referenceImage,
+          dimensions: selectedPreset?.dimensions || undefined
         }
       });
       if (error) throw error;
@@ -568,6 +592,39 @@ const AIHub = memo(() => {
                 <div className="space-y-2">
                   <Label>Your Prompt</Label>
                   <Textarea placeholder="A majestic dragon flying over a crystal lake at sunset, fantasy art style, highly detailed..." value={prompt} onChange={e => setPrompt(e.target.value)} className="min-h-[120px] resize-none" />
+                </div>
+
+                {/* Social Media Ad Preset */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Megaphone className="h-4 w-4" />
+                    Social Media Ad Preset (Optional)
+                  </Label>
+                  <Select value={adPreset} onValueChange={setAdPreset}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select ad format..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Preset - Custom Image</SelectItem>
+                      <SelectItem value="facebook-feed">📘 Facebook Feed Ad (1200x628)</SelectItem>
+                      <SelectItem value="facebook-story">📱 Facebook/IG Story (1080x1920)</SelectItem>
+                      <SelectItem value="instagram-square">📷 Instagram Square (1080x1080)</SelectItem>
+                      <SelectItem value="instagram-post">📸 Instagram Post (1080x1350)</SelectItem>
+                      <SelectItem value="youtube-thumbnail">▶️ YouTube Thumbnail (1280x720)</SelectItem>
+                      <SelectItem value="youtube-banner">🎬 YouTube Banner (2560x1440)</SelectItem>
+                      <SelectItem value="google-display">🔍 Google Display Ad (300x250)</SelectItem>
+                      <SelectItem value="google-leaderboard">📊 Google Leaderboard (728x90)</SelectItem>
+                      <SelectItem value="linkedin-sponsored">💼 LinkedIn Sponsored (1200x627)</SelectItem>
+                      <SelectItem value="twitter-post">🐦 Twitter/X Post (1600x900)</SelectItem>
+                      <SelectItem value="tiktok-ad">🎵 TikTok Ad (1080x1920)</SelectItem>
+                      <SelectItem value="pinterest-pin">📌 Pinterest Pin (1000x1500)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {adPreset !== 'none' && (
+                    <p className="text-xs text-muted-foreground">
+                      AI will optimize your image for {AD_PRESETS[adPreset as keyof typeof AD_PRESETS]?.label}
+                    </p>
+                  )}
                 </div>
 
                 {/* Reference Image Upload */}
