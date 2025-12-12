@@ -320,7 +320,7 @@ const Dashboard = () => {
             <div className="flex items-center gap-3">
               <ProfileImageUpload size="md" />
               <div>
-                <h2 className="font-bold text-gradient-gold text-base">
+                <h2 className="font-bold text-foreground text-base">
                   {profile.full_name || profile.email}
                 </h2>
                 <div className="flex items-center gap-3">
@@ -350,7 +350,7 @@ const Dashboard = () => {
               </Button>
             </div>
           </div>
-          <h1 className="font-bold mb-2 text-gradient-gold text-lg">
+          <h1 className="font-bold mb-2 text-foreground text-lg">
             Player Dashboard
           </h1>
           <p className="text-muted-foreground text-sm">Track your progress and earnings</p>

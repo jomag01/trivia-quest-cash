@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Camera, Loader2 } from "lucide-react";
 import imageCompression from "browser-image-compression";
+import { uploadToStorage } from "@/lib/storage";
 
 interface ProfileImageUploadProps {
   size?: "sm" | "md" | "lg";
@@ -44,21 +45,21 @@ export default function ProfileImageUpload({ size = "md", showEditButton = true 
       });
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/avatar.${fileExt}`;
+      const fileName = `avatar.${fileExt}`;
 
-      // Delete old avatar if exists
-      await supabase.storage.from("avatars").remove([fileName]);
+      // Use Edge Function workaround for storage upload
+      const { data: uploadData, error: uploadError } = await uploadToStorage(
+        "avatars", 
+        user.id, 
+        compressed, 
+        { fileName }
+      );
 
-      // Upload new avatar
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, compressed, { upsert: true });
+      if (uploadError || !uploadData?.publicUrl) {
+        throw new Error("Failed to upload image");
+      }
 
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(fileName);
+      const publicUrl = uploadData.publicUrl;
 
       // Update profile with new avatar URL
       const { error: updateError } = await supabase
