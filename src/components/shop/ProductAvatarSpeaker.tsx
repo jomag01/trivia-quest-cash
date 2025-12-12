@@ -58,7 +58,7 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
   const [hasSpoken, setHasSpoken] = useState(false);
   const [isMale, setIsMale] = useState(false);
   const [userLanguage, setUserLanguage] = useState('en');
-  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Detect user language on mount
   useEffect(() => {
@@ -73,8 +73,9 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
     }
     
     return () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
       }
     };
   }, [product.id, userLanguage]);
@@ -82,7 +83,6 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
   const generateSalesPitch = async (): Promise<string> => {
     const languageName = getLanguageName(userLanguage);
     
-    // If product has a good description, still send to AI for translation
     const { data, error } = await supabase.functions.invoke('product-avatar-pitch', {
       body: {
         productName: product.name,
@@ -97,40 +97,8 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
     return data.pitch;
   };
 
-  const findVoice = (voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null => {
-    const langPrefix = userLanguage.split('-')[0].toLowerCase();
-    
-    // Filter voices by language
-    const languageVoices = voices.filter(v => 
-      v.lang.toLowerCase().startsWith(langPrefix)
-    );
-    
-    if (languageVoices.length === 0) {
-      // Fallback to English if no matching language
-      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-      return englishVoices[0] || voices[0];
-    }
-
-    // Try to find male or female voice based on preference
-    const genderKeywords = isMale 
-      ? ['male', 'david', 'james', 'john', 'mark', 'daniel', 'guy', 'thomas']
-      : ['female', 'samantha', 'victoria', 'karen', 'moira', 'zira', 'susan', 'linda', 'sarah'];
-    
-    const genderVoice = languageVoices.find(v => 
-      genderKeywords.some(keyword => v.name.toLowerCase().includes(keyword))
-    );
-    
-    return genderVoice || languageVoices[0];
-  };
-
   const generateAndSpeak = async () => {
     if (isGenerating || isSpeaking) return;
-    
-    // Check if Web Speech API is supported
-    if (!window.speechSynthesis) {
-      toast.error('Speech not supported in this browser');
-      return;
-    }
     
     setIsGenerating(true);
     try {
@@ -138,45 +106,48 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
       const pitch = await generateSalesPitch();
       setSalesPitch(pitch);
       
-      // Use free browser TTS
-      const utterance = new SpeechSynthesisUtterance(pitch);
-      speechRef.current = utterance;
+      // Get language code for Google TTS
+      const langCode = userLanguage.split('-')[0].toLowerCase();
       
-      // Configure voice settings
-      utterance.rate = 1.0;
-      utterance.pitch = isMale ? 0.9 : 1.1;
-      utterance.volume = 1.0;
-      utterance.lang = userLanguage;
+      // Use Google Cloud TTS for realistic voice
+      const { data, error } = await supabase.functions.invoke('google-tts', {
+        body: {
+          action: 'generate',
+          text: pitch,
+          language: langCode,
+          gender: isMale ? 'MALE' : 'FEMALE'
+        }
+      });
+
+      if (error) throw error;
       
-      // Wait for voices to load
-      let voices = window.speechSynthesis.getVoices();
-      if (voices.length === 0) {
-        await new Promise<void>(resolve => {
-          window.speechSynthesis.onvoiceschanged = () => {
-            voices = window.speechSynthesis.getVoices();
-            resolve();
-          };
-          // Timeout fallback
-          setTimeout(resolve, 1000);
-        });
+      if (data?.audioBase64) {
+        // Create audio from base64
+        const audioBlob = new Blob(
+          [Uint8Array.from(atob(data.audioBase64), c => c.charCodeAt(0))],
+          { type: 'audio/mpeg' }
+        );
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // Play audio
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+        
+        audio.onplay = () => setIsSpeaking(true);
+        audio.onended = () => {
+          setIsSpeaking(false);
+          setHasSpoken(true);
+          URL.revokeObjectURL(audioUrl);
+        };
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          toast.error('Audio playback failed');
+        };
+        
+        await audio.play();
+      } else {
+        throw new Error('No audio returned');
       }
-      
-      const selectedVoice = findVoice(voices);
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      }
-      
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => {
-        setIsSpeaking(false);
-        setHasSpoken(true);
-      };
-      utterance.onerror = () => {
-        setIsSpeaking(false);
-        toast.error('Speech failed');
-      };
-      
-      window.speechSynthesis.speak(utterance);
     } catch (error: any) {
       console.error('Avatar error:', error);
       toast.error('Avatar unavailable');
@@ -186,15 +157,16 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
   };
 
   const stopSpeaking = () => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
       setIsSpeaking(false);
     }
   };
 
   const toggleGender = () => {
     setIsMale(!isMale);
-    setSalesPitch(null); // Reset pitch to regenerate
+    setSalesPitch(null);
     setHasSpoken(false);
   };
 
