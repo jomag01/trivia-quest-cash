@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import {
   Sparkles, 
   FileText, 
   Mic, 
-  Image, 
+  Image as ImageIcon, 
   Video, 
   Music, 
   Upload, 
@@ -26,7 +26,9 @@ import {
   Share2,
   Lock,
   RefreshCw,
-  Eye
+  Eye,
+  Camera,
+  X
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -97,6 +99,10 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
   // Step 1: Topic
   const [topic, setTopic] = useState('');
   const [research, setResearch] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [imageAnalysis, setImageAnalysis] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Step 2: Script
   const [targetAudience, setTargetAudience] = useState('');
@@ -127,6 +133,83 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
   const [isDownloading, setIsDownloading] = useState(false);
 
   const isPaidUser = userCredits >= 10;
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setUploadedImage(event.target?.result as string);
+      setImageAnalysis(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!uploadedImage) {
+      toast.error('Please upload an image first');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-generate', {
+        body: { 
+          type: 'image-to-text', 
+          imageUrl: uploadedImage 
+        }
+      });
+
+      if (error) throw error;
+      
+      const analysis = data.description || data.text || 'Unable to analyze image';
+      setImageAnalysis(analysis);
+      toast.success('Image analyzed successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to analyze image');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleResearchFromImage = async () => {
+    if (!imageAnalysis) {
+      toast.error('Please analyze the image first');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const topicFromImage = `Based on this image analysis: ${imageAnalysis}`;
+      setTopic(topicFromImage);
+      
+      const { data, error } = await supabase.functions.invoke('content-creator', {
+        body: { action: 'research-topic', topic: topicFromImage }
+      });
+
+      if (error) throw error;
+      setResearch(data.research);
+      toast.success('Topic researched from image!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to research topic');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clearUploadedImage = () => {
+    setUploadedImage(null);
+    setImageAnalysis(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleResearchTopic = async () => {
     if (!topic.trim()) {
@@ -402,7 +485,7 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
     { num: 1, title: 'Topic Research', icon: FileText },
     { num: 2, title: 'Script', icon: Sparkles },
     { num: 3, title: 'Voice-over', icon: Mic },
-    { num: 4, title: 'Images', icon: Image },
+    { num: 4, title: 'Images', icon: ImageIcon },
     { num: 5, title: 'Video', icon: Video },
     { num: 6, title: 'Download & Share', icon: Download },
   ];
@@ -434,7 +517,7 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
               <Mic className="h-4 w-4 text-primary" /> Create AI voice-overs in 29+ languages
             </li>
             <li className="flex items-center gap-2">
-              <Image className="h-4 w-4 text-primary" /> Generate scene images
+              <ImageIcon className="h-4 w-4 text-primary" /> Generate scene images
             </li>
             <li className="flex items-center gap-2">
               <Video className="h-4 w-4 text-primary" /> Compile into videos up to 15 minutes
@@ -494,23 +577,107 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
               Step 1: Topic Research
             </CardTitle>
             <CardDescription>
-              Enter a topic and we'll research trending angles and content ideas
+              Enter a topic manually or upload an image for AI analysis
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Option 1: Manual Topic Entry */}
             <div className="space-y-2">
-              <Label>What's your video about?</Label>
+              <Label>Option 1: Enter a topic manually</Label>
               <Input
                 placeholder="e.g., 10 productivity hacks for remote workers"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
               />
+              <Button onClick={handleResearchTopic} disabled={isLoading || !topic.trim()} size="sm" className="gap-2">
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                Research Topic
+              </Button>
             </div>
             
-            <Button onClick={handleResearchTopic} disabled={isLoading} className="gap-2">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Research Topic
-            </Button>
+            <div className="relative">
+              <Separator />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                OR
+              </span>
+            </div>
+
+            {/* Option 2: Upload Image for Analysis */}
+            <div className="space-y-3">
+              <Label>Option 2: Upload an image for AI analysis</Label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                ref={fileInputRef}
+                className="hidden"
+                id="image-upload-content"
+              />
+              
+              {!uploadedImage ? (
+                <label
+                  htmlFor="image-upload-content"
+                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                >
+                  <Camera className="h-8 w-8 text-muted-foreground mb-2" />
+                  <span className="text-sm text-muted-foreground">Click to upload an image</span>
+                  <span className="text-xs text-muted-foreground mt-1">JPG, PNG, WebP</span>
+                </label>
+              ) : (
+                <div className="space-y-3">
+                  <div className="relative inline-block">
+                    <img
+                      src={uploadedImage}
+                      alt="Uploaded"
+                      className="max-h-40 rounded-lg border object-contain"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6"
+                      onClick={clearUploadedImage}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={handleAnalyzeImage}
+                      disabled={isAnalyzing}
+                      size="sm"
+                      variant="secondary"
+                      className="gap-2"
+                    >
+                      {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+                      Analyze Image
+                    </Button>
+                    
+                    {imageAnalysis && (
+                      <Button
+                        onClick={handleResearchFromImage}
+                        disabled={isLoading}
+                        size="sm"
+                        className="gap-2"
+                      >
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        Research from Analysis
+                      </Button>
+                    )}
+                  </div>
+
+                  {imageAnalysis && (
+                    <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                      <h4 className="font-medium text-sm mb-1 flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Image Analysis:
+                      </h4>
+                      <p className="text-sm text-muted-foreground">{imageAnalysis}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {research && (
               <div className="mt-4 p-4 rounded-lg bg-muted/50 border">
@@ -519,7 +686,7 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
               </div>
             )}
 
-            {topic && (
+            {(topic || research) && (
               <Button onClick={() => setCurrentStep(2)} variant="outline" className="mt-4">
                 Next: Generate Script <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
@@ -690,7 +857,7 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Image className="h-5 w-5 text-primary" />
+              <ImageIcon className="h-5 w-5 text-primary" />
               Step 4: Generate Scene Images
             </CardTitle>
             <CardDescription>
@@ -699,7 +866,7 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
           </CardHeader>
           <CardContent className="space-y-4">
             <Button onClick={handleGenerateImages} disabled={isLoading || !script} className="gap-2">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
               Generate All Scene Images
             </Button>
 
@@ -984,7 +1151,7 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
                   <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium flex items-center gap-2">
-                        <Image className="h-4 w-4" />
+                        <ImageIcon className="h-4 w-4" />
                         Generated Images ({generatedImages.length})
                       </h4>
                     </div>
