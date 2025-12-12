@@ -18,19 +18,23 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { productName, productDescription, productPrice, productCategory } = await req.json();
+    const { productName, productDescription, productPrice, productCategory, targetLanguage } = await req.json();
 
-    console.log('Generating sales pitch for:', productName);
+    console.log('Generating sales pitch for:', productName, 'in language:', targetLanguage);
 
-    const systemPrompt = `You are a friendly, enthusiastic AI sales assistant. Your job is to create a compelling, natural-sounding sales pitch for products. Keep it conversational, warm, and persuasive but not pushy. The pitch should be 2-3 sentences max and end with an invitation to add the item to cart. Speak as if you're directly talking to the customer.`;
+    const systemPrompt = `You are a friendly, enthusiastic AI sales assistant. Your job is to create a compelling, natural-sounding sales pitch for products. Keep it conversational, warm, and persuasive but not pushy. The pitch should be 2-3 sentences max and end with an invitation to add the item to cart. Speak as if you're directly talking to the customer.
 
-    const userPrompt = `Create a short, engaging sales pitch for this product:
+IMPORTANT: You MUST respond in ${targetLanguage || 'English'}. The entire pitch must be in ${targetLanguage || 'English'}.`;
+
+    const userPrompt = `Create a short, engaging sales pitch for this product in ${targetLanguage || 'English'}:
 - Name: ${productName}
 - Category: ${productCategory || 'General'}
 - Price: ₱${productPrice}
 - Description: ${productDescription || 'No description available'}
 
-If the description is missing or vague, use your knowledge to describe what this type of product typically offers. Make it sound natural and conversational, as if you're speaking to a friend about why they should buy this.`;
+If the description is missing or vague, use your knowledge to describe what this type of product typically offers. Make it sound natural and conversational, as if you're speaking to a friend about why they should buy this.
+
+REMEMBER: Respond entirely in ${targetLanguage || 'English'}.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

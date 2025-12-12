@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Volume2, VolumeX, Loader2, ShoppingCart, Sparkles } from 'lucide-react';
+import { Volume2, VolumeX, Loader2, ShoppingCart, Sparkles, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,6 +17,36 @@ interface ProductAvatarSpeakerProps {
   isInCart?: boolean;
 }
 
+// Language code mapping for common languages
+const getLanguageName = (langCode: string): string => {
+  const languageMap: Record<string, string> = {
+    'en': 'English',
+    'fil': 'Tagalog',
+    'tl': 'Tagalog',
+    'sv': 'Swedish',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'it': 'Italian',
+    'pt': 'Portuguese',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'zh': 'Chinese',
+    'ar': 'Arabic',
+    'hi': 'Hindi',
+    'ru': 'Russian',
+    'th': 'Thai',
+    'vi': 'Vietnamese',
+    'id': 'Indonesian',
+    'ms': 'Malay',
+    'nl': 'Dutch',
+    'pl': 'Polish',
+    'tr': 'Turkish',
+  };
+  const baseLang = langCode.split('-')[0].toLowerCase();
+  return languageMap[baseLang] || 'English';
+};
+
 const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
   product,
   onAddToCart,
@@ -26,11 +56,19 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [salesPitch, setSalesPitch] = useState<string | null>(null);
   const [hasSpoken, setHasSpoken] = useState(false);
+  const [isMale, setIsMale] = useState(false);
+  const [userLanguage, setUserLanguage] = useState('en');
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Detect user language on mount
+  useEffect(() => {
+    const browserLang = navigator.language || 'en';
+    setUserLanguage(browserLang);
+  }, []);
 
   // Auto-generate and speak when component mounts
   useEffect(() => {
-    if (!hasSpoken) {
+    if (!hasSpoken && userLanguage) {
       generateAndSpeak();
     }
     
@@ -39,26 +77,50 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
         window.speechSynthesis.cancel();
       }
     };
-  }, [product.id]);
+  }, [product.id, userLanguage]);
 
   const generateSalesPitch = async (): Promise<string> => {
-    // If product has a good description, use it; otherwise generate one
-    if (product.description && product.description.length > 50) {
-      return `Hello! Let me tell you about ${product.name}. ${product.description}. At just ${product.price} pesos, this is an amazing deal! Would you like to add it to your cart?`;
-    }
-
-    // Use AI to generate a sales pitch
+    const languageName = getLanguageName(userLanguage);
+    
+    // If product has a good description, still send to AI for translation
     const { data, error } = await supabase.functions.invoke('product-avatar-pitch', {
       body: {
         productName: product.name,
         productDescription: product.description || '',
         productPrice: product.price,
-        productCategory: product.category || ''
+        productCategory: product.category || '',
+        targetLanguage: languageName
       }
     });
 
     if (error) throw error;
     return data.pitch;
+  };
+
+  const findVoice = (voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null => {
+    const langPrefix = userLanguage.split('-')[0].toLowerCase();
+    
+    // Filter voices by language
+    const languageVoices = voices.filter(v => 
+      v.lang.toLowerCase().startsWith(langPrefix)
+    );
+    
+    if (languageVoices.length === 0) {
+      // Fallback to English if no matching language
+      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+      return englishVoices[0] || voices[0];
+    }
+
+    // Try to find male or female voice based on preference
+    const genderKeywords = isMale 
+      ? ['male', 'david', 'james', 'john', 'mark', 'daniel', 'guy', 'thomas']
+      : ['female', 'samantha', 'victoria', 'karen', 'moira', 'zira', 'susan', 'linda', 'sarah'];
+    
+    const genderVoice = languageVoices.find(v => 
+      genderKeywords.some(keyword => v.name.toLowerCase().includes(keyword))
+    );
+    
+    return genderVoice || languageVoices[0];
   };
 
   const generateAndSpeak = async () => {
@@ -72,8 +134,8 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
     
     setIsGenerating(true);
     try {
-      // Generate or use existing sales pitch
-      const pitch = salesPitch || await generateSalesPitch();
+      // Generate sales pitch in user's language
+      const pitch = await generateSalesPitch();
       setSalesPitch(pitch);
       
       // Use free browser TTS
@@ -82,21 +144,26 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
       
       // Configure voice settings
       utterance.rate = 1.0;
-      utterance.pitch = 1.1;
+      utterance.pitch = isMale ? 0.9 : 1.1;
       utterance.volume = 1.0;
+      utterance.lang = userLanguage;
       
-      // Try to use a female voice if available
-      const voices = window.speechSynthesis.getVoices();
-      const femaleVoice = voices.find(v => 
-        v.name.toLowerCase().includes('female') || 
-        v.name.toLowerCase().includes('samantha') ||
-        v.name.toLowerCase().includes('victoria') ||
-        v.name.toLowerCase().includes('karen') ||
-        v.name.toLowerCase().includes('moira')
-      ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+      // Wait for voices to load
+      let voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) {
+        await new Promise<void>(resolve => {
+          window.speechSynthesis.onvoiceschanged = () => {
+            voices = window.speechSynthesis.getVoices();
+            resolve();
+          };
+          // Timeout fallback
+          setTimeout(resolve, 1000);
+        });
+      }
       
-      if (femaleVoice) {
-        utterance.voice = femaleVoice;
+      const selectedVoice = findVoice(voices);
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
       }
       
       utterance.onstart = () => setIsSpeaking(true);
@@ -125,13 +192,23 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
     }
   };
 
+  const toggleGender = () => {
+    setIsMale(!isMale);
+    setSalesPitch(null); // Reset pitch to regenerate
+    setHasSpoken(false);
+  };
+
   return (
     <div className="bg-gradient-to-br from-primary/10 via-background to-secondary/10 rounded-xl p-4 border border-primary/20">
       <div className="flex items-start gap-4">
         {/* Animated Avatar */}
         <div className="relative">
           <motion.div
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg"
+            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
+              isMale 
+                ? 'bg-gradient-to-br from-blue-500 to-blue-700' 
+                : 'bg-gradient-to-br from-pink-500 to-purple-600'
+            }`}
             animate={isSpeaking ? {
               scale: [1, 1.05, 1],
               boxShadow: [
@@ -142,7 +219,7 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
             } : {}}
             transition={{ duration: 1.5, repeat: isSpeaking ? Infinity : 0 }}
           >
-            <Sparkles className="w-8 h-8 text-primary-foreground" />
+            <Sparkles className="w-8 h-8 text-white" />
           </motion.div>
           
           {/* Speaking indicator */}
@@ -163,7 +240,12 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-foreground">AI Assistant</span>
+            <span className="font-semibold text-foreground">
+              AI Assistant {isMale ? '♂' : '♀'}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              ({getLanguageName(userLanguage)})
+            </span>
             {isGenerating && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -191,6 +273,19 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2">
+            {/* Gender toggle */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={toggleGender}
+              disabled={isGenerating || isSpeaking}
+              className="gap-1"
+              title={isMale ? 'Switch to female voice' : 'Switch to male voice'}
+            >
+              <User className="w-4 h-4" />
+              {isMale ? '♂→♀' : '♀→♂'}
+            </Button>
+
             {isSpeaking ? (
               <Button
                 size="sm"
