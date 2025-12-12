@@ -6,34 +6,35 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2 } from 'lucide-react';
+import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2 } from 'lucide-react';
 
 interface CreditTier {
+  id: string;
+  name: string;
   price: string;
   credits: string;
   images: string;
   videos: string;
-  cost: string; // Admin's actual cost for this tier
+  cost: string;
 }
+
+const generateTierId = () => `tier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 const AISettingsManagement = () => {
   const [freeImageLimit, setFreeImageLimit] = useState('3');
   const [videoCreditCost, setVideoCreditCost] = useState('10');
-  const [creditToDiamondRate, setCreditToDiamondRate] = useState('10'); // 10 credits = 1 diamond
+  const [creditToDiamondRate, setCreditToDiamondRate] = useState('10');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Cost markup percentage
-  const [costMarkupPercent, setCostMarkupPercent] = useState('100'); // 100% markup = 2x price
+  const [costMarkupPercent, setCostMarkupPercent] = useState('100');
 
-  // Credit tiers with cost
   const [tiers, setTiers] = useState<CreditTier[]>([
-    { price: '100', credits: '50', images: '30', videos: '10', cost: '30' },
-    { price: '250', credits: '150', images: '100', videos: '30', cost: '75' },
-    { price: '500', credits: '400', images: '300', videos: '80', cost: '150' }
+    { id: generateTierId(), name: 'Starter', price: '100', credits: '50', images: '30', videos: '10', cost: '30' },
+    { id: generateTierId(), name: 'Popular', price: '250', credits: '150', images: '100', videos: '30', cost: '75' },
+    { id: generateTierId(), name: 'Pro', price: '500', credits: '400', images: '300', videos: '80', cost: '150' }
   ]);
 
-  // Commission settings
   const [adminEarningsPercent, setAdminEarningsPercent] = useState('35');
   const [unilevelPercent, setUnilevelPercent] = useState('40');
   const [stairstepPercent, setStairstepPercent] = useState('35');
@@ -52,6 +53,24 @@ const AISettingsManagement = () => {
 
       if (error) throw error;
 
+      // Check for tier count setting
+      const tierCountSetting = data?.find(s => s.key === 'ai_tier_count');
+      const tierCount = tierCountSetting ? parseInt(tierCountSetting.value || '3') : 3;
+
+      // Initialize tiers array based on count
+      const loadedTiers: CreditTier[] = [];
+      for (let i = 0; i < tierCount; i++) {
+        loadedTiers.push({
+          id: generateTierId(),
+          name: `Tier ${i + 1}`,
+          price: '0',
+          credits: '0',
+          images: '0',
+          videos: '0',
+          cost: '0'
+        });
+      }
+
       data?.forEach(setting => {
         if (setting.key === 'ai_free_image_limit') {
           setFreeImageLimit(setting.value || '3');
@@ -67,30 +86,29 @@ const AISettingsManagement = () => {
           setStairstepPercent(setting.value || '35');
         } else if (setting.key === 'ai_leadership_percent') {
           setLeadershipPercent(setting.value || '25');
-        }
-
-        if (setting.key === 'ai_cost_markup_percent') {
+        } else if (setting.key === 'ai_cost_markup_percent') {
           setCostMarkupPercent(setting.value || '100');
         }
 
         // Parse tier settings
-        const match = setting.key.match(/ai_credit_tier_(\d)_(\w+)/);
+        const match = setting.key.match(/ai_credit_tier_(\d+)_(\w+)/);
         if (match) {
           const tierIndex = parseInt(match[1]) - 1;
           const field = match[2];
-          if (tierIndex >= 0 && tierIndex < 3) {
-            setTiers(prev => {
-              const newTiers = [...prev];
-              if (field === 'price') newTiers[tierIndex].price = setting.value || '0';
-              if (field === 'credits') newTiers[tierIndex].credits = setting.value || '0';
-              if (field === 'image') newTiers[tierIndex].images = setting.value || '0';
-              if (field === 'video') newTiers[tierIndex].videos = setting.value || '0';
-              if (field === 'cost') newTiers[tierIndex].cost = setting.value || '0';
-              return newTiers;
-            });
+          if (tierIndex >= 0 && tierIndex < loadedTiers.length) {
+            if (field === 'name') loadedTiers[tierIndex].name = setting.value || `Tier ${tierIndex + 1}`;
+            if (field === 'price') loadedTiers[tierIndex].price = setting.value || '0';
+            if (field === 'credits') loadedTiers[tierIndex].credits = setting.value || '0';
+            if (field === 'image') loadedTiers[tierIndex].images = setting.value || '0';
+            if (field === 'video') loadedTiers[tierIndex].videos = setting.value || '0';
+            if (field === 'cost') loadedTiers[tierIndex].cost = setting.value || '0';
           }
         }
       });
+
+      if (loadedTiers.length > 0 && loadedTiers.some(t => parseFloat(t.price) > 0)) {
+        setTiers(loadedTiers);
+      }
     } catch (error) {
       console.error('Error fetching AI settings:', error);
       toast.error('Failed to load AI settings');
@@ -102,7 +120,7 @@ const AISettingsManagement = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updates = [
+      const updates: { key: string; value: string }[] = [
         { key: 'ai_free_image_limit', value: freeImageLimit },
         { key: 'ai_video_credit_cost', value: videoCreditCost },
         { key: 'ai_credit_to_diamond_rate', value: creditToDiamondRate },
@@ -111,25 +129,21 @@ const AISettingsManagement = () => {
         { key: 'ai_unilevel_percent', value: unilevelPercent },
         { key: 'ai_stairstep_percent', value: stairstepPercent },
         { key: 'ai_leadership_percent', value: leadershipPercent },
-        // Tier 1
-        { key: 'ai_credit_tier_1_price', value: tiers[0].price },
-        { key: 'ai_credit_tier_1_credits', value: tiers[0].credits },
-        { key: 'ai_credit_tier_1_image', value: tiers[0].images },
-        { key: 'ai_credit_tier_1_video', value: tiers[0].videos },
-        { key: 'ai_credit_tier_1_cost', value: tiers[0].cost },
-        // Tier 2
-        { key: 'ai_credit_tier_2_price', value: tiers[1].price },
-        { key: 'ai_credit_tier_2_credits', value: tiers[1].credits },
-        { key: 'ai_credit_tier_2_image', value: tiers[1].images },
-        { key: 'ai_credit_tier_2_video', value: tiers[1].videos },
-        { key: 'ai_credit_tier_2_cost', value: tiers[1].cost },
-        // Tier 3
-        { key: 'ai_credit_tier_3_price', value: tiers[2].price },
-        { key: 'ai_credit_tier_3_credits', value: tiers[2].credits },
-        { key: 'ai_credit_tier_3_image', value: tiers[2].images },
-        { key: 'ai_credit_tier_3_video', value: tiers[2].videos },
-        { key: 'ai_credit_tier_3_cost', value: tiers[2].cost },
+        { key: 'ai_tier_count', value: tiers.length.toString() },
       ];
+
+      // Add all tier settings dynamically
+      tiers.forEach((tier, index) => {
+        const tierNum = index + 1;
+        updates.push(
+          { key: `ai_credit_tier_${tierNum}_name`, value: tier.name },
+          { key: `ai_credit_tier_${tierNum}_price`, value: tier.price },
+          { key: `ai_credit_tier_${tierNum}_credits`, value: tier.credits },
+          { key: `ai_credit_tier_${tierNum}_image`, value: tier.images },
+          { key: `ai_credit_tier_${tierNum}_video`, value: tier.videos },
+          { key: `ai_credit_tier_${tierNum}_cost`, value: tier.cost }
+        );
+      });
 
       for (const update of updates) {
         const { error } = await supabase
@@ -154,6 +168,27 @@ const AISettingsManagement = () => {
       newTiers[index] = { ...newTiers[index], [field]: value };
       return newTiers;
     });
+  };
+
+  const addTier = () => {
+    const newTier: CreditTier = {
+      id: generateTierId(),
+      name: `Tier ${tiers.length + 1}`,
+      price: '0',
+      credits: '0',
+      images: '0',
+      videos: '0',
+      cost: '0'
+    };
+    setTiers(prev => [...prev, newTier]);
+  };
+
+  const removeTier = (index: number) => {
+    if (tiers.length <= 1) {
+      toast.error('You must have at least one tier');
+      return;
+    }
+    setTiers(prev => prev.filter((_, i) => i !== index));
   };
 
   const totalCommissionPercent = parseFloat(unilevelPercent) + parseFloat(stairstepPercent) + parseFloat(leadershipPercent);
@@ -267,33 +302,56 @@ const AISettingsManagement = () => {
       {/* Credit Tiers */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Crown className="h-5 w-5 text-yellow-500" />
-            Credit Purchase Tiers
-          </CardTitle>
-          <CardDescription>
-            Configure pricing tiers for credit purchases
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-yellow-500" />
+                Credit Purchase Tiers
+              </CardTitle>
+              <CardDescription>
+                Configure pricing tiers for credit purchases. Add or remove tiers as needed.
+              </CardDescription>
+            </div>
+            <Button onClick={addTier} size="sm" variant="outline" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Tier
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {['Starter', 'Popular', 'Pro'].map((tierName, index) => {
-            const cost = parseFloat(tiers[index].cost) || 0;
-            const price = parseFloat(tiers[index].price) || 0;
+          {tiers.map((tier, index) => {
+            const cost = parseFloat(tier.cost) || 0;
+            const price = parseFloat(tier.price) || 0;
             const profit = price - cost;
             const profitMargin = price > 0 ? ((profit / price) * 100).toFixed(1) : '0';
             
             return (
-              <div key={index} className="space-y-4">
-                <h4 className="font-medium flex items-center gap-2">
-                  Tier {index + 1}: {tierName}
-                  {index === 1 && <span className="text-xs text-primary">(Best Value)</span>}
-                </h4>
+              <div key={tier.id} className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1">
+                    <span className="text-sm font-medium text-muted-foreground">Tier {index + 1}:</span>
+                    <Input
+                      value={tier.name}
+                      onChange={(e) => updateTier(index, 'name', e.target.value)}
+                      className="max-w-[150px] h-8"
+                      placeholder="Tier name"
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => removeTier(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div className="space-y-1">
                     <Label className="text-xs text-orange-600">Cost (₱)</Label>
                     <Input
                       type="number"
-                      value={tiers[index].cost}
+                      value={tier.cost}
                       onChange={(e) => updateTier(index, 'cost', e.target.value)}
                     />
                   </div>
@@ -301,7 +359,7 @@ const AISettingsManagement = () => {
                     <Label className="text-xs">Price (₱)</Label>
                     <Input
                       type="number"
-                      value={tiers[index].price}
+                      value={tier.price}
                       onChange={(e) => updateTier(index, 'price', e.target.value)}
                     />
                   </div>
@@ -309,7 +367,7 @@ const AISettingsManagement = () => {
                     <Label className="text-xs">Credits</Label>
                     <Input
                       type="number"
-                      value={tiers[index].credits}
+                      value={tier.credits}
                       onChange={(e) => updateTier(index, 'credits', e.target.value)}
                     />
                   </div>
@@ -317,7 +375,7 @@ const AISettingsManagement = () => {
                     <Label className="text-xs">~Images</Label>
                     <Input
                       type="number"
-                      value={tiers[index].images}
+                      value={tier.images}
                       onChange={(e) => updateTier(index, 'images', e.target.value)}
                     />
                   </div>
@@ -325,7 +383,7 @@ const AISettingsManagement = () => {
                     <Label className="text-xs">~Videos</Label>
                     <Input
                       type="number"
-                      value={tiers[index].videos}
+                      value={tier.videos}
                       onChange={(e) => updateTier(index, 'videos', e.target.value)}
                     />
                   </div>
@@ -334,10 +392,15 @@ const AISettingsManagement = () => {
                   <span>Profit: <strong className="text-green-600">₱{profit.toLocaleString()}</strong></span>
                   <span>Margin: <strong className={profit > 0 ? 'text-green-600' : 'text-destructive'}>{profitMargin}%</strong></span>
                 </div>
-                {index < 2 && <Separator />}
               </div>
             );
           })}
+          
+          {tiers.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No tiers configured. Click "Add Tier" to create your first pricing tier.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
