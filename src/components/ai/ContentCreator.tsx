@@ -122,16 +122,9 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
   const [isRegeneratingVideo, setIsRegeneratingVideo] = useState(false);
   const [showVideoPreview, setShowVideoPreview] = useState(false);
   
-  // Blotato publishing state
-  const [blotatorAccountIds, setBlotatorAccountIds] = useState<Record<string, string>>({
-    tiktok: '',
-    youtube: '',
-    facebook: '',
-    instagram: '',
-  });
-  const [isPublishing, setIsPublishing] = useState<string | null>(null);
-  const [publishedPlatforms, setPublishedPlatforms] = useState<string[]>([]);
+  // Video state
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const isPaidUser = userCredits >= 10;
 
@@ -405,62 +398,13 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
     toast.success('Video download started!');
   };
 
-  const handlePublishToBlotato = async (platform: string) => {
-    const accountId = blotatorAccountIds[platform];
-    if (!accountId) {
-      toast.error(`Please enter your ${platform} account ID from Blotato`);
-      return;
-    }
-
-    if (!videoUrl && generatedImages.length === 0) {
-      toast.error('Please create a video or images first');
-      return;
-    }
-
-    setIsPublishing(platform);
-    try {
-      const { data, error } = await supabase.functions.invoke('blotato-publish', {
-        body: {
-          action: 'publish',
-          platform: platform.toLowerCase(),
-          accountId,
-          text: script?.description || topic,
-          title: script?.title,
-          description: `${script?.description || ''}\n\n${script?.hashtags?.map(h => `#${h}`).join(' ') || ''}`,
-          mediaUrls: generatedImages,
-          videoUrl: videoUrl,
-          platformConfig: platform === 'youtube' ? {
-            privacyStatus: 'public',
-            shouldNotifySubscribers: true,
-          } : platform === 'tiktok' ? {
-            privacyLevel: 'PUBLIC_TO_EVERYONE',
-            disabledComments: false,
-            disabledDuet: false,
-            disabledStitch: false,
-            isBrandedContent: false,
-            isYourBrand: false,
-          } : undefined,
-        }
-      });
-
-      if (error) throw error;
-      
-      setPublishedPlatforms(prev => [...prev, platform]);
-      toast.success(`Published to ${platform}!`);
-    } catch (error: any) {
-      toast.error(error.message || `Failed to publish to ${platform}`);
-    } finally {
-      setIsPublishing(null);
-    }
-  };
-
   const steps = [
     { num: 1, title: 'Topic Research', icon: FileText },
     { num: 2, title: 'Script', icon: Sparkles },
     { num: 3, title: 'Voice-over', icon: Mic },
     { num: 4, title: 'Images', icon: Image },
     { num: 5, title: 'Video', icon: Video },
-    { num: 6, title: 'Publish', icon: Share2 },
+    { num: 6, title: 'Download & Share', icon: Download },
   ];
 
   if (!isPaidUser) {
@@ -966,98 +910,169 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
         </Card>
       )}
 
-      {/* Step 6: Publish */}
+      {/* Step 6: Download & Share */}
       {currentStep === 6 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Share2 className="h-5 w-5 text-primary" />
-              Step 6: Publish to Social Media
+              <Download className="h-5 w-5 text-primary" />
+              Step 6: Download & Share
             </CardTitle>
             <CardDescription>
-              Upload your video to TikTok, YouTube, Facebook, and more using Blotato
+              Download your video and upload it to your favorite social media platforms
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Account IDs Setup */}
-            <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
-              <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-yellow-500" />
-                <h4 className="font-medium text-sm">Blotato Account IDs</h4>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Enter your account IDs from{' '}
-                <a href="https://my.blotato.com/settings" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                  Blotato Settings
-                </a>
-                . Connect your social accounts there first.
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {['tiktok', 'youtube', 'facebook', 'instagram'].map((platform) => (
-                  <div key={platform} className="space-y-1">
-                    <Label className="text-xs capitalize">{platform} Account ID</Label>
-                    <Input
-                      placeholder={`acc_xxxxx`}
-                      value={blotatorAccountIds[platform]}
-                      onChange={(e) => setBlotatorAccountIds(prev => ({ ...prev, [platform]: e.target.value }))}
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Publish Buttons */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">Publish Your Content</h4>
-              {!videoUrl && generatedImages.length === 0 ? (
-                <p className="text-sm text-muted-foreground p-4 text-center border rounded-lg bg-muted/30">
-                  Create a video or generate images first to publish
+            {!videoUrl && generatedImages.length === 0 ? (
+              <div className="p-6 text-center border rounded-lg bg-muted/30">
+                <Video className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  Create a video or generate images first to download
                 </p>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { name: 'TikTok', platform: 'tiktok', icon: '🎵' },
-                    { name: 'YouTube', platform: 'youtube', icon: '▶️' },
-                    { name: 'Facebook', platform: 'facebook', icon: '📘' },
-                    { name: 'Instagram', platform: 'instagram', icon: '📷' },
-                  ].map(({ name, platform, icon }) => {
-                    const isPublished = publishedPlatforms.includes(platform);
-                    const isCurrentlyPublishing = isPublishing === platform;
-                    const hasAccountId = !!blotatorAccountIds[platform];
-
-                    return (
-                      <Button
-                        key={platform}
-                        variant={isPublished ? 'default' : 'outline'}
-                        className={`h-20 flex-col gap-2 ${isPublished ? 'bg-green-600 hover:bg-green-700' : ''}`}
-                        disabled={isCurrentlyPublishing || !hasAccountId}
-                        onClick={() => handlePublishToBlotato(platform)}
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => setCurrentStep(5)}
+                >
+                  Go to Video Creation
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Video Download Section */}
+                {videoUrl && (
+                  <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Video className="h-4 w-4" />
+                        Your Video
+                      </h4>
+                      <Badge variant="secondary">Ready to Download</Badge>
+                    </div>
+                    
+                    <div className="relative aspect-video rounded-lg overflow-hidden bg-black/50 border max-w-md">
+                      <video 
+                        src={videoUrl} 
+                        className="w-full h-full object-contain"
+                        poster={generatedImages[0]}
+                      />
+                      <button 
+                        onClick={() => setShowVideoPreview(true)}
+                        className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors"
                       >
-                        {isCurrentlyPublishing ? (
-                          <Loader2 className="h-6 w-6 animate-spin" />
-                        ) : isPublished ? (
-                          <span className="text-lg">✅</span>
-                        ) : (
-                          <span className="text-2xl">{icon}</span>
-                        )}
-                        <span className="text-xs">
-                          {isPublished ? 'Published!' : hasAccountId ? name : 'Add ID'}
-                        </span>
+                        <div className="p-3 rounded-full bg-primary/90 text-primary-foreground">
+                          <Play className="h-6 w-6" />
+                        </div>
+                      </button>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <Button onClick={() => setShowVideoPreview(true)} variant="outline" className="gap-2 flex-1">
+                        <Eye className="h-4 w-4" />
+                        Preview
                       </Button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                      <Button onClick={handleDownloadVideo} className="gap-2 flex-1">
+                        <Download className="h-4 w-4" />
+                        Download Video
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
-            {publishedPlatforms.length > 0 && (
-              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-                <p className="text-sm text-green-700 dark:text-green-400 text-center">
-                  🎉 Successfully published to {publishedPlatforms.length} platform(s)!
-                </p>
+                {/* Images Download Section */}
+                {generatedImages.length > 0 && (
+                  <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Image className="h-4 w-4" />
+                        Generated Images ({generatedImages.length})
+                      </h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      {generatedImages.slice(0, 6).map((img, idx) => (
+                        <a 
+                          key={idx} 
+                          href={img} 
+                          download={`image-${idx + 1}.png`}
+                          className="aspect-video rounded border overflow-hidden hover:ring-2 ring-primary transition-all"
+                        >
+                          <img src={img} alt={`Scene ${idx + 1}`} className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Click any image to download
+                    </p>
+                  </div>
+                )}
+
+                <Separator />
+
+                {/* Social Media Instructions */}
+                <div className="p-4 rounded-lg border bg-primary/5 space-y-3">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Share2 className="h-4 w-4 text-primary" />
+                    Share on Social Media
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    After downloading your video, upload it directly to your social media accounts:
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                      { name: 'TikTok', icon: '🎵', url: 'https://www.tiktok.com/upload' },
+                      { name: 'YouTube', icon: '▶️', url: 'https://studio.youtube.com' },
+                      { name: 'Facebook', icon: '📘', url: 'https://www.facebook.com' },
+                      { name: 'Instagram', icon: '📷', url: 'https://www.instagram.com' },
+                    ].map(({ name, icon, url }) => (
+                      <a
+                        key={name}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                      >
+                        <span className="text-2xl">{icon}</span>
+                        <span className="text-xs font-medium">{name}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Script Info for Posting */}
+                {script && (
+                  <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+                    <h4 className="font-medium text-sm">Copy for Your Post</h4>
+                    <div className="space-y-2">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Title</Label>
+                        <p className="text-sm font-medium">{script.title}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Description</Label>
+                        <p className="text-sm">{script.description}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Hashtags</Label>
+                        <p className="text-sm text-primary">
+                          {script.hashtags?.map(h => `#${h}`).join(' ')}
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full gap-2"
+                      onClick={() => {
+                        const text = `${script.title}\n\n${script.description}\n\n${script.hashtags?.map(h => `#${h}`).join(' ')}`;
+                        navigator.clipboard.writeText(text);
+                        toast.success('Copied to clipboard!');
+                      }}
+                    >
+                      Copy All Text
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
