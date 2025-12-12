@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.blotato-publish]
 verify_jwt = false
+
+[functions.animate-image]
+verify_jwt = false
