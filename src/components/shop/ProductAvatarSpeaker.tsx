@@ -47,11 +47,7 @@ const getLanguageName = (langCode: string): string => {
   return languageMap[baseLang] || 'English';
 };
 
-// ElevenLabs voice IDs - one for each gender
-const ELEVENLABS_VOICES = {
-  female: 'EXAVITQu4vr4xnSDxMaL', // Sarah
-  male: 'JBFqnCBsd6RMkjVDRZzb', // George
-};
+// Removed ElevenLabs - using Google Cloud TTS instead
 
 const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
   product,
@@ -112,13 +108,15 @@ const ProductAvatarSpeaker: React.FC<ProductAvatarSpeakerProps> = ({
       const pitch = await generateSalesPitch();
       setSalesPitch(pitch);
       
-      // Use ElevenLabs for high-quality voice
-      const voiceId = isMale ? ELEVENLABS_VOICES.male : ELEVENLABS_VOICES.female;
+      // Use Google Cloud TTS for realistic voice
+      const langCode = userLanguage.split('-')[0].toLowerCase();
       
-      const { data, error } = await supabase.functions.invoke('elevenlabs-voiceover', {
+      const { data, error } = await supabase.functions.invoke('google-tts', {
         body: {
+          action: 'generate',
           text: pitch,
-          voiceId: voiceId
+          language: langCode,
+          gender: isMale ? 'MALE' : 'FEMALE'
         }
       });
 
