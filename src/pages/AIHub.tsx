@@ -12,28 +12,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
-import { 
-  ImageIcon, 
-  VideoIcon, 
-  TypeIcon, 
-  Sparkles, 
-  Upload, 
-  Loader2,
-  Download,
-  Copy,
-  Wand2,
-  Crown,
-  X,
-  ImagePlus,
-  ShoppingCart,
-  Film,
-  Music,
-  Play,
-  Pause
-} from 'lucide-react';
-
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause } from 'lucide-react';
 const AIHub = memo(() => {
-  const { user, profile } = useAuth();
+  const {
+    user,
+    profile
+  } = useAuth();
   const [activeTab, setActiveTab] = useState('text-to-image');
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -45,25 +29,24 @@ const AIHub = memo(() => {
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [videoDescription, setVideoDescription] = useState<string | null>(null);
   const [videoPrompt, setVideoPrompt] = useState('');
-  
+
   // Music generation
   const [musicPrompt, setMusicPrompt] = useState('');
   const [generatedMusic, setGeneratedMusic] = useState<string | null>(null);
   const [musicTitle, setMusicTitle] = useState<string | null>(null);
   const [isInstrumental, setIsInstrumental] = useState(false);
   const [musicCreditCost] = useState(5);
-  
+
   // Usage tracking
   const [imageGenerationCount, setImageGenerationCount] = useState(0);
   const [freeImageLimit, setFreeImageLimit] = useState(3);
   const [videoCreditCost, setVideoCreditCost] = useState(10);
   const [creditToDiamondRate, setCreditToDiamondRate] = useState(10);
   const [userCredits, setUserCredits] = useState(0);
-  
+
   // Logo and dialogs
   const [appLogo, setAppLogo] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
-
   useEffect(() => {
     fetchSettings();
     fetchAppLogo();
@@ -72,15 +55,11 @@ const AIHub = memo(() => {
       fetchUserCredits();
     }
   }, [user]);
-
   const fetchAppLogo = async () => {
     try {
-      const { data } = await supabase
-        .from('app_settings')
-        .select('value')
-        .eq('key', 'app_logo')
-        .maybeSingle();
-      
+      const {
+        data
+      } = await supabase.from('app_settings').select('value').eq('key', 'app_logo').maybeSingle();
       if (data?.value) {
         setAppLogo(data.value);
       }
@@ -88,14 +67,11 @@ const AIHub = memo(() => {
       console.error('Error fetching app logo:', error);
     }
   };
-
   const fetchSettings = async () => {
     try {
-      const { data } = await supabase
-        .from('app_settings')
-        .select('key, value')
-        .in('key', ['ai_free_image_limit', 'ai_video_credit_cost', 'ai_credit_to_diamond_rate']);
-      
+      const {
+        data
+      } = await supabase.from('app_settings').select('key, value').in('key', ['ai_free_image_limit', 'ai_video_credit_cost', 'ai_credit_to_diamond_rate']);
       data?.forEach(setting => {
         if (setting.key === 'ai_free_image_limit') {
           setFreeImageLimit(parseInt(setting.value || '3'));
@@ -109,47 +85,39 @@ const AIHub = memo(() => {
       console.error('Error fetching settings:', error);
     }
   };
-
   const fetchUsageStats = async () => {
     if (!user) return;
     try {
-      const { count } = await supabase
-        .from('ai_generations')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('generation_type', 'text-to-image');
-      
+      const {
+        count
+      } = await supabase.from('ai_generations').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('user_id', user.id).eq('generation_type', 'text-to-image');
       setImageGenerationCount(count || 0);
     } catch (error) {
       console.error('Error fetching usage stats:', error);
     }
   };
-
   const fetchUserCredits = async () => {
     if (!user) return;
     try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('credits')
-        .eq('id', user.id)
-        .single();
-      
+      const {
+        data
+      } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
       setUserCredits(data?.credits || 0);
     } catch (error) {
       console.error('Error fetching credits:', error);
     }
   };
-
   const canGenerateImage = () => {
     if (!user) return false;
     return imageGenerationCount < freeImageLimit || userCredits > 0;
   };
-
   const canGenerateVideo = () => {
     if (!user) return false;
     return userCredits >= videoCreditCost;
   };
-
   const trackGeneration = async (type: string, creditsUsed: number = 0) => {
     if (!user) return;
     try {
@@ -163,15 +131,14 @@ const AIHub = memo(() => {
       console.error('Error tracking generation:', error);
     }
   };
-
   const deductCredits = async (amount: number) => {
     if (!user) return false;
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ credits: userCredits - amount })
-        .eq('id', user.id);
-      
+      const {
+        error
+      } = await supabase.from('profiles').update({
+        credits: userCredits - amount
+      }).eq('id', user.id);
       if (error) throw error;
       setUserCredits(prev => prev - amount);
       return true;
@@ -180,13 +147,11 @@ const AIHub = memo(() => {
       return false;
     }
   };
-
   const handleTextToImage = async () => {
     if (!prompt.trim()) {
       toast.error('Please enter a prompt');
       return;
     }
-
     if (!user) {
       toast.error('Please login to generate images');
       return;
@@ -205,21 +170,20 @@ const AIHub = memo(() => {
         return;
       }
     }
-
     setIsGenerating(true);
     setGeneratedImage(null);
-
     try {
-      const { data, error } = await supabase.functions.invoke('ai-generate', {
-        body: { 
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('ai-generate', {
+        body: {
           type: 'text-to-image',
           prompt: prompt.trim(),
           referenceImage: referenceImage
         }
       });
-
       if (error) throw error;
-
       if (data?.imageUrl) {
         setGeneratedImage(data.imageUrl);
         await trackGeneration('text-to-image', imageGenerationCount >= freeImageLimit ? 1 : 0);
@@ -235,11 +199,9 @@ const AIHub = memo(() => {
       setIsGenerating(false);
     }
   };
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'reference') => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;
@@ -255,26 +217,24 @@ const AIHub = memo(() => {
     };
     reader.readAsDataURL(file);
   };
-
   const handleImageToText = async () => {
     if (!uploadedImage) {
       toast.error('Please upload an image first');
       return;
     }
-
     setIsGenerating(true);
     setImageDescription(null);
-
     try {
-      const { data, error } = await supabase.functions.invoke('ai-generate', {
-        body: { 
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('ai-generate', {
+        body: {
           type: 'image-to-text',
           imageUrl: uploadedImage
         }
       });
-
       if (error) throw error;
-
       if (data?.description) {
         setImageDescription(data.description);
         toast.success('Image analyzed successfully!');
@@ -288,26 +248,24 @@ const AIHub = memo(() => {
       setIsGenerating(false);
     }
   };
-
   const handleVideoToText = async () => {
     if (!uploadedVideo) {
       toast.error('Please upload a video first');
       return;
     }
-
     setIsGenerating(true);
     setVideoDescription(null);
-
     try {
-      const { data, error } = await supabase.functions.invoke('ai-generate', {
-        body: { 
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('ai-generate', {
+        body: {
           type: 'video-to-text',
           videoUrl: uploadedVideo
         }
       });
-
       if (error) throw error;
-
       if (data?.description) {
         setVideoDescription(data.description);
         toast.success('Video analyzed successfully!');
@@ -321,27 +279,22 @@ const AIHub = memo(() => {
       setIsGenerating(false);
     }
   };
-
   const handleTextToVideo = async () => {
     if (!videoPrompt.trim()) {
       toast.error('Please enter a prompt');
       return;
     }
-
     if (!user) {
       toast.error('Please login to generate videos');
       return;
     }
-
     if (!canGenerateVideo()) {
       toast.error(`You need at least ${videoCreditCost} credits to generate a video`);
       setShowBuyCredits(true);
       return;
     }
-
     setIsGenerating(true);
     setGeneratedVideo(null);
-
     try {
       // Deduct credits first
       const deducted = await deductCredits(videoCreditCost);
@@ -349,18 +302,17 @@ const AIHub = memo(() => {
         toast.error('Failed to deduct credits');
         return;
       }
-
       toast.info('Generating video... This may take a minute.');
-
-      const { data, error } = await supabase.functions.invoke('text-to-video', {
-        body: { 
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('text-to-video', {
+        body: {
           prompt: videoPrompt.trim(),
           duration: 5
         }
       });
-
       if (error) throw error;
-
       if (data?.videoUrl) {
         setGeneratedVideo(data.videoUrl);
         await trackGeneration('text-to-video', videoCreditCost);
@@ -374,56 +326,49 @@ const AIHub = memo(() => {
       console.error('Video generation error:', error);
       toast.error(error.message || 'Failed to generate video');
       // Refund credits on failure
-      await supabase
-        .from('profiles')
-        .update({ credits: userCredits })
-        .eq('id', user.id);
+      await supabase.from('profiles').update({
+        credits: userCredits
+      }).eq('id', user.id);
       fetchUserCredits();
     } finally {
       setIsGenerating(false);
     }
   };
-
   const handleGenerateMusic = async () => {
     if (!musicPrompt.trim()) {
       toast.error('Please enter a music description');
       return;
     }
-
     if (!user) {
       toast.error('Please login to generate music');
       return;
     }
-
     if (userCredits < musicCreditCost) {
       toast.error(`You need at least ${musicCreditCost} credits to generate music`);
       setShowBuyCredits(true);
       return;
     }
-
     setIsGenerating(true);
     setGeneratedMusic(null);
     setMusicTitle(null);
-
     try {
       const deducted = await deductCredits(musicCreditCost);
       if (!deducted) {
         toast.error('Failed to deduct credits');
         return;
       }
-
       toast.info('Generating music... This may take a minute.');
-
-      const { data, error } = await supabase.functions.invoke('generate-music', {
-        body: { 
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('generate-music', {
+        body: {
           prompt: musicPrompt.trim(),
           duration: 30,
           instrumental: isInstrumental
         }
       });
-
       if (error) throw error;
-
       if (data?.audioUrl) {
         setGeneratedMusic(data.audioUrl);
         setMusicTitle(data.title || 'AI Generated Music');
@@ -438,21 +383,18 @@ const AIHub = memo(() => {
       console.error('Music generation error:', error);
       toast.error(error.message || 'Failed to generate music');
       // Refund credits on failure
-      await supabase
-        .from('profiles')
-        .update({ credits: userCredits })
-        .eq('id', user.id);
+      await supabase.from('profiles').update({
+        credits: userCredits
+      }).eq('id', user.id);
       fetchUserCredits();
     } finally {
       setIsGenerating(false);
     }
   };
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard!');
   };
-
   const downloadImage = () => {
     if (!generatedImage) return;
     const link = document.createElement('a');
@@ -460,13 +402,11 @@ const AIHub = memo(() => {
     link.download = `ai-generated-${Date.now()}.png`;
     link.click();
   };
-
   const remainingFreeImages = Math.max(0, freeImageLimit - imageGenerationCount);
 
   // Login required wall for non-authenticated users
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+    return <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 p-4 rounded-full bg-primary/10">
@@ -506,12 +446,9 @@ const AIHub = memo(() => {
             </div>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-24">
+  return <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-24">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-purple-500/10 to-pink-500/10 blur-3xl" />
@@ -522,23 +459,15 @@ const AIHub = memo(() => {
               <span className="text-sm font-medium">AI-Powered Creation</span>
             </div>
             <div className="flex items-center justify-center gap-3">
-              {appLogo && (
-                <img src={appLogo} alt="Logo" className="h-12 w-12 object-contain rounded-lg" />
-              )}
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                AI Hub
-              </h1>
+              {appLogo && <img src={appLogo} alt="Logo" className="h-12 w-12 object-contain rounded-lg" />}
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">TRIVIABEES AI</h1>
             </div>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Transform your ideas into stunning visuals. Generate images from text, analyze images and videos with AI.
             </p>
             
             {/* Buy Credits Button */}
-            <Button 
-              onClick={() => setShowBuyCredits(true)} 
-              variant="outline" 
-              className="gap-2"
-            >
+            <Button onClick={() => setShowBuyCredits(true)} variant="outline" className="gap-2">
               <ShoppingCart className="h-4 w-4" />
               Buy AI Credits
             </Button>
@@ -552,7 +481,7 @@ const AIHub = memo(() => {
                     Free Images: <strong>{remainingFreeImages}/{freeImageLimit}</strong>
                   </span>
                 </div>
-                <Progress value={(remainingFreeImages / freeImageLimit) * 100} className="h-1 mt-1" />
+                <Progress value={remainingFreeImages / freeImageLimit * 100} className="h-1 mt-1" />
               </Card>
               <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
                 <div className="flex items-center gap-2">
@@ -626,28 +555,19 @@ const AIHub = memo(() => {
                 <CardTitle className="flex items-center gap-2">
                   <Wand2 className="h-5 w-5 text-primary" />
                   Text to Image
-                  {remainingFreeImages > 0 && (
-                    <Badge variant="secondary" className="ml-2">
+                  {remainingFreeImages > 0 && <Badge variant="secondary" className="ml-2">
                       {remainingFreeImages} free left
-                    </Badge>
-                  )}
+                    </Badge>}
                 </CardTitle>
                 <CardDescription>
                   Describe what you want to create and let AI generate it for you. 
-                  {remainingFreeImages === 0 && userCredits > 0 && (
-                    <span className="text-amber-500"> (1 credit per image)</span>
-                  )}
+                  {remainingFreeImages === 0 && userCredits > 0 && <span className="text-amber-500"> (1 credit per image)</span>}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Your Prompt</Label>
-                  <Textarea
-                    placeholder="A majestic dragon flying over a crystal lake at sunset, fantasy art style, highly detailed..."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="min-h-[120px] resize-none"
-                  />
+                  <Textarea placeholder="A majestic dragon flying over a crystal lake at sunset, fantasy art style, highly detailed..." value={prompt} onChange={e => setPrompt(e.target.value)} className="min-h-[120px] resize-none" />
                 </div>
 
                 {/* Reference Image Upload */}
@@ -657,87 +577,52 @@ const AIHub = memo(() => {
                     Reference Image (Optional)
                   </Label>
                   <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, 'reference')}
-                      className="hidden"
-                      id="reference-upload"
-                    />
+                    <Input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'reference')} className="hidden" id="reference-upload" />
                     <label htmlFor="reference-upload" className="cursor-pointer">
-                      {referenceImage ? (
-                        <div className="relative inline-block">
+                      {referenceImage ? <div className="relative inline-block">
                           <img src={referenceImage} alt="Reference" className="max-h-32 rounded-lg" />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setReferenceImage(null);
-                            }}
-                          >
+                          <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6" onClick={e => {
+                        e.preventDefault();
+                        setReferenceImage(null);
+                      }}>
                             <X className="h-3 w-3" />
                           </Button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-2 py-2">
+                        </div> : <div className="flex flex-col items-center gap-2 py-2">
                           <Upload className="h-8 w-8 text-muted-foreground" />
                           <p className="text-xs text-muted-foreground">
                             Add a reference image to guide the AI
                           </p>
-                        </div>
-                      )}
+                        </div>}
                     </label>
                   </div>
                 </div>
 
-                {!user && (
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                {!user && <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                     <p className="text-sm text-amber-600">
                       Please login to generate images
                     </p>
-                  </div>
-                )}
+                  </div>}
 
-                {user && !canGenerateImage() && (
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                {user && !canGenerateImage() && <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                     <p className="text-sm text-amber-600">
                       You've used all {freeImageLimit} free images. Buy credits to continue generating!
                     </p>
-                  </div>
-                )}
+                  </div>}
 
-                <Button 
-                  onClick={handleTextToImage} 
-                  disabled={isGenerating || !prompt.trim() || !canGenerateImage()}
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  {isGenerating ? (
-                    <>
+                <Button onClick={handleTextToImage} disabled={isGenerating || !prompt.trim() || !canGenerateImage()} className="w-full gap-2" size="lg">
+                  {isGenerating ? <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Generating...
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <Sparkles className="h-4 w-4" />
                       Generate Image
-                      {remainingFreeImages === 0 && userCredits > 0 && (
-                        <Badge variant="outline" className="ml-2">1 credit</Badge>
-                      )}
-                    </>
-                  )}
+                      {remainingFreeImages === 0 && userCredits > 0 && <Badge variant="outline" className="ml-2">1 credit</Badge>}
+                    </>}
                 </Button>
 
-                {generatedImage && (
-                  <div className="space-y-3 animate-in fade-in">
+                {generatedImage && <div className="space-y-3 animate-in fade-in">
                     <div className="relative rounded-lg overflow-hidden border">
-                      <img 
-                        src={generatedImage} 
-                        alt="Generated" 
-                        className="w-full max-h-[500px] object-contain bg-muted"
-                      />
+                      <img src={generatedImage} alt="Generated" className="w-full max-h-[500px] object-contain bg-muted" />
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" className="flex-1 gap-2" onClick={downloadImage}>
@@ -749,8 +634,7 @@ const AIHub = memo(() => {
                         Copy URL
                       </Button>
                     </div>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -771,46 +655,26 @@ const AIHub = memo(() => {
                 <div className="space-y-2">
                   <Label>Upload Image</Label>
                   <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, 'image')}
-                      className="hidden"
-                      id="image-upload"
-                    />
+                    <Input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'image')} className="hidden" id="image-upload" />
                     <label htmlFor="image-upload" className="cursor-pointer space-y-2">
-                      {uploadedImage ? (
-                        <img src={uploadedImage} alt="Uploaded" className="max-h-64 mx-auto rounded-lg" />
-                      ) : (
-                        <>
+                      {uploadedImage ? <img src={uploadedImage} alt="Uploaded" className="max-h-64 mx-auto rounded-lg" /> : <>
                           <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
                           <p className="text-sm text-muted-foreground">Click to upload an image</p>
-                        </>
-                      )}
+                        </>}
                     </label>
                   </div>
                 </div>
-                <Button 
-                  onClick={handleImageToText} 
-                  disabled={isGenerating || !uploadedImage}
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  {isGenerating ? (
-                    <>
+                <Button onClick={handleImageToText} disabled={isGenerating || !uploadedImage} className="w-full gap-2" size="lg">
+                  {isGenerating ? <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Analyzing...
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <Sparkles className="h-4 w-4" />
                       Analyze Image
-                    </>
-                  )}
+                    </>}
                 </Button>
 
-                {imageDescription && (
-                  <div className="space-y-3 animate-in fade-in">
+                {imageDescription && <div className="space-y-3 animate-in fade-in">
                     <div className="p-4 rounded-lg bg-muted/50 border">
                       <p className="text-sm leading-relaxed">{imageDescription}</p>
                     </div>
@@ -818,8 +682,7 @@ const AIHub = memo(() => {
                       <Copy className="h-4 w-4" />
                       Copy Description
                     </Button>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -840,71 +703,40 @@ const AIHub = memo(() => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Your Prompt</Label>
-                  <Textarea
-                    placeholder="A peaceful river flowing through a forest, with sunlight filtering through the trees..."
-                    value={videoPrompt}
-                    onChange={(e) => setVideoPrompt(e.target.value)}
-                    className="min-h-[120px] resize-none"
-                  />
+                  <Textarea placeholder="A peaceful river flowing through a forest, with sunlight filtering through the trees..." value={videoPrompt} onChange={e => setVideoPrompt(e.target.value)} className="min-h-[120px] resize-none" />
                 </div>
 
-                {user && !canGenerateVideo() && (
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                {user && !canGenerateVideo() && <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                     <p className="text-sm text-amber-600">
                       You need at least {videoCreditCost} credits to generate a video. Current balance: {userCredits} credits.
                     </p>
-                    <Button 
-                      variant="link" 
-                      className="p-0 h-auto text-amber-600 underline"
-                      onClick={() => setShowBuyCredits(true)}
-                    >
+                    <Button variant="link" className="p-0 h-auto text-amber-600 underline" onClick={() => setShowBuyCredits(true)}>
                       Buy credits now
                     </Button>
-                  </div>
-                )}
+                  </div>}
 
-                <Button 
-                  onClick={handleTextToVideo} 
-                  disabled={isGenerating || !videoPrompt.trim() || !canGenerateVideo()}
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  {isGenerating ? (
-                    <>
+                <Button onClick={handleTextToVideo} disabled={isGenerating || !videoPrompt.trim() || !canGenerateVideo()} className="w-full gap-2" size="lg">
+                  {isGenerating ? <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Generating Video...
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <VideoIcon className="h-4 w-4" />
                       Generate Video
                       <Badge variant="outline" className="ml-2">{videoCreditCost} credits</Badge>
-                    </>
-                  )}
+                    </>}
                 </Button>
 
-                {generatedVideo && (
-                  <div className="space-y-3 animate-in fade-in">
+                {generatedVideo && <div className="space-y-3 animate-in fade-in">
                     <div className="relative rounded-lg overflow-hidden border">
-                      <video 
-                        src={generatedVideo} 
-                        controls 
-                        autoPlay
-                        loop
-                        className="w-full max-h-[500px] object-contain bg-muted"
-                      />
+                      <video src={generatedVideo} controls autoPlay loop className="w-full max-h-[500px] object-contain bg-muted" />
                     </div>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 gap-2" 
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = generatedVideo;
-                          link.download = `ai-video-${Date.now()}.mp4`;
-                          link.click();
-                        }}
-                      >
+                      <Button variant="outline" className="flex-1 gap-2" onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = generatedVideo;
+                    link.download = `ai-video-${Date.now()}.mp4`;
+                    link.click();
+                  }}>
                         <Download className="h-4 w-4" />
                         Download
                       </Button>
@@ -913,8 +745,7 @@ const AIHub = memo(() => {
                         Copy URL
                       </Button>
                     </div>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -935,46 +766,26 @@ const AIHub = memo(() => {
                 <div className="space-y-2">
                   <Label>Upload Video</Label>
                   <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                    <Input
-                      type="file"
-                      accept="video/*"
-                      onChange={(e) => handleImageUpload(e, 'video')}
-                      className="hidden"
-                      id="video-upload"
-                    />
+                    <Input type="file" accept="video/*" onChange={e => handleImageUpload(e, 'video')} className="hidden" id="video-upload" />
                     <label htmlFor="video-upload" className="cursor-pointer space-y-2">
-                      {uploadedVideo ? (
-                        <video src={uploadedVideo} controls className="max-h-64 mx-auto rounded-lg" />
-                      ) : (
-                        <>
+                      {uploadedVideo ? <video src={uploadedVideo} controls className="max-h-64 mx-auto rounded-lg" /> : <>
                           <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
                           <p className="text-sm text-muted-foreground">Click to upload a video</p>
-                        </>
-                      )}
+                        </>}
                     </label>
                   </div>
                 </div>
-                <Button 
-                  onClick={handleVideoToText} 
-                  disabled={isGenerating || !uploadedVideo}
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  {isGenerating ? (
-                    <>
+                <Button onClick={handleVideoToText} disabled={isGenerating || !uploadedVideo} className="w-full gap-2" size="lg">
+                  {isGenerating ? <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Analyzing...
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <Sparkles className="h-4 w-4" />
                       Analyze Video
-                    </>
-                  )}
+                    </>}
                 </Button>
 
-                {videoDescription && (
-                  <div className="space-y-3 animate-in fade-in">
+                {videoDescription && <div className="space-y-3 animate-in fade-in">
                     <div className="p-4 rounded-lg bg-muted/50 border">
                       <p className="text-sm leading-relaxed">{videoDescription}</p>
                     </div>
@@ -982,8 +793,7 @@ const AIHub = memo(() => {
                       <Copy className="h-4 w-4" />
                       Copy Description
                     </Button>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1004,64 +814,37 @@ const AIHub = memo(() => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Describe Your Music</Label>
-                  <Textarea
-                    placeholder="Upbeat electronic dance track with heavy bass and synth melodies, perfect for workout videos..."
-                    value={musicPrompt}
-                    onChange={(e) => setMusicPrompt(e.target.value)}
-                    className="min-h-[120px] resize-none"
-                  />
+                  <Textarea placeholder="Upbeat electronic dance track with heavy bass and synth melodies, perfect for workout videos..." value={musicPrompt} onChange={e => setMusicPrompt(e.target.value)} className="min-h-[120px] resize-none" />
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="instrumental"
-                    checked={isInstrumental}
-                    onChange={(e) => setIsInstrumental(e.target.checked)}
-                    className="rounded"
-                  />
+                  <input type="checkbox" id="instrumental" checked={isInstrumental} onChange={e => setIsInstrumental(e.target.checked)} className="rounded" />
                   <Label htmlFor="instrumental" className="cursor-pointer">
                     Instrumental only (no vocals)
                   </Label>
                 </div>
 
-                {user && userCredits < musicCreditCost && (
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                {user && userCredits < musicCreditCost && <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                     <p className="text-sm text-amber-600">
                       You need at least {musicCreditCost} credits to generate music. Current balance: {userCredits} credits.
                     </p>
-                    <Button 
-                      variant="link" 
-                      className="p-0 h-auto text-amber-600 underline"
-                      onClick={() => setShowBuyCredits(true)}
-                    >
+                    <Button variant="link" className="p-0 h-auto text-amber-600 underline" onClick={() => setShowBuyCredits(true)}>
                       Buy credits now
                     </Button>
-                  </div>
-                )}
+                  </div>}
 
-                <Button 
-                  onClick={handleGenerateMusic} 
-                  disabled={isGenerating || !musicPrompt.trim() || userCredits < musicCreditCost}
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  {isGenerating ? (
-                    <>
+                <Button onClick={handleGenerateMusic} disabled={isGenerating || !musicPrompt.trim() || userCredits < musicCreditCost} className="w-full gap-2" size="lg">
+                  {isGenerating ? <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Generating Music...
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <Music className="h-4 w-4" />
                       Generate Music
                       <Badge variant="outline" className="ml-2">{musicCreditCost} credits</Badge>
-                    </>
-                  )}
+                    </>}
                 </Button>
 
-                {generatedMusic && (
-                  <div className="space-y-3 animate-in fade-in">
+                {generatedMusic && <div className="space-y-3 animate-in fade-in">
                     <div className="p-4 rounded-lg bg-muted/50 border">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="p-3 rounded-full bg-primary/10">
@@ -1072,23 +855,15 @@ const AIHub = memo(() => {
                           <p className="text-xs text-muted-foreground">AI Generated</p>
                         </div>
                       </div>
-                      <audio 
-                        controls 
-                        src={generatedMusic} 
-                        className="w-full"
-                      />
+                      <audio controls src={generatedMusic} className="w-full" />
                     </div>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 gap-2" 
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = generatedMusic;
-                          link.download = `ai-music-${Date.now()}.mp3`;
-                          link.click();
-                        }}
-                      >
+                      <Button variant="outline" className="flex-1 gap-2" onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = generatedMusic;
+                    link.download = `ai-music-${Date.now()}.mp3`;
+                    link.click();
+                  }}>
                         <Download className="h-4 w-4" />
                         Download
                       </Button>
@@ -1097,34 +872,23 @@ const AIHub = memo(() => {
                         Copy URL
                       </Button>
                     </div>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Content Creator */}
           <TabsContent value="content-creator">
-            <ContentCreator 
-              userCredits={userCredits} 
-              onCreditsChange={fetchUserCredits} 
-            />
+            <ContentCreator userCredits={userCredits} onCreditsChange={fetchUserCredits} />
           </TabsContent>
         </Tabs>
       </div>
 
       {/* Buy Credits Dialog */}
-      <BuyAICreditsDialog 
-        open={showBuyCredits} 
-        onOpenChange={setShowBuyCredits}
-        onPurchaseComplete={() => {
-          fetchUserCredits();
-        }}
-      />
-    </div>
-  );
+      <BuyAICreditsDialog open={showBuyCredits} onOpenChange={setShowBuyCredits} onPurchaseComplete={() => {
+      fetchUserCredits();
+    }} />
+    </div>;
 });
-
 AIHub.displayName = 'AIHub';
-
 export default AIHub;
