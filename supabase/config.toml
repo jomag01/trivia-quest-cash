@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.enhance-image]
 verify_jwt = false
+
+[functions.virtual-try-on]
+verify_jwt = false
