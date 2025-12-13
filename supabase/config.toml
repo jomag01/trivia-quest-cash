@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.scrape-product]
 verify_jwt = false
+
+[functions.business-solutions]
+verify_jwt = false

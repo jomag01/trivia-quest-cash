@@ -13,14 +13,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase } from 'lucide-react';
+import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 const AIHub = memo(() => {
   const {
     user,
     profile
   } = useAuth();
-  const [activeTab, setActiveTab] = useState('text-to-image');
+  const [activeTab, setActiveTab] = useState('business');
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -742,7 +743,12 @@ const AIHub = memo(() => {
       {/* Main Content */}
       <div className="container mx-auto px-4 -mt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-7 w-full max-w-4xl mx-auto bg-background/50 backdrop-blur-sm border">
+          <TabsList className="grid grid-cols-4 md:grid-cols-8 w-full max-w-5xl mx-auto bg-background/50 backdrop-blur-sm border">
+            <TabsTrigger value="business" className="gap-1 text-xs sm:text-sm">
+              <Briefcase className="h-4 w-4" />
+              <span className="hidden sm:inline">Business</span>
+              <span className="sm:hidden">Biz</span>
+            </TabsTrigger>
             <TabsTrigger value="text-to-image" className="gap-1 text-xs sm:text-sm">
               <Wand2 className="h-4 w-4" />
               <span className="hidden sm:inline">Image</span>
@@ -779,6 +785,11 @@ const AIHub = memo(() => {
               <span className="sm:hidden">Create</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* Business Solutions */}
+          <TabsContent value="business">
+            <BusinessSolutions userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+          </TabsContent>
 
           {/* Text to Image */}
           <TabsContent value="text-to-image">
