@@ -18,15 +18,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-    if (!apiKey) {
-      console.error('FIRECRAWL_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Firecrawl API key not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Format URL
     let formattedUrl = url.trim();
     if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
@@ -35,52 +26,181 @@ Deno.serve(async (req) => {
 
     console.log('Scraping product URL:', formattedUrl);
 
-    // Use Firecrawl to scrape the product page
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: formattedUrl,
-        formats: ['markdown', 'html', 'links', 'screenshot'],
-        onlyMainContent: true,
-        waitFor: 3000, // Wait for dynamic content to load
-      }),
-    });
+    let html = '';
+    let metadata: Record<string, string> = {};
 
-    const data = await response.json();
+    // Try Firecrawl first
+    const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    let firecrawlSuccess = false;
 
-    if (!response.ok) {
-      console.error('Firecrawl API error:', data);
-      return new Response(
-        JSON.stringify({ success: false, error: data.error || `Request failed with status ${response.status}` }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (apiKey) {
+      try {
+        const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: formattedUrl,
+            formats: ['markdown', 'html', 'links', 'screenshot'],
+            onlyMainContent: true,
+            waitFor: 3000,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success !== false) {
+          const scrapedData = data.data || data;
+          html = scrapedData.html || '';
+          metadata = scrapedData.metadata || {};
+          firecrawlSuccess = true;
+          console.log('Firecrawl scrape successful');
+        } else {
+          console.log('Firecrawl failed, trying direct fetch:', data.error);
+        }
+      } catch (e) {
+        console.log('Firecrawl error, trying direct fetch:', e);
+      }
     }
 
-    // Extract product data from the scraped content
-    const scrapedData = data.data || data;
-    const markdown = scrapedData.markdown || '';
-    const html = scrapedData.html || '';
-    const metadata = scrapedData.metadata || {};
-    const links = scrapedData.links || [];
-    const screenshot = scrapedData.screenshot || null;
+    // Fallback to direct fetch if Firecrawl fails
+    if (!firecrawlSuccess) {
+      try {
+        const response = await fetch(formattedUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+          },
+        });
 
-    // Parse product information using AI
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        if (response.ok) {
+          html = await response.text();
+          console.log('Direct fetch successful, HTML length:', html.length);
+        } else {
+          console.log('Direct fetch failed with status:', response.status);
+        }
+      } catch (e) {
+        console.log('Direct fetch error:', e);
+      }
+    }
+
+    // Extract metadata from HTML
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const descMatch = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ||
+                      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
+    const ogTitleMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) ||
+                         html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
+    const ogDescMatch = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i) ||
+                        html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i);
+    const ogImageMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+                         html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+
+    if (!metadata.title) {
+      metadata.title = ogTitleMatch?.[1] || titleMatch?.[1] || '';
+    }
+    if (!metadata.description) {
+      metadata.description = ogDescMatch?.[1] || descMatch?.[1] || '';
+    }
+
+    // Extract price patterns from HTML
+    const pricePatterns = [
+      // Common price formats
+      /["']price["']\s*:\s*["']?([₱$€£¥]?\s*[\d,]+\.?\d*)["']?/gi,
+      /data-price=["']([₱$€£¥]?\s*[\d,]+\.?\d*)["']/gi,
+      /<span[^>]*class=["'][^"']*price[^"']*["'][^>]*>([₱$€£¥]?\s*[\d,]+\.?\d*)<\/span>/gi,
+      /["']salePrice["']\s*:\s*["']?(\d+\.?\d*)["']?/gi,
+      /["']currentPrice["']\s*:\s*["']?(\d+\.?\d*)["']?/gi,
+      /["']discountedPrice["']\s*:\s*["']?(\d+\.?\d*)["']?/gi,
+      /₱\s*([\d,]+\.?\d*)/g,
+      /\$\s*([\d,]+\.?\d*)/g,
+      /PHP\s*([\d,]+\.?\d*)/gi,
+      /USD\s*([\d,]+\.?\d*)/gi,
+    ];
+
+    let extractedPrice = 0;
+    for (const pattern of pricePatterns) {
+      const matches = html.matchAll(pattern);
+      for (const match of matches) {
+        const priceStr = match[1].replace(/[₱$€£¥,\s]/g, '');
+        const price = parseFloat(priceStr);
+        if (price > 0 && price < 1000000) {
+          extractedPrice = price;
+          break;
+        }
+      }
+      if (extractedPrice > 0) break;
+    }
+
+    // Extract images
+    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    const dataImgRegex = /["'](?:image|img|photo|picture)(?:Url|URL|_url)?["']\s*:\s*["']([^"']+)["']/gi;
+    const ogImages: string[] = [];
     
+    if (ogImageMatch?.[1]) {
+      ogImages.push(ogImageMatch[1]);
+    }
+
+    const htmlImages: string[] = [];
+    let match;
+    
+    // Extract from img tags
+    while ((match = imgRegex.exec(html)) !== null) {
+      const imgUrl = match[1];
+      if (imgUrl && 
+          !imgUrl.includes('icon') && 
+          !imgUrl.includes('logo') &&
+          !imgUrl.includes('sprite') &&
+          !imgUrl.includes('avatar') &&
+          !imgUrl.includes('placeholder') &&
+          imgUrl.length > 20 &&
+          (imgUrl.includes('.jpg') || imgUrl.includes('.jpeg') || imgUrl.includes('.png') || imgUrl.includes('.webp') || imgUrl.includes('image'))) {
+        let absoluteUrl = imgUrl;
+        if (imgUrl.startsWith('//')) {
+          absoluteUrl = 'https:' + imgUrl;
+        } else if (imgUrl.startsWith('/')) {
+          try {
+            const urlObj = new URL(formattedUrl);
+            absoluteUrl = urlObj.origin + imgUrl;
+          } catch {
+            absoluteUrl = imgUrl;
+          }
+        }
+        if (absoluteUrl.startsWith('http')) {
+          htmlImages.push(absoluteUrl);
+        }
+      }
+    }
+
+    // Extract from JSON data
+    while ((match = dataImgRegex.exec(html)) !== null) {
+      const imgUrl = match[1];
+      if (imgUrl && imgUrl.startsWith('http') && !imgUrl.includes('icon') && !imgUrl.includes('logo')) {
+        htmlImages.push(imgUrl);
+      }
+    }
+
+    // Use AI to extract product info if we have HTML content
     let productInfo = {
       name: metadata.title || 'Imported Product',
       description: metadata.description || '',
-      price: 0,
+      price: extractedPrice,
       images: [] as string[],
       variants: [] as string[],
     };
 
-    if (LOVABLE_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    
+    if (LOVABLE_API_KEY && html.length > 100) {
       try {
+        // Extract a reasonable portion of HTML for analysis
+        const htmlSample = html.substring(0, 15000);
+        
         const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -92,19 +212,19 @@ Deno.serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: `You are a product data extractor. Extract product information from e-commerce page content and return ONLY valid JSON with these fields:
-                - name: product title/name
-                - description: detailed product description (combine all relevant details)
-                - price: numeric price value (just the number, no currency symbols)
+                content: `You are a product data extractor. Extract product information from e-commerce page HTML and return ONLY valid JSON with these fields:
+                - name: product title/name (clean, without special characters or extra info)
+                - description: detailed product description (combine all relevant details, clean text)
+                - price: numeric price value (just the number, no currency symbols, use the sale/discounted price if available)
                 - currency: currency code (USD, PHP, etc.)
-                - images: array of image URLs found on the page
+                - images: array of product image URLs found (full URLs only, prioritize main product images)
                 - variants: array of variant options (sizes, colors, etc.)
                 
-                Return ONLY the JSON object, no markdown formatting.`
+                Return ONLY the JSON object, no markdown formatting, no code blocks.`
               },
               {
                 role: 'user',
-                content: `Extract product data from this e-commerce page:\n\nTitle: ${metadata.title}\nDescription: ${metadata.description}\n\nPage Content:\n${markdown.substring(0, 8000)}`
+                content: `Extract product data from this e-commerce page HTML. Look for JSON-LD schema data, meta tags, and visible content:\n\n${htmlSample}`
               }
             ],
           }),
@@ -114,28 +234,22 @@ Deno.serve(async (req) => {
           const aiData = await aiResponse.json();
           const content = aiData.choices?.[0]?.message?.content || '';
           
-          // Try to parse the JSON from the AI response
           try {
-            // Clean up the response - remove markdown code blocks if present
             let jsonStr = content.trim();
-            if (jsonStr.startsWith('```json')) {
-              jsonStr = jsonStr.slice(7);
-            }
-            if (jsonStr.startsWith('```')) {
-              jsonStr = jsonStr.slice(3);
-            }
-            if (jsonStr.endsWith('```')) {
-              jsonStr = jsonStr.slice(0, -3);
-            }
+            // Remove markdown code blocks if present
+            if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
+            if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
+            if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
             
             const parsed = JSON.parse(jsonStr.trim());
             productInfo = {
               name: parsed.name || productInfo.name,
               description: parsed.description || productInfo.description,
-              price: parseFloat(parsed.price) || 0,
-              images: Array.isArray(parsed.images) ? parsed.images : [],
+              price: parseFloat(parsed.price) || extractedPrice || 0,
+              images: Array.isArray(parsed.images) ? parsed.images.filter((img: string) => img && img.startsWith('http')) : [],
               variants: Array.isArray(parsed.variants) ? parsed.variants : [],
             };
+            console.log('AI extraction successful:', productInfo.name);
           } catch (parseError) {
             console.error('Failed to parse AI response:', parseError);
           }
@@ -145,55 +259,55 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Extract image URLs from HTML using regex
-    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
-    const htmlImages: string[] = [];
-    let match;
-    while ((match = imgRegex.exec(html)) !== null) {
-      const imgUrl = match[1];
-      // Filter for product images (usually larger images, not icons)
-      if (imgUrl && 
-          !imgUrl.includes('icon') && 
-          !imgUrl.includes('logo') &&
-          !imgUrl.includes('sprite') &&
-          (imgUrl.includes('.jpg') || imgUrl.includes('.jpeg') || imgUrl.includes('.png') || imgUrl.includes('.webp') || imgUrl.includes('image'))) {
-        // Make sure URL is absolute
-        if (imgUrl.startsWith('//')) {
-          htmlImages.push('https:' + imgUrl);
-        } else if (imgUrl.startsWith('/')) {
-          try {
-            const urlObj = new URL(formattedUrl);
-            htmlImages.push(urlObj.origin + imgUrl);
-          } catch {
-            htmlImages.push(imgUrl);
-          }
-        } else if (imgUrl.startsWith('http')) {
-          htmlImages.push(imgUrl);
-        }
-      }
-    }
-
     // Combine and deduplicate images
-    const allImages = [...new Set([...productInfo.images, ...htmlImages])].slice(0, 10);
+    const allImages = [...new Set([
+      ...ogImages,
+      ...productInfo.images,
+      ...htmlImages
+    ])].filter(img => img && img.startsWith('http')).slice(0, 10);
 
-    console.log('Scrape successful:', productInfo.name);
+    // Clean up name and description
+    const cleanName = productInfo.name
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim()
+      .substring(0, 200);
+
+    const cleanDescription = productInfo.description
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    console.log('Scrape result:', {
+      name: cleanName,
+      price: productInfo.price,
+      imagesCount: allImages.length,
+      descriptionLength: cleanDescription.length
+    });
 
     return new Response(
       JSON.stringify({
         success: true,
         product: {
-          name: productInfo.name,
-          description: productInfo.description,
-          price: productInfo.price,
+          name: cleanName || 'Imported Product',
+          description: cleanDescription,
+          price: productInfo.price || 0,
           images: allImages,
           variants: productInfo.variants,
           sourceUrl: formattedUrl,
-          screenshot: screenshot,
           metadata: {
             title: metadata.title,
             description: metadata.description,
-            language: metadata.language,
-            sourceURL: metadata.sourceURL,
           }
         }
       }),
