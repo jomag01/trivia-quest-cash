@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Store, Package, AlertCircle, Plus, Edit2, Trash2, Images } from "lucide-react";
+import { Loader2, Store, Package, AlertCircle, Plus, Edit2, Trash2, Images, Layers } from "lucide-react";
+import { ProductVariantManager } from "@/components/ProductVariantManager";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,8 @@ export default function SellerDashboard() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [showProductDialog, setShowProductDialog] = useState(false);
+  const [showVariantsDialog, setShowVariantsDialog] = useState(false);
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState({
     name: "",
@@ -257,30 +260,40 @@ export default function SellerDashboard() {
                     <p className="text-sm">Wholesale: ₱{p.wholesale_price} | Stock: {p.stock_quantity}</p>
                     <div className="flex gap-2 mt-2">
                       <Button size="sm" variant="outline" onClick={() => {
-                    setEditingProduct(p);
-                    setProductForm({
-                      name: p.name,
-                      description: p.description,
-                      wholesale_price: p.wholesale_price.toString(),
-                      stock_quantity: p.stock_quantity?.toString() || "0",
-                      category_id: p.category_id || "",
-                      image_url: p.image_url || "",
-                      shipping_fee: p.shipping_fee?.toString() || "0",
-                      weight_kg: p.weight_kg?.toString() || "",
-                      dimensions_cm: p.dimensions_cm || "",
-                      free_shipping: p.free_shipping || false,
-                      bulk_enabled: p.bulk_enabled || false,
-                      bulk_price: p.bulk_price?.toString() || "",
-                      bulk_min_quantity: p.bulk_min_quantity?.toString() || "10"
-                    });
-                    setShowProductDialog(true);
-                  }}><Edit2 className="h-4 w-4" /></Button>
+                        setEditingProduct(p);
+                        setProductForm({
+                          name: p.name,
+                          description: p.description,
+                          wholesale_price: p.wholesale_price.toString(),
+                          stock_quantity: p.stock_quantity?.toString() || "0",
+                          category_id: p.category_id || "",
+                          image_url: p.image_url || "",
+                          shipping_fee: p.shipping_fee?.toString() || "0",
+                          weight_kg: p.weight_kg?.toString() || "",
+                          dimensions_cm: p.dimensions_cm || "",
+                          free_shipping: p.free_shipping || false,
+                          bulk_enabled: p.bulk_enabled || false,
+                          bulk_price: p.bulk_price?.toString() || "",
+                          bulk_min_quantity: p.bulk_min_quantity?.toString() || "10"
+                        });
+                        setShowProductDialog(true);
+                      }}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setSelectedProductForVariants(p);
+                        setShowVariantsDialog(true);
+                      }} title="Manage Variants">
+                        <Layers className="h-4 w-4" />
+                      </Button>
                       <Button size="sm" variant="outline" onClick={async () => {
-                    if (confirm("Delete?")) {
-                      await supabase.from("products").delete().eq("id", p.id);
-                      fetchMyProducts();
-                    }
-                  }}><Trash2 className="h-4 w-4" /></Button>
+                        if (confirm("Delete?")) {
+                          await supabase.from("products").delete().eq("id", p.id);
+                          fetchMyProducts();
+                        }
+                      }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -405,6 +418,24 @@ export default function SellerDashboard() {
             )}
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setShowProductDialog(false)}>Cancel</Button><Button onClick={handleSaveProduct} disabled={submitting}>{submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Variants Dialog */}
+      <Dialog open={showVariantsDialog} onOpenChange={setShowVariantsDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Product Variants - {selectedProductForVariants?.name}</DialogTitle>
+            <DialogDescription>
+              Add variants like sizes, colors, and weights. Each variant can have its own image.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedProductForVariants && (
+            <ProductVariantManager
+              productId={selectedProductForVariants.id}
+              productName={selectedProductForVariants.name}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>;
