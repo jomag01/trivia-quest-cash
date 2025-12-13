@@ -1,0 +1,687 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  FileText, 
+  Upload, 
+  Loader2, 
+  Download, 
+  Presentation, 
+  FileSpreadsheet, 
+  Search,
+  Sparkles,
+  BarChart3,
+  ClipboardList,
+  TrendingUp,
+  PieChart,
+  Table,
+  FileCheck,
+  Wand2,
+  Layout
+} from 'lucide-react';
+
+interface BusinessSolutionsProps {
+  userCredits: number;
+  onCreditsChange: () => void;
+}
+
+const PRESENTATION_DESIGNS = [
+  { id: 'professional', name: 'Professional', description: 'Clean corporate style', color: 'bg-blue-500' },
+  { id: 'creative', name: 'Creative', description: 'Bold and colorful', color: 'bg-purple-500' },
+  { id: 'minimal', name: 'Minimal', description: 'Simple and elegant', color: 'bg-gray-500' },
+  { id: 'modern', name: 'Modern', description: 'Contemporary design', color: 'bg-teal-500' },
+  { id: 'dark', name: 'Dark Theme', description: 'Dark background style', color: 'bg-slate-800' },
+  { id: 'gradient', name: 'Gradient', description: 'Beautiful gradients', color: 'bg-gradient-to-r from-pink-500 to-violet-500' },
+];
+
+const EXCEL_OPERATIONS = [
+  { id: 'report', name: 'Generate Report', description: 'Create detailed reports from data', icon: ClipboardList },
+  { id: 'analysis', name: 'Data Analysis', description: 'Analyze trends and patterns', icon: TrendingUp },
+  { id: 'charts', name: 'Create Charts', description: 'Visualize data with charts', icon: PieChart },
+  { id: 'summary', name: 'Executive Summary', description: 'High-level data overview', icon: FileCheck },
+  { id: 'forecast', name: 'Forecasting', description: 'Predict future trends', icon: BarChart3 },
+  { id: 'comparison', name: 'Comparison Report', description: 'Compare data periods', icon: Table },
+];
+
+const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCreditsChange }) => {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('powerpoint');
+  
+  // PowerPoint states
+  const [pptMode, setPptMode] = useState<'document' | 'topic'>('topic');
+  const [uploadedDocument, setUploadedDocument] = useState<string | null>(null);
+  const [documentName, setDocumentName] = useState<string>('');
+  const [presentationTopic, setPresentationTopic] = useState('');
+  const [slideCount, setSlideCount] = useState('10');
+  const [selectedDesign, setSelectedDesign] = useState('professional');
+  const [isGeneratingPPT, setIsGeneratingPPT] = useState(false);
+  const [generatedPPT, setGeneratedPPT] = useState<any>(null);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  
+  // Excel automation states
+  const [uploadedExcel, setUploadedExcel] = useState<string | null>(null);
+  const [excelName, setExcelName] = useState<string>('');
+  const [selectedOperation, setSelectedOperation] = useState('report');
+  const [customInstructions, setCustomInstructions] = useState('');
+  const [isProcessingExcel, setIsProcessingExcel] = useState(false);
+  const [excelResult, setExcelResult] = useState<any>(null);
+  
+  const PPT_CREDIT_COST = 5;
+  const EXCEL_CREDIT_COST = 3;
+
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const validTypes = [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'application/pdf',
+      'text/plain'
+    ];
+    
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload a Word document (.docx, .doc), PDF, or text file');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setUploadedDocument(reader.result as string);
+      setDocumentName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const validTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+      'text/csv'
+    ];
+    
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload an Excel file (.xlsx, .xls) or CSV');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setUploadedExcel(reader.result as string);
+      setExcelName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const deductCredits = async (amount: number) => {
+    if (!user) return false;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ credits: userCredits - amount })
+        .eq('id', user.id);
+      if (error) throw error;
+      onCreditsChange();
+      return true;
+    } catch (error) {
+      console.error('Error deducting credits:', error);
+      return false;
+    }
+  };
+
+  const handleGeneratePPT = async () => {
+    if (!user) {
+      toast.error('Please login to generate presentations');
+      return;
+    }
+    
+    if (pptMode === 'document' && !uploadedDocument) {
+      toast.error('Please upload a document first');
+      return;
+    }
+    
+    if (pptMode === 'topic' && !presentationTopic.trim()) {
+      toast.error('Please enter a topic for your presentation');
+      return;
+    }
+    
+    if (userCredits < PPT_CREDIT_COST) {
+      toast.error(`You need at least ${PPT_CREDIT_COST} credits to generate a presentation`);
+      return;
+    }
+
+    setIsGeneratingPPT(true);
+    setGeneratedPPT(null);
+    setGenerationProgress(0);
+
+    try {
+      const deducted = await deductCredits(PPT_CREDIT_COST);
+      if (!deducted) {
+        toast.error('Failed to deduct credits');
+        return;
+      }
+
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => Math.min(prev + 10, 90));
+      }, 500);
+
+      const { data, error } = await supabase.functions.invoke('business-solutions', {
+        body: {
+          type: 'generate-powerpoint',
+          mode: pptMode,
+          document: pptMode === 'document' ? uploadedDocument : null,
+          topic: pptMode === 'topic' ? presentationTopic : null,
+          slideCount: parseInt(slideCount),
+          design: selectedDesign
+        }
+      });
+
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+
+      if (error) throw error;
+      
+      if (data?.presentation) {
+        setGeneratedPPT(data.presentation);
+        toast.success('Presentation generated successfully!');
+      } else {
+        throw new Error('No presentation data returned');
+      }
+    } catch (error: any) {
+      console.error('PPT generation error:', error);
+      toast.error(error.message || 'Failed to generate presentation');
+    } finally {
+      setIsGeneratingPPT(false);
+    }
+  };
+
+  const handleProcessExcel = async () => {
+    if (!user) {
+      toast.error('Please login to process Excel files');
+      return;
+    }
+    
+    if (!uploadedExcel) {
+      toast.error('Please upload an Excel file first');
+      return;
+    }
+    
+    if (userCredits < EXCEL_CREDIT_COST) {
+      toast.error(`You need at least ${EXCEL_CREDIT_COST} credits to process Excel files`);
+      return;
+    }
+
+    setIsProcessingExcel(true);
+    setExcelResult(null);
+
+    try {
+      const deducted = await deductCredits(EXCEL_CREDIT_COST);
+      if (!deducted) {
+        toast.error('Failed to deduct credits');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('business-solutions', {
+        body: {
+          type: 'process-excel',
+          excelData: uploadedExcel,
+          operation: selectedOperation,
+          customInstructions: customInstructions
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.result) {
+        setExcelResult(data.result);
+        toast.success('Excel processed successfully!');
+      } else {
+        throw new Error('No result returned');
+      }
+    } catch (error: any) {
+      console.error('Excel processing error:', error);
+      toast.error(error.message || 'Failed to process Excel file');
+    } finally {
+      setIsProcessingExcel(false);
+    }
+  };
+
+  const downloadPPT = () => {
+    if (!generatedPPT) return;
+    
+    // Create downloadable content
+    const content = JSON.stringify(generatedPPT, null, 2);
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `presentation-${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    toast.success('Presentation data downloaded! Use this with your preferred presentation software.');
+  };
+
+  const downloadExcelResult = () => {
+    if (!excelResult) return;
+    
+    const content = typeof excelResult === 'string' ? excelResult : JSON.stringify(excelResult, null, 2);
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `report-${Date.now()}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-2xl">
+            <Sparkles className="h-6 w-6" />
+            Business Solutions Hub
+          </CardTitle>
+          <CardDescription className="text-white/80">
+            AI-powered tools for everyday business tasks. Generate presentations, automate reports, and streamline your workflow.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="powerpoint" className="gap-2">
+            <Presentation className="h-4 w-4" />
+            <span className="hidden sm:inline">PowerPoint Generator</span>
+            <span className="sm:hidden">PPT</span>
+          </TabsTrigger>
+          <TabsTrigger value="excel" className="gap-2">
+            <FileSpreadsheet className="h-4 w-4" />
+            <span className="hidden sm:inline">Excel Automation</span>
+            <span className="sm:hidden">Excel</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* PowerPoint Generator */}
+        <TabsContent value="powerpoint" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Presentation className="h-5 w-5 text-orange-500" />
+                AI PowerPoint Generator
+              </CardTitle>
+              <CardDescription>
+                Create professional presentations from documents or topics in seconds
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Mode Selection */}
+              <div className="space-y-2">
+                <Label>Generation Mode</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    type="button"
+                    variant={pptMode === 'topic' ? 'default' : 'outline'}
+                    className="h-auto py-4 flex flex-col gap-2"
+                    onClick={() => setPptMode('topic')}
+                  >
+                    <Search className="h-5 w-5" />
+                    <span className="text-sm">From Topic</span>
+                    <span className="text-xs text-muted-foreground">Enter a topic and let AI create slides</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={pptMode === 'document' ? 'default' : 'outline'}
+                    className="h-auto py-4 flex flex-col gap-2"
+                    onClick={() => setPptMode('document')}
+                  >
+                    <FileText className="h-5 w-5" />
+                    <span className="text-sm">From Document</span>
+                    <span className="text-xs text-muted-foreground">Upload Word/PDF to transform</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Topic Input */}
+              {pptMode === 'topic' && (
+                <div className="space-y-2">
+                  <Label htmlFor="topic">Presentation Topic</Label>
+                  <Textarea
+                    id="topic"
+                    placeholder="e.g., Q4 2024 Sales Performance Review, Introduction to Machine Learning, Marketing Strategy for 2025..."
+                    value={presentationTopic}
+                    onChange={(e) => setPresentationTopic(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              )}
+
+              {/* Document Upload */}
+              {pptMode === 'document' && (
+                <div className="space-y-2">
+                  <Label>Upload Document</Label>
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center space-y-4">
+                    {uploadedDocument ? (
+                      <div className="flex items-center justify-center gap-2 text-green-600">
+                        <FileCheck className="h-8 w-8" />
+                        <div>
+                          <p className="font-medium">{documentName}</p>
+                          <p className="text-sm text-muted-foreground">Document ready for conversion</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Upload Word (.docx), PDF, or Text file
+                        </p>
+                      </>
+                    )}
+                    <Input
+                      type="file"
+                      accept=".docx,.doc,.pdf,.txt"
+                      onChange={handleDocumentUpload}
+                      className="max-w-xs mx-auto"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Slide Count */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="slideCount">Number of Slides</Label>
+                  <Select value={slideCount} onValueChange={setSlideCount}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 slides</SelectItem>
+                      <SelectItem value="10">10 slides</SelectItem>
+                      <SelectItem value="15">15 slides</SelectItem>
+                      <SelectItem value="20">20 slides</SelectItem>
+                      <SelectItem value="30">30 slides</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Credits Required</Label>
+                  <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
+                    <Badge variant="secondary">{PPT_CREDIT_COST} credits</Badge>
+                    <span className="text-sm text-muted-foreground">per presentation</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Design Selection */}
+              <div className="space-y-2">
+                <Label>Presentation Design</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {PRESENTATION_DESIGNS.map((design) => (
+                    <button
+                      key={design.id}
+                      type="button"
+                      onClick={() => setSelectedDesign(design.id)}
+                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                        selectedDesign === design.id 
+                          ? 'border-primary ring-2 ring-primary/20' 
+                          : 'border-muted hover:border-muted-foreground/50'
+                      }`}
+                    >
+                      <div className={`h-8 w-full rounded mb-2 ${design.color}`} />
+                      <p className="font-medium text-sm">{design.name}</p>
+                      <p className="text-xs text-muted-foreground">{design.description}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Progress */}
+              {isGeneratingPPT && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Generating presentation...</span>
+                    <span>{generationProgress}%</span>
+                  </div>
+                  <Progress value={generationProgress} />
+                </div>
+              )}
+
+              {/* Generate Button */}
+              <Button
+                onClick={handleGeneratePPT}
+                disabled={isGeneratingPPT || (pptMode === 'topic' && !presentationTopic.trim()) || (pptMode === 'document' && !uploadedDocument)}
+                className="w-full gap-2"
+                size="lg"
+              >
+                {isGeneratingPPT ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Generating Presentation...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="h-5 w-5" />
+                    Generate PowerPoint
+                  </>
+                )}
+              </Button>
+
+              {/* Generated Result */}
+              {generatedPPT && (
+                <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                  <CardContent className="pt-6 space-y-4">
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <Sparkles className="h-5 w-5" />
+                      <span className="font-medium">Presentation Generated!</span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <h4 className="font-medium">{generatedPPT.title}</h4>
+                      <p className="text-sm text-muted-foreground">{generatedPPT.slides?.length || 0} slides created</p>
+                      
+                      {/* Slide Preview */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                        {generatedPPT.slides?.slice(0, 8).map((slide: any, idx: number) => (
+                          <div key={idx} className="p-2 bg-white dark:bg-gray-800 rounded border text-xs">
+                            <p className="font-medium truncate">{slide.title || `Slide ${idx + 1}`}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button onClick={downloadPPT} className="w-full gap-2">
+                      <Download className="h-4 w-4" />
+                      Download Presentation Data
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Excel Automation */}
+        <TabsContent value="excel" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5 text-green-600" />
+                Excel Automation & Reporting
+              </CardTitle>
+              <CardDescription>
+                Transform your Excel data into actionable insights, reports, and visualizations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Excel Upload */}
+              <div className="space-y-2">
+                <Label>Upload Excel File</Label>
+                <div className="border-2 border-dashed rounded-lg p-6 text-center space-y-4">
+                  {uploadedExcel ? (
+                    <div className="flex items-center justify-center gap-2 text-green-600">
+                      <FileCheck className="h-8 w-8" />
+                      <div>
+                        <p className="font-medium">{excelName}</p>
+                        <p className="text-sm text-muted-foreground">File ready for processing</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <FileSpreadsheet className="h-12 w-12 mx-auto text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Upload Excel (.xlsx, .xls) or CSV file
+                      </p>
+                    </>
+                  )}
+                  <Input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleExcelUpload}
+                    className="max-w-xs mx-auto"
+                  />
+                </div>
+              </div>
+
+              {/* Operation Selection */}
+              <div className="space-y-2">
+                <Label>Select Operation</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {EXCEL_OPERATIONS.map((op) => {
+                    const Icon = op.icon;
+                    return (
+                      <button
+                        key={op.id}
+                        type="button"
+                        onClick={() => setSelectedOperation(op.id)}
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                          selectedOperation === op.id 
+                            ? 'border-primary ring-2 ring-primary/20 bg-primary/5' 
+                            : 'border-muted hover:border-muted-foreground/50'
+                        }`}
+                      >
+                        <Icon className={`h-6 w-6 mb-2 ${selectedOperation === op.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <p className="font-medium text-sm">{op.name}</p>
+                        <p className="text-xs text-muted-foreground">{op.description}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Custom Instructions */}
+              <div className="space-y-2">
+                <Label htmlFor="instructions">Additional Instructions (Optional)</Label>
+                <Textarea
+                  id="instructions"
+                  placeholder="e.g., Focus on Q4 data, compare with last year, highlight top 10 performers..."
+                  value={customInstructions}
+                  onChange={(e) => setCustomInstructions(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              {/* Credits Info */}
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                <Badge variant="secondary">{EXCEL_CREDIT_COST} credits</Badge>
+                <span className="text-sm text-muted-foreground">per operation</span>
+              </div>
+
+              {/* Process Button */}
+              <Button
+                onClick={handleProcessExcel}
+                disabled={isProcessingExcel || !uploadedExcel}
+                className="w-full gap-2"
+                size="lg"
+              >
+                {isProcessingExcel ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Processing Excel...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="h-5 w-5" />
+                    Process & Generate
+                  </>
+                )}
+              </Button>
+
+              {/* Excel Result */}
+              {excelResult && (
+                <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                  <CardContent className="pt-6 space-y-4">
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <Sparkles className="h-5 w-5" />
+                      <span className="font-medium">Report Generated!</span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {excelResult.summary && (
+                        <div className="p-3 bg-white dark:bg-gray-800 rounded border">
+                          <h4 className="font-medium mb-2">Executive Summary</h4>
+                          <p className="text-sm text-muted-foreground">{excelResult.summary}</p>
+                        </div>
+                      )}
+                      
+                      {excelResult.insights && (
+                        <div className="p-3 bg-white dark:bg-gray-800 rounded border">
+                          <h4 className="font-medium mb-2">Key Insights</h4>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            {excelResult.insights.map((insight: string, idx: number) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-primary">•</span>
+                                {insight}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {excelResult.recommendations && (
+                        <div className="p-3 bg-white dark:bg-gray-800 rounded border">
+                          <h4 className="font-medium mb-2">Recommendations</h4>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            {excelResult.recommendations.map((rec: string, idx: number) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-green-500">✓</span>
+                                {rec}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button onClick={downloadExcelResult} className="w-full gap-2">
+                      <Download className="h-4 w-4" />
+                      Download Full Report
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default BusinessSolutions;
