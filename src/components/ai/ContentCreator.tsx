@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,8 @@ interface Script {
 interface ContentCreatorProps {
   userCredits: number;
   onCreditsChange: () => void;
+  externalResearch?: string | null;
+  externalTopic?: string | null;
 }
 
 // Google Cloud TTS voices - one male, one female per language
@@ -104,7 +106,7 @@ const VIDEO_DURATIONS = [
   { seconds: 900, label: '15 minutes', credits: 220 },
 ];
 
-const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) => {
+const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, externalTopic }: ContentCreatorProps) => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -116,6 +118,16 @@ const ContentCreator = ({ userCredits, onCreditsChange }: ContentCreatorProps) =
   const [imageAnalysis, setImageAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Effect to handle external research from Deep Research Assistant
+  useEffect(() => {
+    if (externalResearch && externalTopic) {
+      setTopic(externalTopic);
+      setResearch(externalResearch);
+      setCurrentStep(2); // Skip to script generation step
+      toast.success('Research imported! Ready to generate script.');
+    }
+  }, [externalResearch, externalTopic]);
   
   // Step 2: Script
   const [targetAudience, setTargetAudience] = useState('');

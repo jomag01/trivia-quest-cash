@@ -118,6 +118,17 @@ const AIHub = memo(() => {
   const [showVideoEditor, setShowVideoEditor] = useState(false);
   const [editorMediaUrl, setEditorMediaUrl] = useState<string>('');
   const [editorMediaType, setEditorMediaType] = useState<'video' | 'image'>('video');
+
+  // Research to video state
+  const [researchForVideo, setResearchForVideo] = useState<string | null>(null);
+  const [topicForVideo, setTopicForVideo] = useState<string | null>(null);
+
+  const handleCreateVideoFromResearch = (researchContent: string, topic: string) => {
+    setResearchForVideo(researchContent);
+    setTopicForVideo(topic);
+    setActiveTab('content-creator');
+    toast.success('Switching to Content Creator with your research!');
+  };
   useEffect(() => {
     fetchSettings();
     fetchAppLogo();
@@ -800,7 +811,7 @@ const AIHub = memo(() => {
 
           {/* Deep Research Assistant */}
           <TabsContent value="research">
-            <DeepResearchAssistant />
+            <DeepResearchAssistant onCreateVideo={handleCreateVideoFromResearch} />
           </TabsContent>
 
           {/* GPT-5 Chat Assistant */}
@@ -1593,7 +1604,12 @@ const AIHub = memo(() => {
 
           {/* Content Creator */}
           <TabsContent value="content-creator">
-            <ContentCreator userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            <ContentCreator 
+              userCredits={userCredits} 
+              onCreditsChange={fetchUserCredits}
+              externalResearch={researchForVideo}
+              externalTopic={topicForVideo}
+            />
           </TabsContent>
         </Tabs>
       </div>
