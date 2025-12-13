@@ -25,6 +25,7 @@ import LiveStreamViewer from "@/components/live/LiveStreamViewer";
 import FloatingLiveStream from "@/components/live/FloatingLiveStream";
 import { CartView } from "@/components/CartView";
 import { WishlistView } from "@/components/WishlistView";
+import AIProductRecommendations from "@/components/shop/AIProductRecommendations";
 import ServicesList from "@/components/booking/ServicesList";
 
 const Shop = () => {
@@ -427,6 +428,16 @@ const Shop = () => {
             
             {/* Category Slider */}
             <CategorySlider categories={categories} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
+
+            {/* AI Product Recommendations */}
+            <AIProductRecommendations 
+              currentProductId={detailProduct?.id}
+              onProductClick={(product) => {
+                trackInteraction('view', 'product', product.id, { name: product.name, source: 'ai_recommendation' });
+                setDetailProduct(product);
+                setDetailDialog(true);
+              }}
+            />
 
             {/* Products Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
