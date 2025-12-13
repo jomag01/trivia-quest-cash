@@ -27,6 +27,7 @@ import { CartView } from "@/components/CartView";
 import { WishlistView } from "@/components/WishlistView";
 import AIProductRecommendations from "@/components/shop/AIProductRecommendations";
 import ServicesList from "@/components/booking/ServicesList";
+import AIHealthConsultant from "@/components/shop/AIHealthConsultant";
 
 const Shop = () => {
   const {
@@ -635,6 +636,9 @@ const Shop = () => {
           onClose={handleCloseMinimized}
         />
       )}
+
+      {/* AI Health Consultant */}
+      <AIHealthConsultant onAddToCart={addToCart} />
     </div>;
 };
 export default Shop;
