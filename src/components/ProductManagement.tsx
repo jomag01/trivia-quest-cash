@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Image as ImageIcon, PackagePlus } from "lucide-react";
+import { Plus, Edit, Trash2, Image as ImageIcon, PackagePlus, Download } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageUploadCrop } from "@/components/ImageUploadCrop";
+import ProductImporter from "@/components/admin/ProductImporter";
 
 interface Product {
   id: string;
@@ -507,13 +509,29 @@ export const ProductManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Product Management</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Product
-            </Button>
-          </DialogTrigger>
+      </div>
+
+      <Tabs defaultValue="products" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="products" className="flex items-center gap-2">
+            <PackagePlus className="w-4 h-4" />
+            Products
+          </TabsTrigger>
+          <TabsTrigger value="import" className="flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            Import Products
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="products">
+          <div className="flex justify-end mb-4">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Product
+                </Button>
+              </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
@@ -1269,6 +1287,12 @@ export const ProductManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        <TabsContent value="import">
+          <ProductImporter />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
