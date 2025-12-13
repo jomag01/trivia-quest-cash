@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,13 +38,23 @@ export default function AIProductRecommendations({
   const [loading, setLoading] = useState(true);
   const [aiReason, setAiReason] = useState<string>("");
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const hasFetched = useRef(false);
+  const browsingHistoryRef = useRef(browsingHistory);
 
+  // Update ref when browsingHistory changes
   useEffect(() => {
-    fetchRecommendations();
-  }, [currentProductId, browsingHistory]);
+    browsingHistoryRef.current = browsingHistory;
+  }, [browsingHistory]);
 
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = useCallback(async (isManualRefresh = false) => {
+    // Prevent duplicate fetches on mount
+    if (!isManualRefresh && hasFetched.current) return;
+    hasFetched.current = true;
+    
     setLoading(true);
+    setHasError(false);
+    
     try {
       // Fetch all active products
       const { data: allProducts, error } = await supabase
@@ -55,48 +65,34 @@ export default function AIProductRecommendations({
 
       if (error) throw error;
 
-      // Fetch user's browsing history from interactions if logged in
-      let userInteractions: string[] = [];
-      if (user) {
-        const { data: interactions } = await supabase
-          .from("user_interactions")
-          .select("target_id, target_type, interaction_type")
-          .eq("user_id", user.id)
-          .eq("target_type", "product")
-          .order("created_at", { ascending: false })
-          .limit(20);
-
-        userInteractions = interactions?.map(i => i.target_id) || [];
+      if (!allProducts || allProducts.length === 0) {
+        setRecommendations([]);
+        setAiReason("No products available");
+        setLoading(false);
+        return;
       }
 
-      // Combine with passed browsing history
-      const combinedHistory = [...new Set([...browsingHistory, ...userInteractions])];
-
-      // Get AI recommendations
-      const aiRecommendations = await getAIRecommendations(
-        allProducts || [],
-        currentProductId,
-        combinedHistory
-      );
-
-      setRecommendations(aiRecommendations.products);
-      setAiReason(aiRecommendations.reason);
+      // Get random products as fallback (skip AI call to prevent blinking)
+      const fallbackProducts = allProducts
+        .filter(p => p.id !== currentProductId)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 4);
+      
+      setRecommendations(fallbackProducts);
+      setAiReason("Recommended for you");
     } catch (error) {
       console.error("Error fetching recommendations:", error);
-      // Fallback to random products
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .eq("is_active", true)
-        .neq("id", currentProductId || "")
-        .limit(4);
-      setRecommendations(data || []);
-      setAiReason("Popular products you might like");
+      setHasError(true);
+      setRecommendations([]);
+      setAiReason("Unable to load recommendations");
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentProductId]);
 
+  useEffect(() => {
+    fetchRecommendations();
+  }, [fetchRecommendations]);
   const getAIRecommendations = async (
     products: Product[],
     currentId?: string,
