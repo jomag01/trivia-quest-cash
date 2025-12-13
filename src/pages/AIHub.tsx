@@ -12,7 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2 } from 'lucide-react';
+import { VideoEditor } from '@/components/ai/VideoEditor';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 const AIHub = memo(() => {
   const {
@@ -109,6 +110,11 @@ const AIHub = memo(() => {
   // Logo and dialogs
   const [appLogo, setAppLogo] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
+  
+  // Video editor state
+  const [showVideoEditor, setShowVideoEditor] = useState(false);
+  const [editorMediaUrl, setEditorMediaUrl] = useState<string>('');
+  const [editorMediaType, setEditorMediaType] = useState<'video' | 'image'>('video');
   useEffect(() => {
     fetchSettings();
     fetchAppLogo();
@@ -616,6 +622,13 @@ const AIHub = memo(() => {
     link.download = `ai-generated-${Date.now()}.png`;
     link.click();
   };
+  
+  const openVideoEditor = (url: string, type: 'video' | 'image') => {
+    setEditorMediaUrl(url);
+    setEditorMediaType(type);
+    setShowVideoEditor(true);
+  };
+  
   const remainingFreeImages = Math.max(0, freeImageLimit - imageGenerationCount);
 
   // Login required wall for non-authenticated users
@@ -926,6 +939,14 @@ const AIHub = memo(() => {
                         <Copy className="h-4 w-4" />
                         Copy URL
                       </Button>
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 gap-2" 
+                        onClick={() => openVideoEditor(generatedImage, 'image')}
+                      >
+                        <Scissors className="h-4 w-4" />
+                        Edit
+                      </Button>
                     </div>
                     
                     {/* Animate Image Section */}
@@ -1007,19 +1028,28 @@ const AIHub = memo(() => {
                           autoPlay
                           loop
                         />
-                        <Button 
-                          variant="outline" 
-                          className="w-full gap-2" 
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = animatedVideoUrl;
-                            link.download = `animated-${Date.now()}.mp4`;
-                            link.click();
-                          }}
-                        >
-                          <Download className="h-4 w-4" />
-                          Download Animated Video
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            className="flex-1 gap-2" 
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = animatedVideoUrl;
+                              link.download = `animated-${Date.now()}.mp4`;
+                              link.click();
+                            }}
+                          >
+                            <Download className="h-4 w-4" />
+                            Download
+                          </Button>
+                          <Button 
+                            className="flex-1 gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600" 
+                            onClick={() => openVideoEditor(animatedVideoUrl, 'video')}
+                          >
+                            <Scissors className="h-4 w-4" />
+                            Edit Video
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>}
@@ -1156,6 +1186,13 @@ const AIHub = memo(() => {
                         Copy URL
                       </Button>
                     </div>
+                    <Button 
+                      className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600" 
+                      onClick={() => openVideoEditor(generatedVideo, 'video')}
+                    >
+                      <Scissors className="h-4 w-4" />
+                      Open Video Editor
+                    </Button>
                   </div>}
               </CardContent>
             </Card>
@@ -1532,6 +1569,17 @@ const AIHub = memo(() => {
       <BuyAICreditsDialog open={showBuyCredits} onOpenChange={setShowBuyCredits} onPurchaseComplete={() => {
       fetchUserCredits();
     }} />
+      
+      {/* Video Editor Dialog */}
+      <VideoEditor 
+        open={showVideoEditor} 
+        onOpenChange={setShowVideoEditor}
+        mediaUrl={editorMediaUrl}
+        mediaType={editorMediaType}
+        onExport={(url) => {
+          toast.success('Video exported successfully!');
+        }}
+      />
     </div>;
 });
 AIHub.displayName = 'AIHub';
