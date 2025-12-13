@@ -60,6 +60,7 @@ serve(async (req) => {
     console.log("Generating virtual try-on image...");
     console.log("Product:", productDescription);
     console.log("Has user photo:", !!userPhotoUrl);
+    console.log("User photo provided:", userPhotoUrl ? "Yes (base64)" : "No");
 
     // Convert product image to base64
     let productImageBase64: string;
@@ -71,11 +72,44 @@ serve(async (req) => {
       throw new Error("Could not load product image. Please try a different product.");
     }
 
-    // Build the message content
+    // Build the appropriate prompt based on whether user photo is provided
+    let finalPrompt: string;
+    if (userPhotoUrl) {
+      // User uploaded their own photo - generate them wearing the product
+      finalPrompt = `You are a professional fashion AI. I'm providing two images:
+1. First image: A clothing item (${productDescription})
+2. Second image: A photo of a person
+
+Your task: Generate a NEW photorealistic image showing the person from the second image wearing the clothing item from the first image. 
+
+IMPORTANT INSTRUCTIONS:
+- Keep the person's face, body shape, skin tone, and pose EXACTLY as shown in their photo
+- ONLY change their outfit to show them wearing the clothing item
+- Make the clothing fit naturally on their body
+- Maintain realistic lighting and shadows
+- The result should look like a real photograph, not an edited image
+- Do NOT just return the product image - you MUST generate a new composite image
+
+Generate a high-quality, photorealistic image now.`;
+    } else {
+      // No user photo - show on a model
+      finalPrompt = `You are a professional fashion AI. Generate a NEW high-quality fashion photograph showing a professional model wearing this clothing item: ${productDescription}
+
+IMPORTANT INSTRUCTIONS:
+- Create a completely NEW image of a model wearing this exact garment
+- The model should be in a clean, professional studio setting
+- Show the full outfit clearly with good lighting
+- Make it look like a professional fashion catalog photograph
+- Do NOT just return the input product image - generate a NEW image of someone wearing it
+
+Generate the fashion photograph now.`;
+    }
+
+    // Build the message content with proper image order
     const messageContent: any[] = [
       {
         type: "text",
-        text: prompt
+        text: finalPrompt
       },
       {
         type: "image_url",
@@ -85,8 +119,9 @@ serve(async (req) => {
       }
     ];
 
-    // If user uploaded their photo, include it (already base64)
+    // If user uploaded their photo, include it as the second image
     if (userPhotoUrl) {
+      console.log("Adding user photo to request");
       messageContent.push({
         type: "image_url",
         image_url: {
@@ -94,6 +129,8 @@ serve(async (req) => {
         }
       });
     }
+
+    console.log("Sending request to AI API with", messageContent.length, "content items");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -134,14 +171,29 @@ serve(async (req) => {
 
     const data = await response.json();
     console.log("AI response received");
+    console.log("Response structure:", JSON.stringify(Object.keys(data)));
 
-    // Extract the generated image
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    // Extract the generated image - check multiple possible locations
+    let imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    
+    // Alternative extraction if the above doesn't work
+    if (!imageUrl) {
+      const message = data.choices?.[0]?.message;
+      console.log("Message keys:", message ? Object.keys(message) : "no message");
+      
+      // Check if images are in a different format
+      if (message?.images && Array.isArray(message.images) && message.images.length > 0) {
+        const firstImage = message.images[0];
+        imageUrl = firstImage?.image_url?.url || firstImage?.url || firstImage;
+      }
+    }
     
     if (!imageUrl) {
-      console.error("No image in response:", JSON.stringify(data));
-      throw new Error("No image was generated");
+      console.error("No image in response. Full response:", JSON.stringify(data));
+      throw new Error("AI did not generate an image. Please try again.");
     }
+
+    console.log("Successfully extracted image URL");
 
     return new Response(
       JSON.stringify({ 

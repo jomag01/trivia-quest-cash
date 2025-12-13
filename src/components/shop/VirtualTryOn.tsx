@@ -27,6 +27,19 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
   const [activeTab, setActiveTab] = useState<"model" | "upload">("model");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Reset state when dialog closes
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      // Small delay to prevent flickering
+      setTimeout(() => {
+        setGeneratedImage(null);
+        setUserPhoto(null);
+        setIsGenerating(false);
+      }, 100);
+    }
+    onOpenChange(isOpen);
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -99,7 +112,7 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
