@@ -52,7 +52,10 @@ export default function AIProductRecommendations({
     if (!isManualRefresh && hasFetched.current) return;
     hasFetched.current = true;
     
-    setLoading(true);
+    // Only show loading state on initial fetch, not refreshes
+    if (!isManualRefresh) {
+      setLoading(true);
+    }
     setHasError(false);
     
     try {
