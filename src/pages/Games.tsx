@@ -183,7 +183,12 @@ const Games = memo(() => {
       setShowAuthDialog(true);
       return;
     }
-    navigate(`/game/${category.slug}`);
+    // Route chess to its dedicated multiplayer page
+    if (category.slug === 'chess') {
+      navigate('/chess');
+    } else {
+      navigate(`/game/${category.slug}`);
+    }
   }, [user, navigate]);
 
   return (
