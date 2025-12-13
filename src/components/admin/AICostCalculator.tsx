@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Calculator, Video, Music, Image, Mic, Loader2 } from 'lucide-react';
+import { Calculator, Video, Music, Image, Mic, Loader2, Brain, MessageSquare } from 'lucide-react';
 
 interface ProviderPricing {
   id: string;
@@ -25,6 +25,8 @@ const AICostCalculator = () => {
   const [videoMinutes, setVideoMinutes] = useState('15');
   const [audioMinutes, setAudioMinutes] = useState('15');
   const [imageCount, setImageCount] = useState('10');
+  const [researchQueries, setResearchQueries] = useState('20');
+  const [chatMessages, setChatMessages] = useState('50');
   const [selectedVideoProvider, setSelectedVideoProvider] = useState('');
   const [selectedAudioProvider, setSelectedAudioProvider] = useState('');
   const [selectedImageProvider, setSelectedImageProvider] = useState('');
@@ -82,7 +84,23 @@ const AICostCalculator = () => {
     return count * provider.image_cost;
   };
 
-  const totalCost = calculateVideoCost() + calculateAudioCost() + calculateImageCost();
+  // Estimate research cost (based on Gemini Pro tokens)
+  const calculateResearchCost = () => {
+    const queries = parseInt(researchQueries) || 0;
+    // Average ~2000 tokens per research query at Gemini Pro rates (~$0.00125/1K input + $0.005/1K output)
+    const avgCostPerQuery = 0.0125; // Estimated $0.0125 per research query
+    return queries * avgCostPerQuery;
+  };
+
+  // Estimate chat cost (based on GPT-5 tokens)
+  const calculateChatCost = () => {
+    const messages = parseInt(chatMessages) || 0;
+    // Average ~500 tokens per chat exchange at GPT-5 rates
+    const avgCostPerMessage = 0.005; // Estimated $0.005 per chat message
+    return messages * avgCostPerMessage;
+  };
+
+  const totalCost = calculateVideoCost() + calculateAudioCost() + calculateImageCost() + calculateResearchCost() + calculateChatCost();
 
   const videoProviders = pricing.filter(p => (p.video_cost_per_second || 0) > 0);
   const audioProviders = pricing.filter(p => (p.audio_cost_per_minute || 0) > 0);
@@ -245,6 +263,54 @@ const AICostCalculator = () => {
                 ({pricing.find(p => p.id === selectedImageProvider)?.image_cost?.toFixed(4) || 0}/image)
               </span>
             )}
+          </div>
+        </div>
+
+        {/* Deep Research Cost */}
+        <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+          <div className="flex items-center gap-2">
+            <Brain className="h-4 w-4 text-blue-500" />
+            <Label className="font-medium">Deep Research (Gemini Pro)</Label>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Number of Research Queries</Label>
+            <Input
+              type="number"
+              min="0"
+              value={researchQueries}
+              onChange={(e) => setResearchQueries(e.target.value)}
+              placeholder="e.g., 20"
+            />
+          </div>
+          <div className="text-sm">
+            Cost: <strong className="text-blue-500">{formatCost(calculateResearchCost())}</strong>
+            <span className="text-xs text-muted-foreground ml-2">
+              (~$0.0125/query avg)
+            </span>
+          </div>
+        </div>
+
+        {/* GPT-5 Chat Cost */}
+        <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-indigo-500" />
+            <Label className="font-medium">GPT-5 Chat Assistant</Label>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Number of Chat Messages</Label>
+            <Input
+              type="number"
+              min="0"
+              value={chatMessages}
+              onChange={(e) => setChatMessages(e.target.value)}
+              placeholder="e.g., 50"
+            />
+          </div>
+          <div className="text-sm">
+            Cost: <strong className="text-indigo-500">{formatCost(calculateChatCost())}</strong>
+            <span className="text-xs text-muted-foreground ml-2">
+              (~$0.005/message avg)
+            </span>
           </div>
         </div>
 

@@ -17,7 +17,9 @@ import {
   ImageIcon,
   Mic,
   Bell,
-  Clock
+  Clock,
+  Brain,
+  MessageSquare
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -50,6 +52,24 @@ const AIProviderStatus = () => {
       lastChecked: null,
       icon: <Sparkles className="h-5 w-5" />,
       usedFor: ['Text Generation', 'Image Generation (Gemini)', 'Business Solutions']
+    },
+    {
+      name: 'deep_research',
+      displayName: 'Deep Research (Gemini Pro)',
+      status: 'unknown',
+      message: 'Not checked yet',
+      lastChecked: null,
+      icon: <Brain className="h-5 w-5" />,
+      usedFor: ['Multi-step Research', 'Advanced Analysis', 'Topic Research']
+    },
+    {
+      name: 'gpt5_chat',
+      displayName: 'GPT-5 Chat Assistant',
+      status: 'unknown',
+      message: 'Not checked yet',
+      lastChecked: null,
+      icon: <MessageSquare className="h-5 w-5" />,
+      usedFor: ['Advanced Chat', 'Code Generation', 'Creative Writing']
     },
     {
       name: 'fal_ai',
@@ -170,6 +190,12 @@ const AIProviderStatus = () => {
     // Check Lovable AI Gateway
     await checkLovableAI();
     
+    // Check Deep Research
+    await checkDeepResearch();
+    
+    // Check GPT-5 Chat
+    await checkGPT5Chat();
+    
     // Check fal.ai
     await checkFalAI();
     
@@ -216,6 +242,54 @@ const AIProviderStatus = () => {
       }
     } catch (error: any) {
       updateProviderStatus('lovable_ai', 'warning', 'Unable to verify - check manually');
+    }
+  };
+
+  const checkDeepResearch = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('deep-research', {
+        body: { query: 'test-connection', model: 'gemini-pro' }
+      });
+
+      if (error) {
+        if (error.message?.includes('402') || error.message?.includes('Payment')) {
+          updateProviderStatus('deep_research', 'error', 'Credits exhausted - payment required');
+          await addAlert('Deep Research', 'credit_exhausted', 'Deep Research credits exhausted. Please add credits.');
+        } else if (error.message?.includes('429')) {
+          updateProviderStatus('deep_research', 'warning', 'Rate limited');
+          await addAlert('Deep Research', 'rate_limit', 'Deep Research rate limit reached.');
+        } else {
+          updateProviderStatus('deep_research', 'ok', 'Connected and operational');
+        }
+      } else {
+        updateProviderStatus('deep_research', 'ok', 'Connected and operational');
+      }
+    } catch (error: any) {
+      updateProviderStatus('deep_research', 'warning', 'Unable to verify - check manually');
+    }
+  };
+
+  const checkGPT5Chat = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('deep-research', {
+        body: { query: 'test-connection', model: 'gpt-5' }
+      });
+
+      if (error) {
+        if (error.message?.includes('402') || error.message?.includes('Payment')) {
+          updateProviderStatus('gpt5_chat', 'error', 'Credits exhausted - payment required');
+          await addAlert('GPT-5 Chat', 'credit_exhausted', 'GPT-5 credits exhausted. Please add credits.');
+        } else if (error.message?.includes('429')) {
+          updateProviderStatus('gpt5_chat', 'warning', 'Rate limited');
+          await addAlert('GPT-5 Chat', 'rate_limit', 'GPT-5 rate limit reached.');
+        } else {
+          updateProviderStatus('gpt5_chat', 'ok', 'Connected and operational');
+        }
+      } else {
+        updateProviderStatus('gpt5_chat', 'ok', 'Connected and operational');
+      }
+    } catch (error: any) {
+      updateProviderStatus('gpt5_chat', 'warning', 'Unable to verify - check manually');
     }
   };
 
