@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings } from 'lucide-react';
 import AICostCalculator from './AICostCalculator';
-
+import AIProviderStatus from './AIProviderStatus';
 interface CreditTier {
   id: string;
   name: string;
@@ -210,8 +211,23 @@ const AISettingsManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Basic Settings */}
+    <Tabs defaultValue="settings" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="settings" className="gap-2">
+          <Settings className="h-4 w-4" />
+          Settings
+        </TabsTrigger>
+        <TabsTrigger value="status" className="gap-2">
+          <Bell className="h-4 w-4" />
+          Provider Status & Alerts
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="status">
+        <AIProviderStatus />
+      </TabsContent>
+
+      <TabsContent value="settings" className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -544,7 +560,8 @@ const AISettingsManagement = () => {
         <Save className="h-4 w-4" />
         {saving ? 'Saving...' : 'Save All Settings'}
       </Button>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 };
 

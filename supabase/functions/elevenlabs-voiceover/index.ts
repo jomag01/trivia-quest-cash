@@ -1,11 +1,49 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Save alert to database for admin notification
+async function saveProviderAlert(provider: string, alertType: string, message: string) {
+  try {
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const { data: existing } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'ai_provider_alerts')
+      .single();
+
+    let alerts = [];
+    if (existing?.value) {
+      try { alerts = JSON.parse(existing.value); } catch (e) { alerts = []; }
+    }
+
+    const newAlert = {
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      provider,
+      type: alertType,
+      message,
+      timestamp: new Date().toISOString(),
+      dismissed: false
+    };
+
+    alerts = [newAlert, ...alerts.slice(0, 49)];
+
+    await supabase
+      .from('app_settings')
+      .upsert({ key: 'ai_provider_alerts', value: JSON.stringify(alerts) }, { onConflict: 'key' });
+  } catch (error) {
+    console.error('Failed to save alert:', error);
+  }
+}
 
 // ElevenLabs voice options
 const VOICES = {
@@ -46,7 +84,6 @@ const VOICES = {
   'Daniel': 'onwK4e9ZLuTAKqWW03F9',
 };
 
-// Supported languages
 const LANGUAGES = [
   'en', 'es', 'fr', 'de', 'it', 'pt', 'pl', 'hi', 'ar', 'zh',
   'ja', 'ko', 'nl', 'ru', 'sv', 'tr', 'id', 'fil', 'ms', 'ro',
@@ -65,7 +102,16 @@ serve(async (req) => {
       throw new Error('ElevenLabs API key not configured');
     }
 
-    const { action, text, voiceId, voiceName, language, modelId } = await req.json();
+    const body = await req.json();
+    
+    // Handle test connection request
+    if (body.type === 'test-connection') {
+      return new Response(JSON.stringify({ status: 'ok', message: 'ElevenLabs connected' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { action, text, voiceId, voiceName, language, modelId } = body;
 
     if (action === 'list-voices') {
       return new Response(JSON.stringify({ 
@@ -110,10 +156,12 @@ serve(async (req) => {
         console.error('ElevenLabs API error:', response.status, errorText);
         
         if (response.status === 401) {
+          await saveProviderAlert('ElevenLabs', 'subscription_expired', 'ElevenLabs API key invalid or expired.');
           throw new Error('Invalid ElevenLabs API key');
         }
-        if (response.status === 429) {
-          throw new Error('ElevenLabs rate limit exceeded. Please try again later.');
+        if (response.status === 429 || errorText.toLowerCase().includes('character') || errorText.toLowerCase().includes('quota')) {
+          await saveProviderAlert('ElevenLabs', 'credit_exhausted', 'ElevenLabs character quota exhausted. Voice generation failed.');
+          throw new Error('ElevenLabs character quota exceeded. Please add more credits.');
         }
         throw new Error(`Voice generation failed: ${errorText}`);
       }

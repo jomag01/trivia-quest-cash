@@ -1,11 +1,49 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Save alert to database for admin notification
+async function saveProviderAlert(provider: string, alertType: string, message: string) {
+  try {
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const { data: existing } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'ai_provider_alerts')
+      .single();
+
+    let alerts = [];
+    if (existing?.value) {
+      try { alerts = JSON.parse(existing.value); } catch (e) { alerts = []; }
+    }
+
+    const newAlert = {
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      provider,
+      type: alertType,
+      message,
+      timestamp: new Date().toISOString(),
+      dismissed: false
+    };
+
+    alerts = [newAlert, ...alerts.slice(0, 49)];
+
+    await supabase
+      .from('app_settings')
+      .upsert({ key: 'ai_provider_alerts', value: JSON.stringify(alerts) }, { onConflict: 'key' });
+  } catch (error) {
+    console.error('Failed to save alert:', error);
+  }
+}
 
 // Google Cloud TTS voice options - organized by language
 const VOICES = {
@@ -95,7 +133,6 @@ const VOICES = {
   ],
 };
 
-// Map simple language codes to Google Cloud language codes
 const LANGUAGE_MAP: Record<string, string> = {
   'en': 'en-US',
   'es': 'es-ES',
@@ -110,7 +147,7 @@ const LANGUAGE_MAP: Record<string, string> = {
   'ar': 'ar-XA',
   'fil': 'fil-PH',
   'sv': 'sv-SE',
-  'tl': 'fil-PH', // Tagalog maps to Filipino
+  'tl': 'fil-PH',
 };
 
 serve(async (req) => {
@@ -125,7 +162,16 @@ serve(async (req) => {
       throw new Error('Google Cloud API key not configured');
     }
 
-    const { action, text, language, gender, voiceName } = await req.json();
+    const body = await req.json();
+    
+    // Handle test connection request
+    if (body.type === 'test-connection') {
+      return new Response(JSON.stringify({ status: 'ok', message: 'Google Cloud connected' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { action, text, language, gender, voiceName } = body;
 
     if (action === 'list-voices') {
       // Return available voices organized by language

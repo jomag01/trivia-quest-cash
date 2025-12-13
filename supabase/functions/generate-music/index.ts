@@ -1,9 +1,56 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Save alert to database for admin notification
+async function saveProviderAlert(provider: string, alertType: string, message: string) {
+  try {
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const { data: existing } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'ai_provider_alerts')
+      .single();
+
+    let alerts = [];
+    if (existing?.value) {
+      try {
+        alerts = JSON.parse(existing.value);
+      } catch (e) {
+        alerts = [];
+      }
+    }
+
+    const newAlert = {
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      provider,
+      type: alertType,
+      message,
+      timestamp: new Date().toISOString(),
+      dismissed: false
+    };
+
+    alerts = [newAlert, ...alerts.slice(0, 49)];
+
+    await supabase
+      .from('app_settings')
+      .upsert({
+        key: 'ai_provider_alerts',
+        value: JSON.stringify(alerts)
+      }, { onConflict: 'key' });
+
+    console.log('Alert saved:', provider, alertType);
+  } catch (error) {
+    console.error('Failed to save alert:', error);
+  }
+}
 
 async function pollForResult(taskId: string, apiKey: string, maxAttempts = 60): Promise<any> {
   for (let i = 0; i < maxAttempts; i++) {
@@ -19,6 +66,15 @@ async function pollForResult(taskId: string, apiKey: string, maxAttempts = 60): 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Poll error:', response.status, errorText);
+      
+      // Check for credit issues
+      if (response.status === 402 || response.status === 403 || 
+          errorText.toLowerCase().includes('credit') || 
+          errorText.toLowerCase().includes('quota')) {
+        await saveProviderAlert('Kie.ai', 'credit_exhausted', 'Kie.ai credits exhausted. Music generation failed.');
+        throw new Error('Music generation credits exhausted');
+      }
+      
       throw new Error(`Failed to check task status: ${response.status}`);
     }
 
@@ -31,7 +87,6 @@ async function pollForResult(taskId: string, apiKey: string, maxAttempts = 60): 
       throw new Error('Music generation failed');
     }
 
-    // Wait 3 seconds before next poll
     await new Promise(resolve => setTimeout(resolve, 3000));
   }
 
@@ -44,12 +99,29 @@ serve(async (req) => {
   }
 
   try {
+    const body = await req.json();
+    
+    // Handle test connection request
+    if (body.type === 'test-connection') {
+      const KIE_API_KEY = Deno.env.get('KIE_API_KEY');
+      if (!KIE_API_KEY) {
+        return new Response(
+          JSON.stringify({ status: 'error', message: 'KIE_API_KEY not configured' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ status: 'ok', message: 'Kie.ai connected' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const KIE_API_KEY = Deno.env.get('KIE_API_KEY');
     if (!KIE_API_KEY) {
       throw new Error('KIE_API_KEY is not configured');
     }
 
-    const { prompt, duration = 30, instrumental = false } = await req.json();
+    const { prompt, duration = 30, instrumental = false } = body;
     
     if (!prompt) {
       return new Response(
@@ -60,7 +132,6 @@ serve(async (req) => {
 
     console.log('Generating music with Kie.ai - prompt:', prompt, 'instrumental:', instrumental);
 
-    // Step 1: Submit generation request
     const generateResponse = await fetch('https://api.kie.ai/api/v1/generate', {
       method: 'POST',
       headers: {
@@ -72,13 +143,34 @@ serve(async (req) => {
         customMode: false,
         instrumental: instrumental,
         model: 'V4',
-        callBackUrl: 'https://placeholder-callback.example.com/webhook', // Required by API, we use polling instead
+        callBackUrl: 'https://placeholder-callback.example.com/webhook',
       }),
     });
 
     if (!generateResponse.ok) {
       const errorText = await generateResponse.text();
       console.error('Kie.ai generate error:', generateResponse.status, errorText);
+      
+      // Check for credit/quota issues
+      if (generateResponse.status === 402 || generateResponse.status === 403 ||
+          errorText.toLowerCase().includes('credit') || 
+          errorText.toLowerCase().includes('quota') ||
+          errorText.toLowerCase().includes('billing')) {
+        await saveProviderAlert('Kie.ai', 'credit_exhausted', 'Kie.ai credits exhausted or billing issue. Music generation failed.');
+        return new Response(
+          JSON.stringify({ error: 'Music generation credits exhausted. Please check Kie.ai account.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (generateResponse.status === 401) {
+        await saveProviderAlert('Kie.ai', 'subscription_expired', 'Kie.ai API key invalid or expired.');
+        return new Response(
+          JSON.stringify({ error: 'Kie.ai API key invalid' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       throw new Error(`Kie.ai error: ${generateResponse.status} - ${errorText}`);
     }
 
@@ -92,7 +184,6 @@ serve(async (req) => {
     const taskId = generateResult.data.taskId;
     console.log('Task ID:', taskId);
 
-    // Step 2: Poll for result
     const musicData = await pollForResult(taskId, KIE_API_KEY);
 
     return new Response(
