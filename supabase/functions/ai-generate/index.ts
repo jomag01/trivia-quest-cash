@@ -143,6 +143,49 @@ async function getSignatureKey(key: string, dateStamp: string, region: string, s
   return await hmac(kService, 'aws4_request');
 }
 
+// Save alert to database for admin notification
+async function saveProviderAlert(supabase: any, provider: string, alertType: string, message: string) {
+  try {
+    const { data: existing } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'ai_provider_alerts')
+      .single();
+
+    let alerts = [];
+    if (existing?.value) {
+      try {
+        alerts = JSON.parse(existing.value);
+      } catch (e) {
+        alerts = [];
+      }
+    }
+
+    const newAlert = {
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      provider,
+      type: alertType,
+      message,
+      timestamp: new Date().toISOString(),
+      dismissed: false
+    };
+
+    // Keep only recent 50 alerts
+    alerts = [newAlert, ...alerts.slice(0, 49)];
+
+    await supabase
+      .from('app_settings')
+      .upsert({
+        key: 'ai_provider_alerts',
+        value: JSON.stringify(alerts)
+      }, { onConflict: 'key' });
+
+    console.log('Alert saved:', provider, alertType, message);
+  } catch (error) {
+    console.error('Failed to save alert:', error);
+  }
+}
+
 // Retry with exponential backoff
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
   let lastError: Error | null = null;
@@ -256,12 +299,14 @@ serve(async (req) => {
         console.error("Image generation error:", response.status, errorText);
         
         if (response.status === 429) {
+          await saveProviderAlert(supabase, 'Lovable AI', 'rate_limit', 'Rate limit exceeded on image generation');
           return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
             status: 429,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
         if (response.status === 402) {
+          await saveProviderAlert(supabase, 'Lovable AI', 'credit_exhausted', 'AI credits depleted - image generation failed. Please add more credits to your Lovable account.');
           return new Response(JSON.stringify({ error: "AI credits depleted. Please add more credits." }), {
             status: 402,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -322,8 +367,16 @@ serve(async (req) => {
         console.error("Image analysis error:", response.status, errorText);
         
         if (response.status === 429) {
+          await saveProviderAlert(supabase, 'Lovable AI', 'rate_limit', 'Rate limit exceeded on image analysis');
           return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
             status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        if (response.status === 402) {
+          await saveProviderAlert(supabase, 'Lovable AI', 'credit_exhausted', 'AI credits depleted - image analysis failed');
+          return new Response(JSON.stringify({ error: "AI credits depleted" }), {
+            status: 402,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
