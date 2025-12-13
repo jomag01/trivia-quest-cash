@@ -43,12 +43,12 @@ serve(async (req) => {
     }));
 
     // Shorter, more focused system prompt
-    const systemPrompt = `You are an AI Health Consultant. Help users find health products.
+    const systemPrompt = `You are an AI Product Assistant. Help users find products that match their needs.
 
 RULES:
-- Don't diagnose conditions
-- Recommend consulting a doctor for serious symptoms
+- Recommend products based on user questions and needs
 - Be brief and helpful
+- Highlight popular items and well-reviewed products
 
 PRODUCTS: ${JSON.stringify(productCatalog)}
 
@@ -152,7 +152,7 @@ Max 3 product recommendations. Empty array if none relevant.`;
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Health consultant error:", error);
+    console.error("Product assistant error:", error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "Unknown error",

@@ -8,7 +8,7 @@ import {
   MessageCircle, 
   Send, 
   X, 
-  Stethoscope, 
+  HelpCircle, 
   Star, 
   ShoppingCart,
   Users,
@@ -38,9 +38,11 @@ interface RecommendedProduct {
 }
 
 export default function AIHealthConsultant({ 
-  onAddToCart 
+  onAddToCart,
+  onCartUpdated
 }: { 
-  onAddToCart: (productId: string) => void 
+  onAddToCart: (productId: string) => Promise<void>;
+  onCartUpdated?: () => void;
 }) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -48,7 +50,7 @@ export default function AIHealthConsultant({
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hello! I'm your AI Health Consultant. I'm here to help you find health products that may benefit you. Please describe any health concerns or symptoms you're experiencing, and I'll recommend suitable products from our shop.\n\n⚠️ Note: This is not medical advice. Please consult a healthcare professional for proper diagnosis and treatment."
+      content: "Hello! I'm your AI Product Assistant. I'm here to help you find products that suit your needs. Ask me anything about our products, and I'll recommend the best options from our shop based on sales data and customer reviews."
     }
   ]);
   const [inputMessage, setInputMessage] = useState("");
@@ -126,9 +128,9 @@ export default function AIHealthConsultant({
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+        className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
       >
-        <Stethoscope className="w-6 h-6 text-white" />
+        <HelpCircle className="w-6 h-6 text-primary-foreground" />
       </Button>
     );
   }
@@ -140,15 +142,15 @@ export default function AIHealthConsultant({
         : "bottom-24 right-4 w-[90vw] max-w-md h-[70vh] max-h-[600px] md:w-96"
     }`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-t-lg">
+      <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-t-lg">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-white/20 rounded-full">
-            <Stethoscope className="w-4 h-4" />
+          <div className="p-1.5 bg-primary-foreground/20 rounded-full">
+            <HelpCircle className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">AI Health Consultant</h3>
+            <h3 className="font-semibold text-sm">Product Assistant</h3>
             {!isMinimized && (
-              <p className="text-xs text-white/80">Health product recommendations</p>
+              <p className="text-xs text-primary-foreground/80">AI product recommendations</p>
             )}
           </div>
         </div>
@@ -156,7 +158,7 @@ export default function AIHealthConsultant({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-white hover:bg-white/20"
+            className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
             onClick={() => setIsMinimized(!isMinimized)}
           >
             {isMinimized ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -164,7 +166,7 @@ export default function AIHealthConsultant({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-white hover:bg-white/20"
+            className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
             onClick={() => setIsOpen(false)}
           >
             <X className="w-4 h-4" />
@@ -227,10 +229,10 @@ export default function AIHealthConsultant({
                             </div>
                             <Button
                               size="sm"
-                              className="w-full mt-2 bg-green-600 hover:bg-green-700"
-                              onClick={() => {
-                                onAddToCart(product.id);
-                                toast.success(`${product.name} added to cart!`);
+                              className="w-full mt-2 bg-primary hover:bg-primary/90"
+                              onClick={async () => {
+                                await onAddToCart(product.id);
+                                onCartUpdated?.();
                               }}
                             >
                               <ShoppingCart className="w-3 h-3 mr-1" />
@@ -262,7 +264,7 @@ export default function AIHealthConsultant({
           <div className="p-3 border-t bg-background">
             <div className="flex gap-2">
               <Input
-                placeholder="Describe your health concern..."
+                placeholder="Ask about any product..."
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
