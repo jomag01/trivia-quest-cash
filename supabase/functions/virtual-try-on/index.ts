@@ -5,6 +5,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to convert image URL to base64
+async function fetchImageAsBase64(imageUrl: string): Promise<string> {
+  try {
+    // Skip if already base64
+    if (imageUrl.startsWith('data:')) {
+      return imageUrl;
+    }
+
+    console.log("Fetching image:", imageUrl);
+    
+    const response = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'image/*,*/*',
+      },
+      redirect: 'follow',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+    
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    throw new Error(`Failed to fetch image from URL: ${imageUrl}`);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -26,6 +61,16 @@ serve(async (req) => {
     console.log("Product:", productDescription);
     console.log("Has user photo:", !!userPhotoUrl);
 
+    // Convert product image to base64
+    let productImageBase64: string;
+    try {
+      productImageBase64 = await fetchImageAsBase64(productImageUrl);
+      console.log("Product image converted to base64");
+    } catch (error) {
+      console.error("Failed to convert product image:", error);
+      throw new Error("Could not load product image. Please try a different product.");
+    }
+
     // Build the message content
     const messageContent: any[] = [
       {
@@ -35,12 +80,12 @@ serve(async (req) => {
       {
         type: "image_url",
         image_url: {
-          url: productImageUrl
+          url: productImageBase64
         }
       }
     ];
 
-    // If user uploaded their photo, include it
+    // If user uploaded their photo, include it (already base64)
     if (userPhotoUrl) {
       messageContent.push({
         type: "image_url",
