@@ -180,7 +180,7 @@ const Shop = () => {
         });
         if (error) throw error;
       }
-      fetchCartStatus();
+      await fetchCartStatus();
       toast.success("Added to cart");
     } catch (error: any) {
       console.error("Error adding to cart:", error);
@@ -637,8 +637,8 @@ const Shop = () => {
         />
       )}
 
-      {/* AI Health Consultant */}
-      <AIHealthConsultant onAddToCart={addToCart} />
+      {/* Product Assistant */}
+      <AIHealthConsultant onAddToCart={addToCart} onCartUpdated={fetchCartStatus} />
     </div>;
 };
 export default Shop;
