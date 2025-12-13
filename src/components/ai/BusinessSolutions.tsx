@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import pptxgen from 'pptxgenjs';
 import { 
   FileText, 
   Upload, 
@@ -260,20 +261,147 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
     }
   };
 
-  const downloadPPT = () => {
+  const downloadPPT = async () => {
     if (!generatedPPT) return;
     
-    // Create downloadable content
-    const content = JSON.stringify(generatedPPT, null, 2);
-    const blob = new Blob([content], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `presentation-${Date.now()}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    
-    toast.success('Presentation data downloaded! Use this with your preferred presentation software.');
+    try {
+      toast.loading('Creating PowerPoint file with images...');
+      
+      const pptx = new pptxgen();
+      pptx.title = generatedPPT.title || 'Presentation';
+      pptx.author = 'TriviaBees AI Hub';
+      
+      // Design configurations
+      const designConfigs: Record<string, {
+        background: string;
+        titleColor: string;
+        textColor: string;
+        accentColor: string;
+      }> = {
+        professional: { background: 'FFFFFF', titleColor: '1e40af', textColor: '1f2937', accentColor: '3b82f6' },
+        creative: { background: 'faf5ff', titleColor: '7c3aed', textColor: '4c1d95', accentColor: 'a855f7' },
+        minimal: { background: 'FFFFFF', titleColor: '111827', textColor: '374151', accentColor: '6b7280' },
+        modern: { background: 'f0fdfa', titleColor: '0d9488', textColor: '134e4a', accentColor: '14b8a6' },
+        dark: { background: '1e293b', titleColor: 'f8fafc', textColor: 'e2e8f0', accentColor: '38bdf8' },
+        gradient: { background: 'fdf2f8', titleColor: 'be185d', textColor: '831843', accentColor: 'ec4899' },
+      };
+      
+      const config = designConfigs[selectedDesign] || designConfigs.professional;
+      
+      // Process each slide
+      for (let i = 0; i < generatedPPT.slides?.length; i++) {
+        const slideData = generatedPPT.slides[i];
+        const slide = pptx.addSlide();
+        
+        // Set background
+        slide.background = { color: config.background };
+        
+        // Add title
+        slide.addText(slideData.title || `Slide ${i + 1}`, {
+          x: 0.5,
+          y: 0.3,
+          w: '90%',
+          h: 0.8,
+          fontSize: slideData.type === 'title' ? 36 : 28,
+          bold: true,
+          color: config.titleColor,
+          fontFace: 'Arial',
+        });
+        
+        // Handle different slide types
+        if (slideData.type === 'title') {
+          // Title slide with subtitle
+          if (slideData.content) {
+            slide.addText(slideData.content, {
+              x: 0.5,
+              y: 2.5,
+              w: '90%',
+              h: 1,
+              fontSize: 20,
+              color: config.textColor,
+              fontFace: 'Arial',
+            });
+          }
+        } else if (slideData.bulletPoints && slideData.bulletPoints.length > 0) {
+          // Bullet points slide
+          const bulletText = slideData.bulletPoints.map((point: string) => ({
+            text: point,
+            options: { bullet: true, fontSize: 18, color: config.textColor }
+          }));
+          
+          slide.addText(bulletText, {
+            x: 0.5,
+            y: 1.5,
+            w: slideData.imageUrl ? '45%' : '90%',
+            h: 3.5,
+            fontFace: 'Arial',
+            valign: 'top',
+          });
+        } else if (slideData.content) {
+          // Content slide
+          slide.addText(slideData.content, {
+            x: 0.5,
+            y: 1.5,
+            w: slideData.imageUrl ? '45%' : '90%',
+            h: 3.5,
+            fontSize: 16,
+            color: config.textColor,
+            fontFace: 'Arial',
+            valign: 'top',
+          });
+        }
+        
+        // Add AI-generated image if available
+        if (slideData.imageUrl && slideData.imageUrl.startsWith('data:image')) {
+          try {
+            slide.addImage({
+              data: slideData.imageUrl,
+              x: 5.2,
+              y: 1.5,
+              w: 4,
+              h: 3,
+              sizing: { type: 'contain', w: 4, h: 3 },
+            });
+          } catch (imgError) {
+            console.error('Failed to add image:', imgError);
+          }
+        }
+        
+        // Add accent bar
+        slide.addShape(pptx.ShapeType.rect, {
+          x: 0,
+          y: 5.1,
+          w: '100%',
+          h: 0.15,
+          fill: { color: config.accentColor },
+        });
+        
+        // Add slide number
+        slide.addText(`${i + 1}`, {
+          x: 9,
+          y: 5.1,
+          w: 0.5,
+          h: 0.3,
+          fontSize: 10,
+          color: config.accentColor,
+        });
+        
+        // Add speaker notes if available
+        if (slideData.speakerNotes) {
+          slide.addNotes(slideData.speakerNotes);
+        }
+      }
+      
+      // Generate and download the file
+      await pptx.writeFile({ fileName: `presentation-${Date.now()}.pptx` });
+      toast.dismiss();
+      toast.success('PowerPoint presentation downloaded!');
+      
+    } catch (error) {
+      console.error('PPT generation error:', error);
+      toast.dismiss();
+      toast.error('Failed to create PowerPoint file');
+    }
   };
 
   const downloadExcelResult = () => {

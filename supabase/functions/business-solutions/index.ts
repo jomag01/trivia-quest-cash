@@ -5,6 +5,48 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function generateImageForSlide(prompt: string, apiKey: string): Promise<string | null> {
+  try {
+    console.log('Generating image for:', prompt.substring(0, 50));
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-image-preview',
+        messages: [
+          {
+            role: 'user',
+            content: `Generate a professional, high-quality business presentation image for: ${prompt}. The image should be clean, modern, suitable for corporate presentations. Ultra high resolution, professional quality.`
+          }
+        ],
+        modalities: ['image', 'text']
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Image generation failed:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    
+    if (imageUrl) {
+      console.log('Image generated successfully');
+      return imageUrl;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Image generation error:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -26,7 +68,6 @@ serve(async (req) => {
       let contentPrompt = '';
       
       if (mode === 'document' && document) {
-        // Extract text content from base64 document
         const base64Content = document.split(',')[1] || document;
         contentPrompt = `Based on the following document content, create a professional presentation:\n\nDocument: ${base64Content.substring(0, 5000)}...`;
       } else if (mode === 'topic' && topic) {
@@ -46,6 +87,8 @@ serve(async (req) => {
       
 Design Style: ${designInstructions[design as keyof typeof designInstructions] || designInstructions.professional}
 
+IMPORTANT: For each slide, provide a detailed "imagePrompt" that describes a relevant, professional image to accompany the slide content. This will be used to generate AI images.
+
 Return a JSON object with this structure:
 {
   "title": "Presentation Title",
@@ -57,7 +100,7 @@ Return a JSON object with this structure:
       "content": "Main content or description",
       "bulletPoints": ["point 1", "point 2"],
       "speakerNotes": "Notes for the presenter",
-      "suggestedVisual": "Description of suggested image or chart"
+      "imagePrompt": "Detailed description for generating a relevant professional image"
     }
   ],
   "designNotes": "Overall design recommendations"
@@ -75,7 +118,6 @@ Return a JSON object with this structure:
             { role: 'system', content: systemPrompt },
             { role: 'user', content: contentPrompt }
           ],
-          temperature: 0.7,
         }),
       });
 
@@ -103,7 +145,6 @@ Return a JSON object with this structure:
         }
       } catch (parseError) {
         console.error('Parse error:', parseError);
-        // Create a structured response from text
         presentation = {
           title: topic || 'Presentation',
           slides: content.split('\n\n').slice(0, slideCount).map((text: string, idx: number) => ({
@@ -111,10 +152,26 @@ Return a JSON object with this structure:
             title: `Slide ${idx + 1}`,
             type: idx === 0 ? 'title' : 'content',
             content: text.trim(),
-            speakerNotes: ''
+            speakerNotes: '',
+            imagePrompt: `Professional business image for: ${text.substring(0, 100)}`
           })),
           designNotes: `Style: ${design}`
         };
+      }
+
+      // Generate AI images for each slide (limit to first 5 slides to avoid timeout)
+      console.log('Generating images for slides...');
+      const slidesToProcess = Math.min(presentation.slides?.length || 0, 5);
+      
+      for (let i = 0; i < slidesToProcess; i++) {
+        const slide = presentation.slides[i];
+        if (slide.imagePrompt || slide.suggestedVisual) {
+          const prompt = slide.imagePrompt || slide.suggestedVisual || slide.title;
+          const imageUrl = await generateImageForSlide(prompt, LOVABLE_API_KEY);
+          if (imageUrl) {
+            presentation.slides[i].imageUrl = imageUrl;
+          }
+        }
       }
 
       return new Response(
@@ -158,7 +215,6 @@ Return a JSON object with this structure:
   "fullReport": "Detailed report content in markdown format"
 }`;
 
-      // Extract a sample of the data for analysis
       const base64Content = excelData.split(',')[1] || excelData;
       const dataPrompt = `Analyze this Excel/CSV data (base64 encoded, first 3000 chars shown):\n${base64Content.substring(0, 3000)}`;
 
@@ -174,7 +230,6 @@ Return a JSON object with this structure:
             { role: 'system', content: systemPrompt },
             { role: 'user', content: dataPrompt }
           ],
-          temperature: 0.5,
         }),
       });
 
@@ -191,7 +246,6 @@ Return a JSON object with this structure:
         throw new Error('No content returned from AI');
       }
 
-      // Parse JSON from response
       let result;
       try {
         const jsonMatch = content.match(/\{[\s\S]*\}/);
