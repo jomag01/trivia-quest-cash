@@ -393,6 +393,70 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
+    } else if (type === 'product-recommendations') {
+      const { context } = await req.json().catch(() => ({ context: '{}' }));
+      const contextData = JSON.parse(context || '{}');
+      
+      const systemPrompt = `You are a smart product recommendation AI. Based on the user's browsing behavior and current product context, suggest the most relevant products from the available list.
+
+Rules:
+- Return a JSON object with "recommendations" (array of product IDs, max 4) and "reason" (brief explanation for user, max 15 words)
+- Prioritize products similar to what user is viewing or has viewed
+- Consider category relevance and price range similarity
+- Be creative but logical in recommendations`;
+
+      const userPrompt = `Current product: ${JSON.stringify(contextData.currentProduct || 'None')}
+Recently viewed: ${JSON.stringify(contextData.recentlyViewed || [])}
+Available products: ${JSON.stringify(contextData.availableProducts || [])}
+
+Return JSON with "recommendations" (product IDs) and "reason" (short user-friendly explanation).`;
+
+      const response = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          response_format: { type: "json_object" }
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Product recommendations error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded", recommendations: [], reason: "Popular picks" }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`Recommendations failed: ${errorText}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      
+      try {
+        const parsed = JSON.parse(content);
+        return new Response(JSON.stringify({
+          recommendations: parsed.recommendations || [],
+          reason: parsed.reason || "Recommended for you"
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch {
+        return new Response(JSON.stringify({ recommendations: [], reason: "Trending products" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
     } else {
       throw new Error(`Unknown type: ${type}`);
     }
