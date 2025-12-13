@@ -456,6 +456,42 @@ export type Database = {
           },
         ]
       }
+      chess_rooms: {
+        Row: {
+          created_at: string
+          game_state: Json | null
+          guest_id: string | null
+          host_id: string
+          id: string
+          name: string
+          status: string
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          game_state?: Json | null
+          guest_id?: string | null
+          host_id: string
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          game_state?: Json | null
+          guest_id?: string | null
+          host_id?: string
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       comment_reactions: {
         Row: {
           comment_id: string
