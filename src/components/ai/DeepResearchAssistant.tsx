@@ -19,7 +19,9 @@ import {
   Zap,
   Bot,
   User,
-  RefreshCw
+  RefreshCw,
+  Video,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,9 +35,10 @@ interface Message {
 
 interface DeepResearchAssistantProps {
   compact?: boolean;
+  onCreateVideo?: (researchContent: string, topic: string) => void;
 }
 
-const DeepResearchAssistant: React.FC<DeepResearchAssistantProps> = ({ compact = false }) => {
+const DeepResearchAssistant: React.FC<DeepResearchAssistantProps> = ({ compact = false, onCreateVideo }) => {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -248,14 +251,32 @@ const DeepResearchAssistant: React.FC<DeepResearchAssistantProps> = ({ compact =
                       )}
                     </div>
                     {msg.role === 'assistant' && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-6 w-6 p-0"
-                        onClick={() => copyToClipboard(msg.content)}
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0"
+                          onClick={() => copyToClipboard(msg.content)}
+                          title="Copy to clipboard"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                        {onCreateVideo && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 px-2 gap-1 text-primary"
+                            onClick={() => {
+                              const lastUserMessage = messages.slice(0, messages.indexOf(msg)).reverse().find(m => m.role === 'user');
+                              onCreateVideo(msg.content, lastUserMessage?.content || 'Research Topic');
+                            }}
+                            title="Create video from this research"
+                          >
+                            <Video className="w-3 h-3" />
+                            <span className="text-xs">Create Video</span>
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                   <div className="text-sm">
