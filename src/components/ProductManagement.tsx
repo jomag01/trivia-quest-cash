@@ -824,6 +824,29 @@ export const ProductManagement = () => {
                 </div>
               </div>
 
+              {/* Product Variants Section - Only show when editing */}
+              {editingProduct && (
+                <div className="border-t pt-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Layers className="w-4 h-4" />
+                    <Label className="text-sm font-semibold">Product Variants (Sizes, Colors, etc.)</Label>
+                  </div>
+                  <ProductVariantManager
+                    productId={editingProduct.id}
+                    productName={editingProduct.name}
+                  />
+                </div>
+              )}
+
+              {!editingProduct && (
+                <div className="border-t pt-3">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Layers className="w-4 h-4" />
+                    <p className="text-xs">Save the product first, then you can add variants like sizes and colors.</p>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel

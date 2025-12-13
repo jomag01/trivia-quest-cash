@@ -416,6 +416,29 @@ export default function SellerDashboard() {
                 />
               </div>
             )}
+            
+            {/* Product Variants Section */}
+            {editingProduct && (
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Layers className="w-4 h-4" />
+                  <Label className="text-sm font-semibold">Product Variants (Sizes, Colors, etc.)</Label>
+                </div>
+                <ProductVariantManager
+                  productId={editingProduct.id}
+                  productName={editingProduct.name}
+                />
+              </div>
+            )}
+
+            {!editingProduct && (
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Layers className="w-4 h-4" />
+                  <p className="text-xs">Save the product first, then you can add variants like sizes and colors.</p>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setShowProductDialog(false)}>Cancel</Button><Button onClick={handleSaveProduct} disabled={submitting}>{submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save</Button></DialogFooter>
         </DialogContent>
