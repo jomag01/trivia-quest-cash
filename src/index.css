@@ -240,6 +240,11 @@
   .safe-area-top {
     padding-top: env(safe-area-inset-top, 0);
   }
+
+  /* Bottom navigation spacing for all page content */
+  .page-with-nav {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @keyframes fadeIn {
