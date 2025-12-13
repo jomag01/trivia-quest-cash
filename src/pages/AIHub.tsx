@@ -31,6 +31,36 @@ const AIHub = memo(() => {
   const [videoDescription, setVideoDescription] = useState<string | null>(null);
   const [videoPrompt, setVideoPrompt] = useState('');
   const [adPreset, setAdPreset] = useState<string>('none');
+  const [imageStylePreset, setImageStylePreset] = useState<string>('none');
+  const [videoAspectRatio, setVideoAspectRatio] = useState<string>('16:9');
+
+  // Image style presets
+  const IMAGE_STYLE_PRESETS = {
+    none: { label: 'Default', promptSuffix: '' },
+    realistic: { label: 'Realistic', promptSuffix: ', ultra realistic, photorealistic, 8K UHD, high detail, professional photography' },
+    cartoon: { label: 'Cartoon', promptSuffix: ', cartoon style, animated, vibrant colors, playful, 2D illustration' },
+    anime: { label: 'Anime', promptSuffix: ', anime style, Japanese animation, cel shading, vibrant colors, detailed eyes' },
+    '3d-render': { label: '3D Render', promptSuffix: ', 3D render, CGI, octane render, blender, highly detailed, volumetric lighting' },
+    'oil-painting': { label: 'Oil Painting', promptSuffix: ', oil painting style, classic art, textured brushstrokes, museum quality' },
+    watercolor: { label: 'Watercolor', promptSuffix: ', watercolor painting, soft edges, flowing colors, artistic, hand-painted' },
+    'pixel-art': { label: 'Pixel Art', promptSuffix: ', pixel art style, retro gaming, 16-bit, nostalgic, crisp pixels' },
+    cyberpunk: { label: 'Cyberpunk', promptSuffix: ', cyberpunk style, neon lights, futuristic, dystopian, high tech low life' },
+    fantasy: { label: 'Fantasy', promptSuffix: ', fantasy art style, magical, ethereal, mystical, epic fantasy illustration' },
+    'sora-cinematic': { label: 'Sora Cinematic', promptSuffix: ', cinematic shot, film grain, anamorphic lens, movie scene, dramatic lighting, 35mm film' },
+    'sora-dreamlike': { label: 'Sora Dreamlike', promptSuffix: ', dreamlike, surreal, ethereal atmosphere, soft focus, magical realism' },
+    minimalist: { label: 'Minimalist', promptSuffix: ', minimalist design, clean lines, simple, modern, elegant' },
+    vintage: { label: 'Vintage', promptSuffix: ', vintage style, retro, nostalgic, aged photograph, sepia tones' },
+    'comic-book': { label: 'Comic Book', promptSuffix: ', comic book style, bold lines, halftone dots, dynamic action, superhero comics' },
+  };
+
+  // Video aspect ratio presets
+  const VIDEO_ASPECT_RATIOS = {
+    '16:9': { label: 'YouTube/Landscape', description: '16:9 - Standard YouTube, TV' },
+    '9:16': { label: 'TikTok/Reels', description: '9:16 - TikTok, IG Reels, YT Shorts' },
+    '1:1': { label: 'Instagram Square', description: '1:1 - Instagram Feed' },
+    '4:5': { label: 'Instagram Portrait', description: '4:5 - Instagram Portrait' },
+    '4:3': { label: 'Classic', description: '4:3 - Classic TV format' },
+  };
 
   // Ad presets with dimensions and prompt enhancements
   const AD_PRESETS = {
@@ -205,9 +235,10 @@ const AIHub = memo(() => {
     setIsGenerating(true);
     setGeneratedImage(null);
     try {
-      // Build the final prompt with ad preset suffix
-      const selectedPreset = AD_PRESETS[adPreset as keyof typeof AD_PRESETS];
-      const finalPrompt = prompt.trim() + (selectedPreset?.promptSuffix || '');
+      // Build the final prompt with style and ad preset suffixes
+      const selectedAdPreset = AD_PRESETS[adPreset as keyof typeof AD_PRESETS];
+      const selectedStylePreset = IMAGE_STYLE_PRESETS[imageStylePreset as keyof typeof IMAGE_STYLE_PRESETS];
+      const finalPrompt = prompt.trim() + (selectedStylePreset?.promptSuffix || '') + (selectedAdPreset?.promptSuffix || '');
       
       const {
         data,
@@ -217,7 +248,7 @@ const AIHub = memo(() => {
           type: 'text-to-image',
           prompt: finalPrompt,
           referenceImage: referenceImage,
-          dimensions: selectedPreset?.dimensions || undefined
+          dimensions: selectedAdPreset?.dimensions || undefined
         }
       });
       if (error) throw error;
@@ -349,7 +380,8 @@ const AIHub = memo(() => {
       } = await supabase.functions.invoke('text-to-video', {
         body: {
           prompt: videoPrompt.trim(),
-          duration: 5
+          duration: 5,
+          aspectRatio: videoAspectRatio
         }
       });
       if (error) throw error;
@@ -754,7 +786,47 @@ const AIHub = memo(() => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Your Prompt</Label>
-                  <Textarea placeholder="A majestic dragon flying over a crystal lake at sunset, fantasy art style, highly detailed..." value={prompt} onChange={e => setPrompt(e.target.value)} className="min-h-[120px] resize-none" />
+                  <Textarea placeholder="A majestic dragon flying over a crystal lake at sunset..." value={prompt} onChange={e => setPrompt(e.target.value)} className="min-h-[120px] resize-none" />
+                </div>
+
+                {/* Image Style Preset */}
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Palette className="h-3.5 w-3.5" />
+                    Image Style
+                  </Label>
+                  <Select value={imageStylePreset} onValueChange={setImageStylePreset}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Select style..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[320px]">
+                      <SelectItem value="none" className="text-sm">🎨 Default (No style)</SelectItem>
+                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Photo & Realistic</div>
+                      <SelectItem value="realistic" className="text-sm">📸 Realistic / Photorealistic</SelectItem>
+                      <SelectItem value="sora-cinematic" className="text-sm">🎬 Sora Cinematic</SelectItem>
+                      <SelectItem value="sora-dreamlike" className="text-sm">💫 Sora Dreamlike</SelectItem>
+                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Illustration & Art</div>
+                      <SelectItem value="cartoon" className="text-sm">🎪 Cartoon</SelectItem>
+                      <SelectItem value="anime" className="text-sm">🌸 Anime</SelectItem>
+                      <SelectItem value="comic-book" className="text-sm">💥 Comic Book</SelectItem>
+                      <SelectItem value="pixel-art" className="text-sm">👾 Pixel Art</SelectItem>
+                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Fine Art</div>
+                      <SelectItem value="oil-painting" className="text-sm">🖼️ Oil Painting</SelectItem>
+                      <SelectItem value="watercolor" className="text-sm">💧 Watercolor</SelectItem>
+                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Digital & 3D</div>
+                      <SelectItem value="3d-render" className="text-sm">🎮 3D Render</SelectItem>
+                      <SelectItem value="cyberpunk" className="text-sm">🌃 Cyberpunk</SelectItem>
+                      <SelectItem value="fantasy" className="text-sm">🧙 Fantasy</SelectItem>
+                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Other Styles</div>
+                      <SelectItem value="minimalist" className="text-sm">⬜ Minimalist</SelectItem>
+                      <SelectItem value="vintage" className="text-sm">📷 Vintage</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {imageStylePreset !== 'none' && (
+                    <p className="text-xs text-muted-foreground">
+                      Style: {IMAGE_STYLE_PRESETS[imageStylePreset as keyof typeof IMAGE_STYLE_PRESETS]?.label}
+                    </p>
+                  )}
                 </div>
 
                 {/* Image Format Preset */}
@@ -1020,6 +1092,29 @@ const AIHub = memo(() => {
                 <div className="space-y-2">
                   <Label>Your Prompt</Label>
                   <Textarea placeholder="A peaceful river flowing through a forest, with sunlight filtering through the trees..." value={videoPrompt} onChange={e => setVideoPrompt(e.target.value)} className="min-h-[120px] resize-none" />
+                </div>
+
+                {/* Video Aspect Ratio */}
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <VideoIcon className="h-3.5 w-3.5" />
+                    Aspect Ratio (Platform)
+                  </Label>
+                  <Select value={videoAspectRatio} onValueChange={setVideoAspectRatio}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Select aspect ratio..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="16:9" className="text-sm">📺 YouTube / Landscape (16:9)</SelectItem>
+                      <SelectItem value="9:16" className="text-sm">📱 TikTok / Reels / Shorts (9:16)</SelectItem>
+                      <SelectItem value="1:1" className="text-sm">📷 Instagram Square (1:1)</SelectItem>
+                      <SelectItem value="4:5" className="text-sm">📸 Instagram Portrait (4:5)</SelectItem>
+                      <SelectItem value="4:3" className="text-sm">🖥️ Classic (4:3)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {VIDEO_ASPECT_RATIOS[videoAspectRatio as keyof typeof VIDEO_ASPECT_RATIOS]?.description}
+                  </p>
                 </div>
 
                 {user && !canGenerateVideo() && <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">

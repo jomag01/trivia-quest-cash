@@ -16,7 +16,7 @@ serve(async (req) => {
       throw new Error('FAL_API_KEY is not configured');
     }
 
-    const { prompt, duration = 5 } = await req.json();
+    const { prompt, duration = 5, aspectRatio = "16:9" } = await req.json();
     
     if (!prompt) {
       return new Response(
@@ -25,7 +25,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Generating video with prompt:', prompt, 'duration:', duration);
+    console.log('Generating video with prompt:', prompt, 'duration:', duration, 'aspectRatio:', aspectRatio);
 
     // Submit video generation request to fal.ai using Vidu text-to-video model
     const submitResponse = await fetch('https://queue.fal.run/fal-ai/vidu/q1/text-to-video', {
@@ -36,7 +36,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         prompt: prompt,
-        aspect_ratio: "16:9",
+        aspect_ratio: aspectRatio,
         duration: duration <= 4 ? "4s" : "8s",
       }),
     });
