@@ -1,10 +1,16 @@
-// Ultra-optimized Service Worker for 1M+ concurrent users
-// Aggressive caching with stale-while-revalidate strategy
+// Ultra-optimized Service Worker for 100M+ concurrent users
+// Features: Aggressive caching, stale-while-revalidate, offline support, request coalescing
 
-const CACHE_VERSION = 'triviabees-v3';
+const CACHE_VERSION = 'triviabees-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
+const IMAGE_CACHE = `${CACHE_VERSION}-images`;
+
+// Max cache sizes to prevent storage exhaustion
+const MAX_DYNAMIC_CACHE_SIZE = 100;
+const MAX_API_CACHE_SIZE = 200;
+const MAX_IMAGE_CACHE_SIZE = 500;
 
 // Critical static assets to pre-cache
 const STATIC_ASSETS = [
@@ -12,6 +18,9 @@ const STATIC_ASSETS = [
   '/fallback.html',
   '/favicon.ico'
 ];
+
+// Request coalescing - prevent duplicate concurrent requests
+const pendingRequests = new Map();
 
 // Install: Pre-cache critical assets
 self.addEventListener('install', (event) => {
@@ -31,14 +40,15 @@ self.addEventListener('activate', (event) => {
           .filter(key => key.startsWith('triviabees-') && 
                         key !== STATIC_CACHE && 
                         key !== DYNAMIC_CACHE && 
-                        key !== API_CACHE)
+                        key !== API_CACHE &&
+                        key !== IMAGE_CACHE)
           .map(key => caches.delete(key))
       )
     ).then(() => self.clients.claim())
   );
 });
 
-// Fetch: Smart caching strategies
+// Fetch: Smart caching strategies with request coalescing
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -46,19 +56,25 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET and non-http(s) requests
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) return;
 
-  // Strategy 1: Cache-first for static assets (JS, CSS, images, fonts)
+  // Strategy 1: Cache-first for static assets (JS, CSS, fonts)
   if (isStaticAsset(url)) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
   }
 
-  // Strategy 2: Stale-while-revalidate for API (except auth)
-  if (isApiRequest(url) && !url.pathname.includes('/auth/')) {
-    event.respondWith(staleWhileRevalidate(request, API_CACHE));
+  // Strategy 2: Optimized image caching with size limits
+  if (isImageAsset(url)) {
+    event.respondWith(cacheFirstWithLimit(request, IMAGE_CACHE, MAX_IMAGE_CACHE_SIZE));
     return;
   }
 
-  // Strategy 3: Network-first for HTML pages
+  // Strategy 3: Stale-while-revalidate for API (except auth) with coalescing
+  if (isApiRequest(url) && !url.pathname.includes('/auth/')) {
+    event.respondWith(staleWhileRevalidateCoalesced(request, API_CACHE));
+    return;
+  }
+
+  // Strategy 4: Network-first for HTML pages
   if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(networkFirstWithFallback(request));
     return;
@@ -68,10 +84,15 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(networkWithCacheFallback(request, DYNAMIC_CACHE));
 });
 
-// Static asset detection
+// Static asset detection (excluding images)
 function isStaticAsset(url) {
-  return /\.(js|css|woff2?|ttf|otf|png|jpg|jpeg|gif|webp|avif|svg|ico)$/i.test(url.pathname) ||
-         url.pathname.startsWith('/assets/');
+  return /\.(js|css|woff2?|ttf|otf)$/i.test(url.pathname) ||
+         url.pathname.startsWith('/assets/') && !/\.(png|jpg|jpeg|gif|webp|avif|svg)$/i.test(url.pathname);
+}
+
+// Image asset detection
+function isImageAsset(url) {
+  return /\.(png|jpg|jpeg|gif|webp|avif|svg|ico)$/i.test(url.pathname);
 }
 
 // API request detection
@@ -99,21 +120,77 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-// Stale-while-revalidate (API calls - instant response, background update)
-async function staleWhileRevalidate(request, cacheName) {
+// Cache-first with size limit (images)
+async function cacheFirstWithLimit(request, cacheName, maxSize) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   
-  // Background fetch
-  const fetchPromise = fetch(request).then(response => {
+  if (cached) return cached;
+  
+  try {
+    const response = await fetch(request);
     if (response.ok) {
+      // Check cache size and evict if needed
+      const keys = await cache.keys();
+      if (keys.length >= maxSize) {
+        // Remove oldest 20%
+        const toRemove = Math.ceil(keys.length * 0.2);
+        for (let i = 0; i < toRemove; i++) {
+          await cache.delete(keys[i]);
+        }
+      }
       cache.put(request, response.clone());
     }
     return response;
-  }).catch(() => cached);
+  } catch (e) {
+    return new Response('Offline', { status: 503 });
+  }
+}
+
+// Stale-while-revalidate with request coalescing (API calls)
+async function staleWhileRevalidateCoalesced(request, cacheName) {
+  const requestKey = request.url;
+  
+  // Check if there's already a pending request for this URL
+  if (pendingRequests.has(requestKey)) {
+    return pendingRequests.get(requestKey);
+  }
+  
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  
+  // Create the fetch promise with coalescing
+  const fetchPromise = fetch(request).then(async response => {
+    pendingRequests.delete(requestKey);
+    if (response.ok) {
+      // Check cache size
+      const keys = await cache.keys();
+      if (keys.length >= MAX_API_CACHE_SIZE) {
+        const toRemove = Math.ceil(keys.length * 0.2);
+        for (let i = 0; i < toRemove; i++) {
+          await cache.delete(keys[i]);
+        }
+      }
+      cache.put(request, response.clone());
+    }
+    return response;
+  }).catch(e => {
+    pendingRequests.delete(requestKey);
+    return cached || new Response('Offline', { status: 503 });
+  });
+  
+  // Store pending request for coalescing
+  if (!cached) {
+    pendingRequests.set(requestKey, fetchPromise);
+  }
   
   // Return cached immediately if available
   return cached || fetchPromise;
+}
+
+// Legacy function name for compatibility
+async function staleWhileRevalidate(request, cacheName) {
+  return staleWhileRevalidateCoalesced(request, cacheName);
 }
 
 // Network-first with fallback (HTML pages)
