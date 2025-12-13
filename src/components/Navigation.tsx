@@ -11,8 +11,8 @@ const Navigation = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-background/95 backdrop-blur-lg border-t border-border shadow-lg" style={{ position: 'fixed' }}>
-      <div className="flex items-center justify-around h-16 max-w-screen-xl mx-auto px-1 safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-background/95 backdrop-blur-lg border-t border-border shadow-lg pb-[env(safe-area-inset-bottom,0px)]" style={{ position: 'fixed' }}>
+      <div className="flex items-center justify-around h-14 max-w-screen-xl mx-auto px-1">
         {/* AI Hub (Home) */}
         <Link
           to="/"
