@@ -13,15 +13,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare } from 'lucide-react';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
+import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
+import AdvancedChatAssistant from '@/components/ai/AdvancedChatAssistant';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 const AIHub = memo(() => {
   const {
     user,
     profile
   } = useAuth();
-  const [activeTab, setActiveTab] = useState('business');
+  const [activeTab, setActiveTab] = useState('research');
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -743,7 +745,17 @@ const AIHub = memo(() => {
       {/* Main Content */}
       <div className="container mx-auto px-4 -mt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-4 md:grid-cols-8 w-full max-w-5xl mx-auto bg-background/50 backdrop-blur-sm border">
+          <TabsList className="grid grid-cols-5 md:grid-cols-10 w-full max-w-6xl mx-auto bg-background/50 backdrop-blur-sm border">
+            <TabsTrigger value="research" className="gap-1 text-xs sm:text-sm">
+              <Brain className="h-4 w-4" />
+              <span className="hidden sm:inline">Research</span>
+              <span className="sm:hidden">🔬</span>
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="gap-1 text-xs sm:text-sm">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">GPT-5</span>
+              <span className="sm:hidden">💬</span>
+            </TabsTrigger>
             <TabsTrigger value="business" className="gap-1 text-xs sm:text-sm">
               <Briefcase className="h-4 w-4" />
               <span className="hidden sm:inline">Business</span>
@@ -785,6 +797,16 @@ const AIHub = memo(() => {
               <span className="sm:hidden">Create</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* Deep Research Assistant */}
+          <TabsContent value="research">
+            <DeepResearchAssistant />
+          </TabsContent>
+
+          {/* GPT-5 Chat Assistant */}
+          <TabsContent value="chat">
+            <AdvancedChatAssistant />
+          </TabsContent>
 
           {/* Business Solutions */}
           <TabsContent value="business">

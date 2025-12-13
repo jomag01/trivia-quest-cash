@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown } from "lucide-react";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
@@ -33,6 +33,8 @@ import { CustomerSupportChat } from "@/components/CustomerSupportChat";
 import { UserAdCreation } from "@/components/UserAdCreation";
 import { RecentTransactions } from "@/components/RecentTransactions";
 import ProfileImageUpload from "@/components/profile/ProfileImageUpload";
+import DeepResearchAssistant from "@/components/ai/DeepResearchAssistant";
+import AdvancedChatAssistant from "@/components/ai/AdvancedChatAssistant";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -454,6 +456,20 @@ const Dashboard = () => {
                 }}>
                     Transactions
                   </Button>
+                  <Button variant={activeTab === "ai-research" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  handleTabChange("ai-research");
+                  setMobileMenuOpen(false);
+                }}>
+                    <Brain className="w-4 h-4 mr-2" />
+                    AI Research
+                  </Button>
+                  <Button variant={activeTab === "ai-chat" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  handleTabChange("ai-chat");
+                  setMobileMenuOpen(false);
+                }}>
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    GPT-5 Chat
+                  </Button>
                   <div className="border-t border-border my-2" />
                   <Button variant="ghost" className="justify-start text-destructive hover:text-destructive" onClick={async () => {
                   await signOut();
@@ -487,6 +503,8 @@ const Dashboard = () => {
                 <SelectItem value="stair-step">Stair Step</SelectItem>
                 <SelectItem value="advertising">Advertising</SelectItem>
                 <SelectItem value="transactions">Transactions</SelectItem>
+                <SelectItem value="ai-research">AI Research</SelectItem>
+                <SelectItem value="ai-chat">GPT-5 Chat</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -820,6 +838,14 @@ const Dashboard = () => {
 
       <TabsContent value="transactions">
         <RecentTransactions />
+      </TabsContent>
+
+      <TabsContent value="ai-research">
+        <DeepResearchAssistant compact />
+      </TabsContent>
+
+      <TabsContent value="ai-chat">
+        <AdvancedChatAssistant compact title="GPT-5 Assistant" />
       </TabsContent>
     </Tabs>
   </div>
