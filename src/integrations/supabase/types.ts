@@ -3364,7 +3364,9 @@ export type Database = {
       product_variants: {
         Row: {
           created_at: string | null
+          hex_color: string | null
           id: string
+          image_url: string | null
           price_adjustment: number | null
           product_id: string
           sku: string | null
@@ -3375,7 +3377,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          hex_color?: string | null
           id?: string
+          image_url?: string | null
           price_adjustment?: number | null
           product_id: string
           sku?: string | null
@@ -3386,7 +3390,9 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          hex_color?: string | null
           id?: string
+          image_url?: string | null
           price_adjustment?: number | null
           product_id?: string
           sku?: string | null

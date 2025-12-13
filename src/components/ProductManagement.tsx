@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Image as ImageIcon, PackagePlus, Download } from "lucide-react";
+import { Plus, Edit, Trash2, Image as ImageIcon, PackagePlus, Download, Layers } from "lucide-react";
+import { ProductVariantManager } from "@/components/ProductVariantManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -1060,99 +1061,17 @@ export const ProductManagement = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Variants - {selectedProduct?.name}</DialogTitle>
+            <DialogDescription>
+              Add product variants like sizes, colors, and weights with optional variant-specific images.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <Card className="p-3">
-              <h3 className="font-semibold mb-3 text-sm">Add New Variant</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Variant Type</Label>
-                  <Select
-                    value={variantForm.variant_type}
-                    onValueChange={(value: any) => setVariantForm({ ...variantForm, variant_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="size">Size</SelectItem>
-                      <SelectItem value="color">Color</SelectItem>
-                      <SelectItem value="weight">Weight</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Value</Label>
-                  <Input
-                    placeholder="e.g., Large, Red, 500g"
-                    value={variantForm.variant_value}
-                    onChange={(e) => setVariantForm({ ...variantForm, variant_value: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Price Adjustment (₱)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={variantForm.price_adjustment}
-                    onChange={(e) => setVariantForm({ ...variantForm, price_adjustment: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Stock Quantity</Label>
-                  <Input
-                    type="number"
-                    value={variantForm.stock_quantity}
-                    onChange={(e) => setVariantForm({ ...variantForm, stock_quantity: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>SKU (Optional)</Label>
-                  <Input
-                    placeholder="Product SKU"
-                    value={variantForm.sku}
-                    onChange={(e) => setVariantForm({ ...variantForm, sku: e.target.value })}
-                  />
-                </div>
-              </div>
-              <Button onClick={handleAddVariant} className="mt-4">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Variant
-              </Button>
-            </Card>
-
-            <div>
-              <h3 className="font-semibold mb-2">Existing Variants</h3>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Price Adj.</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {variants.map((variant) => (
-                    <TableRow key={variant.id}>
-                      <TableCell className="capitalize">{variant.variant_type}</TableCell>
-                      <TableCell>{variant.variant_value}</TableCell>
-                      <TableCell>₱{variant.price_adjustment.toFixed(2)}</TableCell>
-                      <TableCell>{variant.stock_quantity}</TableCell>
-                      <TableCell>{variant.sku || "-"}</TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="destructive" onClick={() => handleDeleteVariant(variant.id)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
+          {selectedProduct && (
+            <ProductVariantManager
+              productId={selectedProduct.id}
+              productName={selectedProduct.name}
+              onVariantsChange={() => fetchVariants(selectedProduct.id)}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

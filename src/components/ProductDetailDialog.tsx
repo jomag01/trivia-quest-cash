@@ -8,6 +8,7 @@ import { ProductReviews } from "./ProductReviews";
 import { useInteractionTracking } from "@/hooks/useInteractionTracking";
 import { VirtualTryOn } from "./shop/VirtualTryOn";
 import ProductAvatarSpeaker from "./shop/ProductAvatarSpeaker";
+
 interface Product {
   id: string;
   name: string;
@@ -22,6 +23,16 @@ interface Product {
   product_categories?: {
     name: string;
   };
+}
+
+interface ProductVariant {
+  id: string;
+  variant_type: 'size' | 'color' | 'weight';
+  variant_value: string;
+  price_adjustment: number | null;
+  stock_quantity: number | null;
+  image_url: string | null;
+  hex_color: string | null;
 }
 
 interface ProductDetailDialogProps {
@@ -49,6 +60,8 @@ export const ProductDetailDialog = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showTryOn, setShowTryOn] = useState(false);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, ProductVariant>>({});
   const { trackInteraction } = useInteractionTracking();
 
   // Check if product is in a fashion/clothing category
@@ -71,9 +84,12 @@ export const ProductDetailDialog = ({
       description.includes(keyword)
     );
   };
+
   useEffect(() => {
     if (product && open) {
       fetchProductImages();
+      fetchProductVariants();
+      setSelectedVariants({});
     }
   }, [product?.id, open]);
 
@@ -92,7 +108,6 @@ export const ProductDetailDialog = ({
       if (error) throw error;
 
       if (data && data.length > 0) {
-        // Prioritize: primary first, then static, hover, then gallery images
         const sortedImages = data.sort((a, b) => {
           if (a.is_primary && !b.is_primary) return -1;
           if (!a.is_primary && b.is_primary) return 1;
@@ -124,6 +139,44 @@ export const ProductDetailDialog = ({
     }
   };
 
+  const fetchProductVariants = async () => {
+    if (!product?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("product_variants")
+        .select("*")
+        .eq("product_id", product.id)
+        .order("variant_type")
+        .order("variant_value");
+
+      if (error) throw error;
+      setVariants((data as ProductVariant[]) || []);
+    } catch (error) {
+      console.error("Error fetching variants:", error);
+    }
+  };
+
+  const handleVariantSelect = (variant: ProductVariant) => {
+    setSelectedVariants(prev => ({
+      ...prev,
+      [variant.variant_type]: variant
+    }));
+
+    // If this variant has an image, switch to it
+    if (variant.image_url) {
+      // Add variant image to beginning if not already there
+      if (!images.includes(variant.image_url)) {
+        setImages(prev => [variant.image_url!, ...prev]);
+        setCurrentImageIndex(0);
+      } else {
+        // Switch to the variant image
+        const idx = images.indexOf(variant.image_url);
+        setCurrentImageIndex(idx);
+      }
+    }
+  };
+
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
   };
@@ -132,11 +185,26 @@ export const ProductDetailDialog = ({
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
+  // Group variants by type
+  const groupedVariants = variants.reduce((acc, variant) => {
+    const type = variant.variant_type;
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(variant);
+    return acc;
+  }, {} as Record<string, ProductVariant[]>);
+
+  // Calculate price adjustment from selected variants
+  const priceAdjustment = Object.values(selectedVariants).reduce(
+    (sum, v) => sum + (v.price_adjustment || 0), 
+    0
+  );
+
   if (!product) return null;
 
-  const effectivePrice = product.promo_active && product.promo_price
+  const basePrice = product.promo_active && product.promo_price
     ? product.promo_price
     : product.base_price;
+  const effectivePrice = basePrice + priceAdjustment;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -245,16 +313,85 @@ export const ProductDetailDialog = ({
                 <span className="text-3xl font-bold text-primary">
                   ₱{effectivePrice.toFixed(2)}
                 </span>
-                {product.promo_active && product.promo_price && (
+                {(product.promo_active && product.promo_price) || priceAdjustment !== 0 ? (
                   <span className="text-lg text-muted-foreground line-through">
                     ₱{product.base_price.toFixed(2)}
                   </span>
-                )}
+                ) : null}
               </div>
+              {priceAdjustment !== 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Includes variant adjustment: {priceAdjustment > 0 ? '+' : ''}₱{priceAdjustment.toFixed(2)}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground mt-2">
                 Stock: {product.stock_quantity || 0} available
               </p>
             </div>
+
+            {/* Product Variants Selection */}
+            {Object.keys(groupedVariants).length > 0 && (
+              <div className="space-y-4 border-t pt-4">
+                {Object.entries(groupedVariants).map(([type, typeVariants]) => (
+                  <div key={type}>
+                    <h4 className="text-sm font-medium capitalize mb-2">
+                      Select {type}
+                      {selectedVariants[type] && (
+                        <span className="text-muted-foreground ml-2">
+                          : {selectedVariants[type].variant_value}
+                        </span>
+                      )}
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {type === 'color' ? (
+                        // Color swatches
+                        typeVariants.map((variant) => (
+                          <button
+                            key={variant.id}
+                            onClick={() => handleVariantSelect(variant)}
+                            className={`relative w-10 h-10 rounded-full border-2 transition-all ${
+                              selectedVariants[type]?.id === variant.id
+                                ? 'border-primary ring-2 ring-primary/50'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                            style={{ 
+                              backgroundColor: variant.hex_color || '#gray' 
+                            }}
+                            title={variant.variant_value}
+                          >
+                            {variant.image_url && (
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full" title="Has image" />
+                            )}
+                          </button>
+                        ))
+                      ) : (
+                        // Size/Weight buttons
+                        typeVariants.map((variant) => (
+                          <Button
+                            key={variant.id}
+                            type="button"
+                            variant={selectedVariants[type]?.id === variant.id ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleVariantSelect(variant)}
+                            className="relative"
+                          >
+                            {variant.variant_value}
+                            {variant.price_adjustment !== 0 && variant.price_adjustment !== null && (
+                              <span className="text-xs ml-1 opacity-70">
+                                ({variant.price_adjustment > 0 ? '+' : ''}₱{variant.price_adjustment})
+                              </span>
+                            )}
+                            {variant.image_url && (
+                              <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
+                            )}
+                          </Button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* AI Avatar Speaker */}
             <ProductAvatarSpeaker
