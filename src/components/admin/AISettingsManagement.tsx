@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2 } from 'lucide-react';
+import AICostCalculator from './AICostCalculator';
 
 interface CreditTier {
   id: string;
@@ -303,6 +304,9 @@ const AISettingsManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Cost Calculator */}
+      <AICostCalculator />
 
       {/* Credit Tiers */}
       <Card>
