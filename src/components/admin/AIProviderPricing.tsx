@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, DollarSign, RefreshCw, Edit, Save, X, Info } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ProviderPricing {
   id: string;
@@ -25,6 +26,7 @@ const AIProviderPricing = () => {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ProviderPricing>>({});
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchPricing();
@@ -102,6 +104,242 @@ const AIProviderPricing = () => {
     );
   }
 
+  // Mobile Card View
+  const MobileCardView = ({ item }: { item: ProviderPricing }) => {
+    const isEditing = editingId === item.id;
+
+    return (
+      <Card className="mb-3">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <Badge variant="outline" className="text-xs">{item.provider_name}</Badge>
+            {!isEditing ? (
+              <Button size="icon" variant="ghost" onClick={() => startEdit(item)} className="h-7 w-7">
+                <Edit className="h-3 w-3" />
+              </Button>
+            ) : (
+              <div className="flex gap-1">
+                <Button size="icon" variant="ghost" onClick={saveEdit} className="h-7 w-7">
+                  <Save className="h-3 w-3" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={cancelEdit} className="h-7 w-7">
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </div>
+          <p className="font-mono text-xs text-muted-foreground break-all">{item.model_name}</p>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-0">
+          {isEditing ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Input/1K</Label>
+                <Input
+                  type="number"
+                  step="0.000001"
+                  value={editForm.input_cost_per_1k || 0}
+                  onChange={(e) => setEditForm({ ...editForm, input_cost_per_1k: parseFloat(e.target.value) })}
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Output/1K</Label>
+                <Input
+                  type="number"
+                  step="0.000001"
+                  value={editForm.output_cost_per_1k || 0}
+                  onChange={(e) => setEditForm({ ...editForm, output_cost_per_1k: parseFloat(e.target.value) })}
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Per Image</Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  value={editForm.image_cost || 0}
+                  onChange={(e) => setEditForm({ ...editForm, image_cost: parseFloat(e.target.value) })}
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Video/sec</Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  value={editForm.video_cost_per_second || 0}
+                  onChange={(e) => setEditForm({ ...editForm, video_cost_per_second: parseFloat(e.target.value) })}
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Audio/min</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editForm.audio_cost_per_minute || 0}
+                  onChange={(e) => setEditForm({ ...editForm, audio_cost_per_minute: parseFloat(e.target.value) })}
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Notes</Label>
+                <Input
+                  value={editForm.notes || ''}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Input/1K:</span>
+                <span className="font-medium">{formatCurrency(item.input_cost_per_1k)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Output/1K:</span>
+                <span className="font-medium">{formatCurrency(item.output_cost_per_1k)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Image:</span>
+                <span className="font-medium">{formatCurrency(item.image_cost)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Video/s:</span>
+                <span className="font-medium">{formatCurrency(item.video_cost_per_second)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Audio/m:</span>
+                <span className="font-medium">{formatCurrency(item.audio_cost_per_minute)}</span>
+              </div>
+              {item.notes && (
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">Notes: </span>
+                  <span className="font-medium">{item.notes}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Desktop Table View
+  const DesktopTableView = () => (
+    <div className="rounded-lg border overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b bg-muted/50">
+            <th className="text-left p-3 font-medium">Provider</th>
+            <th className="text-left p-3 font-medium">Model</th>
+            <th className="text-left p-3 font-medium whitespace-nowrap">Input/1K</th>
+            <th className="text-left p-3 font-medium whitespace-nowrap">Output/1K</th>
+            <th className="text-left p-3 font-medium whitespace-nowrap">Image</th>
+            <th className="text-left p-3 font-medium whitespace-nowrap">Video/s</th>
+            <th className="text-left p-3 font-medium whitespace-nowrap">Audio/m</th>
+            <th className="text-left p-3 font-medium">Notes</th>
+            <th className="text-left p-3 font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pricing.map((item) => (
+            <tr key={item.id} className="border-b">
+              <td className="p-3">
+                <Badge variant="outline" className="text-xs">{item.provider_name}</Badge>
+              </td>
+              <td className="p-3 font-mono text-xs max-w-[150px] truncate">{item.model_name}</td>
+              {editingId === item.id ? (
+                <>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      step="0.000001"
+                      value={editForm.input_cost_per_1k || 0}
+                      onChange={(e) => setEditForm({ ...editForm, input_cost_per_1k: parseFloat(e.target.value) })}
+                      className="w-20 h-8 text-xs"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      step="0.000001"
+                      value={editForm.output_cost_per_1k || 0}
+                      onChange={(e) => setEditForm({ ...editForm, output_cost_per_1k: parseFloat(e.target.value) })}
+                      className="w-20 h-8 text-xs"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      step="0.0001"
+                      value={editForm.image_cost || 0}
+                      onChange={(e) => setEditForm({ ...editForm, image_cost: parseFloat(e.target.value) })}
+                      className="w-20 h-8 text-xs"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      step="0.0001"
+                      value={editForm.video_cost_per_second || 0}
+                      onChange={(e) => setEditForm({ ...editForm, video_cost_per_second: parseFloat(e.target.value) })}
+                      className="w-20 h-8 text-xs"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={editForm.audio_cost_per_minute || 0}
+                      onChange={(e) => setEditForm({ ...editForm, audio_cost_per_minute: parseFloat(e.target.value) })}
+                      className="w-20 h-8 text-xs"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      value={editForm.notes || ''}
+                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                      className="w-28 h-8 text-xs"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={saveEdit} className="h-7 w-7">
+                        <Save className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={cancelEdit} className="h-7 w-7">
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </td>
+                </>
+              ) : (
+                <>
+                  <td className="p-3 text-xs">{formatCurrency(item.input_cost_per_1k)}</td>
+                  <td className="p-3 text-xs">{formatCurrency(item.output_cost_per_1k)}</td>
+                  <td className="p-3 text-xs">{formatCurrency(item.image_cost)}</td>
+                  <td className="p-3 text-xs">{formatCurrency(item.video_cost_per_second)}</td>
+                  <td className="p-3 text-xs">{formatCurrency(item.audio_cost_per_minute)}</td>
+                  <td className="p-3 text-xs text-muted-foreground max-w-[120px] truncate">
+                    {item.notes}
+                  </td>
+                  <td className="p-3">
+                    <Button size="icon" variant="ghost" onClick={() => startEdit(item)} className="h-7 w-7">
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </td>
+                </>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <Card>
@@ -115,119 +353,19 @@ const AIProviderPricing = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Input/1K tokens</TableHead>
-                  <TableHead>Output/1K tokens</TableHead>
-                  <TableHead>Per Image</TableHead>
-                  <TableHead>Video/sec</TableHead>
-                  <TableHead>Audio/min</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pricing.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <Badge variant="outline">{item.provider_name}</Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{item.model_name}</TableCell>
-                    {editingId === item.id ? (
-                      <>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            step="0.000001"
-                            value={editForm.input_cost_per_1k || 0}
-                            onChange={(e) => setEditForm({ ...editForm, input_cost_per_1k: parseFloat(e.target.value) })}
-                            className="w-24 h-8 text-xs"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            step="0.000001"
-                            value={editForm.output_cost_per_1k || 0}
-                            onChange={(e) => setEditForm({ ...editForm, output_cost_per_1k: parseFloat(e.target.value) })}
-                            className="w-24 h-8 text-xs"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            step="0.0001"
-                            value={editForm.image_cost || 0}
-                            onChange={(e) => setEditForm({ ...editForm, image_cost: parseFloat(e.target.value) })}
-                            className="w-24 h-8 text-xs"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            step="0.0001"
-                            value={editForm.video_cost_per_second || 0}
-                            onChange={(e) => setEditForm({ ...editForm, video_cost_per_second: parseFloat(e.target.value) })}
-                            className="w-24 h-8 text-xs"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={editForm.audio_cost_per_minute || 0}
-                            onChange={(e) => setEditForm({ ...editForm, audio_cost_per_minute: parseFloat(e.target.value) })}
-                            className="w-24 h-8 text-xs"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={editForm.notes || ''}
-                            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                            className="w-32 h-8 text-xs"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" onClick={saveEdit} className="h-7 w-7">
-                              <Save className="h-3 w-3" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={cancelEdit} className="h-7 w-7">
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell className="text-xs">{formatCurrency(item.input_cost_per_1k)}</TableCell>
-                        <TableCell className="text-xs">{formatCurrency(item.output_cost_per_1k)}</TableCell>
-                        <TableCell className="text-xs">{formatCurrency(item.image_cost)}</TableCell>
-                        <TableCell className="text-xs">{formatCurrency(item.video_cost_per_second)}</TableCell>
-                        <TableCell className="text-xs">{formatCurrency(item.audio_cost_per_minute)}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">
-                          {item.notes}
-                        </TableCell>
-                        <TableCell>
-                          <Button size="icon" variant="ghost" onClick={() => startEdit(item)} className="h-7 w-7">
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        </TableCell>
-                      </>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          {isMobile ? (
+            <div className="space-y-3">
+              {pricing.map((item) => (
+                <MobileCardView key={item.id} item={item} />
+              ))}
+            </div>
+          ) : (
+            <DesktopTableView />
+          )}
 
           <div className="mt-4 p-4 rounded-lg bg-muted/50 border">
             <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <Info className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
               <div className="text-xs text-muted-foreground">
                 <p className="font-medium mb-1">How to use this pricing info:</p>
                 <ul className="list-disc list-inside space-y-1">
