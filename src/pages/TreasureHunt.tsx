@@ -417,15 +417,23 @@ export default function TreasureHunt() {
                 <button
                   key={symbol.id}
                   onClick={() => !symbol.found && handleSymbolClick(symbol.id)}
-                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 text-4xl md:text-5xl transition-all duration-300 ${
+                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${
                     symbol.found
                       ? "scale-0 opacity-0"
                       : "scale-100 opacity-100 hover:scale-125 animate-pulse"
                   }`}
-                  style={{ left: `${symbol.x}%`, top: `${symbol.y}%` }}
+                  style={{ 
+                    left: `${symbol.x}%`, 
+                    top: `${symbol.y}%`,
+                    fontSize: '3rem',
+                    lineHeight: 1,
+                    fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif'
+                  }}
                   disabled={symbol.found}
                 >
-                  {symbol.emoji}
+                  <span role="img" aria-label="treasure symbol" style={{ display: 'inline-block' }}>
+                    {symbol.emoji}
+                  </span>
                 </button>
               ))}
             </div>
