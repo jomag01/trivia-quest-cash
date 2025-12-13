@@ -108,23 +108,69 @@ export default function ProductImporter() {
       return null;
     }
 
-    // Simulate product fetching (in production, this would call an Edge Function with web scraping)
-    // For now, create a placeholder product that admin can customize
     const platformName = SUPPORTED_PLATFORMS.find(p => p.id === parsed.platform)?.name || parsed.platform;
     
-    return {
-      id: crypto.randomUUID(),
-      source: parsed.platform,
-      sourceUrl: url,
-      name: `Imported Product from ${platformName}`,
-      description: "Product description - customize this after import",
-      originalPrice: 0,
-      sellingPrice: 0,
-      images: [],
-      category: "",
-      variants: [],
-      selected: true
-    };
+    try {
+      // Call the Edge Function to scrape real product data
+      const { data, error } = await supabase.functions.invoke('scrape-product', {
+        body: { url }
+      });
+
+      if (error) {
+        console.error('Scrape error:', error);
+        toast.error(`Failed to fetch from ${platformName}. Please customize manually.`);
+        // Return a placeholder if scraping fails
+        return {
+          id: crypto.randomUUID(),
+          source: parsed.platform,
+          sourceUrl: url,
+          name: `Imported Product from ${platformName}`,
+          description: "Product description - customize this after import",
+          originalPrice: 0,
+          sellingPrice: 0,
+          images: [],
+          category: "",
+          variants: [],
+          selected: true
+        };
+      }
+
+      if (data?.success && data?.product) {
+        const product = data.product;
+        return {
+          id: crypto.randomUUID(),
+          source: parsed.platform,
+          sourceUrl: url,
+          name: product.name || `Imported Product from ${platformName}`,
+          description: product.description || "",
+          originalPrice: product.price || 0,
+          sellingPrice: product.price || 0,
+          images: product.images || [],
+          category: "",
+          variants: product.variants || [],
+          selected: true
+        };
+      }
+
+      // Fallback if no product data
+      return {
+        id: crypto.randomUUID(),
+        source: parsed.platform,
+        sourceUrl: url,
+        name: `Imported Product from ${platformName}`,
+        description: "Product description - customize this after import",
+        originalPrice: 0,
+        sellingPrice: 0,
+        images: [],
+        category: "",
+        variants: [],
+        selected: true
+      };
+    } catch (err) {
+      console.error('Fetch error:', err);
+      toast.error(`Error fetching from ${platformName}`);
+      return null;
+    }
   };
 
   const handleSingleImport = async () => {

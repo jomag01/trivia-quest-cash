@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.avatar-video]
 verify_jwt = false
+
+[functions.scrape-product]
+verify_jwt = false
