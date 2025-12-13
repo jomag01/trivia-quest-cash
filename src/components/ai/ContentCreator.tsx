@@ -30,7 +30,9 @@ import {
   Camera,
   X,
   User,
-  UserCircle
+  UserCircle,
+  Save,
+  FolderOpen
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -162,6 +164,11 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
   // Video state
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  
+  // Saved projects state
+  const [savedProjects, setSavedProjects] = useState<any[]>([]);
+  const [showSavedProjects, setShowSavedProjects] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const isPaidUser = userCredits >= 10;
 
@@ -369,6 +376,103 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
     }
   };
 
+  // Save project function
+  const handleSaveProject = async () => {
+    if (!user) {
+      toast.error('Please sign in to save projects');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const projectData = {
+        user_id: user.id,
+        title: script?.title || topic || 'Untitled Project',
+        topic,
+        research,
+        script: script ? JSON.stringify(script) : null,
+        images: generatedImages.length > 0 ? generatedImages : null,
+        audio_url: audioUrl,
+        music_url: generatedMusicUrl,
+        video_url: videoUrl,
+        voice_id: selectedVoice,
+        voice_language: selectedLanguage,
+        status: videoUrl ? 'completed' : generatedImages.length > 0 ? 'images_ready' : script ? 'script_ready' : research ? 'research_ready' : 'draft',
+      };
+
+      const { error } = await supabase
+        .from('content_creator_projects')
+        .upsert(projectData, { onConflict: 'id' });
+
+      if (error) throw error;
+      toast.success('Project saved successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to save project');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Load saved projects
+  const loadSavedProjects = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('content_creator_projects')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      setSavedProjects(data || []);
+      setShowSavedProjects(true);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load saved projects');
+    }
+  };
+
+  // Load a specific project
+  const loadProject = (project: any) => {
+    setTopic(project.topic || '');
+    setResearch(project.research || null);
+    if (project.script) {
+      try {
+        setScript(JSON.parse(project.script));
+      } catch {
+        setScript(null);
+      }
+    } else {
+      setScript(null);
+    }
+    if (project.images) {
+      setGeneratedImages(project.images);
+    } else {
+      setGeneratedImages([]);
+    }
+    setAudioUrl(project.audio_url || null);
+    setGeneratedMusicUrl(project.music_url || null);
+    setVideoUrl(project.video_url || null);
+    if (project.voice_id) setSelectedVoice(project.voice_id);
+    if (project.voice_language) setSelectedLanguage(project.voice_language);
+    
+    // Navigate to appropriate step based on saved progress
+    if (project.video_url) {
+      setCurrentStep(6);
+    } else if (project.images?.length > 0) {
+      setCurrentStep(5);
+    } else if (project.script) {
+      setCurrentStep(3);
+    } else if (project.research) {
+      setCurrentStep(2);
+    } else {
+      setCurrentStep(1);
+    }
+    
+    setShowSavedProjects(false);
+    toast.success('Project loaded!');
+  };
+
   const handleGenerateScript = async () => {
     if (!topic.trim()) {
       toast.error('Please enter a topic first');
@@ -483,11 +587,13 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
       }
       setImagePrompts(prompts);
 
-      // Generate images for each scene
+      // Generate images for each scene - generate ALL scenes requested
       const images: string[] = [];
-      for (const prompt of prompts.slice(0, 5)) { // Limit to 5 images
+      const totalScenes = script?.scenes?.length || numScenes;
+      for (let i = 0; i < prompts.length && i < totalScenes; i++) {
+        toast.info(`Generating image ${i + 1} of ${Math.min(prompts.length, totalScenes)}...`);
         const { data, error } = await supabase.functions.invoke('ai-generate', {
-          body: { type: 'text-to-image', prompt }
+          body: { type: 'text-to-image', prompt: prompts[i] }
         });
         
         if (!error && data.imageUrl) {
@@ -581,15 +687,17 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
 
       if (creditError) throw creditError;
 
-      // Generate new images
+      // Generate new images for ALL scenes
       const images: string[] = [];
       const prompts = imagePrompts.length > 0 
         ? imagePrompts 
         : script.scenes.map(s => s.visualDescription);
 
-      for (const prompt of prompts.slice(0, 5)) {
+      const totalScenes = script.scenes.length;
+      for (let i = 0; i < prompts.length && i < totalScenes; i++) {
+        toast.info(`Regenerating image ${i + 1} of ${Math.min(prompts.length, totalScenes)}...`);
         const { data, error } = await supabase.functions.invoke('ai-generate', {
-          body: { type: 'text-to-image', prompt }
+          body: { type: 'text-to-image', prompt: prompts[i] }
         });
         
         if (!error && data.imageUrl) {
@@ -674,6 +782,71 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
 
   return (
     <div className="space-y-6">
+      {/* Save/Load Actions */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={handleSaveProject} 
+            variant="outline" 
+            size="sm" 
+            disabled={isSaving || (!topic && !research && !script)}
+            className="gap-2"
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Progress
+          </Button>
+          <Button 
+            onClick={loadSavedProjects} 
+            variant="outline" 
+            size="sm"
+            className="gap-2"
+          >
+            <FolderOpen className="h-4 w-4" />
+            Load Project
+          </Button>
+        </div>
+        {(generatedImages.length > 0 || script || research) && (
+          <Badge variant="outline" className="text-green-500 border-green-500">
+            {generatedImages.length > 0 ? `${generatedImages.length} images ready` : script ? 'Script ready' : 'Research ready'}
+          </Badge>
+        )}
+      </div>
+
+      {/* Saved Projects Dialog */}
+      <Dialog open={showSavedProjects} onOpenChange={setShowSavedProjects}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Saved Projects</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {savedProjects.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No saved projects yet</p>
+            ) : (
+              savedProjects.map((project) => (
+                <div 
+                  key={project.id} 
+                  className="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => loadProject(project)}
+                >
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm truncate flex-1">{project.title}</h4>
+                    <Badge variant="secondary" className="text-xs ml-2">
+                      {project.status?.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  {project.topic && (
+                    <p className="text-xs text-muted-foreground truncate mt-1">{project.topic}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(project.updated_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Progress Steps */}
       <div className="flex items-center justify-between overflow-x-auto pb-2">
         {steps.map((step, index) => (
@@ -819,15 +992,23 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
 
             {research && (
               <div className="mt-4 p-4 rounded-lg bg-muted/50 border">
-                <h4 className="font-medium mb-2">Research Results:</h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium">Research Results:</h4>
+                  <Button onClick={handleSaveProject} variant="outline" size="sm" disabled={isSaving} className="gap-1">
+                    {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                    Save Research
+                  </Button>
+                </div>
                 <pre className="text-xs whitespace-pre-wrap overflow-auto max-h-64">{research}</pre>
               </div>
             )}
 
             {(topic || research) && (
-              <Button onClick={() => setCurrentStep(2)} variant="outline" className="mt-4">
-                Next: Generate Script <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
+              <div className="flex gap-2 mt-4">
+                <Button onClick={() => setCurrentStep(2)} variant="outline">
+                  Next: Generate Script <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -877,11 +1058,14 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
               <input
                 type="range"
                 min={3}
-                max={15}
+                max={30}
                 value={numScenes}
                 onChange={(e) => setNumScenes(parseInt(e.target.value))}
                 className="w-full"
               />
+              <p className="text-xs text-muted-foreground">
+                Each scene will generate one image. More scenes = more credits.
+              </p>
             </div>
 
             <Button onClick={handleGenerateScript} disabled={isLoading} className="gap-2">
@@ -1009,18 +1193,29 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
             </Button>
 
             {generatedImages.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                {generatedImages.map((img, index) => (
-                  <div key={index} className="relative group">
-                    <img 
-                      src={img} 
-                      alt={`Scene ${index + 1}`} 
-                      className="rounded-lg border w-full aspect-video object-cover"
-                    />
-                    <Badge className="absolute top-2 left-2">Scene {index + 1}</Badge>
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Generated {generatedImages.length} of {script?.scenes?.length || numScenes} scene images
+                  </p>
+                  <Button onClick={handleSaveProject} variant="outline" size="sm" disabled={isSaving} className="gap-1">
+                    {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                    Save Images
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                  {generatedImages.map((img, index) => (
+                    <div key={index} className="relative group">
+                      <img 
+                        src={img} 
+                        alt={`Scene ${index + 1}`} 
+                        className="rounded-lg border w-full aspect-video object-cover"
+                      />
+                      <Badge className="absolute top-2 left-2">Scene {index + 1}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
 
             <Button onClick={() => setCurrentStep(5)} variant="outline">

@@ -590,6 +590,7 @@ export type Database = {
           id: string
           images: Json | null
           music_url: string | null
+          research: string | null
           script: string | null
           status: string | null
           target_duration_seconds: number | null
@@ -608,6 +609,7 @@ export type Database = {
           id?: string
           images?: Json | null
           music_url?: string | null
+          research?: string | null
           script?: string | null
           status?: string | null
           target_duration_seconds?: number | null
@@ -626,6 +628,7 @@ export type Database = {
           id?: string
           images?: Json | null
           music_url?: string | null
+          research?: string | null
           script?: string | null
           status?: string | null
           target_duration_seconds?: number | null
