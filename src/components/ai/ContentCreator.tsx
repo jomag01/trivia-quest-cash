@@ -1076,7 +1076,28 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
             {script && (
               <div className="mt-4 space-y-4">
                 <div className="p-4 rounded-lg bg-muted/50 border">
-                  <h4 className="font-bold text-lg">{script.title}</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-bold text-lg">{script.title}</h4>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-1"
+                      onClick={() => {
+                        const scriptText = `TITLE: ${script.title}\n\nDESCRIPTION: ${script.description}\n\nHASHTAGS: ${script.hashtags?.join(' ')}\n\nCALL TO ACTION: ${script.callToAction}\n\n${script.scenes?.map(s => `--- SCENE ${s.sceneNumber} (${s.durationSeconds}s) ---\nVISUAL: ${s.visualDescription}\nVOICE-OVER: ${s.voiceOver}\nMOOD: ${s.musicMood}`).join('\n\n')}`;
+                        const blob = new Blob([scriptText], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `${script.title || 'script'}.txt`;
+                        link.click();
+                        URL.revokeObjectURL(url);
+                        toast.success('Script downloaded!');
+                      }}
+                    >
+                      <Download className="h-3 w-3" />
+                      Download Script
+                    </Button>
+                  </div>
                   <p className="text-sm text-muted-foreground mt-1">{script.description}</p>
                   <div className="flex gap-2 mt-2 flex-wrap">
                     {script.hashtags?.map((tag, i) => (
@@ -1099,9 +1120,14 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
                   </div>
                 ))}
 
-                <Button onClick={() => setCurrentStep(3)} variant="outline">
-                  Next: Generate Voice-over <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+                <div className="flex gap-2 flex-wrap">
+                  <Button onClick={() => setCurrentStep(3)} variant="outline">
+                    Next: Generate Voice-over <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                  <Button onClick={() => setCurrentStep(4)} variant="ghost" size="sm">
+                    Skip to Images →
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
@@ -1159,17 +1185,37 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
               <div className="mt-4 p-4 rounded-lg bg-muted/50 border">
                 <Label className="mb-2 block">Preview Voice-over:</Label>
                 <audio controls src={audioUrl} className="w-full" />
-                <Button variant="outline" size="sm" className="mt-2 gap-2" asChild>
-                  <a href={audioUrl} download="voiceover.mp3">
-                    <Download className="h-4 w-4" /> Download Audio
-                  </a>
-                </Button>
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  <Button variant="outline" size="sm" className="gap-2" asChild>
+                    <a href={audioUrl} download="voiceover.mp3">
+                      <Download className="h-4 w-4" /> Download Audio
+                    </a>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="gap-1"
+                    onClick={() => {
+                      navigator.clipboard.writeText(audioUrl);
+                      toast.success('Audio URL copied!');
+                    }}
+                  >
+                    Copy URL
+                  </Button>
+                </div>
               </div>
             )}
 
-            <Button onClick={() => setCurrentStep(4)} variant="outline" disabled={!script}>
-              Next: Generate Images <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button onClick={() => setCurrentStep(4)} variant="outline" disabled={!script}>
+                Next: Generate Images <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+              {audioUrl && (
+                <Button onClick={() => setCurrentStep(4)} variant="ghost" size="sm">
+                  Skip to Images →
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -1194,14 +1240,35 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
 
             {generatedImages.length > 0 && (
               <>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <p className="text-sm text-muted-foreground">
                     Generated {generatedImages.length} of {script?.scenes?.length || numScenes} scene images
                   </p>
-                  <Button onClick={handleSaveProject} variant="outline" size="sm" disabled={isSaving} className="gap-1">
-                    {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                    Save Images
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-1"
+                      onClick={() => {
+                        generatedImages.forEach((img, index) => {
+                          setTimeout(() => {
+                            const link = document.createElement('a');
+                            link.href = img;
+                            link.download = `scene-${index + 1}.png`;
+                            link.click();
+                          }, index * 200);
+                        });
+                        toast.success(`Downloading ${generatedImages.length} images...`);
+                      }}
+                    >
+                      <Download className="h-3 w-3" />
+                      Download All
+                    </Button>
+                    <Button onClick={handleSaveProject} variant="outline" size="sm" disabled={isSaving} className="gap-1">
+                      {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                      Save Images
+                    </Button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                   {generatedImages.map((img, index) => (
@@ -1212,15 +1279,35 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
                         className="rounded-lg border w-full aspect-video object-cover"
                       />
                       <Badge className="absolute top-2 left-2">Scene {index + 1}</Badge>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = img;
+                          link.download = `scene-${index + 1}.png`;
+                          link.click();
+                        }}
+                      >
+                        <Download className="h-3 w-3" />
+                      </Button>
                     </div>
                   ))}
                 </div>
               </>
             )}
 
-            <Button onClick={() => setCurrentStep(5)} variant="outline">
-              Next: Create Video <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button onClick={() => setCurrentStep(5)} variant="outline">
+                Next: Create Video <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+              {generatedImages.length > 0 && (
+                <p className="text-xs text-muted-foreground self-center">
+                  Or download images above and edit in your own app
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
