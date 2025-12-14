@@ -30,6 +30,7 @@ const AICostCalculator = () => {
   const [selectedVideoProvider, setSelectedVideoProvider] = useState('');
   const [selectedAudioProvider, setSelectedAudioProvider] = useState('');
   const [selectedImageProvider, setSelectedImageProvider] = useState('');
+  const [grokVideoMinutes, setGrokVideoMinutes] = useState('5');
 
   useEffect(() => {
     fetchPricing();
@@ -100,7 +101,14 @@ const AICostCalculator = () => {
     return messages * avgCostPerMessage;
   };
 
-  const totalCost = calculateVideoCost() + calculateAudioCost() + calculateImageCost() + calculateResearchCost() + calculateChatCost();
+  // Calculate Grok AI video cost (estimated $0.05 per second for high quality)
+  const calculateGrokVideoCost = () => {
+    const minutes = parseFloat(grokVideoMinutes) || 0;
+    const costPerSecond = 0.05; // Estimated Grok AI video cost per second
+    return minutes * 60 * costPerSecond;
+  };
+
+  const totalCost = calculateVideoCost() + calculateAudioCost() + calculateImageCost() + calculateResearchCost() + calculateChatCost() + calculateGrokVideoCost();
 
   const videoProviders = pricing.filter(p => (p.video_cost_per_second || 0) > 0);
   const audioProviders = pricing.filter(p => (p.audio_cost_per_minute || 0) > 0);
@@ -176,6 +184,31 @@ const AICostCalculator = () => {
                 ({pricing.find(p => p.id === selectedVideoProvider)?.video_cost_per_second?.toFixed(4) || 0}/sec)
               </span>
             )}
+          </div>
+        </div>
+
+        {/* Grok AI Video Cost */}
+        <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+          <div className="flex items-center gap-2">
+            <Video className="h-4 w-4 text-cyan-500" />
+            <Label className="font-medium">Grok AI Video (xAI)</Label>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Duration (minutes)</Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.5"
+              value={grokVideoMinutes}
+              onChange={(e) => setGrokVideoMinutes(e.target.value)}
+              placeholder="e.g., 5"
+            />
+          </div>
+          <div className="text-sm">
+            Cost: <strong className="text-cyan-500">{formatCost(calculateGrokVideoCost())}</strong>
+            <span className="text-xs text-muted-foreground ml-2">
+              (~$0.05/sec - High quality)
+            </span>
           </div>
         </div>
 

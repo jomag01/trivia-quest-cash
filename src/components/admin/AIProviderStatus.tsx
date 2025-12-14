@@ -81,6 +81,15 @@ const AIProviderStatus = () => {
       usedFor: ['Text-to-Video', 'Image Enhancement', 'Image Animation', 'Avatar Videos']
     },
     {
+      name: 'grok_ai',
+      displayName: 'Grok AI (xAI)',
+      status: 'unknown',
+      message: 'Not checked yet',
+      lastChecked: null,
+      icon: <Video className="h-5 w-5" />,
+      usedFor: ['Text-to-Video (Alternative)', 'High Quality Video Generation']
+    },
+    {
       name: 'kie_ai',
       displayName: 'Kie.ai',
       status: 'unknown',
@@ -199,6 +208,9 @@ const AIProviderStatus = () => {
     // Check fal.ai
     await checkFalAI();
     
+    // Check Grok AI
+    await checkGrokAI();
+    
     // Check Kie.ai
     await checkKieAI();
     
@@ -290,6 +302,30 @@ const AIProviderStatus = () => {
       }
     } catch (error: any) {
       updateProviderStatus('gpt5_chat', 'warning', 'Unable to verify - check manually');
+    }
+  };
+
+  const checkGrokAI = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('text-to-video', {
+        body: { type: 'test-connection', provider: 'grok' }
+      });
+
+      if (error?.message?.includes('credit') || error?.message?.includes('quota') || error?.message?.includes('insufficient')) {
+        updateProviderStatus('grok_ai', 'error', 'Insufficient credits');
+        await addAlert('Grok AI', 'credit_exhausted', 'Grok AI credits are low or exhausted. Video generation may fail.');
+      } else if (error?.message?.includes('401') || error?.message?.includes('unauthorized') || error?.message?.includes('not configured')) {
+        updateProviderStatus('grok_ai', 'warning', 'API key not configured');
+      } else if (error?.message?.includes('429')) {
+        updateProviderStatus('grok_ai', 'warning', 'Rate limited');
+        await addAlert('Grok AI', 'rate_limit', 'Grok AI rate limit reached.');
+      } else if (data?.status === 'ok') {
+        updateProviderStatus('grok_ai', 'ok', 'Connected and operational');
+      } else {
+        updateProviderStatus('grok_ai', 'warning', 'Unable to verify - check manually');
+      }
+    } catch (error) {
+      updateProviderStatus('grok_ai', 'warning', 'Unable to verify - check manually');
     }
   };
 
