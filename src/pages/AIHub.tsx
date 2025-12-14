@@ -37,6 +37,7 @@ const AIHub = memo(() => {
   const [adPreset, setAdPreset] = useState<string>('none');
   const [imageStylePreset, setImageStylePreset] = useState<string>('none');
   const [videoAspectRatio, setVideoAspectRatio] = useState<string>('16:9');
+  const [videoProvider, setVideoProvider] = useState<'fal' | 'grok'>('fal');
 
   // Image style presets
   const IMAGE_STYLE_PRESETS = {
@@ -401,7 +402,8 @@ const AIHub = memo(() => {
         body: {
           prompt: videoPrompt.trim(),
           duration: 5,
-          aspectRatio: videoAspectRatio
+          aspectRatio: videoAspectRatio,
+          provider: videoProvider
         }
       });
       if (error) throw error;
@@ -1171,6 +1173,26 @@ const AIHub = memo(() => {
                 <div className="space-y-2">
                   <Label>Your Prompt</Label>
                   <Textarea placeholder="A peaceful river flowing through a forest, with sunlight filtering through the trees..." value={videoPrompt} onChange={e => setVideoPrompt(e.target.value)} className="min-h-[120px] resize-none" />
+                </div>
+
+                {/* Video Provider Selection */}
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Video AI Provider
+                  </Label>
+                  <Select value={videoProvider} onValueChange={(v) => setVideoProvider(v as 'fal' | 'grok')}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Select provider..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fal" className="text-sm">🎬 fal.ai (Vidu) - Fast & Reliable</SelectItem>
+                      <SelectItem value="grok" className="text-sm">🤖 Grok AI (xAI) - High Quality</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {videoProvider === 'grok' ? 'Grok AI by xAI - Premium video quality' : 'fal.ai Vidu model - Fast generation'}
+                  </p>
                 </div>
 
                 {/* Video Aspect Ratio */}
