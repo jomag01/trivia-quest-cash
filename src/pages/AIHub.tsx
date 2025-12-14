@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock } from 'lucide-react';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
 import AdvancedChatAssistant from '@/components/ai/AdvancedChatAssistant';
@@ -756,7 +756,7 @@ const AIHub = memo(() => {
       {/* Main Content */}
       <div className="container mx-auto px-4 -mt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-5 md:grid-cols-10 w-full max-w-6xl mx-auto bg-background/50 backdrop-blur-sm border">
+          <TabsList className="grid grid-cols-6 md:grid-cols-11 w-full max-w-6xl mx-auto bg-background/50 backdrop-blur-sm border">
             <TabsTrigger value="research" className="gap-1 text-xs sm:text-sm">
               <Brain className="h-4 w-4" />
               <span className="hidden sm:inline">Research</span>
@@ -806,6 +806,11 @@ const AIHub = memo(() => {
               <Film className="h-4 w-4" />
               <span className="hidden sm:inline">Creator</span>
               <span className="sm:hidden">Create</span>
+            </TabsTrigger>
+            <TabsTrigger value="video-editor" className="gap-1 text-xs sm:text-sm">
+              <Scissors className="h-4 w-4" />
+              <span className="hidden sm:inline">Editor</span>
+              <span className="sm:hidden">✂️</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1610,6 +1615,152 @@ const AIHub = memo(() => {
               externalResearch={researchForVideo}
               externalTopic={topicForVideo}
             />
+          </TabsContent>
+
+          {/* Video Editor Tab */}
+          <TabsContent value="video-editor">
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Scissors className="h-5 w-5 text-primary" />
+                  Video Editor
+                  <Badge variant="secondary">10 credits</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Edit your videos and images with professional tools. Upload media or use content from Content Creator.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {userCredits < 10 ? (
+                  <div className="p-6 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center space-y-4">
+                    <Lock className="h-12 w-12 mx-auto text-amber-500" />
+                    <div>
+                      <h4 className="font-medium text-lg">Credits Required</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        You need at least 10 credits to use the Video Editor. Current balance: {userCredits} credits.
+                      </p>
+                    </div>
+                    <Button onClick={() => setShowBuyCredits(true)} className="gap-2">
+                      <Crown className="h-4 w-4" />
+                      Buy Credits
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {/* Upload Video */}
+                      <div className="space-y-3">
+                        <Label>Upload Video</Label>
+                        <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                          <Input 
+                            type="file" 
+                            accept="video/*" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setEditorMediaUrl(reader.result as string);
+                                  setEditorMediaType('video');
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }} 
+                            className="hidden" 
+                            id="editor-video-upload" 
+                          />
+                          <label htmlFor="editor-video-upload" className="cursor-pointer space-y-2 block">
+                            <VideoIcon className="h-10 w-10 mx-auto text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">Click to upload a video</p>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Upload Image */}
+                      <div className="space-y-3">
+                        <Label>Upload Image</Label>
+                        <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                          <Input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setEditorMediaUrl(reader.result as string);
+                                  setEditorMediaType('image');
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }} 
+                            className="hidden" 
+                            id="editor-image-upload" 
+                          />
+                          <label htmlFor="editor-image-upload" className="cursor-pointer space-y-2 block">
+                            <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">Click to upload an image</p>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {editorMediaUrl && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className="text-green-500 border-green-500">
+                            {editorMediaType === 'video' ? 'Video' : 'Image'} Ready
+                          </Badge>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setEditorMediaUrl('')}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        {editorMediaType === 'video' ? (
+                          <video src={editorMediaUrl} controls className="w-full max-h-64 rounded-lg border" />
+                        ) : (
+                          <img src={editorMediaUrl} alt="Preview" className="w-full max-h-64 object-contain rounded-lg border" />
+                        )}
+                      </div>
+                    )}
+
+                    <Button 
+                      onClick={async () => {
+                        if (!editorMediaUrl) {
+                          toast.error('Please upload a video or image first');
+                          return;
+                        }
+                        // Deduct credits
+                        const { error } = await supabase
+                          .from('profiles')
+                          .update({ credits: userCredits - 10 })
+                          .eq('id', user?.id);
+                        if (error) {
+                          toast.error('Failed to deduct credits');
+                          return;
+                        }
+                        setUserCredits(prev => prev - 10);
+                        setShowVideoEditor(true);
+                        toast.success('Opening Video Editor...');
+                      }}
+                      disabled={!editorMediaUrl}
+                      className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                      size="lg"
+                    >
+                      <Scissors className="h-4 w-4" />
+                      Open Video Editor (10 credits)
+                    </Button>
+
+                    <p className="text-xs text-muted-foreground text-center">
+                      Features: Trim, split, add text overlays, filters, color grading, and more. Export when done.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
