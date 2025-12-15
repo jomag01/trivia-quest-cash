@@ -242,13 +242,21 @@ const AISettingsManagement = () => {
       <TabsContent value="settings" className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            AI Hub Basic Settings
-          </CardTitle>
-          <CardDescription>
-            Configure free limits and base credit costs
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                AI Hub Basic Settings
+              </CardTitle>
+              <CardDescription>
+                Configure free limits and base credit costs
+              </CardDescription>
+            </div>
+            <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
+              <Save className="h-4 w-4" />
+              {saving ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-6 sm:grid-cols-2">
@@ -404,10 +412,16 @@ const AISettingsManagement = () => {
                 Configure pricing tiers for credit purchases. Add or remove tiers as needed.
               </CardDescription>
             </div>
-            <Button onClick={addTier} size="sm" variant="outline" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Tier
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={addTier} size="sm" variant="outline" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Tier
+              </Button>
+              <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
+                <Save className="h-4 w-4" />
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -510,13 +524,21 @@ const AISettingsManagement = () => {
       {/* Commission Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-green-500" />
-            Affiliate Commission Distribution
-          </CardTitle>
-          <CardDescription>
-            Configure how credit purchase revenue is distributed
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-green-500" />
+                Affiliate Commission Distribution
+              </CardTitle>
+              <CardDescription>
+                Configure how credit purchase revenue is distributed
+              </CardDescription>
+            </div>
+            <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
+              <Save className="h-4 w-4" />
+              {saving ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
