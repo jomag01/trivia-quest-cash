@@ -29,6 +29,18 @@ interface CreditTier {
   audioMinutes: number;
 }
 
+interface CreditRates {
+  creditsPerVideoMinute: number;
+  creditsPerAudioMinute: number;
+  creditsPerImage: number;
+}
+
+interface SelectedServices {
+  images: boolean;
+  video: boolean;
+  audio: boolean;
+}
+
 interface ReplenishCreditsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,6 +51,16 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
   const { user, profile } = useAuth();
   const [tiers, setTiers] = useState<CreditTier[]>([]);
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
+  const [creditRates, setCreditRates] = useState<CreditRates>({
+    creditsPerVideoMinute: 20,
+    creditsPerAudioMinute: 5,
+    creditsPerImage: 1
+  });
+  const [selectedServices, setSelectedServices] = useState<SelectedServices>({
+    images: true,
+    video: true,
+    audio: true
+  });
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [replenishMethod, setReplenishMethod] = useState<'earnings' | 'buy'>('earnings');
@@ -86,6 +108,8 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
         { price: 500, cost: 150, credits: 400, images: 300, videos: 80, audioMinutes: 120 }
       ];
 
+      const rates: CreditRates = { creditsPerVideoMinute: 20, creditsPerAudioMinute: 5, creditsPerImage: 1 };
+
       data?.forEach(setting => {
         const match = setting.key.match(/ai_credit_tier_(\d)_(\w+)/);
         if (match) {
@@ -100,6 +124,15 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
             if (field === 'audio_minutes') tierData[tierIndex].audioMinutes = parseFloat(setting.value || '0');
           }
         }
+        if (setting.key === 'ai_credits_per_video_minute') {
+          rates.creditsPerVideoMinute = parseFloat(setting.value || '20');
+        }
+        if (setting.key === 'ai_credits_per_audio_minute') {
+          rates.creditsPerAudioMinute = parseFloat(setting.value || '5');
+        }
+        if (setting.key === 'ai_credits_per_image') {
+          rates.creditsPerImage = parseFloat(setting.value || '1');
+        }
         if (setting.key === 'ai_unilevel_percent') {
           setCommissionSettings(prev => ({ ...prev, unilevelPercent: parseInt(setting.value || '40') }));
         }
@@ -112,6 +145,7 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
       });
 
       setTiers(tierData);
+      setCreditRates(rates);
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
@@ -119,9 +153,39 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
     }
   };
 
+  // Calculate what the user gets based on service selection
+  const calculateServiceAllocation = () => {
+    if (selectedTier === null) return { images: 0, videoMinutes: 0, audioMinutes: 0, bonusCredits: 0 };
+    const tier = tiers[selectedTier];
+    
+    let images = selectedServices.images ? tier.images : 0;
+    let videoMinutes = selectedServices.video ? tier.videos * 0.5 : 0;
+    let audioMinutes = selectedServices.audio ? tier.audioMinutes : 0;
+    
+    // Calculate bonus credits from unused services
+    let bonusCredits = 0;
+    if (!selectedServices.images) {
+      bonusCredits += tier.images * creditRates.creditsPerImage;
+    }
+    if (!selectedServices.video) {
+      bonusCredits += (tier.videos * 0.5) * creditRates.creditsPerVideoMinute;
+    }
+    if (!selectedServices.audio) {
+      bonusCredits += tier.audioMinutes * creditRates.creditsPerAudioMinute;
+    }
+    
+    return { images, videoMinutes, audioMinutes, bonusCredits };
+  };
+
   const handleReplenishWithEarnings = async () => {
     if (selectedTier === null || !user) return;
     const tier = tiers[selectedTier];
+    const allocation = calculateServiceAllocation();
+
+    if (!selectedServices.images && !selectedServices.video && !selectedServices.audio) {
+      toast.error('Please select at least one AI service');
+      return;
+    }
 
     if (userEarnings < tier.price) {
       toast.error(`Insufficient earnings. You need ₱${tier.price} but have ₱${userEarnings.toFixed(2)}`);
@@ -138,21 +202,23 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
 
       if (walletError) throw walletError;
 
-      // Add AI credits
+      // Add AI credits with selected services
       const { data: existingCredits } = await supabase
         .from('user_ai_credits')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
+      const totalCredits = tier.credits + Math.floor(allocation.bonusCredits);
+
       if (existingCredits) {
         await supabase
           .from('user_ai_credits')
           .update({
-            images_available: existingCredits.images_available + tier.images,
-            video_minutes_available: Number(existingCredits.video_minutes_available) + (tier.videos * 0.5), // Assume 30 sec per video
-            audio_minutes_available: Number(existingCredits.audio_minutes_available) + tier.audioMinutes,
-            total_credits: existingCredits.total_credits + tier.credits
+            images_available: existingCredits.images_available + allocation.images,
+            video_minutes_available: Number(existingCredits.video_minutes_available) + allocation.videoMinutes,
+            audio_minutes_available: Number(existingCredits.audio_minutes_available) + allocation.audioMinutes,
+            total_credits: existingCredits.total_credits + totalCredits
           })
           .eq('user_id', user.id);
       } else {
@@ -160,14 +226,15 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
           .from('user_ai_credits')
           .insert({
             user_id: user.id,
-            images_available: tier.images,
-            video_minutes_available: tier.videos * 0.5,
-            audio_minutes_available: tier.audioMinutes,
-            total_credits: tier.credits
+            images_available: allocation.images,
+            video_minutes_available: allocation.videoMinutes,
+            audio_minutes_available: allocation.audioMinutes,
+            total_credits: totalCredits
           });
       }
 
-      toast.success(`Replenished ${tier.credits} AI credits from earnings!`);
+      toast.success(`Replenished ${totalCredits} AI credits from earnings!`);
+      setSelectedServices({ images: true, video: true, audio: true });
       onReplenishComplete?.();
       onOpenChange(false);
     } catch (error: any) {
@@ -181,6 +248,12 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
   const handleBuyCredits = async () => {
     if (selectedTier === null || !user) return;
     const tier = tiers[selectedTier];
+    const allocation = calculateServiceAllocation();
+
+    if (!selectedServices.images && !selectedServices.video && !selectedServices.audio) {
+      toast.error('Please select at least one AI service');
+      return;
+    }
 
     // Check if using platform credits or need PayMongo
     if (userCredits >= tier.price) {
@@ -199,14 +272,16 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
           .update({ credits: userCredits - tier.price })
           .eq('id', user.id);
 
-        // Create pending purchase for admin approval
+        const totalCredits = tier.credits + Math.floor(allocation.bonusCredits);
+
+        // Create pending purchase for admin approval with selected services
         await supabase.from('binary_ai_purchases').insert({
           user_id: user.id,
           amount: tier.price,
-          credits_received: tier.credits,
-          images_allocated: tier.images,
-          video_minutes_allocated: tier.videos * 0.5,
-          audio_minutes_allocated: tier.audioMinutes,
+          credits_received: totalCredits,
+          images_allocated: allocation.images,
+          video_minutes_allocated: allocation.videoMinutes,
+          audio_minutes_allocated: allocation.audioMinutes,
           sponsor_id: profileData?.referred_by || null,
           status: 'pending',
           is_first_purchase: false
@@ -218,6 +293,7 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
         }
 
         toast.success('Purchase submitted for admin approval! Credits will be added once approved.');
+        setSelectedServices({ images: true, video: true, audio: true });
         onReplenishComplete?.();
         onOpenChange(false);
       } catch (error: any) {
@@ -371,6 +447,41 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
               ))}
             </div>
 
+            {/* Service Selection */}
+            {selectedTier !== null && (
+              <div className="space-y-3 p-3 rounded-lg bg-muted/50 border">
+                <p className="font-medium text-sm">Select AI Services:</p>
+                <p className="text-xs text-muted-foreground">Unselected services convert to bonus credits.</p>
+                
+                <div className="text-xs p-2 bg-background rounded border mb-2">
+                  <span className="font-medium">Rates: </span>
+                  1 img = {creditRates.creditsPerImage} cr | 1 min video = {creditRates.creditsPerVideoMinute} cr | 1 min audio = {creditRates.creditsPerAudioMinute} cr
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <label className="flex items-center gap-1 cursor-pointer p-2 rounded border text-xs">
+                    <input type="checkbox" checked={selectedServices.images} onChange={(e) => setSelectedServices(p => ({ ...p, images: e.target.checked }))} />
+                    <ImageIcon className="h-3 w-3" /> Images
+                  </label>
+                  <label className="flex items-center gap-1 cursor-pointer p-2 rounded border text-xs">
+                    <input type="checkbox" checked={selectedServices.video} onChange={(e) => setSelectedServices(p => ({ ...p, video: e.target.checked }))} />
+                    <VideoIcon className="h-3 w-3" /> Video
+                  </label>
+                  <label className="flex items-center gap-1 cursor-pointer p-2 rounded border text-xs">
+                    <input type="checkbox" checked={selectedServices.audio} onChange={(e) => setSelectedServices(p => ({ ...p, audio: e.target.checked }))} />
+                    <Music className="h-3 w-3" /> Audio
+                  </label>
+                </div>
+
+                {(() => {
+                  const allocation = calculateServiceAllocation();
+                  return allocation.bonusCredits > 0 ? (
+                    <p className="text-xs text-green-600">+{Math.floor(allocation.bonusCredits)} bonus credits from unused services</p>
+                  ) : null;
+                })()}
+              </div>
+            )}
+
             {/* Commission Info */}
             {replenishMethod === 'buy' && (
               <div className="p-4 rounded-lg bg-muted/50 border">
@@ -391,6 +502,7 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
                 disabled={
                   selectedTier === null || 
                   purchasing ||
+                  (!selectedServices.images && !selectedServices.video && !selectedServices.audio) ||
                   (replenishMethod === 'earnings' && selectedTier !== null && userEarnings < tiers[selectedTier].price) ||
                   (replenishMethod === 'buy' && selectedTier !== null && userCredits < tiers[selectedTier].price)
                 }
@@ -398,9 +510,7 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
               >
                 {purchasing && <Loader2 className="h-4 w-4 animate-spin" />}
                 {selectedTier !== null
-                  ? replenishMethod === 'earnings'
-                    ? `Replenish ${tiers[selectedTier]?.credits} Credits`
-                    : `Buy ${tiers[selectedTier]?.credits} Credits`
+                  ? `${replenishMethod === 'earnings' ? 'Replenish' : 'Buy'} ${tiers[selectedTier]?.credits + Math.floor(calculateServiceAllocation().bonusCredits)} Credits`
                   : 'Select a Package'}
               </Button>
             </div>
