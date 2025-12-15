@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings } from 'lucide-react';
+import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings, Music } from 'lucide-react';
 import AICostCalculator from './AICostCalculator';
 import AIProviderStatus from './AIProviderStatus';
 interface CreditTier {
@@ -27,6 +27,9 @@ const AISettingsManagement = () => {
   const [freeImageLimit, setFreeImageLimit] = useState('3');
   const [videoCreditCost, setVideoCreditCost] = useState('10');
   const [creditToDiamondRate, setCreditToDiamondRate] = useState('10');
+  const [creditsPerVideoMinute, setCreditsPerVideoMinute] = useState('20');
+  const [creditsPerAudioMinute, setCreditsPerAudioMinute] = useState('5');
+  const [creditsPerImage, setCreditsPerImage] = useState('1');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -82,6 +85,12 @@ const AISettingsManagement = () => {
           setVideoCreditCost(setting.value || '10');
         } else if (setting.key === 'ai_credit_to_diamond_rate') {
           setCreditToDiamondRate(setting.value || '10');
+        } else if (setting.key === 'ai_credits_per_video_minute') {
+          setCreditsPerVideoMinute(setting.value || '20');
+        } else if (setting.key === 'ai_credits_per_audio_minute') {
+          setCreditsPerAudioMinute(setting.value || '5');
+        } else if (setting.key === 'ai_credits_per_image') {
+          setCreditsPerImage(setting.value || '1');
         } else if (setting.key === 'ai_admin_earnings_percent') {
           setAdminEarningsPercent(setting.value || '35');
         } else if (setting.key === 'ai_unilevel_percent') {
@@ -129,6 +138,9 @@ const AISettingsManagement = () => {
         { key: 'ai_free_image_limit', value: freeImageLimit },
         { key: 'ai_video_credit_cost', value: videoCreditCost },
         { key: 'ai_credit_to_diamond_rate', value: creditToDiamondRate },
+        { key: 'ai_credits_per_video_minute', value: creditsPerVideoMinute },
+        { key: 'ai_credits_per_audio_minute', value: creditsPerAudioMinute },
+        { key: 'ai_credits_per_image', value: creditsPerImage },
         { key: 'ai_cost_markup_percent', value: costMarkupPercent },
         { key: 'ai_admin_earnings_percent', value: adminEarningsPercent },
         { key: 'ai_unilevel_percent', value: unilevelPercent },
@@ -316,6 +328,61 @@ const AISettingsManagement = () => {
               <p className="text-xs text-muted-foreground">
                 {costMarkupPercent}% markup means: If cost is ₱100, selling price is ₱{(100 * (1 + parseFloat(costMarkupPercent) / 100)).toFixed(0)}
               </p>
+            </div>
+          </div>
+
+          {/* Credits per Minute/Generation Rates */}
+          <div className="pt-4 border-t">
+            <h4 className="font-medium text-sm mb-4">Credit Consumption Rates</h4>
+            <p className="text-xs text-muted-foreground mb-4">
+              Define how many credits are required per minute/generation. Users see these rates when purchasing.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <VideoIcon className="h-3 w-3 text-purple-500" />
+                  Credits per Video Minute
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={creditsPerVideoMinute}
+                  onChange={(e) => setCreditsPerVideoMinute(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  1 min video = {creditsPerVideoMinute} credits
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <Music className="h-3 w-3 text-blue-500" />
+                  Credits per Audio Minute
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={creditsPerAudioMinute}
+                  onChange={(e) => setCreditsPerAudioMinute(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  1 min audio = {creditsPerAudioMinute} credits
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <ImageIcon className="h-3 w-3 text-green-500" />
+                  Credits per Image
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={creditsPerImage}
+                  onChange={(e) => setCreditsPerImage(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  1 image = {creditsPerImage} credits
+                </p>
+              </div>
             </div>
           </div>
         </CardContent>

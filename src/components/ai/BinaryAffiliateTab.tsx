@@ -53,6 +53,18 @@ interface CreditTier {
   audioMinutes: number;
 }
 
+interface CreditRates {
+  creditsPerVideoMinute: number;
+  creditsPerAudioMinute: number;
+  creditsPerImage: number;
+}
+
+interface SelectedServices {
+  images: boolean;
+  video: boolean;
+  audio: boolean;
+}
+
 interface DailyEarning {
   earning_date: string;
   total_earned: number;
@@ -73,6 +85,16 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
   });
   const [tiers, setTiers] = useState<CreditTier[]>([]);
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
+  const [creditRates, setCreditRates] = useState<CreditRates>({
+    creditsPerVideoMinute: 20,
+    creditsPerAudioMinute: 5,
+    creditsPerImage: 1
+  });
+  const [selectedServices, setSelectedServices] = useState<SelectedServices>({
+    images: true,
+    video: true,
+    audio: true
+  });
   const [todayEarnings, setTodayEarnings] = useState<DailyEarning | null>(null);
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -94,7 +116,9 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
       const { data: settingsData } = await supabase
         .from('app_settings')
         .select('key, value')
-        .or('key.like.binary_%,key.like.ai_credit_tier_%');
+        .or('key.like.binary_%,key.like.ai_%');
+
+      const rates: CreditRates = { creditsPerVideoMinute: 20, creditsPerAudioMinute: 5, creditsPerImage: 1 };
 
       const tierData: CreditTier[] = [
         { price: 100, cost: 30, credits: 50, images: 30, videos: 10, audioMinutes: 15 },
@@ -113,6 +137,11 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
           if (s.key === 'binary_auto_replenish_enabled') newSettings.autoReplenishEnabled = s.value === 'true';
           if (s.key === 'binary_auto_replenish_percent') newSettings.autoReplenishPercent = parseFloat(s.value || '20');
 
+          // Credit rates
+          if (s.key === 'ai_credits_per_video_minute') rates.creditsPerVideoMinute = parseFloat(s.value || '20');
+          if (s.key === 'ai_credits_per_audio_minute') rates.creditsPerAudioMinute = parseFloat(s.value || '5');
+          if (s.key === 'ai_credits_per_image') rates.creditsPerImage = parseFloat(s.value || '1');
+
           // Parse tier data
           const match = s.key.match(/ai_credit_tier_(\d)_(\w+)/);
           if (match) {
@@ -130,6 +159,7 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
         });
         setSettings(newSettings);
         setTiers(tierData);
+        setCreditRates(rates);
       }
 
       // Check if user is enrolled in binary system
@@ -205,9 +235,40 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
     return Math.min((todayEarnings.total_earned / settings.dailyCap) * 100, 100);
   };
 
+  // Calculate what the user gets based on service selection
+  const calculateServiceAllocation = () => {
+    if (selectedTier === null) return { images: 0, videoMinutes: 0, audioMinutes: 0, bonusCredits: 0 };
+    const tier = tiers[selectedTier];
+    
+    let images = selectedServices.images ? tier.images : 0;
+    let videoMinutes = selectedServices.video ? tier.videos * 0.5 : 0;
+    let audioMinutes = selectedServices.audio ? tier.audioMinutes : 0;
+    
+    // Calculate bonus credits from unused services
+    let bonusCredits = 0;
+    if (!selectedServices.images) {
+      bonusCredits += tier.images * creditRates.creditsPerImage;
+    }
+    if (!selectedServices.video) {
+      bonusCredits += (tier.videos * 0.5) * creditRates.creditsPerVideoMinute;
+    }
+    if (!selectedServices.audio) {
+      bonusCredits += tier.audioMinutes * creditRates.creditsPerAudioMinute;
+    }
+    
+    return { images, videoMinutes, audioMinutes, bonusCredits };
+  };
+
   const handlePurchaseCredits = async () => {
     if (selectedTier === null || !user) return;
     const tier = tiers[selectedTier];
+    const allocation = calculateServiceAllocation();
+
+    // At least one service must be selected
+    if (!selectedServices.images && !selectedServices.video && !selectedServices.audio) {
+      toast.error('Please select at least one AI service');
+      return;
+    }
 
     if (userCredits < tier.price) {
       toast.error(`Insufficient credits. You need ₱${tier.price}`);
@@ -222,14 +283,14 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
       // Get referrer
       const { data: profileData } = await supabase.from('profiles').select('referred_by').eq('id', user.id).single();
 
-      // Create pending purchase for admin approval
+      // Create pending purchase for admin approval with selected services
       await supabase.from('binary_ai_purchases').insert({
         user_id: user.id,
         amount: tier.price,
-        credits_received: tier.credits,
-        images_allocated: tier.images,
-        video_minutes_allocated: tier.videos * 0.5,
-        audio_minutes_allocated: tier.audioMinutes,
+        credits_received: tier.credits + Math.floor(allocation.bonusCredits),
+        images_allocated: allocation.images,
+        video_minutes_allocated: allocation.videoMinutes,
+        audio_minutes_allocated: allocation.audioMinutes,
         sponsor_id: profileData?.referred_by || null,
         status: 'pending',
         is_first_purchase: !isEnrolled
@@ -238,6 +299,7 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
       toast.success('Purchase submitted for admin approval! Credits will be added once approved.');
       fetchData();
       setSelectedTier(null);
+      setSelectedServices({ images: true, video: true, audio: true });
     } catch (error: any) {
       console.error('Purchase error:', error);
       toast.error(error.message || 'Failed to submit purchase');
@@ -361,14 +423,89 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
                 </div>
               </div>
 
+              {/* Service Selection */}
+              {selectedTier !== null && (
+                <div className="space-y-3 p-3 rounded-lg bg-muted/50 border">
+                  <p className="font-medium text-sm">Select AI Services You Want:</p>
+                  <p className="text-xs text-muted-foreground">
+                    Unselected services will be converted to bonus credits for your account.
+                  </p>
+                  
+                  {/* Credit Rates Info */}
+                  <div className="text-xs text-muted-foreground p-2 bg-background rounded border">
+                    <p className="font-medium mb-1">Credit Rates (set by admin):</p>
+                    <div className="flex gap-3">
+                      <span>1 image = {creditRates.creditsPerImage} cr</span>
+                      <span>1 min video = {creditRates.creditsPerVideoMinute} cr</span>
+                      <span>1 min audio = {creditRates.creditsPerAudioMinute} cr</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background/50">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedServices.images}
+                        onChange={(e) => setSelectedServices(prev => ({ ...prev, images: e.target.checked }))}
+                        className="rounded"
+                      />
+                      <ImageIcon className="h-4 w-4 text-green-500" />
+                      <span className="text-sm">Image Generation ({tiers[selectedTier].images} images)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background/50">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedServices.video}
+                        onChange={(e) => setSelectedServices(prev => ({ ...prev, video: e.target.checked }))}
+                        className="rounded"
+                      />
+                      <VideoIcon className="h-4 w-4 text-purple-500" />
+                      <span className="text-sm">Video Generation ({(tiers[selectedTier].videos * 0.5).toFixed(1)} min)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background/50">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedServices.audio}
+                        onChange={(e) => setSelectedServices(prev => ({ ...prev, audio: e.target.checked }))}
+                        className="rounded"
+                      />
+                      <Music className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm">Audio Generation ({tiers[selectedTier].audioMinutes} min)</span>
+                    </label>
+                  </div>
+
+                  {/* Allocation Summary */}
+                  {(() => {
+                    const allocation = calculateServiceAllocation();
+                    return (
+                      <div className="p-2 rounded bg-primary/10 border border-primary/20 text-xs">
+                        <p className="font-medium text-primary mb-1">Your Allocation:</p>
+                        <div className="space-y-1 text-muted-foreground">
+                          <p>• Base Credits: {tiers[selectedTier].credits}</p>
+                          {allocation.bonusCredits > 0 && (
+                            <p className="text-green-600">• Bonus Credits (from unused services): +{Math.floor(allocation.bonusCredits)}</p>
+                          )}
+                          <p className="font-semibold text-foreground">
+                            Total Credits: {tiers[selectedTier].credits + Math.floor(allocation.bonusCredits)}
+                          </p>
+                          {allocation.images > 0 && <p>• Images: {allocation.images}</p>}
+                          {allocation.videoMinutes > 0 && <p>• Video: {allocation.videoMinutes.toFixed(1)} min</p>}
+                          {allocation.audioMinutes > 0 && <p>• Audio: {allocation.audioMinutes} min</p>}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               <Button 
                 onClick={handlePurchaseCredits} 
                 className="w-full gap-2" 
                 size="lg"
-                disabled={selectedTier === null || purchasing || (selectedTier !== null && userCredits < tiers[selectedTier]?.price)}
+                disabled={selectedTier === null || purchasing || (selectedTier !== null && userCredits < tiers[selectedTier]?.price) || (!selectedServices.images && !selectedServices.video && !selectedServices.audio)}
               >
                 {purchasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {selectedTier !== null ? `Buy ${tiers[selectedTier]?.credits} Credits (₱${tiers[selectedTier]?.price})` : 'Select a Package'}
+                {selectedTier !== null ? `Buy ${tiers[selectedTier]?.credits + Math.floor(calculateServiceAllocation().bonusCredits)} Credits (₱${tiers[selectedTier]?.price})` : 'Select a Package'}
               </Button>
               <p className="text-xs text-center text-muted-foreground">Your balance: ₱{userCredits}</p>
             </CardContent>
