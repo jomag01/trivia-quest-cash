@@ -254,7 +254,6 @@ export default function BinarySystemManagement() {
           </Card>
         </div>
 
-        {/* Settings */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -262,9 +261,21 @@ export default function BinarySystemManagement() {
               Binary System Settings
             </CardTitle>
             <CardDescription>
-              Configure the binary MLM system for AI credits
+              Configure the binary MLM system for AI credits. This system is <span className="font-semibold">separate</span> from unilevel, stair-step, and leadership commissions which apply to shop product purchases only.
             </CardDescription>
           </CardHeader>
+
+          {/* Important Notice */}
+          <CardContent className="pt-0 pb-4">
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
+              <p className="font-medium text-amber-700 dark:text-amber-400 mb-1">⚠️ Commission System Separation:</p>
+              <p className="text-muted-foreground text-xs">
+                • <span className="font-medium">Binary System:</span> Commissions from AI credit package purchases only<br/>
+                • <span className="font-medium">Unilevel/Stair-Step/Leadership:</span> Commissions from shop product purchases only<br/>
+                • Users are enrolled in ALL systems via referral, but binary activates only when they buy AI credits
+              </p>
+            </div>
+          </CardContent>
           <CardContent className="space-y-6">
             {/* Basic Settings */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
