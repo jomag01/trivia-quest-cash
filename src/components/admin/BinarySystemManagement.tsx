@@ -258,10 +258,10 @@ export default function BinarySystemManagement() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <GitBranch className="h-5 w-5" />
-              Binary System Settings
+              AI Affiliate System Settings
             </CardTitle>
             <CardDescription>
-              Configure the binary MLM system for AI credits. This system is <span className="font-semibold">separate</span> from unilevel, stair-step, and leadership commissions which apply to shop product purchases only.
+              Configure the AI affiliate system for AI credits. This system is <span className="font-semibold">separate</span> from unilevel, stair-step, and leadership commissions which apply to shop product purchases only.
             </CardDescription>
           </CardHeader>
 
@@ -270,9 +270,9 @@ export default function BinarySystemManagement() {
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
               <p className="font-medium text-amber-700 dark:text-amber-400 mb-1">⚠️ Commission System Separation:</p>
               <p className="text-muted-foreground text-xs">
-                • <span className="font-medium">Binary System:</span> Commissions from AI credit package purchases only<br/>
+                • <span className="font-medium">AI Affiliate System:</span> Commissions from AI credit package purchases only<br/>
                 • <span className="font-medium">Unilevel/Stair-Step/Leadership:</span> Commissions from shop product purchases only<br/>
-                • Users are enrolled in ALL systems via referral, but binary activates only when they buy AI credits
+                • Users are enrolled in ALL systems via referral, but AI affiliate activates only when they buy AI credits
               </p>
             </div>
           </CardContent>
@@ -421,10 +421,10 @@ export default function BinarySystemManagement() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Binary Network Members
+              AI Affiliate Network Members
             </CardTitle>
             <CardDescription>
-              Recent members enrolled in the binary system
+              Recent members enrolled in the AI affiliate system
             </CardDescription>
           </CardHeader>
           <CardContent>
