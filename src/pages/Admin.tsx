@@ -54,7 +54,7 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch } from "lucide-react";
 import { POSSystem } from "@/components/admin/POSSystem";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
 import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
@@ -62,6 +62,7 @@ import AppLogoManagement from "@/components/admin/AppLogoManagement";
 import SystemResetManagement from "@/components/admin/SystemResetManagement";
 import AISettingsManagement from "@/components/admin/AISettingsManagement";
 import AIProviderPricing from "@/components/admin/AIProviderPricing";
+import BinarySystemManagement from "@/components/admin/BinarySystemManagement";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -139,6 +140,7 @@ const Admin = () => {
     { id: "pos-system", label: "POS & Inventory", icon: Barcode },
     { id: "ai-settings", label: "AI Hub Settings", icon: Sparkles },
     { id: "ai-pricing", label: "AI Provider Costs", icon: DollarSign },
+    { id: "binary-system", label: "Binary MLM System", icon: GitBranch },
     { id: "system-reset", label: "System Reset", icon: RotateCcw },
   ];
 
@@ -632,6 +634,7 @@ const Admin = () => {
           {activeTab === "unilevel-settings" && <UnilevelCommissionSettings />}
           {activeTab === "ai-settings" && <AISettingsManagement />}
           {activeTab === "ai-pricing" && <AIProviderPricing />}
+          {activeTab === "binary-system" && <BinarySystemManagement />}
           {activeTab === "system-reset" && <SystemResetManagement />}
         </main>
       </div>

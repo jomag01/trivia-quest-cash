@@ -12,10 +12,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch } from 'lucide-react';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
 import AdvancedChatAssistant from '@/components/ai/AdvancedChatAssistant';
+import BinaryAffiliateTab from '@/components/ai/BinaryAffiliateTab';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -135,6 +136,7 @@ const AIHub = memo(() => {
   // Navigation items for sidebar
   const navItems = [
     { id: 'home', label: 'Home', icon: Sparkles },
+    { id: 'affiliate', label: 'Affiliate', icon: GitBranch },
     { id: 'research', label: 'Research', icon: Brain },
     { id: 'chat', label: 'GPT-5', icon: MessageSquare },
     { id: 'business', label: 'Business', icon: Briefcase },
@@ -867,6 +869,13 @@ const AIHub = memo(() => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Binary Affiliate Tab */}
+          {activeTab === 'affiliate' && (
+            <div className="p-4 md:p-6">
+              <BinaryAffiliateTab onBuyCredits={() => setShowBuyCredits(true)} />
             </div>
           )}
 
