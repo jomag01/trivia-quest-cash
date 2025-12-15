@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Bell, User, Menu, X } from "lucide-react";
+import { Search, Bell, User, X, LayoutGrid, Home, ShoppingBag, Utensils, Gamepad2, MessageCircle, Calendar, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -47,11 +47,42 @@ export default function FeedTopNav({ onSearchChange, showSearch = true }: FeedTo
     onSearchChange?.(value);
   };
 
+  const navItems = [
+    { icon: Home, label: "Home", path: "/" },
+    { icon: Sparkles, label: "AI Hub", path: "/ai-hub" },
+    { icon: ShoppingBag, label: "Shop", path: "/shop" },
+    { icon: Utensils, label: "Food", path: "/food" },
+    { icon: Gamepad2, label: "Games", path: "/games" },
+    { icon: MessageCircle, label: "Community", path: "/community" },
+    { icon: Calendar, label: "Booking", path: "/booking" },
+  ];
+
   return (
     <header className="sticky top-0 z-50 glass border-b border-border/50">
       <div className="flex items-center justify-between h-14 px-4 max-w-3xl mx-auto">
-        {/* Logo / Brand */}
-        <div className="flex items-center">
+        {/* Navigation Menu */}
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <LayoutGrid className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48 bg-background border border-border shadow-lg">
+              {navItems.map((item) => (
+                <DropdownMenuItem 
+                  key={item.path} 
+                  onClick={() => navigate(item.path)}
+                  className="cursor-pointer"
+                >
+                  <item.icon className="w-4 h-4 mr-2" />
+                  {item.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Logo */}
           <button 
             onClick={() => navigate("/")}
             className="flex items-center"
