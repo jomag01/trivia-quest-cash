@@ -423,34 +423,55 @@ export type Database = {
       }
       binary_ai_purchases: {
         Row: {
+          admin_notes: string | null
           amount: number
+          approved_at: string | null
+          approved_by: string | null
+          audio_minutes_allocated: number | null
           created_at: string | null
           credits_received: number
           id: string
+          images_allocated: number | null
           is_first_purchase: boolean | null
           package_id: string | null
           sponsor_id: string | null
+          status: string | null
           user_id: string
+          video_minutes_allocated: number | null
         }
         Insert: {
+          admin_notes?: string | null
           amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          audio_minutes_allocated?: number | null
           created_at?: string | null
           credits_received: number
           id?: string
+          images_allocated?: number | null
           is_first_purchase?: boolean | null
           package_id?: string | null
           sponsor_id?: string | null
+          status?: string | null
           user_id: string
+          video_minutes_allocated?: number | null
         }
         Update: {
+          admin_notes?: string | null
           amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          audio_minutes_allocated?: number | null
           created_at?: string | null
           credits_received?: number
           id?: string
+          images_allocated?: number | null
           is_first_purchase?: boolean | null
           package_id?: string | null
           sponsor_id?: string | null
+          status?: string | null
           user_id?: string
+          video_minutes_allocated?: number | null
         }
         Relationships: []
       }
@@ -5082,6 +5103,48 @@ export type Database = {
           user_id?: string
           video_url?: string | null
           views_count?: number
+        }
+        Relationships: []
+      }
+      user_ai_credits: {
+        Row: {
+          audio_minutes_available: number
+          audio_minutes_used: number
+          created_at: string
+          id: string
+          images_available: number
+          images_used: number
+          total_credits: number
+          updated_at: string
+          user_id: string
+          video_minutes_available: number
+          video_minutes_used: number
+        }
+        Insert: {
+          audio_minutes_available?: number
+          audio_minutes_used?: number
+          created_at?: string
+          id?: string
+          images_available?: number
+          images_used?: number
+          total_credits?: number
+          updated_at?: string
+          user_id: string
+          video_minutes_available?: number
+          video_minutes_used?: number
+        }
+        Update: {
+          audio_minutes_available?: number
+          audio_minutes_used?: number
+          created_at?: string
+          id?: string
+          images_available?: number
+          images_used?: number
+          total_credits?: number
+          updated_at?: string
+          user_id?: string
+          video_minutes_available?: number
+          video_minutes_used?: number
         }
         Relationships: []
       }

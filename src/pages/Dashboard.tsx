@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare } from "lucide-react";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
@@ -35,6 +35,7 @@ import { RecentTransactions } from "@/components/RecentTransactions";
 import ProfileImageUpload from "@/components/profile/ProfileImageUpload";
 import DeepResearchAssistant from "@/components/ai/DeepResearchAssistant";
 import AdvancedChatAssistant from "@/components/ai/AdvancedChatAssistant";
+import AICreditsTracker from "@/components/AICreditsTracker";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -470,6 +471,13 @@ const Dashboard = () => {
                     <MessageSquare className="w-4 h-4 mr-2" />
                     GPT-5 Chat
                   </Button>
+                  <Button variant={activeTab === "ai-credits" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  handleTabChange("ai-credits");
+                  setMobileMenuOpen(false);
+                }}>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    AI Credits
+                  </Button>
                   <div className="border-t border-border my-2" />
                   <Button variant="ghost" className="justify-start text-destructive hover:text-destructive" onClick={async () => {
                   await signOut();
@@ -505,6 +513,7 @@ const Dashboard = () => {
                 <SelectItem value="transactions">Transactions</SelectItem>
                 <SelectItem value="ai-research">AI Research</SelectItem>
                 <SelectItem value="ai-chat">GPT-5 Chat</SelectItem>
+                <SelectItem value="ai-credits">AI Credits</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -846,6 +855,10 @@ const Dashboard = () => {
 
       <TabsContent value="ai-chat">
         <AdvancedChatAssistant compact title="GPT-5 Assistant" />
+      </TabsContent>
+
+      <TabsContent value="ai-credits">
+        <AICreditsTracker />
       </TabsContent>
     </Tabs>
   </div>
