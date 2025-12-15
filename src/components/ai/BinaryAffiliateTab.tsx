@@ -17,7 +17,11 @@ import {
   RefreshCw,
   Clock,
   Loader2,
-  Sparkles
+  Sparkles,
+  ImageIcon,
+  VideoIcon,
+  Music,
+  Check
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -40,6 +44,15 @@ interface BinarySettings {
   autoReplenishPercent: number;
 }
 
+interface CreditTier {
+  price: number;
+  cost: number;
+  credits: number;
+  images: number;
+  videos: number;
+  audioMinutes: number;
+}
+
 interface DailyEarning {
   earning_date: string;
   total_earned: number;
@@ -58,10 +71,14 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
     autoReplenishEnabled: true,
     autoReplenishPercent: 20
   });
+  const [tiers, setTiers] = useState<CreditTier[]>([]);
+  const [selectedTier, setSelectedTier] = useState<number | null>(null);
   const [todayEarnings, setTodayEarnings] = useState<DailyEarning | null>(null);
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [userCredits, setUserCredits] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -73,11 +90,17 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
     if (!user) return;
     setLoading(true);
     try {
-      // Fetch binary settings
+      // Fetch binary settings and AI tiers
       const { data: settingsData } = await supabase
         .from('app_settings')
         .select('key, value')
-        .like('key', 'binary_%');
+        .or('key.like.binary_%,key.like.ai_credit_tier_%');
+
+      const tierData: CreditTier[] = [
+        { price: 100, cost: 30, credits: 50, images: 30, videos: 10, audioMinutes: 15 },
+        { price: 250, cost: 75, credits: 150, images: 100, videos: 30, audioMinutes: 45 },
+        { price: 500, cost: 150, credits: 400, images: 300, videos: 80, audioMinutes: 120 }
+      ];
 
       if (settingsData) {
         const newSettings = { ...settings };
@@ -89,8 +112,24 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
           if (s.key === 'binary_admin_safety_net') newSettings.adminSafetyNet = parseFloat(s.value || '35');
           if (s.key === 'binary_auto_replenish_enabled') newSettings.autoReplenishEnabled = s.value === 'true';
           if (s.key === 'binary_auto_replenish_percent') newSettings.autoReplenishPercent = parseFloat(s.value || '20');
+
+          // Parse tier data
+          const match = s.key.match(/ai_credit_tier_(\d)_(\w+)/);
+          if (match) {
+            const tierIndex = parseInt(match[1]) - 1;
+            const field = match[2];
+            if (tierIndex >= 0 && tierIndex < 3) {
+              if (field === 'price') tierData[tierIndex].price = parseFloat(s.value || '0');
+              if (field === 'cost') tierData[tierIndex].cost = parseFloat(s.value || '0');
+              if (field === 'credits') tierData[tierIndex].credits = parseInt(s.value || '0');
+              if (field === 'image') tierData[tierIndex].images = parseInt(s.value || '0');
+              if (field === 'video') tierData[tierIndex].videos = parseInt(s.value || '0');
+              if (field === 'audio_minutes') tierData[tierIndex].audioMinutes = parseFloat(s.value || '0');
+            }
+          }
         });
         setSettings(newSettings);
+        setTiers(tierData);
       }
 
       // Check if user is enrolled in binary system
@@ -131,6 +170,15 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
         setTotalEarnings(total);
       }
 
+      // Fetch user credits
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+
+      setUserCredits(profileData?.credits || 0);
+
     } catch (error) {
       console.error('Error fetching binary data:', error);
     } finally {
@@ -156,6 +204,49 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
     if (!todayEarnings) return 0;
     return Math.min((todayEarnings.total_earned / settings.dailyCap) * 100, 100);
   };
+
+  const handlePurchaseCredits = async () => {
+    if (selectedTier === null || !user) return;
+    const tier = tiers[selectedTier];
+
+    if (userCredits < tier.price) {
+      toast.error(`Insufficient credits. You need ₱${tier.price}`);
+      return;
+    }
+
+    setPurchasing(true);
+    try {
+      // Deduct credits
+      await supabase.from('profiles').update({ credits: userCredits - tier.price }).eq('id', user.id);
+
+      // Get referrer
+      const { data: profileData } = await supabase.from('profiles').select('referred_by').eq('id', user.id).single();
+
+      // Create pending purchase for admin approval
+      await supabase.from('binary_ai_purchases').insert({
+        user_id: user.id,
+        amount: tier.price,
+        credits_received: tier.credits,
+        images_allocated: tier.images,
+        video_minutes_allocated: tier.videos * 0.5,
+        audio_minutes_allocated: tier.audioMinutes,
+        sponsor_id: profileData?.referred_by || null,
+        status: 'pending',
+        is_first_purchase: !isEnrolled
+      });
+
+      toast.success('Purchase submitted for admin approval! Credits will be added once approved.');
+      fetchData();
+      setSelectedTier(null);
+    } catch (error: any) {
+      console.error('Purchase error:', error);
+      toast.error(error.message || 'Failed to submit purchase');
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  const getTierLabel = (index: number) => ['Starter', 'Popular', 'Pro'][index] || `Tier ${index + 1}`;
 
   if (loading) {
     return (
@@ -244,10 +335,42 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
                 <p>• <span className="font-medium">Unilevel/Stair-Step/Leadership:</span> Shop product purchases only</p>
               </div>
 
-              <Button onClick={onBuyCredits} className="w-full gap-2" size="lg">
-                <Sparkles className="h-4 w-4" />
-                Buy AI Credits to Activate
+              {/* Tier Selection */}
+              <div className="space-y-3">
+                <p className="font-medium text-sm">Select a Credit Package:</p>
+                <div className="grid grid-cols-1 gap-3">
+                  {tiers.map((tier, index) => (
+                    <Card
+                      key={index}
+                      className={`cursor-pointer transition-all p-3 ${selectedTier === index ? 'border-primary ring-2 ring-primary/20' : ''}`}
+                      onClick={() => setSelectedTier(index)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold">{getTierLabel(index)} - ₱{tier.price}</div>
+                          <div className="text-xs text-muted-foreground flex gap-2 mt-1">
+                            <span><ImageIcon className="h-3 w-3 inline" /> {tier.images}</span>
+                            <span><VideoIcon className="h-3 w-3 inline" /> {(tier.videos * 0.5).toFixed(1)}min</span>
+                            <span><Music className="h-3 w-3 inline" /> {tier.audioMinutes}min</span>
+                          </div>
+                        </div>
+                        {selectedTier === index && <Check className="h-4 w-4 text-primary" />}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              <Button 
+                onClick={handlePurchaseCredits} 
+                className="w-full gap-2" 
+                size="lg"
+                disabled={selectedTier === null || purchasing || (selectedTier !== null && userCredits < tiers[selectedTier]?.price)}
+              >
+                {purchasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {selectedTier !== null ? `Buy ${tiers[selectedTier]?.credits} Credits (₱${tiers[selectedTier]?.price})` : 'Select a Package'}
               </Button>
+              <p className="text-xs text-center text-muted-foreground">Your balance: ₱{userCredits}</p>
             </CardContent>
           </Card>
         ) : (
