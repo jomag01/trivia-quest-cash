@@ -51,10 +51,10 @@ export default function FeedTopNav({ onSearchChange, showSearch = true }: FeedTo
     <header className="sticky top-0 z-50 glass border-b border-border/50">
       <div className="flex items-center justify-between h-14 px-4 max-w-3xl mx-auto">
         {/* Logo / Brand */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           <button 
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 font-bold text-xl tracking-tight"
+            className="flex items-center"
           >
             {appLogo ? (
               <img src={appLogo} alt="App Logo" className="w-8 h-8 rounded-lg object-contain" />
@@ -63,7 +63,6 @@ export default function FeedTopNav({ onSearchChange, showSearch = true }: FeedTo
                 <span className="text-white text-sm font-bold">T</span>
               </div>
             )}
-            <span className="hidden sm:block">TriviaBees</span>
           </button>
         </div>
 
