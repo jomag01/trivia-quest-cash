@@ -50,7 +50,8 @@ interface CreditTier {
   credits: number;
   images: number;
   videos: number;
-  audioMinutes: number;
+  maxVideoSeconds: number;
+  maxAudioSeconds: number;
 }
 
 interface CreditRates {
@@ -121,9 +122,9 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
       const rates: CreditRates = { creditsPerVideoMinute: 20, creditsPerAudioMinute: 5, creditsPerImage: 1 };
 
       const tierData: CreditTier[] = [
-        { price: 100, cost: 30, credits: 50, images: 30, videos: 10, audioMinutes: 15 },
-        { price: 250, cost: 75, credits: 150, images: 100, videos: 30, audioMinutes: 45 },
-        { price: 500, cost: 150, credits: 400, images: 300, videos: 80, audioMinutes: 120 }
+        { price: 100, cost: 30, credits: 50, images: 30, videos: 10, maxVideoSeconds: 10, maxAudioSeconds: 60 },
+        { price: 250, cost: 75, credits: 150, images: 100, videos: 30, maxVideoSeconds: 60, maxAudioSeconds: 300 },
+        { price: 500, cost: 150, credits: 400, images: 300, videos: 80, maxVideoSeconds: 900, maxAudioSeconds: 1800 }
       ];
 
       if (settingsData) {
@@ -153,7 +154,8 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
               if (field === 'credits') tierData[tierIndex].credits = parseInt(s.value || '0');
               if (field === 'image') tierData[tierIndex].images = parseInt(s.value || '0');
               if (field === 'video') tierData[tierIndex].videos = parseInt(s.value || '0');
-              if (field === 'audio_minutes') tierData[tierIndex].audioMinutes = parseFloat(s.value || '0');
+              if (field === 'videoseconds') tierData[tierIndex].maxVideoSeconds = parseInt(s.value || '0');
+              if (field === 'audioseconds') tierData[tierIndex].maxAudioSeconds = parseInt(s.value || '0');
             }
           }
         });
@@ -235,14 +237,23 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
     return Math.min((todayEarnings.total_earned / settings.dailyCap) * 100, 100);
   };
 
+  // Helper function to format seconds as mm:ss
+  const formatSeconds = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0 && secs > 0) return `${mins}m ${secs}s`;
+    if (mins > 0) return `${mins}m`;
+    return `${secs}s`;
+  };
+
   // Calculate what the user gets based on service selection
   const calculateServiceAllocation = () => {
-    if (selectedTier === null) return { images: 0, videoMinutes: 0, audioMinutes: 0, bonusCredits: 0 };
+    if (selectedTier === null) return { images: 0, videoSeconds: 0, audioSeconds: 0, bonusCredits: 0 };
     const tier = tiers[selectedTier];
     
     let images = selectedServices.images ? tier.images : 0;
-    let videoMinutes = selectedServices.video ? tier.videos * 0.5 : 0;
-    let audioMinutes = selectedServices.audio ? tier.audioMinutes : 0;
+    let videoSeconds = selectedServices.video ? tier.maxVideoSeconds : 0;
+    let audioSeconds = selectedServices.audio ? tier.maxAudioSeconds : 0;
     
     // Calculate bonus credits from unused services
     let bonusCredits = 0;
@@ -250,13 +261,13 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
       bonusCredits += tier.images * creditRates.creditsPerImage;
     }
     if (!selectedServices.video) {
-      bonusCredits += (tier.videos * 0.5) * creditRates.creditsPerVideoMinute;
+      bonusCredits += (tier.maxVideoSeconds / 60) * creditRates.creditsPerVideoMinute;
     }
     if (!selectedServices.audio) {
-      bonusCredits += tier.audioMinutes * creditRates.creditsPerAudioMinute;
+      bonusCredits += (tier.maxAudioSeconds / 60) * creditRates.creditsPerAudioMinute;
     }
     
-    return { images, videoMinutes, audioMinutes, bonusCredits };
+    return { images, videoSeconds, audioSeconds, bonusCredits };
   };
 
   const handlePurchaseCredits = async () => {
@@ -289,8 +300,8 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
         amount: tier.price,
         credits_received: tier.credits + Math.floor(allocation.bonusCredits),
         images_allocated: allocation.images,
-        video_minutes_allocated: allocation.videoMinutes,
-        audio_minutes_allocated: allocation.audioMinutes,
+        video_minutes_allocated: allocation.videoSeconds / 60,
+        audio_minutes_allocated: allocation.audioSeconds / 60,
         sponsor_id: profileData?.referred_by || null,
         status: 'pending',
         is_first_purchase: !isEnrolled
@@ -412,8 +423,8 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
                           <div className="font-semibold">{getTierLabel(index)} - ₱{tier.price}</div>
                           <div className="text-xs text-muted-foreground flex gap-2 mt-1">
                             <span><ImageIcon className="h-3 w-3 inline" /> {tier.images}</span>
-                            <span><VideoIcon className="h-3 w-3 inline" /> {(tier.videos * 0.5).toFixed(1)}min</span>
-                            <span><Music className="h-3 w-3 inline" /> {tier.audioMinutes}min</span>
+                            <span><VideoIcon className="h-3 w-3 inline" /> {formatSeconds(tier.maxVideoSeconds)}</span>
+                            <span><Music className="h-3 w-3 inline" /> {formatSeconds(tier.maxAudioSeconds)}</span>
                           </div>
                         </div>
                         {selectedTier === index && <Check className="h-4 w-4 text-primary" />}
@@ -460,7 +471,7 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
                         className="rounded"
                       />
                       <VideoIcon className="h-4 w-4 text-purple-500" />
-                      <span className="text-sm">Video Generation ({(tiers[selectedTier].videos * 0.5).toFixed(1)} min)</span>
+                      <span className="text-sm">Video Generation ({formatSeconds(tiers[selectedTier].maxVideoSeconds)})</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background/50">
                       <input 
@@ -470,7 +481,7 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
                         className="rounded"
                       />
                       <Music className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm">Audio Generation ({tiers[selectedTier].audioMinutes} min)</span>
+                      <span className="text-sm">Audio Generation ({formatSeconds(tiers[selectedTier].maxAudioSeconds)})</span>
                     </label>
                   </div>
 
@@ -489,8 +500,8 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
                             Total Credits: {tiers[selectedTier].credits + Math.floor(allocation.bonusCredits)}
                           </p>
                           {allocation.images > 0 && <p>• Images: {allocation.images}</p>}
-                          {allocation.videoMinutes > 0 && <p>• Video: {allocation.videoMinutes.toFixed(1)} min</p>}
-                          {allocation.audioMinutes > 0 && <p>• Audio: {allocation.audioMinutes} min</p>}
+                          {allocation.videoSeconds > 0 && <p>• Video: {formatSeconds(allocation.videoSeconds)}</p>}
+                          {allocation.audioSeconds > 0 && <p>• Audio: {formatSeconds(allocation.audioSeconds)}</p>}
                         </div>
                       </div>
                     );

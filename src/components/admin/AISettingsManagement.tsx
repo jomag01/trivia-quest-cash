@@ -18,7 +18,8 @@ interface CreditTier {
   images: string;
   videos: string;
   cost: string;
-  maxAnimationMinutes: string;
+  maxVideoSeconds: string;
+  maxAudioSeconds: string;
 }
 
 const generateTierId = () => `tier_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -36,9 +37,9 @@ const AISettingsManagement = () => {
   const [costMarkupPercent, setCostMarkupPercent] = useState('100');
 
   const [tiers, setTiers] = useState<CreditTier[]>([
-    { id: generateTierId(), name: 'Starter', price: '100', credits: '50', images: '30', videos: '10', cost: '30', maxAnimationMinutes: '0.17' },
-    { id: generateTierId(), name: 'Popular', price: '250', credits: '150', images: '100', videos: '30', cost: '75', maxAnimationMinutes: '1' },
-    { id: generateTierId(), name: 'Pro', price: '500', credits: '400', images: '300', videos: '80', cost: '150', maxAnimationMinutes: '15' }
+    { id: generateTierId(), name: 'Starter', price: '100', credits: '50', images: '30', videos: '10', cost: '30', maxVideoSeconds: '10', maxAudioSeconds: '60' },
+    { id: generateTierId(), name: 'Popular', price: '250', credits: '150', images: '100', videos: '30', cost: '75', maxVideoSeconds: '60', maxAudioSeconds: '300' },
+    { id: generateTierId(), name: 'Pro', price: '500', credits: '400', images: '300', videos: '80', cost: '150', maxVideoSeconds: '900', maxAudioSeconds: '1800' }
   ]);
 
   const [adminEarningsPercent, setAdminEarningsPercent] = useState('35');
@@ -74,7 +75,8 @@ const AISettingsManagement = () => {
           images: '0',
           videos: '0',
           cost: '0',
-          maxAnimationMinutes: '0'
+          maxVideoSeconds: '0',
+          maxAudioSeconds: '0'
         });
       }
 
@@ -115,7 +117,13 @@ const AISettingsManagement = () => {
             if (field === 'image') loadedTiers[tierIndex].images = setting.value || '0';
             if (field === 'video') loadedTiers[tierIndex].videos = setting.value || '0';
             if (field === 'cost') loadedTiers[tierIndex].cost = setting.value || '0';
-            if (field === 'animationminutes') loadedTiers[tierIndex].maxAnimationMinutes = setting.value || '0';
+            if (field === 'videoseconds') loadedTiers[tierIndex].maxVideoSeconds = setting.value || '0';
+            if (field === 'audioseconds') loadedTiers[tierIndex].maxAudioSeconds = setting.value || '0';
+            // Legacy support for old animationminutes field - convert to seconds
+            if (field === 'animationminutes') {
+              const minutes = parseFloat(setting.value || '0');
+              loadedTiers[tierIndex].maxVideoSeconds = Math.round(minutes * 60).toString();
+            }
           }
         }
       });
@@ -159,7 +167,8 @@ const AISettingsManagement = () => {
           { key: `ai_credit_tier_${tierNum}_image`, value: tier.images },
           { key: `ai_credit_tier_${tierNum}_video`, value: tier.videos },
           { key: `ai_credit_tier_${tierNum}_cost`, value: tier.cost },
-          { key: `ai_credit_tier_${tierNum}_animationminutes`, value: tier.maxAnimationMinutes }
+          { key: `ai_credit_tier_${tierNum}_videoseconds`, value: tier.maxVideoSeconds },
+          { key: `ai_credit_tier_${tierNum}_audioseconds`, value: tier.maxAudioSeconds }
         );
       });
 
@@ -197,9 +206,18 @@ const AISettingsManagement = () => {
       images: '0',
       videos: '0',
       cost: '0',
-      maxAnimationMinutes: '0'
+      maxVideoSeconds: '0',
+      maxAudioSeconds: '0'
     };
     setTiers(prev => [...prev, newTier]);
+  };
+
+  // Helper to format seconds as mm:ss
+  const formatSecondsDisplay = (seconds: string) => {
+    const totalSeconds = parseInt(seconds) || 0;
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}m ${secs}s`;
   };
 
   const removeTier = (index: number) => {
@@ -358,7 +376,7 @@ const AISettingsManagement = () => {
                   onChange={(e) => setCreditsPerVideoMinute(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  1 min video = {creditsPerVideoMinute} credits
+                  1 min = {creditsPerVideoMinute} cr | 1 sec ≈ {(parseFloat(creditsPerVideoMinute) / 60).toFixed(3)} cr
                 </p>
               </div>
               <div className="space-y-2">
@@ -373,7 +391,7 @@ const AISettingsManagement = () => {
                   onChange={(e) => setCreditsPerAudioMinute(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  1 min audio = {creditsPerAudioMinute} credits
+                  1 min = {creditsPerAudioMinute} cr | 1 sec ≈ {(parseFloat(creditsPerAudioMinute) / 60).toFixed(3)} cr
                 </p>
               </div>
               <div className="space-y-2">
@@ -493,16 +511,81 @@ const AISettingsManagement = () => {
                       onChange={(e) => updateTier(index, 'videos', e.target.value)}
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-purple-500">Max Anim (min)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={tier.maxAnimationMinutes}
-                      onChange={(e) => updateTier(index, 'maxAnimationMinutes', e.target.value)}
-                      placeholder="e.g., 15"
-                    />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs text-purple-500 flex items-center gap-1">
+                      <VideoIcon className="h-3 w-3" />
+                      Max Video Time ({formatSecondsDisplay(tier.maxVideoSeconds)})
+                    </Label>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          min="0"
+                          value={Math.floor((parseInt(tier.maxVideoSeconds) || 0) / 60)}
+                          onChange={(e) => {
+                            const mins = parseInt(e.target.value) || 0;
+                            const currentSecs = (parseInt(tier.maxVideoSeconds) || 0) % 60;
+                            updateTier(index, 'maxVideoSeconds', (mins * 60 + currentSecs).toString());
+                          }}
+                          placeholder="min"
+                        />
+                        <span className="text-[10px] text-muted-foreground">min</span>
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={(parseInt(tier.maxVideoSeconds) || 0) % 60}
+                          onChange={(e) => {
+                            const secs = Math.min(59, parseInt(e.target.value) || 0);
+                            const currentMins = Math.floor((parseInt(tier.maxVideoSeconds) || 0) / 60);
+                            updateTier(index, 'maxVideoSeconds', (currentMins * 60 + secs).toString());
+                          }}
+                          placeholder="sec"
+                        />
+                        <span className="text-[10px] text-muted-foreground">sec</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs text-blue-500 flex items-center gap-1">
+                      <Music className="h-3 w-3" />
+                      Max Audio Time ({formatSecondsDisplay(tier.maxAudioSeconds)})
+                    </Label>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          min="0"
+                          value={Math.floor((parseInt(tier.maxAudioSeconds) || 0) / 60)}
+                          onChange={(e) => {
+                            const mins = parseInt(e.target.value) || 0;
+                            const currentSecs = (parseInt(tier.maxAudioSeconds) || 0) % 60;
+                            updateTier(index, 'maxAudioSeconds', (mins * 60 + currentSecs).toString());
+                          }}
+                          placeholder="min"
+                        />
+                        <span className="text-[10px] text-muted-foreground">min</span>
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={(parseInt(tier.maxAudioSeconds) || 0) % 60}
+                          onChange={(e) => {
+                            const secs = Math.min(59, parseInt(e.target.value) || 0);
+                            const currentMins = Math.floor((parseInt(tier.maxAudioSeconds) || 0) / 60);
+                            updateTier(index, 'maxAudioSeconds', (currentMins * 60 + secs).toString());
+                          }}
+                          placeholder="sec"
+                        />
+                        <span className="text-[10px] text-muted-foreground">sec</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground flex gap-4">
