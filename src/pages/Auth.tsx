@@ -21,6 +21,7 @@ const Auth = () => {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetMethod, setResetMethod] = useState<'email' | 'phone'>('email');
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -94,6 +95,19 @@ const Auth = () => {
     const e164Regex = /^\+[1-9]\d{1,14}$/;
     return e164Regex.test(phone);
   };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const phone = e.target.value;
+    setPhoneNumber(phone);
+    
+    if (phone && !validatePhoneNumber(phone)) {
+      setPhoneError('Invalid format. Use E.164 format (e.g., +639123456789)');
+    } else {
+      setPhoneError('');
+    }
+  };
+
+  const isPhoneValid = phoneNumber === '' || validatePhoneNumber(phoneNumber);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -349,17 +363,25 @@ const Auth = () => {
                     id="phone"
                     type="tel"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    onChange={handlePhoneChange}
                     required
                     placeholder="+639123456789"
+                    className={phoneError ? "border-destructive" : ""}
                   />
+                  {phoneError && (
+                    <p className="text-xs text-destructive">{phoneError}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Include country code (e.g., +63 for Philippines)
                   </p>
                 </div>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={loading || (resetMethod === 'phone' && !isPhoneValid)}
+              >
                 {loading ? "Sending..." : resetMethod === 'email' ? "Send Reset Link" : "Send Code"}
               </Button>
 

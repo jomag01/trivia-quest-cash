@@ -315,9 +315,8 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error('Error scraping product:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to scrape product';
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ success: false, error: 'Failed to import product. Please check the URL and try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

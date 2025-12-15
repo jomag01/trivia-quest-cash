@@ -193,9 +193,21 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in create-payment:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Map internal errors to user-friendly messages
+    let userMessage = "Payment processing failed. Please try again or contact support.";
+    if (error instanceof Error) {
+      if (error.message.includes("Payment provider") || error.message.includes("PayMongo")) {
+        userMessage = error.message;
+      } else if (error.message === "Not authenticated") {
+        userMessage = "Please log in to continue.";
+      } else if (error.message === "Invalid amount") {
+        userMessage = "Invalid payment amount.";
+      }
+    }
+    
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: userMessage }),
       {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -118,9 +118,25 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in create-payout:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Map internal errors to user-friendly messages
+    let userMessage = "Payout request failed. Please try again.";
+    if (error instanceof Error) {
+      if (error.message === "Insufficient balance") {
+        userMessage = "Insufficient balance for this payout.";
+      } else if (error.message === "Payout account not found") {
+        userMessage = "Selected payout account not found.";
+      } else if (error.message === "Wallet not found") {
+        userMessage = "Wallet not found. Please contact support.";
+      } else if (error.message === "Not authenticated") {
+        userMessage = "Please log in to continue.";
+      } else if (error.message === "Invalid amount") {
+        userMessage = "Invalid payout amount.";
+      }
+    }
+    
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: userMessage }),
       {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
