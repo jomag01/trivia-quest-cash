@@ -93,7 +93,7 @@ Important guidelines:
     console.error("Customer support chat error:", error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Unknown error occurred" 
+        error: "Unable to process your request. Please try again." 
       }),
       {
         status: 500,
