@@ -1,5 +1,4 @@
 import React, { useState, useEffect, memo } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,18 +12,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp } from 'lucide-react';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
 import AdvancedChatAssistant from '@/components/ai/AdvancedChatAssistant';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
 const AIHub = memo(() => {
-  const {
-    user,
-    profile
-  } = useAuth();
-  const [activeTab, setActiveTab] = useState('research');
+  const { user, profile } = useAuth();
+  const [activeTab, setActiveTab] = useState('home');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [homeInputValue, setHomeInputValue] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
@@ -114,7 +115,7 @@ const AIHub = memo(() => {
   // Logo and dialogs
   const [appLogo, setAppLogo] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
-  
+
   // Video editor state
   const [showVideoEditor, setShowVideoEditor] = useState(false);
   const [editorMediaUrl, setEditorMediaUrl] = useState<string>('');
@@ -130,6 +131,23 @@ const AIHub = memo(() => {
     setActiveTab('content-creator');
     toast.success('Switching to Content Creator with your research!');
   };
+
+  // Navigation items for sidebar
+  const navItems = [
+    { id: 'home', label: 'Home', icon: Sparkles },
+    { id: 'research', label: 'Research', icon: Brain },
+    { id: 'chat', label: 'GPT-5', icon: MessageSquare },
+    { id: 'business', label: 'Business', icon: Briefcase },
+    { id: 'text-to-image', label: 'Image', icon: Wand2 },
+    { id: 'text-to-video', label: 'Video', icon: VideoIcon },
+    { id: 'text-to-music', label: 'Music', icon: Music },
+    { id: 'enhance', label: 'Enhance', icon: Sparkles },
+    { id: 'image-to-text', label: 'Analyze', icon: ImageIcon },
+    { id: 'video-to-text', label: 'V→Text', icon: TypeIcon },
+    { id: 'content-creator', label: 'Creator', icon: Film },
+    { id: 'video-editor', label: 'Editor', icon: Scissors },
+  ];
+
   useEffect(() => {
     fetchSettings();
     fetchAppLogo();
@@ -138,11 +156,10 @@ const AIHub = memo(() => {
       fetchUserCredits();
     }
   }, [user]);
+
   const fetchAppLogo = async () => {
     try {
-      const {
-        data
-      } = await supabase.from('app_settings').select('value').eq('key', 'app_logo').maybeSingle();
+      const { data } = await supabase.from('app_settings').select('value').eq('key', 'app_logo').maybeSingle();
       if (data?.value) {
         setAppLogo(data.value);
       }
@@ -150,11 +167,10 @@ const AIHub = memo(() => {
       console.error('Error fetching app logo:', error);
     }
   };
+
   const fetchSettings = async () => {
     try {
-      const {
-        data
-      } = await supabase.from('app_settings').select('key, value').in('key', ['ai_free_image_limit', 'ai_video_credit_cost', 'ai_credit_to_diamond_rate']);
+      const { data } = await supabase.from('app_settings').select('key, value').in('key', ['ai_free_image_limit', 'ai_video_credit_cost', 'ai_credit_to_diamond_rate']);
       data?.forEach(setting => {
         if (setting.key === 'ai_free_image_limit') {
           setFreeImageLimit(parseInt(setting.value || '3'));
@@ -168,39 +184,37 @@ const AIHub = memo(() => {
       console.error('Error fetching settings:', error);
     }
   };
+
   const fetchUsageStats = async () => {
     if (!user) return;
     try {
-      const {
-        count
-      } = await supabase.from('ai_generations').select('*', {
-        count: 'exact',
-        head: true
-      }).eq('user_id', user.id).eq('generation_type', 'text-to-image');
+      const { count } = await supabase.from('ai_generations').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('generation_type', 'text-to-image');
       setImageGenerationCount(count || 0);
     } catch (error) {
       console.error('Error fetching usage stats:', error);
     }
   };
+
   const fetchUserCredits = async () => {
     if (!user) return;
     try {
-      const {
-        data
-      } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
+      const { data } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
       setUserCredits(data?.credits || 0);
     } catch (error) {
       console.error('Error fetching credits:', error);
     }
   };
+
   const canGenerateImage = () => {
     if (!user) return false;
     return imageGenerationCount < freeImageLimit || userCredits > 0;
   };
+
   const canGenerateVideo = () => {
     if (!user) return false;
     return userCredits >= videoCreditCost;
   };
+
   const trackGeneration = async (type: string, creditsUsed: number = 0) => {
     if (!user) return;
     try {
@@ -214,12 +228,11 @@ const AIHub = memo(() => {
       console.error('Error tracking generation:', error);
     }
   };
+
   const deductCredits = async (amount: number) => {
     if (!user) return false;
     try {
-      const {
-        error
-      } = await supabase.from('profiles').update({
+      const { error } = await supabase.from('profiles').update({
         credits: userCredits - amount
       }).eq('id', user.id);
       if (error) throw error;
@@ -230,6 +243,7 @@ const AIHub = memo(() => {
       return false;
     }
   };
+
   const handleTextToImage = async () => {
     if (!prompt.trim()) {
       toast.error('Please enter a prompt');
@@ -240,13 +254,11 @@ const AIHub = memo(() => {
       return;
     }
 
-    // Check if user has reached free limit
     if (imageGenerationCount >= freeImageLimit) {
       if (userCredits <= 0) {
         toast.error('You have reached your free image limit. Please buy credits to continue.');
         return;
       }
-      // Deduct 1 credit for image generation beyond free limit
       const deducted = await deductCredits(1);
       if (!deducted) {
         toast.error('Failed to deduct credits');
@@ -256,15 +268,11 @@ const AIHub = memo(() => {
     setIsGenerating(true);
     setGeneratedImage(null);
     try {
-      // Build the final prompt with style and ad preset suffixes
       const selectedAdPreset = AD_PRESETS[adPreset as keyof typeof AD_PRESETS];
       const selectedStylePreset = IMAGE_STYLE_PRESETS[imageStylePreset as keyof typeof IMAGE_STYLE_PRESETS];
       const finalPrompt = prompt.trim() + (selectedStylePreset?.promptSuffix || '') + (selectedAdPreset?.promptSuffix || '');
-      
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('ai-generate', {
+
+      const { data, error } = await supabase.functions.invoke('ai-generate', {
         body: {
           type: 'text-to-image',
           prompt: finalPrompt,
@@ -288,6 +296,7 @@ const AIHub = memo(() => {
       setIsGenerating(false);
     }
   };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'reference' | 'enhance') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -309,6 +318,7 @@ const AIHub = memo(() => {
     };
     reader.readAsDataURL(file);
   };
+
   const handleImageToText = async () => {
     if (!uploadedImage) {
       toast.error('Please upload an image first');
@@ -317,10 +327,7 @@ const AIHub = memo(() => {
     setIsGenerating(true);
     setImageDescription(null);
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('ai-generate', {
+      const { data, error } = await supabase.functions.invoke('ai-generate', {
         body: {
           type: 'image-to-text',
           imageUrl: uploadedImage
@@ -340,6 +347,7 @@ const AIHub = memo(() => {
       setIsGenerating(false);
     }
   };
+
   const handleVideoToText = async () => {
     if (!uploadedVideo) {
       toast.error('Please upload a video first');
@@ -348,10 +356,7 @@ const AIHub = memo(() => {
     setIsGenerating(true);
     setVideoDescription(null);
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('ai-generate', {
+      const { data, error } = await supabase.functions.invoke('ai-generate', {
         body: {
           type: 'video-to-text',
           videoUrl: uploadedVideo
@@ -371,6 +376,7 @@ const AIHub = memo(() => {
       setIsGenerating(false);
     }
   };
+
   const handleTextToVideo = async () => {
     if (!videoPrompt.trim()) {
       toast.error('Please enter a prompt');
@@ -388,17 +394,13 @@ const AIHub = memo(() => {
     setIsGenerating(true);
     setGeneratedVideo(null);
     try {
-      // Deduct credits first
       const deducted = await deductCredits(videoCreditCost);
       if (!deducted) {
         toast.error('Failed to deduct credits');
         return;
       }
       toast.info('Generating video... This may take a minute.');
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('text-to-video', {
+      const { data, error } = await supabase.functions.invoke('text-to-video', {
         body: {
           prompt: videoPrompt.trim(),
           duration: 5,
@@ -419,7 +421,6 @@ const AIHub = memo(() => {
     } catch (error: any) {
       console.error('Video generation error:', error);
       toast.error(error.message || 'Failed to generate video');
-      // Refund credits on failure
       await supabase.from('profiles').update({
         credits: userCredits
       }).eq('id', user.id);
@@ -428,6 +429,7 @@ const AIHub = memo(() => {
       setIsGenerating(false);
     }
   };
+
   const handleGenerateMusic = async () => {
     if (!musicPrompt.trim()) {
       toast.error('Please enter a music description');
@@ -452,10 +454,7 @@ const AIHub = memo(() => {
         return;
       }
       toast.info('Generating music... This may take a minute.');
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('generate-music', {
+      const { data, error } = await supabase.functions.invoke('generate-music', {
         body: {
           prompt: musicPrompt.trim(),
           duration: 30,
@@ -476,7 +475,6 @@ const AIHub = memo(() => {
     } catch (error: any) {
       console.error('Music generation error:', error);
       toast.error(error.message || 'Failed to generate music');
-      // Refund credits on failure
       await supabase.from('profiles').update({
         credits: userCredits
       }).eq('id', user.id);
@@ -485,6 +483,7 @@ const AIHub = memo(() => {
       setIsGenerating(false);
     }
   };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard!');
@@ -499,12 +498,8 @@ const AIHub = memo(() => {
       toast.error('Please login to enhance images');
       return;
     }
-    if (enhanceOperation === 'change-bg' && !newBackgroundPrompt.trim()) {
-      toast.error('Please describe the new background');
-      return;
-    }
     if (userCredits < enhanceCreditCost) {
-      toast.error(`You need at least ${enhanceCreditCost} credits for this operation`);
+      toast.error(`You need at least ${enhanceCreditCost} credits to enhance images`);
       setShowBuyCredits(true);
       return;
     }
@@ -519,13 +514,13 @@ const AIHub = memo(() => {
         return;
       }
 
-      toast.info('Processing your image... This may take a moment.');
+      toast.info('Enhancing your image...');
 
       const { data, error } = await supabase.functions.invoke('enhance-image', {
         body: {
           imageUrl: enhanceImage,
           operation: enhanceOperation,
-          newBackground: enhanceOperation === 'change-bg' ? newBackgroundPrompt : undefined
+          newBackgroundPrompt: enhanceOperation === 'change-background' ? newBackgroundPrompt : undefined
         }
       });
 
@@ -533,8 +528,8 @@ const AIHub = memo(() => {
 
       if (data?.imageUrl) {
         setEnhancedResult(data.imageUrl);
-        await trackGeneration(`image-${enhanceOperation}`, enhanceCreditCost);
-        toast.success('Image processed successfully!');
+        await trackGeneration('image-enhance', enhanceCreditCost);
+        toast.success('Image enhanced successfully!');
       } else if (data?.error) {
         throw new Error(data.error);
       } else {
@@ -542,8 +537,7 @@ const AIHub = memo(() => {
       }
     } catch (error: any) {
       console.error('Enhancement error:', error);
-      toast.error(error.message || 'Failed to process image');
-      // Refund credits on failure
+      toast.error(error.message || 'Failed to enhance image');
       await supabase.from('profiles').update({
         credits: userCredits
       }).eq('id', user.id);
@@ -553,37 +547,20 @@ const AIHub = memo(() => {
     }
   };
 
-  const getAnimationCreditCost = (duration: number) => {
-    if (duration <= 4) return 3;
-    if (duration <= 8) return 5;
-    if (duration <= 10) return 8;
-    if (duration <= 30) return 15;
-    if (duration <= 60) return 25;
-    if (duration <= 300) return 100;
-    return 250; // 15 minutes
-  };
-
   const handleAnimateImage = async () => {
     if (!generatedImage) {
       toast.error('Please generate an image first');
       return;
     }
+
     if (!user) {
       toast.error('Please login to animate images');
       return;
     }
-    
-    const creditCost = getAnimationCreditCost(animationDuration);
-    
-    if (userCredits < creditCost) {
-      toast.error(`You need at least ${creditCost} credits to animate for ${animationDuration} seconds`);
-      setShowBuyCredits(true);
-      return;
-    }
 
-    // Check duration limits based on credits (paid access for longer durations)
-    if (animationDuration > 10 && userCredits < 15) {
-      toast.error('You need a paid plan (15+ credits) for animations longer than 10 seconds');
+    const creditCost = Math.ceil(animationDuration / 2) * 5;
+    if (userCredits < creditCost) {
+      toast.error(`You need at least ${creditCost} credits to animate this image`);
       setShowBuyCredits(true);
       return;
     }
@@ -622,7 +599,6 @@ const AIHub = memo(() => {
     } catch (error: any) {
       console.error('Animation error:', error);
       toast.error(error.message || 'Failed to animate image');
-      // Refund credits on failure
       await supabase.from('profiles').update({
         credits: userCredits
       }).eq('id', user.id);
@@ -631,6 +607,7 @@ const AIHub = memo(() => {
       setIsAnimating(false);
     }
   };
+
   const downloadImage = () => {
     if (!generatedImage) return;
     const link = document.createElement('a');
@@ -638,19 +615,28 @@ const AIHub = memo(() => {
     link.download = `ai-generated-${Date.now()}.png`;
     link.click();
   };
-  
+
   const openVideoEditor = (url: string, type: 'video' | 'image') => {
     setEditorMediaUrl(url);
     setEditorMediaType(type);
     setShowVideoEditor(true);
   };
-  
+
   const remainingFreeImages = Math.max(0, freeImageLimit - imageGenerationCount);
+
+  // Handle home input submit - go to research with the query
+  const handleHomeSubmit = () => {
+    if (!homeInputValue.trim()) return;
+    setActiveTab('research');
+    // The DeepResearchAssistant will need to receive this - for now we switch tabs
+    toast.info('Starting your research...');
+  };
 
   // Login required wall for non-authenticated users
   if (!user) {
-    return <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-border/50 bg-card/50 backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 p-4 rounded-full bg-primary/10">
               <Sparkles className="h-8 w-8 text-primary" />
@@ -689,1112 +675,1071 @@ const AIHub = memo(() => {
             </div>
           </CardContent>
         </Card>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-24">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-purple-500/10 to-pink-500/10 blur-3xl" />
-        <div className="relative container mx-auto px-4 py-12">
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">AI-Powered Creation</span>
+
+  return (
+    <div className="min-h-screen bg-background flex pb-20">
+      {/* Left Sidebar */}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border/50 transition-all duration-300",
+        sidebarOpen ? "w-64" : "w-0 md:w-16"
+      )}>
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border/50">
+          <div className={cn("flex items-center gap-2", !sidebarOpen && "md:hidden")}>
+            {appLogo && <img src={appLogo} alt="Logo" className="h-8 w-8 object-contain rounded-lg" />}
+            <span className="font-bold text-lg">TRIVIABEES AI</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="h-8 w-8"
+          >
+            {sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </Button>
+        </div>
+
+        {/* Navigation Items */}
+        <ScrollArea className="flex-1 py-4">
+          <nav className="space-y-1 px-2">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  if (window.innerWidth < 768) setSidebarOpen(false);
+                }}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                  activeTab === item.id
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                <span className={cn(!sidebarOpen && "md:hidden")}>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        </ScrollArea>
+
+        {/* Sidebar Footer - Credits */}
+        <div className={cn("p-4 border-t border-border/50", !sidebarOpen && "md:hidden")}>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Credits</span>
+              <span className="font-medium">{userCredits}</span>
             </div>
-            <div className="flex items-center justify-center gap-3">
-              {appLogo && <img src={appLogo} alt="Logo" className="h-12 w-12 object-contain rounded-lg" />}
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">TRIVIABEES AI</h1>
-            </div>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Transform your ideas into stunning visuals. Generate images from text, analyze images and videos with AI.
-            </p>
-            
-            {/* Buy Credits Button */}
-            <Button onClick={() => setShowBuyCredits(true)} variant="outline" className="gap-2">
-              <ShoppingCart className="h-4 w-4" />
-              Buy AI Credits
+            <Button
+              onClick={() => setShowBuyCredits(true)}
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+            >
+              <ShoppingCart className="h-3 w-3" />
+              Buy Credits
             </Button>
-            
-            {/* Usage Stats */}
-            <div className="flex flex-wrap justify-center gap-4 mt-6">
-              <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
-                <div className="flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4 text-primary" />
-                  <span className="text-sm">
-                    Free Images: <strong>{remainingFreeImages}/{freeImageLimit}</strong>
-                  </span>
-                </div>
-                <Progress value={remainingFreeImages / freeImageLimit * 100} className="h-1 mt-1" />
-              </Card>
-              <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
-                <div className="flex items-center gap-2">
-                  <Crown className="h-4 w-4 text-yellow-500" />
-                  <span className="text-sm">
-                    Credits: <strong>{userCredits}</strong>
-                  </span>
-                </div>
-              </Card>
-              <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-primary/20">
-                <div className="flex items-center gap-2">
-                  <VideoIcon className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm">
-                    Video Cost: <strong>{videoCreditCost} credits</strong>
-                  </span>
-                </div>
-              </Card>
-              <Card className="px-4 py-2 bg-background/50 backdrop-blur-sm border-yellow-500/20">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">💎</span>
-                  <span className="text-sm">
-                    Rate: <strong>{creditToDiamondRate} credits = 1 💎</strong>
-                  </span>
-                </div>
-              </Card>
-            </div>
           </div>
         </div>
-      </div>
+      </aside>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 -mt-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-6 md:grid-cols-11 w-full max-w-6xl mx-auto bg-background/50 backdrop-blur-sm border">
-            <TabsTrigger value="research" className="gap-1 text-xs sm:text-sm">
-              <Brain className="h-4 w-4" />
-              <span className="hidden sm:inline">Research</span>
-              <span className="sm:hidden">🔬</span>
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="gap-1 text-xs sm:text-sm">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">GPT-5</span>
-              <span className="sm:hidden">💬</span>
-            </TabsTrigger>
-            <TabsTrigger value="business" className="gap-1 text-xs sm:text-sm">
-              <Briefcase className="h-4 w-4" />
-              <span className="hidden sm:inline">Business</span>
-              <span className="sm:hidden">Biz</span>
-            </TabsTrigger>
-            <TabsTrigger value="text-to-image" className="gap-1 text-xs sm:text-sm">
-              <Wand2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Image</span>
-              <span className="sm:hidden">Img</span>
-            </TabsTrigger>
-            <TabsTrigger value="text-to-video" className="gap-1 text-xs sm:text-sm">
-              <VideoIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Video</span>
-              <span className="sm:hidden">Vid</span>
-            </TabsTrigger>
-            <TabsTrigger value="text-to-music" className="gap-1 text-xs sm:text-sm">
-              <Music className="h-4 w-4" />
-              <span className="hidden sm:inline">Music</span>
-              <span className="sm:hidden">🎵</span>
-            </TabsTrigger>
-            <TabsTrigger value="enhance" className="gap-1 text-xs sm:text-sm">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">Enhance</span>
-              <span className="sm:hidden">Fix</span>
-            </TabsTrigger>
-            <TabsTrigger value="image-to-text" className="gap-1 text-xs sm:text-sm">
-              <ImageIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Analyze</span>
-              <span className="sm:hidden">I→T</span>
-            </TabsTrigger>
-            <TabsTrigger value="video-to-text" className="gap-1 text-xs sm:text-sm">
-              <TypeIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">V→Text</span>
-              <span className="sm:hidden">V→T</span>
-            </TabsTrigger>
-            <TabsTrigger value="content-creator" className="gap-1 text-xs sm:text-sm">
-              <Film className="h-4 w-4" />
-              <span className="hidden sm:inline">Creator</span>
-              <span className="sm:hidden">Create</span>
-            </TabsTrigger>
-            <TabsTrigger value="video-editor" className="gap-1 text-xs sm:text-sm">
-              <Scissors className="h-4 w-4" />
-              <span className="hidden sm:inline">Editor</span>
-              <span className="sm:hidden">✂️</span>
-            </TabsTrigger>
-          </TabsList>
+      <main className={cn(
+        "flex-1 transition-all duration-300",
+        sidebarOpen ? "ml-64" : "ml-0 md:ml-16"
+      )}>
+        {/* Top Bar for mobile */}
+        <div className="sticky top-0 z-30 flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm border-b border-border/50 md:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <span className="font-bold">TRIVIABEES AI</span>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1">
+              <Crown className="h-3 w-3 text-yellow-500" />
+              {userCredits}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="min-h-[calc(100vh-60px)] md:min-h-screen">
+          {/* Home - ChatGPT Style Landing */}
+          {activeTab === 'home' && (
+            <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
+              <div className="w-full max-w-3xl mx-auto space-y-8 text-center">
+                {/* Greeting */}
+                <div className="space-y-2">
+                  <h1 className="text-4xl md:text-5xl font-semibold text-foreground">
+                    What can I help with?
+                  </h1>
+                </div>
+
+                {/* Quick Action Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
+                  <button
+                    onClick={() => setActiveTab('research')}
+                    className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-muted transition-colors text-left"
+                  >
+                    <Brain className="h-6 w-6 text-primary mb-2" />
+                    <span className="text-sm font-medium">Deep Research</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('text-to-image')}
+                    className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-muted transition-colors text-left"
+                  >
+                    <Wand2 className="h-6 w-6 text-purple-500 mb-2" />
+                    <span className="text-sm font-medium">Generate Image</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('text-to-video')}
+                    className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-muted transition-colors text-left"
+                  >
+                    <VideoIcon className="h-6 w-6 text-pink-500 mb-2" />
+                    <span className="text-sm font-medium">Create Video</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('content-creator')}
+                    className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-muted transition-colors text-left"
+                  >
+                    <Film className="h-6 w-6 text-orange-500 mb-2" />
+                    <span className="text-sm font-medium">Content Creator</span>
+                  </button>
+                </div>
+
+                {/* Input Box at Bottom */}
+                <div className="w-full max-w-2xl mx-auto mt-8">
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Ask anything..."
+                      value={homeInputValue}
+                      onChange={(e) => setHomeInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleHomeSubmit();
+                        }
+                      }}
+                      className="min-h-[56px] max-h-32 resize-none pr-14 rounded-2xl border-border/50 bg-muted/50 focus:bg-background transition-colors"
+                    />
+                    <Button
+                      onClick={handleHomeSubmit}
+                      disabled={!homeInputValue.trim()}
+                      size="icon"
+                      className="absolute right-2 bottom-2 h-10 w-10 rounded-xl bg-primary hover:bg-primary/90"
+                    >
+                      <ArrowUp className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Press Enter to start researching, or select a tool from the sidebar
+                  </p>
+                </div>
+
+                {/* Stats Row */}
+                <div className="flex flex-wrap justify-center gap-4 mt-8 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <ImageIcon className="h-4 w-4" />
+                    <span>Free Images: {remainingFreeImages}/{freeImageLimit}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Crown className="h-4 w-4 text-yellow-500" />
+                    <span>Credits: {userCredits}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span>💎</span>
+                    <span>Rate: {creditToDiamondRate} credits = 1 💎</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Deep Research Assistant */}
-          <TabsContent value="research">
-            <DeepResearchAssistant onCreateVideo={handleCreateVideoFromResearch} />
-          </TabsContent>
+          {activeTab === 'research' && (
+            <div className="p-4 md:p-6">
+              <DeepResearchAssistant onCreateVideo={handleCreateVideoFromResearch} />
+            </div>
+          )}
 
           {/* GPT-5 Chat Assistant */}
-          <TabsContent value="chat">
-            <AdvancedChatAssistant />
-          </TabsContent>
+          {activeTab === 'chat' && (
+            <div className="p-4 md:p-6">
+              <AdvancedChatAssistant />
+            </div>
+          )}
 
           {/* Business Solutions */}
-          <TabsContent value="business">
-            <BusinessSolutions userCredits={userCredits} onCreditsChange={fetchUserCredits} />
-          </TabsContent>
+          {activeTab === 'business' && (
+            <div className="p-4 md:p-6">
+              <BusinessSolutions userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
+          )}
 
           {/* Text to Image */}
-          <TabsContent value="text-to-image">
-            <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Wand2 className="h-5 w-5 text-primary" />
-                  Text to Image
-                  {remainingFreeImages > 0 && <Badge variant="secondary" className="ml-2">
-                      {remainingFreeImages} free left
-                    </Badge>}
-                </CardTitle>
-                <CardDescription>
-                  Describe what you want to create and let AI generate it for you. 
-                  {remainingFreeImages === 0 && userCredits > 0 && <span className="text-amber-500"> (1 credit per image)</span>}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Your Prompt</Label>
-                  <Textarea placeholder="A majestic dragon flying over a crystal lake at sunset..." value={prompt} onChange={e => setPrompt(e.target.value)} className="min-h-[120px] resize-none" />
-                </div>
-
-                {/* Image Style Preset */}
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-2 text-sm">
-                    <Palette className="h-3.5 w-3.5" />
-                    Image Style
-                  </Label>
-                  <Select value={imageStylePreset} onValueChange={setImageStylePreset}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Select style..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[320px]">
-                      <SelectItem value="none" className="text-sm">🎨 Default (No style)</SelectItem>
-                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Photo & Realistic</div>
-                      <SelectItem value="realistic" className="text-sm">📸 Realistic / Photorealistic</SelectItem>
-                      <SelectItem value="sora-cinematic" className="text-sm">🎬 Sora Cinematic</SelectItem>
-                      <SelectItem value="sora-dreamlike" className="text-sm">💫 Sora Dreamlike</SelectItem>
-                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Illustration & Art</div>
-                      <SelectItem value="cartoon" className="text-sm">🎪 Cartoon</SelectItem>
-                      <SelectItem value="anime" className="text-sm">🌸 Anime</SelectItem>
-                      <SelectItem value="comic-book" className="text-sm">💥 Comic Book</SelectItem>
-                      <SelectItem value="pixel-art" className="text-sm">👾 Pixel Art</SelectItem>
-                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Fine Art</div>
-                      <SelectItem value="oil-painting" className="text-sm">🖼️ Oil Painting</SelectItem>
-                      <SelectItem value="watercolor" className="text-sm">💧 Watercolor</SelectItem>
-                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Digital & 3D</div>
-                      <SelectItem value="3d-render" className="text-sm">🎮 3D Render</SelectItem>
-                      <SelectItem value="cyberpunk" className="text-sm">🌃 Cyberpunk</SelectItem>
-                      <SelectItem value="fantasy" className="text-sm">🧙 Fantasy</SelectItem>
-                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Other Styles</div>
-                      <SelectItem value="minimalist" className="text-sm">⬜ Minimalist</SelectItem>
-                      <SelectItem value="vintage" className="text-sm">📷 Vintage</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {imageStylePreset !== 'none' && (
-                    <p className="text-xs text-muted-foreground">
-                      Style: {IMAGE_STYLE_PRESETS[imageStylePreset as keyof typeof IMAGE_STYLE_PRESETS]?.label}
-                    </p>
-                  )}
-                </div>
-
-                {/* Image Format Preset */}
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-2 text-sm">
-                    <Megaphone className="h-3.5 w-3.5" />
-                    Image Format
-                  </Label>
-                  <Select value={adPreset} onValueChange={setAdPreset}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Select format..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[280px]">
-                      <SelectItem value="none" className="text-sm">🖼️ Normal Image</SelectItem>
-                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Social Media Ads</div>
-                      <SelectItem value="facebook-feed" className="text-sm">📘 Facebook Feed <span className="text-muted-foreground text-xs ml-1">1200×628</span></SelectItem>
-                      <SelectItem value="facebook-story" className="text-sm">📱 FB/IG Story <span className="text-muted-foreground text-xs ml-1">1080×1920</span></SelectItem>
-                      <SelectItem value="instagram-square" className="text-sm">📷 IG Square <span className="text-muted-foreground text-xs ml-1">1080×1080</span></SelectItem>
-                      <SelectItem value="instagram-post" className="text-sm">📸 IG Post <span className="text-muted-foreground text-xs ml-1">1080×1350</span></SelectItem>
-                      <SelectItem value="youtube-thumbnail" className="text-sm">▶️ YT Thumbnail <span className="text-muted-foreground text-xs ml-1">1280×720</span></SelectItem>
-                      <SelectItem value="youtube-banner" className="text-sm">🎬 YT Banner <span className="text-muted-foreground text-xs ml-1">2560×1440</span></SelectItem>
-                      <SelectItem value="google-display" className="text-sm">🔍 Google Display <span className="text-muted-foreground text-xs ml-1">300×250</span></SelectItem>
-                      <SelectItem value="google-leaderboard" className="text-sm">📊 Google Banner <span className="text-muted-foreground text-xs ml-1">728×90</span></SelectItem>
-                      <SelectItem value="linkedin-sponsored" className="text-sm">💼 LinkedIn <span className="text-muted-foreground text-xs ml-1">1200×627</span></SelectItem>
-                      <SelectItem value="twitter-post" className="text-sm">🐦 Twitter/X <span className="text-muted-foreground text-xs ml-1">1600×900</span></SelectItem>
-                      <SelectItem value="tiktok-ad" className="text-sm">🎵 TikTok <span className="text-muted-foreground text-xs ml-1">1080×1920</span></SelectItem>
-                      <SelectItem value="pinterest-pin" className="text-sm">📌 Pinterest <span className="text-muted-foreground text-xs ml-1">1000×1500</span></SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {adPreset !== 'none' && (
-                    <p className="text-xs text-muted-foreground">
-                      Optimized for {AD_PRESETS[adPreset as keyof typeof AD_PRESETS]?.label} ({AD_PRESETS[adPreset as keyof typeof AD_PRESETS]?.dimensions})
-                    </p>
-                  )}
-                </div>
-
-                {/* Reference Image Upload */}
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <ImagePlus className="h-4 w-4" />
-                    Reference Image (Optional)
-                  </Label>
-                  <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
-                    <Input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'reference')} className="hidden" id="reference-upload" />
-                    <label htmlFor="reference-upload" className="cursor-pointer">
-                      {referenceImage ? <div className="relative inline-block">
-                          <img src={referenceImage} alt="Reference" className="max-h-32 rounded-lg" />
-                          <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6" onClick={e => {
-                        e.preventDefault();
-                        setReferenceImage(null);
-                      }}>
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div> : <div className="flex flex-col items-center gap-2 py-2">
-                          <Upload className="h-8 w-8 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground">
-                            Add a reference image to guide the AI
-                          </p>
-                        </div>}
-                    </label>
-                  </div>
-                </div>
-
-                {!user && <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-sm text-amber-600">
-                      Please login to generate images
-                    </p>
-                  </div>}
-
-                {user && !canGenerateImage() && <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-sm text-amber-600">
-                      You've used all {freeImageLimit} free images. Buy credits to continue generating!
-                    </p>
-                  </div>}
-
-                <Button onClick={handleTextToImage} disabled={isGenerating || !prompt.trim() || !canGenerateImage()} className="w-full gap-2" size="lg">
-                  {isGenerating ? <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Generating...
-                    </> : <>
-                      <Sparkles className="h-4 w-4" />
-                      Generate Image
-                      {remainingFreeImages === 0 && userCredits > 0 && <Badge variant="outline" className="ml-2">1 credit</Badge>}
-                    </>}
-                </Button>
-
-                {generatedImage && <div className="space-y-4 animate-in fade-in">
-                    <div className="relative rounded-lg overflow-hidden border">
-                      <img src={generatedImage} alt="Generated" className="w-full max-h-[500px] object-contain bg-muted" />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1 gap-2" onClick={downloadImage}>
-                        <Download className="h-4 w-4" />
-                        Download
-                      </Button>
-                      <Button variant="outline" className="flex-1 gap-2" onClick={() => copyToClipboard(generatedImage)}>
-                        <Copy className="h-4 w-4" />
-                        Copy URL
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 gap-2" 
-                        onClick={() => openVideoEditor(generatedImage, 'image')}
-                      >
-                        <Scissors className="h-4 w-4" />
-                        Edit
-                      </Button>
-                    </div>
-                    
-                    {/* Animate Image Section */}
-                    <div className="p-4 rounded-lg border bg-gradient-to-r from-purple-500/10 to-pink-500/10">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Film className="h-5 w-5 text-purple-500" />
-                        <span className="font-medium">Animate This Image</span>
-                        <Badge variant="outline" className="ml-auto">
-                          {userCredits > 0 ? `${getAnimationCreditCost(animationDuration)} credits` : 'Paid Feature'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Transform your static image into an animated video. Free: up to 10 sec. Paid: up to 15 min.
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <div className="flex-1">
-                          <Label className="text-xs mb-1.5 block">Duration (seconds)</Label>
-                          <Select 
-                            value={String(animationDuration)} 
-                            onValueChange={(v) => setAnimationDuration(parseInt(v))}
-                          >
-                            <SelectTrigger className="h-9">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="4">4 seconds (3 credits)</SelectItem>
-                              <SelectItem value="8">8 seconds (5 credits)</SelectItem>
-                              <SelectItem value="10">10 seconds (8 credits)</SelectItem>
-                              {userCredits >= 15 && (
-                                <>
-                                  <SelectItem value="30">30 seconds (15 credits)</SelectItem>
-                                  <SelectItem value="60">1 minute (25 credits)</SelectItem>
-                                  <SelectItem value="300">5 minutes (100 credits)</SelectItem>
-                                  <SelectItem value="900">15 minutes (250 credits)</SelectItem>
-                                </>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button 
-                          onClick={handleAnimateImage} 
-                          disabled={isAnimating || userCredits < 3}
-                          className="gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                        >
-                          {isAnimating ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Animating...
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-4 w-4" />
-                              Animate
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                      {userCredits < 3 && (
-                        <p className="text-xs text-amber-500 mt-2">
-                          You need at least 3 credits to animate images. 
-                          <Button variant="link" className="h-auto p-0 pl-1 text-xs" onClick={() => setShowBuyCredits(true)}>
-                            Buy credits
-                          </Button>
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Animated Video Result */}
-                    {animatedVideoUrl && (
-                      <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
-                        <div className="flex items-center gap-2">
-                          <Film className="h-5 w-5 text-green-500" />
-                          <span className="font-medium">Animated Video Ready!</span>
-                        </div>
-                        <video 
-                          src={animatedVideoUrl} 
-                          controls 
-                          className="w-full rounded-lg max-h-[400px]"
-                          autoPlay
-                          loop
-                        />
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            className="flex-1 gap-2" 
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = animatedVideoUrl;
-                              link.download = `animated-${Date.now()}.mp4`;
-                              link.click();
-                            }}
-                          >
-                            <Download className="h-4 w-4" />
-                            Download
-                          </Button>
-                          <Button 
-                            className="flex-1 gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600" 
-                            onClick={() => openVideoEditor(animatedVideoUrl, 'video')}
-                          >
-                            <Scissors className="h-4 w-4" />
-                            Edit Video
-                          </Button>
-                        </div>
-                      </div>
+          {activeTab === 'text-to-image' && (
+            <div className="p-4 md:p-6 max-w-4xl mx-auto">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wand2 className="h-5 w-5 text-primary" />
+                    Text to Image
+                    {remainingFreeImages > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {remainingFreeImages} free left
+                      </Badge>
                     )}
-                  </div>}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Image to Text */}
-          <TabsContent value="image-to-text">
-            <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ImageIcon className="h-5 w-5 text-primary" />
-                  Image to Text
-                </CardTitle>
-                <CardDescription>
-                  Upload an image and get a detailed AI description
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Upload Image</Label>
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                    <Input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'image')} className="hidden" id="image-upload" />
-                    <label htmlFor="image-upload" className="cursor-pointer space-y-2">
-                      {uploadedImage ? <img src={uploadedImage} alt="Uploaded" className="max-h-64 mx-auto rounded-lg" /> : <>
-                          <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">Click to upload an image</p>
-                        </>}
-                    </label>
+                  </CardTitle>
+                  <CardDescription>
+                    Describe what you want to create and let AI generate it for you.
+                    {remainingFreeImages === 0 && userCredits > 0 && (
+                      <span className="text-amber-500"> (1 credit per image)</span>
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Your Prompt</Label>
+                    <Textarea
+                      placeholder="A majestic dragon flying over a crystal lake at sunset..."
+                      value={prompt}
+                      onChange={e => setPrompt(e.target.value)}
+                      className="min-h-[120px] resize-none"
+                    />
                   </div>
-                </div>
-                <Button onClick={handleImageToText} disabled={isGenerating || !uploadedImage} className="w-full gap-2" size="lg">
-                  {isGenerating ? <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Analyzing...
-                    </> : <>
-                      <Sparkles className="h-4 w-4" />
-                      Analyze Image
-                    </>}
-                </Button>
 
-                {imageDescription && <div className="space-y-3 animate-in fade-in">
-                    <div className="p-4 rounded-lg bg-muted/50 border">
-                      <p className="text-sm leading-relaxed">{imageDescription}</p>
-                    </div>
-                    <Button variant="outline" className="w-full gap-2" onClick={() => copyToClipboard(imageDescription)}>
-                      <Copy className="h-4 w-4" />
-                      Copy Description
-                    </Button>
-                  </div>}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Text to Video */}
-          <TabsContent value="text-to-video">
-            <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <VideoIcon className="h-5 w-5 text-primary" />
-                  Text to Video
-                  <Badge variant="secondary">{videoCreditCost} credits</Badge>
-                </CardTitle>
-                <CardDescription>
-                  Generate videos from text descriptions. Requires {videoCreditCost} credits per video.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Your Prompt</Label>
-                  <Textarea placeholder="A peaceful river flowing through a forest, with sunlight filtering through the trees..." value={videoPrompt} onChange={e => setVideoPrompt(e.target.value)} className="min-h-[120px] resize-none" />
-                </div>
-
-                {/* Video Provider Selection */}
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-2 text-sm">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Video AI Provider
-                  </Label>
-                  <Select value={videoProvider} onValueChange={(v) => setVideoProvider(v as 'fal' | 'grok')}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Select provider..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fal" className="text-sm">🎬 fal.ai (Vidu) - Fast & Reliable</SelectItem>
-                      <SelectItem value="grok" className="text-sm">🤖 Grok AI (xAI) - High Quality</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    {videoProvider === 'grok' ? 'Grok AI by xAI - Premium video quality' : 'fal.ai Vidu model - Fast generation'}
-                  </p>
-                </div>
-
-                {/* Video Aspect Ratio */}
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-2 text-sm">
-                    <VideoIcon className="h-3.5 w-3.5" />
-                    Aspect Ratio (Platform)
-                  </Label>
-                  <Select value={videoAspectRatio} onValueChange={setVideoAspectRatio}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Select aspect ratio..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="16:9" className="text-sm">📺 YouTube / Landscape (16:9)</SelectItem>
-                      <SelectItem value="9:16" className="text-sm">📱 TikTok / Reels / Shorts (9:16)</SelectItem>
-                      <SelectItem value="1:1" className="text-sm">📷 Instagram Square (1:1)</SelectItem>
-                      <SelectItem value="4:5" className="text-sm">📸 Instagram Portrait (4:5)</SelectItem>
-                      <SelectItem value="4:3" className="text-sm">🖥️ Classic (4:3)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    {VIDEO_ASPECT_RATIOS[videoAspectRatio as keyof typeof VIDEO_ASPECT_RATIOS]?.description}
-                  </p>
-                </div>
-
-                {user && !canGenerateVideo() && <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-sm text-amber-600">
-                      You need at least {videoCreditCost} credits to generate a video. Current balance: {userCredits} credits.
-                    </p>
-                    <Button variant="link" className="p-0 h-auto text-amber-600 underline" onClick={() => setShowBuyCredits(true)}>
-                      Buy credits now
-                    </Button>
-                  </div>}
-
-                <Button onClick={handleTextToVideo} disabled={isGenerating || !videoPrompt.trim() || !canGenerateVideo()} className="w-full gap-2" size="lg">
-                  {isGenerating ? <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Generating Video...
-                    </> : <>
-                      <VideoIcon className="h-4 w-4" />
-                      Generate Video
-                      <Badge variant="outline" className="ml-2">{videoCreditCost} credits</Badge>
-                    </>}
-                </Button>
-
-                {generatedVideo && <div className="space-y-3 animate-in fade-in">
-                    <div className="relative rounded-lg overflow-hidden border">
-                      <video src={generatedVideo} controls autoPlay loop className="w-full max-h-[500px] object-contain bg-muted" />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1 gap-2" onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = generatedVideo;
-                    link.download = `ai-video-${Date.now()}.mp4`;
-                    link.click();
-                  }}>
-                        <Download className="h-4 w-4" />
-                        Download
-                      </Button>
-                      <Button variant="outline" className="flex-1 gap-2" onClick={() => copyToClipboard(generatedVideo)}>
-                        <Copy className="h-4 w-4" />
-                        Copy URL
-                      </Button>
-                    </div>
-                    <Button 
-                      className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600" 
-                      onClick={() => openVideoEditor(generatedVideo, 'video')}
-                    >
-                      <Scissors className="h-4 w-4" />
-                      Open Video Editor
-                    </Button>
-                  </div>}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Video to Text */}
-          <TabsContent value="video-to-text">
-            <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TypeIcon className="h-5 w-5 text-primary" />
-                  Video to Text
-                </CardTitle>
-                <CardDescription>
-                  Upload a video and get an AI-generated description
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Upload Video</Label>
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                    <Input type="file" accept="video/*" onChange={e => handleImageUpload(e, 'video')} className="hidden" id="video-upload" />
-                    <label htmlFor="video-upload" className="cursor-pointer space-y-2">
-                      {uploadedVideo ? <video src={uploadedVideo} controls className="max-h-64 mx-auto rounded-lg" /> : <>
-                          <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">Click to upload a video</p>
-                        </>}
-                    </label>
+                  {/* Image Style Preset */}
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-2 text-sm">
+                      <Palette className="h-3.5 w-3.5" />
+                      Image Style
+                    </Label>
+                    <Select value={imageStylePreset} onValueChange={setImageStylePreset}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Select style..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[320px]">
+                        <SelectItem value="none" className="text-sm">🎨 Default (No style)</SelectItem>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Photo & Realistic</div>
+                        <SelectItem value="realistic" className="text-sm">📸 Realistic / Photorealistic</SelectItem>
+                        <SelectItem value="sora-cinematic" className="text-sm">🎬 Sora Cinematic</SelectItem>
+                        <SelectItem value="sora-dreamlike" className="text-sm">💫 Sora Dreamlike</SelectItem>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Illustration & Art</div>
+                        <SelectItem value="cartoon" className="text-sm">🎪 Cartoon</SelectItem>
+                        <SelectItem value="anime" className="text-sm">🌸 Anime</SelectItem>
+                        <SelectItem value="comic-book" className="text-sm">💥 Comic Book</SelectItem>
+                        <SelectItem value="pixel-art" className="text-sm">👾 Pixel Art</SelectItem>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Fine Art</div>
+                        <SelectItem value="oil-painting" className="text-sm">🖼️ Oil Painting</SelectItem>
+                        <SelectItem value="watercolor" className="text-sm">💧 Watercolor</SelectItem>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Digital & 3D</div>
+                        <SelectItem value="3d-render" className="text-sm">🎮 3D Render</SelectItem>
+                        <SelectItem value="cyberpunk" className="text-sm">🌃 Cyberpunk</SelectItem>
+                        <SelectItem value="fantasy" className="text-sm">🧙 Fantasy</SelectItem>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Other Styles</div>
+                        <SelectItem value="minimalist" className="text-sm">⬜ Minimalist</SelectItem>
+                        <SelectItem value="vintage" className="text-sm">📷 Vintage</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-                <Button onClick={handleVideoToText} disabled={isGenerating || !uploadedVideo} className="w-full gap-2" size="lg">
-                  {isGenerating ? <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Analyzing...
-                    </> : <>
-                      <Sparkles className="h-4 w-4" />
-                      Analyze Video
-                    </>}
-                </Button>
 
-                {videoDescription && <div className="space-y-3 animate-in fade-in">
-                    <div className="p-4 rounded-lg bg-muted/50 border">
-                      <p className="text-sm leading-relaxed">{videoDescription}</p>
+                  {/* Image Format Preset */}
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-2 text-sm">
+                      <Megaphone className="h-3.5 w-3.5" />
+                      Image Format
+                    </Label>
+                    <Select value={adPreset} onValueChange={setAdPreset}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Select format..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[280px]">
+                        <SelectItem value="none" className="text-sm">📷 Normal Image</SelectItem>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Social Media</div>
+                        <SelectItem value="facebook-feed" className="text-sm">📘 Facebook Feed (1200×628)</SelectItem>
+                        <SelectItem value="facebook-story" className="text-sm">📱 FB/IG Story (1080×1920)</SelectItem>
+                        <SelectItem value="instagram-square" className="text-sm">📸 IG Square (1080×1080)</SelectItem>
+                        <SelectItem value="instagram-post" className="text-sm">📲 IG Post (1080×1350)</SelectItem>
+                        <SelectItem value="twitter-post" className="text-sm">🐦 Twitter/X (1600×900)</SelectItem>
+                        <SelectItem value="tiktok-ad" className="text-sm">🎵 TikTok (1080×1920)</SelectItem>
+                        <SelectItem value="pinterest-pin" className="text-sm">📌 Pinterest (1000×1500)</SelectItem>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">YouTube</div>
+                        <SelectItem value="youtube-thumbnail" className="text-sm">▶️ YT Thumbnail (1280×720)</SelectItem>
+                        <SelectItem value="youtube-banner" className="text-sm">🎬 YT Banner (2560×1440)</SelectItem>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Ads</div>
+                        <SelectItem value="google-display" className="text-sm">🔲 Google Display (300×250)</SelectItem>
+                        <SelectItem value="google-leaderboard" className="text-sm">📏 Google Banner (728×90)</SelectItem>
+                        <SelectItem value="linkedin-sponsored" className="text-sm">💼 LinkedIn (1200×627)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Reference Image Upload */}
+                  <div className="space-y-2">
+                    <Label>Reference Image (Optional)</Label>
+                    <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => handleImageUpload(e, 'reference')}
+                        className="hidden"
+                        id="reference-upload"
+                      />
+                      <label htmlFor="reference-upload" className="cursor-pointer space-y-2 block">
+                        <ImagePlus className="h-8 w-8 mx-auto text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Upload a reference image</p>
+                      </label>
                     </div>
-                    <Button variant="outline" className="w-full gap-2" onClick={() => copyToClipboard(videoDescription)}>
-                      <Copy className="h-4 w-4" />
-                      Copy Description
-                    </Button>
-                  </div>}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Text to Music */}
-          <TabsContent value="text-to-music">
-            <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Music className="h-5 w-5 text-primary" />
-                  Text to Music
-                  <Badge variant="secondary">{musicCreditCost} credits</Badge>
-                </CardTitle>
-                <CardDescription>
-                  Generate original AI music from text descriptions using Suno AI
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Describe Your Music</Label>
-                  <Textarea placeholder="Upbeat electronic dance track with heavy bass and synth melodies, perfect for workout videos..." value={musicPrompt} onChange={e => setMusicPrompt(e.target.value)} className="min-h-[120px] resize-none" />
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <input type="checkbox" id="instrumental" checked={isInstrumental} onChange={e => setIsInstrumental(e.target.checked)} className="rounded" />
-                  <Label htmlFor="instrumental" className="cursor-pointer">
-                    Instrumental only (no vocals)
-                  </Label>
-                </div>
-
-                {user && userCredits < musicCreditCost && <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-sm text-amber-600">
-                      You need at least {musicCreditCost} credits to generate music. Current balance: {userCredits} credits.
-                    </p>
-                    <Button variant="link" className="p-0 h-auto text-amber-600 underline" onClick={() => setShowBuyCredits(true)}>
-                      Buy credits now
-                    </Button>
-                  </div>}
-
-                <Button onClick={handleGenerateMusic} disabled={isGenerating || !musicPrompt.trim() || userCredits < musicCreditCost} className="w-full gap-2" size="lg">
-                  {isGenerating ? <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Generating Music...
-                    </> : <>
-                      <Music className="h-4 w-4" />
-                      Generate Music
-                      <Badge variant="outline" className="ml-2">{musicCreditCost} credits</Badge>
-                    </>}
-                </Button>
-
-                {generatedMusic && <div className="space-y-3 animate-in fade-in">
-                    <div className="p-4 rounded-lg bg-muted/50 border">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="p-3 rounded-full bg-primary/10">
-                          <Music className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">{musicTitle}</h4>
-                          <p className="text-xs text-muted-foreground">AI Generated</p>
-                        </div>
-                      </div>
-                      <audio controls src={generatedMusic} className="w-full" />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1 gap-2" onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = generatedMusic;
-                    link.download = `ai-music-${Date.now()}.mp3`;
-                    link.click();
-                  }}>
-                        <Download className="h-4 w-4" />
-                        Download
-                      </Button>
-                      <Button variant="outline" className="flex-1 gap-2" onClick={() => copyToClipboard(generatedMusic)}>
-                        <Copy className="h-4 w-4" />
-                        Copy URL
-                      </Button>
-                    </div>
-                  </div>}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Image Enhancement */}
-          <TabsContent value="enhance">
-            <Card className="border-purple-500/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-purple-500" />
-                  Image Enhancement & Correction
-                  <Badge variant="secondary" className="ml-2">{enhanceCreditCost} credits</Badge>
-                </CardTitle>
-                <CardDescription>
-                  Restore old photos, remove backgrounds, enhance quality, and fix lighting. Perfect for IDs and precious memories.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Upload Section */}
-                <div className="space-y-4">
-                  <Label>Upload Image</Label>
-                  <div className="flex flex-col items-center gap-4">
-                    {enhanceImage ? (
-                      <div className="relative w-full max-w-md">
-                        <img 
-                          src={enhanceImage} 
-                          alt="Image to enhance" 
-                          className="w-full rounded-lg border shadow-sm"
-                        />
+                    {referenceImage && (
+                      <div className="relative">
+                        <img src={referenceImage} alt="Reference" className="max-h-32 mx-auto rounded-lg" />
                         <Button
                           variant="destructive"
                           size="icon"
-                          className="absolute top-2 right-2"
-                          onClick={() => {
-                            setEnhanceImage(null);
-                            setEnhancedResult(null);
-                          }}
+                          className="absolute top-0 right-0 h-6 w-6"
+                          onClick={() => setReferenceImage(null)}
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-3 w-3" />
                         </Button>
                       </div>
-                    ) : (
-                      <label className="w-full max-w-md border-2 border-dashed rounded-lg p-8 flex flex-col items-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-all">
-                        <Upload className="h-10 w-10 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Click to upload your image</span>
-                        <span className="text-xs text-muted-foreground">Supports JPG, PNG, WEBP</span>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleImageUpload(e, 'enhance')}
-                        />
-                      </label>
                     )}
                   </div>
-                </div>
 
-                {/* Operation Selection */}
-                <div className="space-y-3">
-                  <Label>Select Enhancement Operation</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <Button
-                      variant={enhanceOperation === 'enhance' ? 'default' : 'outline'}
-                      className="flex flex-col h-auto py-4 gap-2"
-                      onClick={() => setEnhanceOperation('enhance')}
-                    >
-                      <Wand2 className="h-5 w-5" />
-                      <span className="text-xs">Enhance Quality</span>
-                    </Button>
-                    <Button
-                      variant={enhanceOperation === 'remove-bg' ? 'default' : 'outline'}
-                      className="flex flex-col h-auto py-4 gap-2"
-                      onClick={() => setEnhanceOperation('remove-bg')}
-                    >
-                      <Eraser className="h-5 w-5" />
-                      <span className="text-xs">Remove Background</span>
-                    </Button>
-                    <Button
-                      variant={enhanceOperation === 'change-bg' ? 'default' : 'outline'}
-                      className="flex flex-col h-auto py-4 gap-2"
-                      onClick={() => setEnhanceOperation('change-bg')}
-                    >
-                      <Palette className="h-5 w-5" />
-                      <span className="text-xs">Change Background</span>
-                    </Button>
-                    <Button
-                      variant={enhanceOperation === 'restore' ? 'default' : 'outline'}
-                      className="flex flex-col h-auto py-4 gap-2"
-                      onClick={() => setEnhanceOperation('restore')}
-                    >
-                      <ImagePlus className="h-5 w-5" />
-                      <span className="text-xs">Restore Old Photo</span>
-                    </Button>
-                    <Button
-                      variant={enhanceOperation === 'upscale' ? 'default' : 'outline'}
-                      className="flex flex-col h-auto py-4 gap-2"
-                      onClick={() => setEnhanceOperation('upscale')}
-                    >
-                      <ImageIcon className="h-5 w-5" />
-                      <span className="text-xs">Upscale HD</span>
-                    </Button>
-                    <Button
-                      variant={enhanceOperation === 'colorize' ? 'default' : 'outline'}
-                      className="flex flex-col h-auto py-4 gap-2"
-                      onClick={() => setEnhanceOperation('colorize')}
-                    >
-                      <Palette className="h-5 w-5" />
-                      <span className="text-xs">Colorize B&W</span>
-                    </Button>
-                    <Button
-                      variant={enhanceOperation === 'fix-lighting' ? 'default' : 'outline'}
-                      className="flex flex-col h-auto py-4 gap-2"
-                      onClick={() => setEnhanceOperation('fix-lighting')}
-                    >
-                      <Sun className="h-5 w-5" />
-                      <span className="text-xs">Fix Lighting</span>
-                    </Button>
-                    <Button
-                      variant={enhanceOperation === 'denoise' ? 'default' : 'outline'}
-                      className="flex flex-col h-auto py-4 gap-2"
-                      onClick={() => setEnhanceOperation('denoise')}
-                    >
-                      <Sparkles className="h-5 w-5" />
-                      <span className="text-xs">Remove Noise</span>
-                    </Button>
-                  </div>
-                </div>
-
-                {/* New Background Prompt (only for change-bg) */}
-                {enhanceOperation === 'change-bg' && (
-                  <div className="space-y-2">
-                    <Label>Describe New Background</Label>
-                    <Textarea
-                      placeholder="A professional studio background with soft gradient lighting, clean white wall, nature landscape with mountains..."
-                      value={newBackgroundPrompt}
-                      onChange={(e) => setNewBackgroundPrompt(e.target.value)}
-                      className="min-h-[100px]"
-                    />
-                  </div>
-                )}
-
-                {/* Credits Warning */}
-                {user && userCredits < enhanceCreditCost && (
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-sm text-amber-600">
-                      You need at least {enhanceCreditCost} credits for this operation. Current balance: {userCredits} credits.
-                    </p>
-                    <Button
-                      variant="link"
-                      className="p-0 h-auto text-amber-600 underline"
-                      onClick={() => setShowBuyCredits(true)}
-                    >
-                      Buy credits now
-                    </Button>
-                  </div>
-                )}
-
-                {/* Process Button */}
-                <Button
-                  onClick={handleEnhanceImage}
-                  disabled={isEnhancing || !enhanceImage || userCredits < enhanceCreditCost || (enhanceOperation === 'change-bg' && !newBackgroundPrompt.trim())}
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  {isEnhancing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Processing Image...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      Process Image
-                      <Badge variant="outline" className="ml-2">{enhanceCreditCost} credits</Badge>
-                    </>
-                  )}
-                </Button>
-
-                {/* Result Display */}
-                {enhancedResult && (
-                  <div className="space-y-4 animate-in fade-in">
-                    <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
-                      <div className="flex items-center gap-2 text-sm font-medium text-green-600">
+                  <Button
+                    onClick={handleTextToImage}
+                    disabled={isGenerating || !canGenerateImage()}
+                    className="w-full gap-2"
+                    size="lg"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
                         <Sparkles className="h-4 w-4" />
-                        Enhanced Result
-                      </div>
-                      
-                      {/* Before/After Comparison */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <p className="text-xs text-muted-foreground text-center">Before</p>
-                          <img
-                            src={enhanceImage!}
-                            alt="Original"
-                            className="w-full rounded-lg border"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-xs text-muted-foreground text-center">After</p>
-                          <img
-                            src={enhancedResult}
-                            alt="Enhanced"
-                            className="w-full rounded-lg border"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                        Generate Image
+                      </>
+                    )}
+                  </Button>
 
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1 gap-2"
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = enhancedResult;
-                          link.download = `enhanced-${enhanceOperation}-${Date.now()}.png`;
-                          link.click();
-                        }}
-                      >
-                        <Download className="h-4 w-4" />
-                        Download
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex-1 gap-2"
-                        onClick={() => copyToClipboard(enhancedResult)}
-                      >
-                        <Copy className="h-4 w-4" />
-                        Copy URL
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Content Creator */}
-          <TabsContent value="content-creator">
-            <ContentCreator 
-              userCredits={userCredits} 
-              onCreditsChange={fetchUserCredits}
-              externalResearch={researchForVideo}
-              externalTopic={topicForVideo}
-            />
-          </TabsContent>
-
-          {/* Video Editor Tab */}
-          <TabsContent value="video-editor">
-            <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Scissors className="h-5 w-5 text-primary" />
-                  Video Editor
-                  <Badge variant="secondary">10 credits</Badge>
-                </CardTitle>
-                <CardDescription>
-                  Edit your videos and images with professional tools. Upload media or use content from Content Creator.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {userCredits < 10 ? (
-                  <div className="p-6 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center space-y-4">
-                    <Lock className="h-12 w-12 mx-auto text-amber-500" />
-                    <div>
-                      <h4 className="font-medium text-lg">Credits Required</h4>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        You need at least 10 credits to use the Video Editor. Current balance: {userCredits} credits.
-                      </p>
-                    </div>
-                    <Button onClick={() => setShowBuyCredits(true)} className="gap-2">
-                      <Crown className="h-4 w-4" />
-                      Buy Credits
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {/* Upload Video */}
-                      <div className="space-y-3">
-                        <Label>Upload Video</Label>
-                        <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                          <Input 
-                            type="file" 
-                            accept="video/*" 
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setEditorMediaUrl(reader.result as string);
-                                  setEditorMediaType('video');
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }} 
-                            className="hidden" 
-                            id="editor-video-upload" 
-                          />
-                          <label htmlFor="editor-video-upload" className="cursor-pointer space-y-2 block">
-                            <VideoIcon className="h-10 w-10 mx-auto text-muted-foreground" />
-                            <p className="text-sm text-muted-foreground">Click to upload a video</p>
-                          </label>
-                        </div>
-                      </div>
-
-                      {/* Upload Image */}
-                      <div className="space-y-3">
-                        <Label>Upload Image</Label>
-                        <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                          <Input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setEditorMediaUrl(reader.result as string);
-                                  setEditorMediaType('image');
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }} 
-                            className="hidden" 
-                            id="editor-image-upload" 
-                          />
-                          <label htmlFor="editor-image-upload" className="cursor-pointer space-y-2 block">
-                            <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground" />
-                            <p className="text-sm text-muted-foreground">Click to upload an image</p>
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    {editorMediaUrl && (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <Badge variant="outline" className="text-green-500 border-green-500">
-                            {editorMediaType === 'video' ? 'Video' : 'Image'} Ready
-                          </Badge>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => setEditorMediaUrl('')}
-                          >
-                            <X className="h-4 w-4" />
+                  {generatedImage && (
+                    <div className="space-y-4">
+                      <div className="relative group">
+                        <img
+                          src={generatedImage}
+                          alt="Generated"
+                          className="w-full rounded-lg border"
+                        />
+                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button size="sm" variant="secondary" onClick={downloadImage}>
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={() => copyToClipboard(generatedImage)}>
+                            <Copy className="h-4 w-4" />
                           </Button>
                         </div>
-                        {editorMediaType === 'video' ? (
-                          <video src={editorMediaUrl} controls className="w-full max-h-64 rounded-lg border" />
-                        ) : (
-                          <img src={editorMediaUrl} alt="Preview" className="w-full max-h-64 object-contain rounded-lg border" />
-                        )}
+                      </div>
+
+                      {/* Animate Section */}
+                      <Card className="border-primary/20">
+                        <CardHeader className="py-3">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Film className="h-4 w-4" />
+                            Animate this Image
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-center gap-4">
+                            <Label className="text-sm">Duration:</Label>
+                            <Select
+                              value={animationDuration.toString()}
+                              onValueChange={(v) => setAnimationDuration(parseInt(v))}
+                            >
+                              <SelectTrigger className="w-32 h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="2">2 seconds</SelectItem>
+                                <SelectItem value="4">4 seconds</SelectItem>
+                                <SelectItem value="6">6 seconds</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            onClick={handleAnimateImage}
+                            disabled={isAnimating}
+                            variant="outline"
+                            className="w-full gap-2"
+                          >
+                            {isAnimating ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Animating...
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-4 w-4" />
+                                Animate ({Math.ceil(animationDuration / 2) * 5} credits)
+                              </>
+                            )}
+                          </Button>
+                        </CardContent>
+                      </Card>
+
+                      {animatedVideoUrl && (
+                        <div className="space-y-2">
+                          <Label>Animated Video</Label>
+                          <video
+                            src={animatedVideoUrl}
+                            controls
+                            className="w-full rounded-lg border"
+                          />
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" asChild>
+                              <a href={animatedVideoUrl} download>
+                                <Download className="h-4 w-4 mr-1" />
+                                Download
+                              </a>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openVideoEditor(animatedVideoUrl, 'video')}
+                            >
+                              <Scissors className="h-4 w-4 mr-1" />
+                              Edit in Editor
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Text to Video */}
+          {activeTab === 'text-to-video' && (
+            <div className="p-4 md:p-6 max-w-4xl mx-auto">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <VideoIcon className="h-5 w-5 text-purple-500" />
+                    Text to Video
+                    <Badge variant="outline" className="ml-2">
+                      {videoCreditCost} credits
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Describe your video and AI will create it for you.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Video Prompt</Label>
+                    <Textarea
+                      placeholder="A serene beach at sunset with waves gently rolling in..."
+                      value={videoPrompt}
+                      onChange={e => setVideoPrompt(e.target.value)}
+                      className="min-h-[120px] resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Aspect Ratio</Label>
+                      <Select value={videoAspectRatio} onValueChange={setVideoAspectRatio}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(VIDEO_ASPECT_RATIOS).map(([key, val]) => (
+                            <SelectItem key={key} value={key}>
+                              {val.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label>AI Provider</Label>
+                      <Select value={videoProvider} onValueChange={(v: 'fal' | 'grok') => setVideoProvider(v)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fal">fal.ai (Vidu)</SelectItem>
+                          <SelectItem value="grok">Grok AI (xAI)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleTextToVideo}
+                    disabled={isGenerating || !canGenerateVideo()}
+                    className="w-full gap-2"
+                    size="lg"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating Video...
+                      </>
+                    ) : (
+                      <>
+                        <VideoIcon className="h-4 w-4" />
+                        Generate Video ({videoCreditCost} credits)
+                      </>
+                    )}
+                  </Button>
+
+                  {generatedVideo && (
+                    <div className="space-y-2">
+                      <video src={generatedVideo} controls className="w-full rounded-lg border" />
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={generatedVideo} download>
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </a>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openVideoEditor(generatedVideo, 'video')}
+                        >
+                          <Scissors className="h-4 w-4 mr-1" />
+                          Edit in Editor
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Text to Music */}
+          {activeTab === 'text-to-music' && (
+            <div className="p-4 md:p-6 max-w-4xl mx-auto">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Music className="h-5 w-5 text-pink-500" />
+                    Text to Music
+                    <Badge variant="outline" className="ml-2">
+                      {musicCreditCost} credits
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Describe the music you want and AI will compose it.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Music Description</Label>
+                    <Textarea
+                      placeholder="An upbeat electronic dance track with synthesizers and a catchy melody..."
+                      value={musicPrompt}
+                      onChange={e => setMusicPrompt(e.target.value)}
+                      className="min-h-[120px] resize-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="instrumental"
+                      checked={isInstrumental}
+                      onChange={(e) => setIsInstrumental(e.target.checked)}
+                      className="rounded"
+                    />
+                    <Label htmlFor="instrumental">Instrumental only (no vocals)</Label>
+                  </div>
+
+                  <Button
+                    onClick={handleGenerateMusic}
+                    disabled={isGenerating || userCredits < musicCreditCost}
+                    className="w-full gap-2"
+                    size="lg"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Composing...
+                      </>
+                    ) : (
+                      <>
+                        <Music className="h-4 w-4" />
+                        Generate Music ({musicCreditCost} credits)
+                      </>
+                    )}
+                  </Button>
+
+                  {generatedMusic && (
+                    <div className="space-y-2">
+                      {musicTitle && <p className="font-medium">{musicTitle}</p>}
+                      <audio src={generatedMusic} controls className="w-full" />
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={generatedMusic} download>
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Image Enhancement */}
+          {activeTab === 'enhance' && (
+            <div className="p-4 md:p-6 max-w-4xl mx-auto">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Image Enhancement
+                    <Badge variant="outline" className="ml-2">
+                      {enhanceCreditCost} credits
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Enhance, restore, or modify your images with AI.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Upload Image</Label>
+                    <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => handleImageUpload(e, 'enhance')}
+                        className="hidden"
+                        id="enhance-upload"
+                      />
+                      <label htmlFor="enhance-upload" className="cursor-pointer space-y-2 block">
+                        <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Click to upload an image</p>
+                      </label>
+                    </div>
+                    {enhanceImage && (
+                      <div className="relative">
+                        <img src={enhanceImage} alt="To enhance" className="max-h-48 mx-auto rounded-lg" />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-0 right-0 h-6 w-6"
+                          onClick={() => setEnhanceImage(null)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
                       </div>
                     )}
-
-                    <Button 
-                      onClick={async () => {
-                        if (!editorMediaUrl) {
-                          toast.error('Please upload a video or image first');
-                          return;
-                        }
-                        // Deduct credits
-                        const { error } = await supabase
-                          .from('profiles')
-                          .update({ credits: userCredits - 10 })
-                          .eq('id', user?.id);
-                        if (error) {
-                          toast.error('Failed to deduct credits');
-                          return;
-                        }
-                        setUserCredits(prev => prev - 10);
-                        setShowVideoEditor(true);
-                        toast.success('Opening Video Editor...');
-                      }}
-                      disabled={!editorMediaUrl}
-                      className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                      size="lg"
-                    >
-                      <Scissors className="h-4 w-4" />
-                      Open Video Editor (10 credits)
-                    </Button>
-
-                    <p className="text-xs text-muted-foreground text-center">
-                      Features: Trim, split, add text overlays, filters, color grading, and more. Export when done.
-                    </p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Enhancement Type</Label>
+                    <Select value={enhanceOperation} onValueChange={setEnhanceOperation}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="enhance">✨ Enhance Quality</SelectItem>
+                        <SelectItem value="remove-background">🔲 Remove Background</SelectItem>
+                        <SelectItem value="change-background">🖼️ Change Background</SelectItem>
+                        <SelectItem value="restore">🔧 Restore Old Photo</SelectItem>
+                        <SelectItem value="upscale">📐 Upscale (2x)</SelectItem>
+                        <SelectItem value="colorize">🎨 Colorize (B&W to Color)</SelectItem>
+                        <SelectItem value="fix-lighting">💡 Fix Lighting</SelectItem>
+                        <SelectItem value="remove-noise">🔇 Remove Noise</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {enhanceOperation === 'change-background' && (
+                    <div className="space-y-2">
+                      <Label>New Background Description</Label>
+                      <Textarea
+                        placeholder="A beautiful sunset beach..."
+                        value={newBackgroundPrompt}
+                        onChange={e => setNewBackgroundPrompt(e.target.value)}
+                        className="min-h-[80px] resize-none"
+                      />
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleEnhanceImage}
+                    disabled={isEnhancing || !enhanceImage || userCredits < enhanceCreditCost}
+                    className="w-full gap-2"
+                    size="lg"
+                  >
+                    {isEnhancing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Enhance Image ({enhanceCreditCost} credits)
+                      </>
+                    )}
+                  </Button>
+
+                  {enhancedResult && (
+                    <div className="space-y-2">
+                      <Label>Enhanced Result</Label>
+                      <img src={enhancedResult} alt="Enhanced" className="w-full rounded-lg border" />
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={enhancedResult} download>
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </a>
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => copyToClipboard(enhancedResult)}>
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy URL
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Image to Text */}
+          {activeTab === 'image-to-text' && (
+            <div className="p-4 md:p-6 max-w-4xl mx-auto">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5 text-primary" />
+                    Image Analysis
+                  </CardTitle>
+                  <CardDescription>
+                    Upload an image and AI will analyze and describe it.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => handleImageUpload(e, 'image')}
+                        className="hidden"
+                        id="image-analysis-upload"
+                      />
+                      <label htmlFor="image-analysis-upload" className="cursor-pointer space-y-2 block">
+                        <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Click to upload an image</p>
+                      </label>
+                    </div>
+                    {uploadedImage && (
+                      <img src={uploadedImage} alt="Uploaded" className="max-h-64 mx-auto rounded-lg" />
+                    )}
+                  </div>
+
+                  <Button
+                    onClick={handleImageToText}
+                    disabled={isGenerating || !uploadedImage}
+                    className="w-full gap-2"
+                    size="lg"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Analyze Image
+                      </>
+                    )}
+                  </Button>
+
+                  {imageDescription && (
+                    <div className="space-y-2">
+                      <Label>Analysis Result</Label>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <p className="text-sm whitespace-pre-wrap">{imageDescription}</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => copyToClipboard(imageDescription)}>
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Video to Text */}
+          {activeTab === 'video-to-text' && (
+            <div className="p-4 md:p-6 max-w-4xl mx-auto">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TypeIcon className="h-5 w-5 text-primary" />
+                    Video Analysis
+                  </CardTitle>
+                  <CardDescription>
+                    Upload a video and AI will analyze and describe it.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                      <Input
+                        type="file"
+                        accept="video/*"
+                        onChange={e => handleImageUpload(e, 'video')}
+                        className="hidden"
+                        id="video-analysis-upload"
+                      />
+                      <label htmlFor="video-analysis-upload" className="cursor-pointer space-y-2 block">
+                        <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Click to upload a video</p>
+                      </label>
+                    </div>
+                    {uploadedVideo && (
+                      <video src={uploadedVideo} controls className="max-h-64 mx-auto rounded-lg" />
+                    )}
+                  </div>
+
+                  <Button
+                    onClick={handleVideoToText}
+                    disabled={isGenerating || !uploadedVideo}
+                    className="w-full gap-2"
+                    size="lg"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Analyze Video
+                      </>
+                    )}
+                  </Button>
+
+                  {videoDescription && (
+                    <div className="space-y-2">
+                      <Label>Analysis Result</Label>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <p className="text-sm whitespace-pre-wrap">{videoDescription}</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => copyToClipboard(videoDescription)}>
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Content Creator */}
+          {activeTab === 'content-creator' && (
+            <div className="p-4 md:p-6">
+              <ContentCreator
+                userCredits={userCredits}
+                onCreditsChange={fetchUserCredits}
+              />
+            </div>
+          )}
+
+          {/* Video Editor */}
+          {activeTab === 'video-editor' && (
+            <div className="p-4 md:p-6 max-w-4xl mx-auto">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Scissors className="h-5 w-5 text-purple-500" />
+                    Video Editor
+                    <Badge variant="outline" className="ml-2 gap-1">
+                      <Lock className="h-3 w-3" />
+                      10 credits
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Edit your videos or images with professional tools.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {userCredits < 10 ? (
+                    <div className="text-center py-8 space-y-4">
+                      <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
+                      <p className="text-muted-foreground">You need at least 10 credits to use the Video Editor</p>
+                      <Button onClick={() => setShowBuyCredits(true)} className="gap-2">
+                        <ShoppingCart className="h-4 w-4" />
+                        Buy Credits
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Upload Video */}
+                        <div className="space-y-3">
+                          <Label>Upload Video</Label>
+                          <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                            <Input
+                              type="file"
+                              accept="video/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setEditorMediaUrl(reader.result as string);
+                                    setEditorMediaType('video');
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              className="hidden"
+                              id="editor-video-upload"
+                            />
+                            <label htmlFor="editor-video-upload" className="cursor-pointer space-y-2 block">
+                              <VideoIcon className="h-10 w-10 mx-auto text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground">Click to upload a video</p>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Upload Image */}
+                        <div className="space-y-3">
+                          <Label>Upload Image</Label>
+                          <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setEditorMediaUrl(reader.result as string);
+                                    setEditorMediaType('image');
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              className="hidden"
+                              id="editor-image-upload"
+                            />
+                            <label htmlFor="editor-image-upload" className="cursor-pointer space-y-2 block">
+                              <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground">Click to upload an image</p>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      {editorMediaUrl && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-green-500 border-green-500">
+                              {editorMediaType === 'video' ? 'Video' : 'Image'} Ready
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditorMediaUrl('')}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          {editorMediaType === 'video' ? (
+                            <video src={editorMediaUrl} controls className="w-full max-h-64 rounded-lg border" />
+                          ) : (
+                            <img src={editorMediaUrl} alt="Preview" className="w-full max-h-64 object-contain rounded-lg border" />
+                          )}
+                        </div>
+                      )}
+
+                      <Button
+                        onClick={async () => {
+                          if (!editorMediaUrl) {
+                            toast.error('Please upload a video or image first');
+                            return;
+                          }
+                          const { error } = await supabase
+                            .from('profiles')
+                            .update({ credits: userCredits - 10 })
+                            .eq('id', user?.id);
+                          if (error) {
+                            toast.error('Failed to deduct credits');
+                            return;
+                          }
+                          setUserCredits(prev => prev - 10);
+                          setShowVideoEditor(true);
+                          toast.success('Opening Video Editor...');
+                        }}
+                        disabled={!editorMediaUrl}
+                        className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                        size="lg"
+                      >
+                        <Scissors className="h-4 w-4" />
+                        Open Video Editor (10 credits)
+                      </Button>
+
+                      <p className="text-xs text-muted-foreground text-center">
+                        Features: Trim, split, add text overlays, filters, color grading, and more. Export when done.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      </main>
 
       {/* Buy Credits Dialog */}
-      <BuyAICreditsDialog open={showBuyCredits} onOpenChange={setShowBuyCredits} onPurchaseComplete={() => {
-      fetchUserCredits();
-    }} />
-      
+      <BuyAICreditsDialog
+        open={showBuyCredits}
+        onOpenChange={setShowBuyCredits}
+        onPurchaseComplete={() => {
+          fetchUserCredits();
+        }}
+      />
+
       {/* Video Editor Dialog */}
-      <VideoEditor 
-        open={showVideoEditor} 
+      <VideoEditor
+        open={showVideoEditor}
         onOpenChange={setShowVideoEditor}
         mediaUrl={editorMediaUrl}
         mediaType={editorMediaType}
@@ -1802,7 +1747,9 @@ const AIHub = memo(() => {
           toast.success('Video exported successfully!');
         }}
       />
-    </div>;
+    </div>
+  );
 });
+
 AIHub.displayName = 'AIHub';
 export default AIHub;
