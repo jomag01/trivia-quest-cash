@@ -179,7 +179,29 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
           <p className="text-muted-foreground text-sm">
             Earn commissions through our cycle-based binary network
           </p>
+          <Badge variant="outline" className="text-xs">
+            Exclusive to AI Credits Purchases
+          </Badge>
         </div>
+
+        {/* System Info Banner */}
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <GitBranch className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+              <div className="space-y-1 text-sm">
+                <p className="font-medium text-amber-700 dark:text-amber-400">
+                  Binary System - AI Credits Only
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  This binary system is <span className="font-semibold">separate</span> from unilevel, stair-step, and leadership commissions. 
+                  Binary commissions are earned <span className="font-semibold">only from AI credit purchases</span>, not from shop product purchases. 
+                  Shop products earn through unilevel/stair-step/leadership systems instead.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {!isEnrolled ? (
           /* Not Enrolled View */
@@ -187,17 +209,17 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
             <CardHeader className="text-center">
               <CardTitle className="flex items-center justify-center gap-2">
                 <Crown className="h-5 w-5 text-yellow-500" />
-                Join the Binary Network
+                Activate Your Binary Position
               </CardTitle>
               <CardDescription>
-                Purchase an AI credits package to get enrolled in the binary affiliate system
+                Your referral has enrolled you in all systems. Purchase AI credits to <span className="font-semibold">activate</span> your binary position and start earning!
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div className="p-4 rounded-lg bg-background/50 border">
                   <p className="text-2xl font-bold text-primary">₱{settings.joinAmount}</p>
-                  <p className="text-xs text-muted-foreground">Minimum to Join</p>
+                  <p className="text-xs text-muted-foreground">Minimum to Activate</p>
                 </div>
                 <div className="p-4 rounded-lg bg-background/50 border">
                   <p className="text-2xl font-bold text-primary">₱{settings.cycleCommission}</p>
@@ -206,19 +228,25 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
               </div>
 
               <div className="space-y-2 text-sm">
-                <p className="font-medium">How it works:</p>
+                <p className="font-medium">How the Binary System works:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>Buy AI credits worth ₱{settings.joinAmount}+ to join</li>
+                  <li>Buy AI credits worth ₱{settings.joinAmount}+ to activate</li>
                   <li>Get placed automatically in the weakest leg</li>
                   <li>Earn ₱{settings.cycleCommission} for every ₱{settings.cycleVolume} matched cycle</li>
                   <li>Daily earning cap: ₱{settings.dailyCap}</li>
-                  <li>Auto-replenish credits from your other earnings</li>
+                  <li>Binary earnings come <span className="font-semibold">only from AI credit purchases</span> in your network</li>
                 </ul>
+              </div>
+
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-muted-foreground">
+                <p className="font-medium text-blue-600 dark:text-blue-400 mb-1">💡 Separate Commission Systems:</p>
+                <p>• <span className="font-medium">Binary:</span> AI Credit purchases only</p>
+                <p>• <span className="font-medium">Unilevel/Stair-Step/Leadership:</span> Shop product purchases only</p>
               </div>
 
               <Button onClick={onBuyCredits} className="w-full gap-2" size="lg">
                 <Sparkles className="h-4 w-4" />
-                Buy AI Credits to Join
+                Buy AI Credits to Activate Binary
               </Button>
             </CardContent>
           </Card>
