@@ -17,6 +17,7 @@ import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
 import AdvancedChatAssistant from '@/components/ai/AdvancedChatAssistant';
 import BinaryAffiliateTab from '@/components/ai/BinaryAffiliateTab';
+import AIHubGallery from '@/components/ai/AIHubGallery';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -781,95 +782,21 @@ const AIHub = memo(() => {
 
         {/* Content Area */}
         <div className="min-h-[calc(100vh-60px)] md:min-h-screen">
-          {/* Home - ChatGPT Style Landing */}
+          {/* Home - Gallery Style Landing */}
           {activeTab === 'home' && (
-            <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
-              <div className="w-full max-w-3xl mx-auto space-y-8 text-center">
-                {/* Greeting */}
-                <div className="space-y-2">
-                  <h1 className="text-4xl md:text-5xl font-semibold text-foreground">
-                    What can I help with?
-                  </h1>
-                </div>
-
-                {/* Quick Action Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
-                  <button
-                    onClick={() => setActiveTab('research')}
-                    className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-muted transition-colors text-left"
-                  >
-                    <Brain className="h-6 w-6 text-primary mb-2" />
-                    <span className="text-sm font-medium">Deep Research</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('text-to-image')}
-                    className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-muted transition-colors text-left"
-                  >
-                    <Wand2 className="h-6 w-6 text-purple-500 mb-2" />
-                    <span className="text-sm font-medium">Generate Image</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('text-to-video')}
-                    className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-muted transition-colors text-left"
-                  >
-                    <VideoIcon className="h-6 w-6 text-pink-500 mb-2" />
-                    <span className="text-sm font-medium">Create Video</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('content-creator')}
-                    className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-muted transition-colors text-left"
-                  >
-                    <Film className="h-6 w-6 text-orange-500 mb-2" />
-                    <span className="text-sm font-medium">Content Creator</span>
-                  </button>
-                </div>
-
-                {/* Input Box at Bottom */}
-                <div className="w-full max-w-2xl mx-auto mt-8">
-                  <div className="relative">
-                    <Textarea
-                      placeholder="Ask anything..."
-                      value={homeInputValue}
-                      onChange={(e) => setHomeInputValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleHomeSubmit();
-                        }
-                      }}
-                      className="min-h-[56px] max-h-32 resize-none pr-14 rounded-2xl border-border/50 bg-muted/50 focus:bg-background transition-colors"
-                    />
-                    <Button
-                      onClick={handleHomeSubmit}
-                      disabled={!homeInputValue.trim()}
-                      size="icon"
-                      className="absolute right-2 bottom-2 h-10 w-10 rounded-xl bg-primary hover:bg-primary/90"
-                    >
-                      <ArrowUp className="h-5 w-5" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Press Enter to start researching, or select a tool from the sidebar
-                  </p>
-                </div>
-
-                {/* Stats Row */}
-                <div className="flex flex-wrap justify-center gap-4 mt-8 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <ImageIcon className="h-4 w-4" />
-                    <span>Free Images: {remainingFreeImages}/{freeImageLimit}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Crown className="h-4 w-4 text-yellow-500" />
-                    <span>Credits: {userCredits}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span>💎</span>
-                    <span>Rate: {creditToDiamondRate} credits = 1 💎</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <AIHubGallery 
+              onNavigate={(tab, prompt) => {
+                setActiveTab(tab);
+                if (prompt) {
+                  if (tab === 'text-to-video') {
+                    setVideoPrompt(prompt);
+                  } else if (tab === 'text-to-image') {
+                    setPrompt(prompt);
+                  }
+                }
+              }}
+              userCredits={userCredits}
+            />
           )}
 
           {/* Binary Affiliate Tab */}
