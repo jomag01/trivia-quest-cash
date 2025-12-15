@@ -20,7 +20,10 @@ import {
   Calculator,
   Percent,
   Clock,
-  Wallet
+  Wallet,
+  AlertTriangle,
+  CheckCircle,
+  Sparkles
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -31,6 +34,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface BinaryMember {
   id: string;
@@ -45,10 +55,20 @@ interface BinaryMember {
   };
 }
 
+interface CreditTier {
+  name: string;
+  price: number;
+  credits: number;
+  images: number;
+  videos: number;
+  cost: number;
+}
+
 export default function BinarySystemManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [members, setMembers] = useState<BinaryMember[]>([]);
+  const [creditTiers, setCreditTiers] = useState<CreditTier[]>([]);
   const [stats, setStats] = useState({
     totalMembers: 0,
     totalVolume: 0,
@@ -67,7 +87,8 @@ export default function BinarySystemManagement() {
     autoReplenishPercent: 20,
     unilevelDeductPercent: 20,
     stairstepDeductPercent: 20,
-    leadershipDeductPercent: 20
+    leadershipDeductPercent: 20,
+    selectedTierIndex: 0
   });
 
   useEffect(() => {
@@ -81,7 +102,23 @@ export default function BinarySystemManagement() {
       const { data: settingsData } = await supabase
         .from('app_settings')
         .select('key, value')
-        .like('key', 'binary_%');
+        .or('key.like.binary_%,key.like.ai_credit_tier_%,key.eq.ai_tier_count');
+
+      // Parse AI credit tiers
+      const tierCountSetting = settingsData?.find(s => s.key === 'ai_tier_count');
+      const tierCount = tierCountSetting ? parseInt(tierCountSetting.value || '3') : 3;
+      
+      const loadedTiers: CreditTier[] = [];
+      for (let i = 0; i < tierCount; i++) {
+        loadedTiers.push({
+          name: `Tier ${i + 1}`,
+          price: 0,
+          credits: 0,
+          images: 0,
+          videos: 0,
+          cost: 0
+        });
+      }
 
       if (settingsData) {
         const newSettings = { ...settings };
@@ -96,8 +133,28 @@ export default function BinarySystemManagement() {
           if (s.key === 'binary_unilevel_deduct_percent') newSettings.unilevelDeductPercent = parseFloat(s.value || '20');
           if (s.key === 'binary_stairstep_deduct_percent') newSettings.stairstepDeductPercent = parseFloat(s.value || '20');
           if (s.key === 'binary_leadership_deduct_percent') newSettings.leadershipDeductPercent = parseFloat(s.value || '20');
+          if (s.key === 'binary_selected_tier_index') newSettings.selectedTierIndex = parseInt(s.value || '0');
+
+          // Parse tier settings
+          const match = s.key.match(/ai_credit_tier_(\d+)_(\w+)/);
+          if (match) {
+            const tierIndex = parseInt(match[1]) - 1;
+            const field = match[2];
+            if (tierIndex >= 0 && tierIndex < loadedTiers.length) {
+              if (field === 'name') loadedTiers[tierIndex].name = s.value || `Tier ${tierIndex + 1}`;
+              if (field === 'price') loadedTiers[tierIndex].price = parseFloat(s.value || '0');
+              if (field === 'credits') loadedTiers[tierIndex].credits = parseFloat(s.value || '0');
+              if (field === 'image') loadedTiers[tierIndex].images = parseFloat(s.value || '0');
+              if (field === 'video') loadedTiers[tierIndex].videos = parseFloat(s.value || '0');
+              if (field === 'cost') loadedTiers[tierIndex].cost = parseFloat(s.value || '0');
+            }
+          }
         });
         setSettings(newSettings);
+      }
+
+      if (loadedTiers.length > 0 && loadedTiers.some(t => t.price > 0)) {
+        setCreditTiers(loadedTiers);
       }
 
       // Fetch binary members
@@ -166,7 +223,8 @@ export default function BinarySystemManagement() {
         { key: 'binary_auto_replenish_percent', value: settings.autoReplenishPercent.toString() },
         { key: 'binary_unilevel_deduct_percent', value: settings.unilevelDeductPercent.toString() },
         { key: 'binary_stairstep_deduct_percent', value: settings.stairstepDeductPercent.toString() },
-        { key: 'binary_leadership_deduct_percent', value: settings.leadershipDeductPercent.toString() }
+        { key: 'binary_leadership_deduct_percent', value: settings.leadershipDeductPercent.toString() },
+        { key: 'binary_selected_tier_index', value: settings.selectedTierIndex.toString() }
       ];
 
       for (const setting of settingsToSave) {
@@ -184,14 +242,71 @@ export default function BinarySystemManagement() {
     }
   };
 
-  const calculateExample = () => {
-    const purchaseAmount = settings.joinAmount;
-    const adminKeeps = (purchaseAmount * settings.adminSafetyNet) / 100;
-    const affiliatePool = purchaseAmount - adminKeeps;
-    const cycleEarning = settings.cycleCommission;
+  // Get selected tier info
+  const selectedTier = creditTiers[settings.selectedTierIndex] || { name: 'N/A', price: 0, credits: 0, cost: 0, images: 0, videos: 0 };
+
+  // Profitability Calculator
+  const calculateProfitability = () => {
+    const purchaseAmount = selectedTier.price || settings.joinAmount;
+    const aiCost = selectedTier.cost || 0;
+    const adminSafetyNetPercent = settings.adminSafetyNet;
+    const cycleCommission = settings.cycleCommission;
+    const cycleVolume = settings.cycleVolume;
+    const dailyCap = settings.dailyCap;
+
+    // Admin keeps from purchase (safety net)
+    const adminKeeps = (purchaseAmount * adminSafetyNetPercent) / 100;
     
-    return { purchaseAmount, adminKeeps, affiliatePool, cycleEarning };
+    // After deducting AI cost
+    const grossProfit = purchaseAmount - aiCost;
+    const netAdminProfit = adminKeeps - aiCost;
+    
+    // Affiliate pool (what's left for commissions)
+    const affiliatePool = purchaseAmount - adminKeeps;
+    
+    // Calculate max cycles possible from affiliate pool
+    const maxCyclesFromPool = cycleCommission > 0 ? Math.floor(affiliatePool / cycleCommission) : 0;
+    
+    // Max cycles per day per user (based on daily cap)
+    const maxCyclesPerDayPerUser = cycleCommission > 0 ? Math.floor(dailyCap / cycleCommission) : 0;
+    
+    // Total possible cycles from one purchase (volume / cycle volume)
+    const cyclesPerPurchase = cycleVolume > 0 ? Math.floor(purchaseAmount / cycleVolume) : 0;
+    
+    // Overpay threshold - when payout exceeds affiliate pool
+    const overpayThreshold = affiliatePool;
+    const maxSafePayout = affiliatePool;
+    
+    // Break-even analysis
+    const breakEvenCycles = cycleCommission > 0 ? Math.ceil(aiCost / cycleCommission) : 0;
+    
+    // Is the current setup profitable?
+    const isProfitable = netAdminProfit > 0 && affiliatePool >= cycleCommission;
+    const profitPerCycle = adminKeeps - aiCost;
+    
+    return {
+      purchaseAmount,
+      aiCost,
+      grossProfit,
+      adminKeeps,
+      netAdminProfit,
+      affiliatePool,
+      cycleCommission,
+      maxCyclesFromPool,
+      maxCyclesPerDayPerUser,
+      cyclesPerPurchase,
+      overpayThreshold,
+      maxSafePayout,
+      breakEvenCycles,
+      isProfitable,
+      profitPerCycle,
+      credits: selectedTier.credits,
+      images: selectedTier.images,
+      videos: selectedTier.videos
+    };
   };
+
+  const profitCalc = calculateProfitability();
 
   if (loading) {
     return (
@@ -201,7 +316,7 @@ export default function BinarySystemManagement() {
     );
   }
 
-  const example = calculateExample();
+  
 
   return (
     <ScrollArea className="h-[calc(100vh-120px)]">
@@ -323,6 +438,55 @@ export default function BinarySystemManagement() {
 
             <Separator />
 
+            {/* AI Credit Tier Integration */}
+            <div className="space-y-4">
+              <h4 className="font-medium flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Link to AI Credit Tier
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Select which AI credit tier package users receive when purchasing through the binary system. Credits will be automatically added to their account.
+              </p>
+              {creditTiers.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Select AI Credit Tier</Label>
+                    <Select
+                      value={settings.selectedTierIndex.toString()}
+                      onValueChange={(val) => setSettings({ ...settings, selectedTierIndex: parseInt(val), joinAmount: creditTiers[parseInt(val)]?.price || settings.joinAmount })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a tier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {creditTiers.map((tier, idx) => (
+                          <SelectItem key={idx} value={idx.toString()}>
+                            {tier.name} - ₱{tier.price.toLocaleString()} ({tier.credits} credits)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                    <p className="text-sm font-medium mb-2 text-primary">Selected Tier Benefits:</p>
+                    <div className="space-y-1 text-xs">
+                      <p>💰 Price: <strong>₱{selectedTier.price.toLocaleString()}</strong></p>
+                      <p>🎯 Credits: <strong>{selectedTier.credits}</strong></p>
+                      <p>🖼️ ~Images: <strong>{selectedTier.images}</strong></p>
+                      <p>🎬 ~Videos: <strong>{selectedTier.videos}</strong></p>
+                      <p className="text-orange-600">📊 Cost: <strong>₱{selectedTier.cost.toLocaleString()}</strong></p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
+                  <p className="text-amber-700 dark:text-amber-400">⚠️ No AI credit tiers configured. Please set up tiers in AI Hub Settings first.</p>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
             {/* Admin Safety Net */}
             <div className="space-y-4">
               <h4 className="font-medium flex items-center gap-2">
@@ -343,13 +507,143 @@ export default function BinarySystemManagement() {
                   <p className="text-xs text-muted-foreground">Percentage admin keeps from each purchase</p>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50 border">
-                  <p className="text-sm font-medium mb-2">Example Calculation:</p>
+                  <p className="text-sm font-medium mb-2">Quick Calculation:</p>
                   <div className="space-y-1 text-xs">
-                    <p>Purchase: ₱{example.purchaseAmount}</p>
-                    <p>Admin keeps ({settings.adminSafetyNet}%): <span className="text-green-500">₱{example.adminKeeps.toFixed(2)}</span></p>
-                    <p>Affiliate pool: ₱{example.affiliatePool.toFixed(2)}</p>
+                    <p>Purchase: ₱{profitCalc.purchaseAmount.toLocaleString()}</p>
+                    <p>Admin keeps ({settings.adminSafetyNet}%): <span className="text-green-500">₱{profitCalc.adminKeeps.toFixed(2)}</span></p>
+                    <p>Affiliate pool: ₱{profitCalc.affiliatePool.toFixed(2)}</p>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Comprehensive Profitability Calculator */}
+            <div className="space-y-4">
+              <h4 className="font-medium flex items-center gap-2">
+                <Calculator className="h-4 w-4" />
+                Profitability Calculator
+              </h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Per Cycle Computation */}
+                <Card className={profitCalc.isProfitable ? 'border-green-500/50 bg-green-500/5' : 'border-destructive/50 bg-destructive/5'}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      {profitCalc.isProfitable ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                      )}
+                      Per Cycle Analysis
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-xs">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 rounded bg-background/50">
+                        <p className="text-muted-foreground">Purchase Amount</p>
+                        <p className="font-bold">₱{profitCalc.purchaseAmount.toLocaleString()}</p>
+                      </div>
+                      <div className="p-2 rounded bg-background/50">
+                        <p className="text-muted-foreground">AI Cost (from tier)</p>
+                        <p className="font-bold text-orange-600">₱{profitCalc.aiCost.toLocaleString()}</p>
+                      </div>
+                      <div className="p-2 rounded bg-background/50">
+                        <p className="text-muted-foreground">Admin Keeps ({settings.adminSafetyNet}%)</p>
+                        <p className="font-bold text-green-600">₱{profitCalc.adminKeeps.toFixed(2)}</p>
+                      </div>
+                      <div className="p-2 rounded bg-background/50">
+                        <p className="text-muted-foreground">Net Admin Profit</p>
+                        <p className={`font-bold ${profitCalc.netAdminProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                          ₱{profitCalc.netAdminProfit.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="p-2 rounded bg-primary/10 border border-primary/20">
+                      <p className="text-muted-foreground">Affiliate Pool (for commissions)</p>
+                      <p className="font-bold text-primary text-lg">₱{profitCalc.affiliatePool.toFixed(2)}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-muted-foreground">Cycle Commission</p>
+                        <p className="font-bold">₱{profitCalc.cycleCommission.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Max Cycles from Pool</p>
+                        <p className="font-bold">{profitCalc.maxCyclesFromPool} cycles</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Overpay & Safety Thresholds */}
+                <Card className="border-amber-500/50 bg-amber-500/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      Safety & Overpay Thresholds
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-xs">
+                    <div className="p-3 rounded bg-background/50 border border-amber-500/30">
+                      <p className="text-amber-700 dark:text-amber-400 font-medium mb-1">⚠️ OVERPAY THRESHOLD</p>
+                      <p className="text-muted-foreground">Max payout before losing money per purchase:</p>
+                      <p className="font-bold text-2xl text-amber-600">₱{profitCalc.overpayThreshold.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        If total cycle payouts exceed this, admin loses money on this purchase.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 rounded bg-background/50">
+                        <p className="text-muted-foreground">Max Safe Payout/Purchase</p>
+                        <p className="font-bold text-green-600">₱{profitCalc.maxSafePayout.toFixed(2)}</p>
+                      </div>
+                      <div className="p-2 rounded bg-background/50">
+                        <p className="text-muted-foreground">Max Cycles/Day/User</p>
+                        <p className="font-bold">{profitCalc.maxCyclesPerDayPerUser}</p>
+                      </div>
+                    </div>
+                    <div className="p-2 rounded bg-background/50">
+                      <p className="text-muted-foreground">Daily Cap per User</p>
+                      <p className="font-bold">₱{settings.dailyCap.toLocaleString()}</p>
+                    </div>
+                    <Separator />
+                    <div className="p-2 rounded bg-destructive/10 border border-destructive/30">
+                      <p className="text-destructive font-medium">Break-Even Point</p>
+                      <p className="text-xs text-muted-foreground">
+                        After {profitCalc.breakEvenCycles} cycles paid, AI cost is covered.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Summary Alert */}
+              <div className={`p-4 rounded-lg border ${profitCalc.isProfitable ? 'bg-green-500/10 border-green-500/30' : 'bg-destructive/10 border-destructive/30'}`}>
+                {profitCalc.isProfitable ? (
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-green-700 dark:text-green-400">Configuration is PROFITABLE</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        With current settings, admin earns <strong>₱{profitCalc.netAdminProfit.toFixed(2)}</strong> net profit per purchase after AI costs.
+                        Affiliate pool of <strong>₱{profitCalc.affiliatePool.toFixed(2)}</strong> can fund up to <strong>{profitCalc.maxCyclesFromPool} cycles</strong> at ₱{settings.cycleCommission}/cycle.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                    <div>
+                      <p className="font-medium text-destructive">Configuration may cause LOSSES</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Either increase admin retention %, reduce cycle commission, or select a tier with lower AI costs.
+                        Current AI cost (₱{profitCalc.aiCost}) may exceed admin retention.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
