@@ -36,21 +36,76 @@ interface Message {
 interface DeepResearchAssistantProps {
   compact?: boolean;
   onCreateVideo?: (researchContent: string, topic: string) => void;
+  initialQuery?: string;
 }
 
-const DeepResearchAssistant: React.FC<DeepResearchAssistantProps> = ({ compact = false, onCreateVideo }) => {
+const DeepResearchAssistant: React.FC<DeepResearchAssistantProps> = ({ compact = false, onCreateVideo, initialQuery }) => {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isResearching, setIsResearching] = useState(false);
   const [selectedModel, setSelectedModel] = useState<'gemini-pro' | 'gpt-5'>('gemini-pro');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const initialQueryProcessed = useRef(false);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Handle initial query from props
+  useEffect(() => {
+    if (initialQuery && !initialQueryProcessed.current && user) {
+      initialQueryProcessed.current = true;
+      // Directly trigger research with the initial query
+      const runInitialResearch = async () => {
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          role: 'user',
+          content: initialQuery.trim(),
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, userMessage]);
+        setIsResearching(true);
+
+        try {
+          const { data, error } = await supabase.functions.invoke('deep-research', {
+            body: {
+              query: initialQuery.trim(),
+              model: selectedModel,
+              conversationHistory: []
+            }
+          });
+
+          if (error) throw error;
+
+          if (data?.result) {
+            const assistantMessage: Message = {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              content: data.result,
+              model: data.model,
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, assistantMessage]);
+            toast.success('Research completed!');
+          } else if (data?.error) {
+            throw new Error(data.error);
+          }
+        } catch (error: any) {
+          console.error('Research error:', error);
+          toast.error(error.message || 'Research failed');
+          setMessages(prev => prev.filter(m => m.id !== userMessage.id));
+        } finally {
+          setIsResearching(false);
+        }
+      };
+
+      runInitialResearch();
+    }
+  }, [initialQuery, user, selectedModel]);
 
   const handleResearch = async () => {
     if (!query.trim()) {
@@ -315,6 +370,7 @@ const DeepResearchAssistant: React.FC<DeepResearchAssistantProps> = ({ compact =
             onClick={handleResearch} 
             disabled={isResearching || !query.trim()}
             className="h-auto px-4"
+            data-research-submit
           >
             {isResearching ? (
               <Loader2 className="w-5 h-5 animate-spin" />

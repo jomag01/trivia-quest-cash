@@ -28,6 +28,7 @@ const AIHub = memo(() => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [homeInputValue, setHomeInputValue] = useState('');
+  const [initialResearchQuery, setInitialResearchQuery] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
@@ -786,12 +787,14 @@ const AIHub = memo(() => {
           {activeTab === 'home' && (
             <AIHubGallery 
               onNavigate={(tab, prompt) => {
-                setActiveTab(tab);
+                setActiveTab(tab === 'deep-research' ? 'research' : tab);
                 if (prompt) {
                   if (tab === 'text-to-video') {
                     setVideoPrompt(prompt);
                   } else if (tab === 'text-to-image') {
                     setPrompt(prompt);
+                  } else if (tab === 'deep-research') {
+                    setInitialResearchQuery(prompt);
                   }
                 }
               }}
@@ -809,7 +812,10 @@ const AIHub = memo(() => {
           {/* Deep Research Assistant */}
           {activeTab === 'research' && (
             <div className="p-4 md:p-6">
-              <DeepResearchAssistant onCreateVideo={handleCreateVideoFromResearch} />
+              <DeepResearchAssistant 
+                onCreateVideo={handleCreateVideoFromResearch} 
+                initialQuery={initialResearchQuery}
+              />
             </div>
           )}
 

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Plus, Mic, ArrowUp, Sparkles, Clock, Film, ImageIcon, Crown } from 'lucide-react';
+import { Play, Plus, Mic, ArrowUp, Sparkles, Clock, Film, ImageIcon, Crown, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AIHubGalleryProps {
@@ -56,7 +56,7 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
   const [promptValue, setPromptValue] = useState('');
   const [videoQuality, setVideoQuality] = useState('720p');
   const [videoDuration, setVideoDuration] = useState('5');
-  const [generationType, setGenerationType] = useState<'image' | 'video'>('video');
+  const [generationType, setGenerationType] = useState<'image' | 'video' | 'research'>('video');
   const [showFloatingInput, setShowFloatingInput] = useState(false);
   const galleryRef = useRef<HTMLDivElement>(null);
 
@@ -82,6 +82,8 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
     
     if (generationType === 'video') {
       onNavigate('text-to-video', promptValue);
+    } else if (generationType === 'research') {
+      onNavigate('deep-research', promptValue);
     } else {
       onNavigate('text-to-image', promptValue);
     }
@@ -193,12 +195,12 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
         <div className="max-w-2xl mx-auto">
           <div className="bg-background/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-3">
             {/* Type Toggle */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 overflow-x-auto">
               <Button
                 variant={generationType === 'video' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setGenerationType('video')}
-                className="gap-1.5 rounded-full"
+                className="gap-1.5 rounded-full shrink-0"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 AI Video
@@ -207,12 +209,21 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
                 variant={generationType === 'image' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setGenerationType('image')}
-                className="gap-1.5 rounded-full"
+                className="gap-1.5 rounded-full shrink-0"
               >
                 <ImageIcon className="h-3.5 w-3.5" />
                 AI Image
               </Button>
-              <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+              <Button
+                variant={generationType === 'research' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setGenerationType('research')}
+                className="gap-1.5 rounded-full shrink-0"
+              >
+                <Search className="h-3.5 w-3.5" />
+                Deep Research
+              </Button>
+              <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                 <Crown className="h-3 w-3 text-yellow-500" />
                 {userCredits}
               </div>
@@ -222,7 +233,9 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
             <div className="flex items-center gap-2">
               <Input
                 placeholder={generationType === 'video' 
-                  ? "Describe the video you want to create, such as a cyberpunk city at night with flying cars."
+                  ? "Describe the video you want to create..."
+                  : generationType === 'research'
+                  ? "Enter a topic to deep research with GPT-5..."
                   : "Describe the image you want to create..."
                 }
                 value={promptValue}
