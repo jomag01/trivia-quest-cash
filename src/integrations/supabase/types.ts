@@ -421,6 +421,206 @@ export type Database = {
         }
         Relationships: []
       }
+      binary_ai_purchases: {
+        Row: {
+          amount: number
+          created_at: string | null
+          credits_received: number
+          id: string
+          is_first_purchase: boolean | null
+          package_id: string | null
+          sponsor_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          credits_received: number
+          id?: string
+          is_first_purchase?: boolean | null
+          package_id?: string | null
+          sponsor_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          credits_received?: number
+          id?: string
+          is_first_purchase?: boolean | null
+          package_id?: string | null
+          sponsor_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      binary_auto_replenish: {
+        Row: {
+          amount_deducted: number
+          created_at: string | null
+          credits_replenished: number
+          id: string
+          source_commission_id: string | null
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          amount_deducted: number
+          created_at?: string | null
+          credits_replenished: number
+          id?: string
+          source_commission_id?: string | null
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          amount_deducted?: number
+          created_at?: string | null
+          credits_replenished?: number
+          id?: string
+          source_commission_id?: string | null
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      binary_commissions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          cycles_matched: number | null
+          id: string
+          left_volume_used: number
+          right_volume_used: number
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          cycles_matched?: number | null
+          id?: string
+          left_volume_used: number
+          right_volume_used: number
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          cycles_matched?: number | null
+          id?: string
+          left_volume_used?: number
+          right_volume_used?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      binary_daily_earnings: {
+        Row: {
+          created_at: string | null
+          cycles_completed: number | null
+          earning_date: string
+          id: string
+          total_earned: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          cycles_completed?: number | null
+          earning_date?: string
+          id?: string
+          total_earned?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          cycles_completed?: number | null
+          earning_date?: string
+          id?: string
+          total_earned?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      binary_network: {
+        Row: {
+          created_at: string | null
+          id: string
+          joined_at: string | null
+          left_child_id: string | null
+          left_volume: number | null
+          parent_id: string | null
+          placement_leg: Database["public"]["Enums"]["binary_leg"] | null
+          right_child_id: string | null
+          right_volume: number | null
+          sponsor_id: string | null
+          total_cycles: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          joined_at?: string | null
+          left_child_id?: string | null
+          left_volume?: number | null
+          parent_id?: string | null
+          placement_leg?: Database["public"]["Enums"]["binary_leg"] | null
+          right_child_id?: string | null
+          right_volume?: number | null
+          sponsor_id?: string | null
+          total_cycles?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          joined_at?: string | null
+          left_child_id?: string | null
+          left_volume?: number | null
+          parent_id?: string | null
+          placement_leg?: Database["public"]["Enums"]["binary_leg"] | null
+          right_child_id?: string | null
+          right_volume?: number | null
+          sponsor_id?: string | null
+          total_cycles?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "binary_network_left_child_id_fkey"
+            columns: ["left_child_id"]
+            isOneToOne: false
+            referencedRelation: "binary_network"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "binary_network_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "binary_network"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "binary_network_right_child_id_fkey"
+            columns: ["right_child_id"]
+            isOneToOne: false
+            referencedRelation: "binary_network"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "binary_network_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "binary_network"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cart: {
         Row: {
           created_at: string | null
@@ -5326,6 +5526,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      binary_leg: "left" | "right"
       order_status:
         | "pending"
         | "processing"
@@ -5461,6 +5662,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      binary_leg: ["left", "right"],
       order_status: [
         "pending",
         "processing",
