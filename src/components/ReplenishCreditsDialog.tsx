@@ -26,7 +26,8 @@ interface CreditTier {
   credits: number;
   images: number;
   videos: number;
-  audioMinutes: number;
+  maxVideoSeconds: number;
+  maxAudioSeconds: number;
 }
 
 interface CreditRates {
@@ -103,9 +104,9 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
         .like('key', 'ai_%');
 
       const tierData: CreditTier[] = [
-        { price: 100, cost: 30, credits: 50, images: 30, videos: 10, audioMinutes: 15 },
-        { price: 250, cost: 75, credits: 150, images: 100, videos: 30, audioMinutes: 45 },
-        { price: 500, cost: 150, credits: 400, images: 300, videos: 80, audioMinutes: 120 }
+        { price: 100, cost: 30, credits: 50, images: 30, videos: 10, maxVideoSeconds: 10, maxAudioSeconds: 60 },
+        { price: 250, cost: 75, credits: 150, images: 100, videos: 30, maxVideoSeconds: 60, maxAudioSeconds: 300 },
+        { price: 500, cost: 150, credits: 400, images: 300, videos: 80, maxVideoSeconds: 900, maxAudioSeconds: 1800 }
       ];
 
       const rates: CreditRates = { creditsPerVideoMinute: 20, creditsPerAudioMinute: 5, creditsPerImage: 1 };
@@ -121,7 +122,8 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
             if (field === 'credits') tierData[tierIndex].credits = parseInt(setting.value || '0');
             if (field === 'image') tierData[tierIndex].images = parseInt(setting.value || '0');
             if (field === 'video') tierData[tierIndex].videos = parseInt(setting.value || '0');
-            if (field === 'audio_minutes') tierData[tierIndex].audioMinutes = parseFloat(setting.value || '0');
+            if (field === 'videoseconds') tierData[tierIndex].maxVideoSeconds = parseInt(setting.value || '0');
+            if (field === 'audioseconds') tierData[tierIndex].maxAudioSeconds = parseInt(setting.value || '0');
           }
         }
         if (setting.key === 'ai_credits_per_video_minute') {
@@ -153,14 +155,23 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
     }
   };
 
+  // Helper function to format seconds as mm:ss
+  const formatSeconds = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0 && secs > 0) return `${mins}m ${secs}s`;
+    if (mins > 0) return `${mins}m`;
+    return `${secs}s`;
+  };
+
   // Calculate what the user gets based on service selection
   const calculateServiceAllocation = () => {
-    if (selectedTier === null) return { images: 0, videoMinutes: 0, audioMinutes: 0, bonusCredits: 0 };
+    if (selectedTier === null) return { images: 0, videoSeconds: 0, audioSeconds: 0, bonusCredits: 0 };
     const tier = tiers[selectedTier];
     
     let images = selectedServices.images ? tier.images : 0;
-    let videoMinutes = selectedServices.video ? tier.videos * 0.5 : 0;
-    let audioMinutes = selectedServices.audio ? tier.audioMinutes : 0;
+    let videoSeconds = selectedServices.video ? tier.maxVideoSeconds : 0;
+    let audioSeconds = selectedServices.audio ? tier.maxAudioSeconds : 0;
     
     // Calculate bonus credits from unused services
     let bonusCredits = 0;
@@ -168,13 +179,13 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
       bonusCredits += tier.images * creditRates.creditsPerImage;
     }
     if (!selectedServices.video) {
-      bonusCredits += (tier.videos * 0.5) * creditRates.creditsPerVideoMinute;
+      bonusCredits += (tier.maxVideoSeconds / 60) * creditRates.creditsPerVideoMinute;
     }
     if (!selectedServices.audio) {
-      bonusCredits += tier.audioMinutes * creditRates.creditsPerAudioMinute;
+      bonusCredits += (tier.maxAudioSeconds / 60) * creditRates.creditsPerAudioMinute;
     }
     
-    return { images, videoMinutes, audioMinutes, bonusCredits };
+    return { images, videoSeconds, audioSeconds, bonusCredits };
   };
 
   const handleReplenishWithEarnings = async () => {
@@ -216,8 +227,8 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
           .from('user_ai_credits')
           .update({
             images_available: existingCredits.images_available + allocation.images,
-            video_minutes_available: Number(existingCredits.video_minutes_available) + allocation.videoMinutes,
-            audio_minutes_available: Number(existingCredits.audio_minutes_available) + allocation.audioMinutes,
+            video_minutes_available: Number(existingCredits.video_minutes_available) + (allocation.videoSeconds / 60),
+            audio_minutes_available: Number(existingCredits.audio_minutes_available) + (allocation.audioSeconds / 60),
             total_credits: existingCredits.total_credits + totalCredits
           })
           .eq('user_id', user.id);
@@ -227,8 +238,8 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
           .insert({
             user_id: user.id,
             images_available: allocation.images,
-            video_minutes_available: allocation.videoMinutes,
-            audio_minutes_available: allocation.audioMinutes,
+            video_minutes_available: allocation.videoSeconds / 60,
+            audio_minutes_available: allocation.audioSeconds / 60,
             total_credits: totalCredits
           });
       }
@@ -280,8 +291,8 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
           amount: tier.price,
           credits_received: totalCredits,
           images_allocated: allocation.images,
-          video_minutes_allocated: allocation.videoMinutes,
-          audio_minutes_allocated: allocation.audioMinutes,
+          video_minutes_allocated: allocation.videoSeconds / 60,
+          audio_minutes_allocated: allocation.audioSeconds / 60,
           sponsor_id: profileData?.referred_by || null,
           status: 'pending',
           is_first_purchase: false
@@ -435,11 +446,11 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <VideoIcon className="h-4 w-4" />
-                        <span>{(tier.videos * 0.5).toFixed(1)} video min</span>
+                        <span>{formatSeconds(tier.maxVideoSeconds)} video</span>
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Music className="h-4 w-4" />
-                        <span>{tier.audioMinutes} audio min</span>
+                        <span>{formatSeconds(tier.maxAudioSeconds)} audio</span>
                       </div>
                     </div>
                   </CardContent>
