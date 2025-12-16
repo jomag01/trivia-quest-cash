@@ -36,6 +36,7 @@ import ProfileImageUpload from "@/components/profile/ProfileImageUpload";
 import DeepResearchAssistant from "@/components/ai/DeepResearchAssistant";
 import AdvancedChatAssistant from "@/components/ai/AdvancedChatAssistant";
 import AICreditsTracker from "@/components/AICreditsTracker";
+import { AppPresentationGenerator } from "@/components/AppPresentationGenerator";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -677,6 +678,9 @@ const Dashboard = () => {
 
           {/* Quick Actions */}
           <div className="space-y-6">
+            {/* Learn About the App */}
+            <AppPresentationGenerator />
+            
             {/* Cart Widget */}
             <CartWidget onViewCart={() => setActiveTab("cart")} />
             
