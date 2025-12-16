@@ -235,7 +235,10 @@ export default function BinarySystemManagement() {
   ]);
 
   const saveTierSettings = () => handleSaveSection('Tier', [
-    { key: 'binary_selected_tier_index', value: settings.selectedTierIndex.toString() }
+    { key: 'binary_selected_tier_index', value: settings.selectedTierIndex.toString() },
+    { key: 'binary_join_amount', value: settings.joinAmount.toString() },
+    { key: 'binary_cycle_volume', value: settings.cycleVolume.toString() },
+    { key: 'binary_cycle_commission', value: settings.cycleCommission.toString() }
   ]);
 
   const saveSafetySettings = () => handleSaveSection('Safety Net', [
@@ -249,6 +252,18 @@ export default function BinarySystemManagement() {
     { key: 'binary_stairstep_deduct_percent', value: settings.stairstepDeductPercent.toString() },
     { key: 'binary_leadership_deduct_percent', value: settings.leadershipDeductPercent.toString() }
   ]);
+
+  // Handle tier selection change - update join amount to tier price
+  const handleTierChange = (tierIndex: number) => {
+    const tier = creditTiers[tierIndex];
+    if (tier) {
+      setSettings(prev => ({
+        ...prev,
+        selectedTierIndex: tierIndex,
+        joinAmount: tier.price
+      }));
+    }
+  };
 
   // Get selected tier info
   const selectedTier = creditTiers[settings.selectedTierIndex] || { name: 'N/A', price: 0, credits: 0, cost: 0, images: 0, videos: 0 };
@@ -403,53 +418,29 @@ export default function BinarySystemManagement() {
             </div>
           </CardContent>
           <CardContent className="space-y-6">
-            {/* Basic Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="joinAmount">Minimum Join Amount (₱)</Label>
-                <Input
-                  id="joinAmount"
-                  type="number"
-                  value={settings.joinAmount}
-                  onChange={(e) => setSettings({ ...settings, joinAmount: parseFloat(e.target.value) || 0 })}
-                />
-                <p className="text-xs text-muted-foreground">Min AI credits purchase to join</p>
+            {/* Basic Settings - Daily Cap Only */}
+            <div className="space-y-4">
+              <h4 className="font-medium flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Daily Limits
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dailyCap">Daily Earning Cap (₱)</Label>
+                  <Input
+                    id="dailyCap"
+                    type="number"
+                    value={settings.dailyCap}
+                    onChange={(e) => setSettings({ ...settings, dailyCap: parseFloat(e.target.value) || 0 })}
+                  />
+                  <p className="text-xs text-muted-foreground">Max daily earnings per user</p>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="cycleVolume">Cycle Volume (₱)</Label>
-                <Input
-                  id="cycleVolume"
-                  type="number"
-                  value={settings.cycleVolume}
-                  onChange={(e) => setSettings({ ...settings, cycleVolume: parseFloat(e.target.value) || 0 })}
-                />
-                <p className="text-xs text-muted-foreground">Volume needed per leg for cycle</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cycleCommission">Cycle Commission (₱)</Label>
-                <Input
-                  id="cycleCommission"
-                  type="number"
-                  value={settings.cycleCommission}
-                  onChange={(e) => setSettings({ ...settings, cycleCommission: parseFloat(e.target.value) || 0 })}
-                />
-                <p className="text-xs text-muted-foreground">Earnings per completed cycle</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dailyCap">Daily Earning Cap (₱)</Label>
-                <Input
-                  id="dailyCap"
-                  type="number"
-                  value={settings.dailyCap}
-                  onChange={(e) => setSettings({ ...settings, dailyCap: parseFloat(e.target.value) || 0 })}
-                />
-                <p className="text-xs text-muted-foreground">Max daily earnings per user</p>
-              </div>
+              <Button onClick={saveBasicSettings} disabled={saving === 'Basic'} size="sm" className="gap-2 mt-2">
+                {saving === 'Basic' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Daily Cap
+              </Button>
             </div>
-            <Button onClick={saveBasicSettings} disabled={saving === 'Basic'} size="sm" className="gap-2 mt-2">
-              {saving === 'Basic' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save Basic Settings
-            </Button>
 
             <Separator />
 
@@ -462,46 +453,86 @@ export default function BinarySystemManagement() {
               <p className="text-xs text-muted-foreground">
                 Select which AI credit tier package users receive when purchasing through the binary system. Credits will be automatically added to their account.
               </p>
-              {creditTiers.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Select AI Credit Tier</Label>
-                    <Select
-                      value={settings.selectedTierIndex.toString()}
-                      onValueChange={(val) => setSettings({ ...settings, selectedTierIndex: parseInt(val), joinAmount: creditTiers[parseInt(val)]?.price || settings.joinAmount })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a tier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {creditTiers.map((tier, idx) => (
-                          <SelectItem key={idx} value={idx.toString()}>
-                            {tier.name} - ₱{tier.price.toLocaleString()} ({tier.credits} credits)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-                    <p className="text-sm font-medium mb-2 text-primary">Selected Tier Benefits:</p>
-                    <div className="space-y-1 text-xs">
-                      <p>💰 Price: <strong>₱{selectedTier.price.toLocaleString()}</strong></p>
-                      <p>🎯 Credits: <strong>{selectedTier.credits}</strong></p>
-                      <p>🖼️ ~Images: <strong>{selectedTier.images}</strong></p>
-                      <p>🎬 ~Videos: <strong>{selectedTier.videos}</strong></p>
-                      <p className="text-orange-600">📊 Cost: <strong>₱{selectedTier.cost.toLocaleString()}</strong></p>
+{creditTiers.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Select AI Credit Tier</Label>
+                      <Select
+                        value={settings.selectedTierIndex.toString()}
+                        onValueChange={(val) => handleTierChange(parseInt(val))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a tier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {creditTiers.map((tier, idx) => (
+                            <SelectItem key={idx} value={idx.toString()}>
+                              {tier.name} - ₱{tier.price.toLocaleString()} ({tier.credits} credits)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                      <p className="text-sm font-medium mb-2 text-primary">Selected Tier Benefits:</p>
+                      <div className="space-y-1 text-xs">
+                        <p>💰 Price: <strong>₱{selectedTier.price.toLocaleString()}</strong></p>
+                        <p>🎯 Credits: <strong>{selectedTier.credits}</strong></p>
+                        <p>🖼️ ~Images: <strong>{selectedTier.images}</strong></p>
+                        <p>🎬 ~Videos: <strong>{selectedTier.videos}</strong></p>
+                        <p className="text-orange-600">📊 Cost: <strong>₱{selectedTier.cost.toLocaleString()}</strong></p>
+                      </div>
                     </div>
                   </div>
+                  
+                  {/* Tier-Linked Settings */}
+                  <div className="p-4 rounded-lg bg-muted/50 border">
+                    <p className="text-sm font-medium mb-3">Configure Cycle Settings for this Tier:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="tierJoinAmount">Join Amount (₱)</Label>
+                        <Input
+                          id="tierJoinAmount"
+                          type="number"
+                          value={settings.joinAmount}
+                          onChange={(e) => setSettings({ ...settings, joinAmount: parseFloat(e.target.value) || 0 })}
+                        />
+                        <p className="text-xs text-muted-foreground">Auto-set from tier price</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="tierCycleVolume">Cycle Volume (₱)</Label>
+                        <Input
+                          id="tierCycleVolume"
+                          type="number"
+                          value={settings.cycleVolume}
+                          onChange={(e) => setSettings({ ...settings, cycleVolume: parseFloat(e.target.value) || 0 })}
+                        />
+                        <p className="text-xs text-muted-foreground">Volume per leg for cycle</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="tierCycleCommission">Cycle Commission (₱)</Label>
+                        <Input
+                          id="tierCycleCommission"
+                          type="number"
+                          value={settings.cycleCommission}
+                          onChange={(e) => setSettings({ ...settings, cycleCommission: parseFloat(e.target.value) || 0 })}
+                        />
+                        <p className="text-xs text-muted-foreground">Earnings per cycle</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button onClick={saveTierSettings} disabled={saving === 'Tier'} size="sm" className="gap-2">
+                    {saving === 'Tier' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Save Tier & Cycle Settings
+                  </Button>
                 </div>
               ) : (
                 <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
                   <p className="text-amber-700 dark:text-amber-400">⚠️ No AI credit tiers configured. Please set up tiers in AI Hub Settings first.</p>
                 </div>
               )}
-              <Button onClick={saveTierSettings} disabled={saving === 'Tier'} size="sm" className="gap-2">
-                {saving === 'Tier' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save Tier Selection
-              </Button>
             </div>
 
             <Separator />
