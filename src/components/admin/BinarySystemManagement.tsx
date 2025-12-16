@@ -262,15 +262,18 @@ export default function BinarySystemManagement() {
     const cycleVolume = settings.cycleVolume;
     const dailyCap = settings.dailyCap;
 
-    // Admin keeps from purchase (safety net)
+    // Admin keeps from purchase (safety net percentage)
     const adminKeeps = (purchaseAmount * adminSafetyNetPercent) / 100;
     
-    // After deducting AI cost
-    const grossProfit = purchaseAmount - aiCost;
-    const netAdminProfit = adminKeeps - aiCost;
+    // Net admin profit (admin's actual profit after covering AI cost)
+    const netAdminProfit = Math.max(0, adminKeeps - aiCost);
     
-    // Affiliate pool (what's left for commissions)
-    const affiliatePool = purchaseAmount - adminKeeps;
+    // CRITICAL: Affiliate pool = ONLY remaining money after AI cost AND admin profit are deducted
+    // This ensures system never overpays or loses money
+    const affiliatePool = Math.max(0, purchaseAmount - aiCost - netAdminProfit);
+    
+    // Gross profit for reference
+    const grossProfit = purchaseAmount - aiCost;
     
     // Calculate max cycles possible from affiliate pool
     const maxCyclesFromPool = cycleCommission > 0 ? Math.floor(affiliatePool / cycleCommission) : 0;
@@ -281,7 +284,7 @@ export default function BinarySystemManagement() {
     // Total possible cycles from one purchase (volume / cycle volume)
     const cyclesPerPurchase = cycleVolume > 0 ? Math.floor(purchaseAmount / cycleVolume) : 0;
     
-    // Overpay threshold - when payout exceeds affiliate pool
+    // Overpay threshold - when payout exceeds affiliate pool (now correctly calculated)
     const overpayThreshold = affiliatePool;
     const maxSafePayout = affiliatePool;
     
@@ -290,7 +293,7 @@ export default function BinarySystemManagement() {
     
     // Is the current setup profitable?
     const isProfitable = netAdminProfit > 0 && affiliatePool >= cycleCommission;
-    const profitPerCycle = adminKeeps - aiCost;
+    const profitPerCycle = netAdminProfit;
     
     return {
       purchaseAmount,
@@ -526,8 +529,9 @@ export default function BinarySystemManagement() {
                   <p className="text-sm font-medium mb-2">Quick Calculation:</p>
                   <div className="space-y-1 text-xs">
                     <p>Purchase: ₱{profitCalc.purchaseAmount.toLocaleString()}</p>
-                    <p>Admin keeps ({settings.adminSafetyNet}%): <span className="text-green-500">₱{profitCalc.adminKeeps.toFixed(2)}</span></p>
-                    <p>Affiliate pool: ₱{profitCalc.affiliatePool.toFixed(2)}</p>
+                    <p>AI Cost: <span className="text-orange-500">-₱{profitCalc.aiCost.toFixed(2)}</span></p>
+                    <p>Net Admin Profit: <span className="text-green-500">-₱{profitCalc.netAdminProfit.toFixed(2)}</span></p>
+                    <p className="font-medium pt-1 border-t">Affiliate Pool: <span className="text-primary">₱{profitCalc.affiliatePool.toFixed(2)}</span></p>
                   </div>
                 </div>
               </div>
@@ -583,6 +587,9 @@ export default function BinarySystemManagement() {
                     <div className="p-2 rounded bg-primary/10 border border-primary/20">
                       <p className="text-muted-foreground">Affiliate Pool (for commissions)</p>
                       <p className="font-bold text-primary text-lg">₱{profitCalc.affiliatePool.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        = ₱{profitCalc.purchaseAmount.toLocaleString()} - ₱{profitCalc.aiCost.toFixed(2)} (AI) - ₱{profitCalc.netAdminProfit.toFixed(2)} (Admin)
+                      </p>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>

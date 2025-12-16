@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, TrendingUp, DollarSign, Users, Percent, PieChart } from "lucide-react";
+import { Loader2, TrendingUp, DollarSign, Users, Percent, PieChart, Sparkles, GitBranch } from "lucide-react";
 import { formatCurrency } from "@/lib/currencies";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -16,6 +16,12 @@ interface SalesData {
   breakawayPayouts: number;
   totalCommissions: number;
   netProfit: number;
+  // AI Credit (Binary/Affiliate) cashflow
+  aiCreditPurchases: number;
+  aiCreditCosts: number;
+  aiCreditAdminProfit: number;
+  aiCreditAffiliatePool: number;
+  aiCreditBinaryPayouts: number;
 }
 
 export const SalesAnalytics = () => {
@@ -30,6 +36,11 @@ export const SalesAnalytics = () => {
     breakawayPayouts: 0,
     totalCommissions: 0,
     netProfit: 0,
+    aiCreditPurchases: 0,
+    aiCreditCosts: 0,
+    aiCreditAdminProfit: 0,
+    aiCreditAffiliatePool: 0,
+    aiCreditBinaryPayouts: 0,
   });
 
   useEffect(() => {
@@ -88,10 +99,46 @@ export const SalesAnalytics = () => {
       )
       .subscribe();
 
+    // Real-time subscription for AI credit purchases
+    const aiPurchasesChannel = supabase
+      .channel('sales-ai-purchases-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'binary_ai_purchases'
+        },
+        () => {
+          console.log('AI credit purchase updated - refreshing sales analytics');
+          fetchSalesAnalytics();
+        }
+      )
+      .subscribe();
+
+    // Real-time subscription for binary commissions
+    const binaryCommissionsChannel = supabase
+      .channel('sales-binary-commissions-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'binary_commissions'
+        },
+        () => {
+          console.log('Binary commission added - refreshing sales analytics');
+          fetchSalesAnalytics();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(foodOrdersChannel);
       supabase.removeChannel(commissionsChannel);
+      supabase.removeChannel(aiPurchasesChannel);
+      supabase.removeChannel(binaryCommissionsChannel);
     };
   }, []);
 
@@ -151,6 +198,61 @@ export const SalesAnalytics = () => {
         ?.filter((c) => c.commission_type === "breakaway")
         .reduce((sum, c) => sum + Number(c.amount), 0) || 0;
 
+      // Fetch AI Credit (Binary/Affiliate) purchases - approved only
+      const { data: aiPurchases, error: aiPurchasesError } = await supabase
+        .from("binary_ai_purchases")
+        .select("amount, credits_received")
+        .eq("status", "approved");
+
+      if (aiPurchasesError) throw aiPurchasesError;
+
+      const aiCreditPurchases = aiPurchases?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+
+      // Fetch binary commissions paid out
+      const { data: binaryCommissions, error: binaryCommissionsError } = await supabase
+        .from("binary_commissions")
+        .select("amount");
+
+      if (binaryCommissionsError) throw binaryCommissionsError;
+
+      const aiCreditBinaryPayouts = binaryCommissions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+
+      // Fetch AI settings for cost calculation
+      const { data: settingsData } = await supabase
+        .from("app_settings")
+        .select("key, value")
+        .or("key.eq.binary_admin_safety_net,key.like.ai_credit_tier_%,key.eq.ai_tier_count,key.eq.binary_selected_tier_index");
+
+      // Parse settings to calculate AI costs
+      let adminSafetyNet = 35;
+      let selectedTierIndex = 0;
+      let tierCost = 0;
+
+      if (settingsData) {
+        const safetyNetSetting = settingsData.find(s => s.key === 'binary_admin_safety_net');
+        if (safetyNetSetting) adminSafetyNet = parseFloat(safetyNetSetting.value || '35');
+
+        const tierIndexSetting = settingsData.find(s => s.key === 'binary_selected_tier_index');
+        if (tierIndexSetting) selectedTierIndex = parseInt(tierIndexSetting.value || '0');
+
+        const tierCostSetting = settingsData.find(s => s.key === `ai_credit_tier_${selectedTierIndex + 1}_cost`);
+        if (tierCostSetting) tierCost = parseFloat(tierCostSetting.value || '0');
+      }
+
+      // Calculate AI credit cashflow per purchase count
+      const purchaseCount = aiPurchases?.length || 0;
+      const avgPurchaseAmount = purchaseCount > 0 ? aiCreditPurchases / purchaseCount : 0;
+      
+      // Estimate total AI costs (cost per tier * number of purchases)
+      const aiCreditCosts = tierCost * purchaseCount;
+      
+      // Calculate admin keeps and net profit
+      const adminKeepsTotal = (aiCreditPurchases * adminSafetyNet) / 100;
+      const aiCreditAdminProfit = Math.max(0, adminKeepsTotal - aiCreditCosts);
+      
+      // Affiliate pool = Total purchases - AI costs - Admin profit
+      const aiCreditAffiliatePool = Math.max(0, aiCreditPurchases - aiCreditCosts - aiCreditAdminProfit);
+
       const totalCommissions = unilevelPayouts + stairstepPayouts + breakawayPayouts;
       const totalSales = productSales + creditCashins + diamondCashins;
       const netProfit = totalSales - totalCommissions;
@@ -165,6 +267,11 @@ export const SalesAnalytics = () => {
         breakawayPayouts,
         totalCommissions,
         netProfit,
+        aiCreditPurchases,
+        aiCreditCosts,
+        aiCreditAdminProfit,
+        aiCreditAffiliatePool,
+        aiCreditBinaryPayouts,
       });
     } catch (error: any) {
       console.error("Error fetching sales analytics:", error);
@@ -333,6 +440,106 @@ export const SalesAnalytics = () => {
                 <p className="text-sm font-mono">
                   {formatCurrency(salesData.totalSales, "PHP")} - {formatCurrency(salesData.totalCommissions, "PHP")} = {formatCurrency(salesData.netProfit, "PHP")}
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Separator />
+
+          {/* AI Credit (Binary/Affiliate) Cashflow */}
+          <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <GitBranch className="h-5 w-5 text-purple-600" />
+                AI Credit (Affiliate System) Cashflow
+              </CardTitle>
+              <CardDescription>Complete breakdown of AI credit purchase money flow</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-background/50">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-4 w-4 text-purple-500" />
+                      <p className="text-xs font-medium text-muted-foreground">Total AI Credit Purchases</p>
+                    </div>
+                    <p className="text-xl font-bold text-purple-600">{formatCurrency(salesData.aiCreditPurchases, "PHP")}</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-orange-500/5 border-orange-500/20">
+                  <CardContent className="pt-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">AI Service Costs</p>
+                    <p className="text-xl font-bold text-orange-600">-{formatCurrency(salesData.aiCreditCosts, "PHP")}</p>
+                    <p className="text-xs text-muted-foreground mt-1">API costs to providers</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-green-500/5 border-green-500/20">
+                  <CardContent className="pt-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Net Admin Profit</p>
+                    <p className="text-xl font-bold text-green-600">{formatCurrency(salesData.aiCreditAdminProfit, "PHP")}</p>
+                    <p className="text-xs text-muted-foreground mt-1">After AI costs</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-blue-500/5 border-blue-500/20">
+                  <CardContent className="pt-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Affiliate Pool</p>
+                    <p className="text-xl font-bold text-blue-600">{formatCurrency(salesData.aiCreditAffiliatePool, "PHP")}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Available for payouts</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* AI Credit Cashflow Breakdown */}
+              <div className="p-4 bg-background/50 rounded-lg border">
+                <h5 className="font-medium mb-3 text-sm">AI Credit Cashflow Formula</h5>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between py-1">
+                    <span>Total AI Credit Purchases</span>
+                    <span className="font-medium">{formatCurrency(salesData.aiCreditPurchases, "PHP")}</span>
+                  </div>
+                  <div className="flex justify-between py-1 text-orange-600">
+                    <span className="pl-4">- AI Service Costs</span>
+                    <span>({formatCurrency(salesData.aiCreditCosts, "PHP")})</span>
+                  </div>
+                  <div className="flex justify-between py-1 text-green-600">
+                    <span className="pl-4">- Net Admin Profit</span>
+                    <span>({formatCurrency(salesData.aiCreditAdminProfit, "PHP")})</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-t font-semibold text-blue-600">
+                    <span>= Affiliate Pool (for cycle payouts)</span>
+                    <span>{formatCurrency(salesData.aiCreditAffiliatePool, "PHP")}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actual Payouts vs Pool */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <Card className={`${salesData.aiCreditBinaryPayouts <= salesData.aiCreditAffiliatePool ? 'bg-green-500/5 border-green-500/20' : 'bg-destructive/5 border-destructive/20'}`}>
+                  <CardContent className="pt-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Total Affiliate Payouts (Actual)</p>
+                    <p className={`text-xl font-bold ${salesData.aiCreditBinaryPayouts <= salesData.aiCreditAffiliatePool ? 'text-green-600' : 'text-destructive'}`}>
+                      {formatCurrency(salesData.aiCreditBinaryPayouts, "PHP")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Paid from affiliate pool</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-background/50">
+                  <CardContent className="pt-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Pool Remaining</p>
+                    <p className={`text-xl font-bold ${(salesData.aiCreditAffiliatePool - salesData.aiCreditBinaryPayouts) >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                      {formatCurrency(salesData.aiCreditAffiliatePool - salesData.aiCreditBinaryPayouts, "PHP")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {(salesData.aiCreditAffiliatePool - salesData.aiCreditBinaryPayouts) >= 0 
+                        ? 'System is profitable' 
+                        : 'OVERPAYMENT - System is losing money!'}
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             </CardContent>
           </Card>
