@@ -268,7 +268,7 @@ export default function BinarySystemManagement() {
   // Get selected tier info
   const selectedTier = creditTiers[settings.selectedTierIndex] || { name: 'N/A', price: 0, credits: 0, cost: 0, images: 0, videos: 0 };
 
-  // Profitability Calculator
+  // Profitability Calculator - BINARY SYSTEM (Both Legs Contribute)
   const calculateProfitability = () => {
     const purchaseAmount = selectedTier.price || settings.joinAmount;
     const aiCost = selectedTier.cost || 0;
@@ -277,42 +277,60 @@ export default function BinarySystemManagement() {
     const cycleVolume = settings.cycleVolume;
     const dailyCap = settings.dailyCap;
 
-    // Admin keeps from purchase (safety net percentage)
-    const adminKeeps = (purchaseAmount * adminSafetyNetPercent) / 100;
+    // BINARY SYSTEM: Both legs contribute to cycle matching
+    // For one cycle to complete, you need cycleVolume from LEFT leg AND cycleVolume from RIGHT leg
+    // Total purchase volume from BOTH legs = purchaseAmount × 2
+    const totalVolumeFromBothLegs = purchaseAmount * 2;
+    const totalAiCostBothLegs = aiCost * 2;
     
-    // Net admin profit (admin's actual profit after covering AI cost)
-    const netAdminProfit = Math.max(0, adminKeeps - aiCost);
+    // Admin keeps from TOTAL volume (safety net percentage from both legs)
+    const adminKeeps = (totalVolumeFromBothLegs * adminSafetyNetPercent) / 100;
+    
+    // Net admin profit (admin's actual profit after covering AI cost from both purchases)
+    const netAdminProfit = Math.max(0, adminKeeps - totalAiCostBothLegs);
     
     // CRITICAL: Affiliate pool = ONLY remaining money after AI cost AND admin profit are deducted
-    // This ensures system never overpays or loses money
-    const affiliatePool = Math.max(0, purchaseAmount - aiCost - netAdminProfit);
+    // This pool comes from BOTH legs' purchases combined
+    const affiliatePool = Math.max(0, totalVolumeFromBothLegs - totalAiCostBothLegs - netAdminProfit);
     
-    // Gross profit for reference
-    const grossProfit = purchaseAmount - aiCost;
+    // Gross profit for reference (from both legs)
+    const grossProfit = totalVolumeFromBothLegs - totalAiCostBothLegs;
     
     // Calculate max cycles possible from affiliate pool
+    // This represents how many cycles the combined pool can pay out
     const maxCyclesFromPool = cycleCommission > 0 ? Math.floor(affiliatePool / cycleCommission) : 0;
     
     // Max cycles per day per user (based on daily cap)
     const maxCyclesPerDayPerUser = cycleCommission > 0 ? Math.floor(dailyCap / cycleCommission) : 0;
     
-    // Total possible cycles from one purchase (volume / cycle volume)
+    // Total possible cycles from matched volume
+    // One cycle requires cycleVolume from EACH leg, so cycles = min(leftVolume, rightVolume) / cycleVolume
+    // With equal legs: purchaseAmount / cycleVolume cycles
     const cyclesPerPurchase = cycleVolume > 0 ? Math.floor(purchaseAmount / cycleVolume) : 0;
     
-    // Overpay threshold - when payout exceeds affiliate pool (now correctly calculated)
+    // Overpay threshold - when payout exceeds affiliate pool
     const overpayThreshold = affiliatePool;
     const maxSafePayout = affiliatePool;
     
-    // Break-even analysis
-    const breakEvenCycles = cycleCommission > 0 ? Math.ceil(aiCost / cycleCommission) : 0;
+    // Break-even analysis - how many cycles before admin covers AI cost
+    const breakEvenCycles = cycleCommission > 0 ? Math.ceil(totalAiCostBothLegs / cycleCommission) : 0;
     
     // Is the current setup profitable?
-    const isProfitable = netAdminProfit > 0 && affiliatePool >= cycleCommission;
-    const profitPerCycle = netAdminProfit;
+    // Check if affiliate pool can cover the cycles that would be generated
+    const totalPayoutForCycles = cyclesPerPurchase * cycleCommission;
+    const isProfitable = netAdminProfit > 0 && affiliatePool >= totalPayoutForCycles;
+    const profitPerCycle = affiliatePool > 0 && cyclesPerPurchase > 0 
+      ? (affiliatePool - totalPayoutForCycles) / cyclesPerPurchase 
+      : 0;
+    
+    // Surplus or deficit analysis
+    const poolSurplusDeficit = affiliatePool - totalPayoutForCycles;
     
     return {
       purchaseAmount,
+      totalVolumeFromBothLegs,
       aiCost,
+      totalAiCostBothLegs,
       grossProfit,
       adminKeeps,
       netAdminProfit,
@@ -321,6 +339,8 @@ export default function BinarySystemManagement() {
       maxCyclesFromPool,
       maxCyclesPerDayPerUser,
       cyclesPerPurchase,
+      totalPayoutForCycles,
+      poolSurplusDeficit,
       overpayThreshold,
       maxSafePayout,
       breakEvenCycles,
@@ -557,11 +577,12 @@ export default function BinarySystemManagement() {
                   <p className="text-xs text-muted-foreground">Percentage admin keeps from each purchase</p>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50 border">
-                  <p className="text-sm font-medium mb-2">Quick Calculation:</p>
+                  <p className="text-sm font-medium mb-2">Binary Calculation (Both Legs):</p>
                   <div className="space-y-1 text-xs">
-                    <p>Purchase: ₱{profitCalc.purchaseAmount.toLocaleString()}</p>
-                    <p>AI Cost: <span className="text-orange-500">-₱{profitCalc.aiCost.toFixed(2)}</span></p>
-                    <p>Net Admin Profit: <span className="text-green-500">-₱{profitCalc.netAdminProfit.toFixed(2)}</span></p>
+                    <p>Per Leg Purchase: ₱{profitCalc.purchaseAmount.toLocaleString()}</p>
+                    <p className="font-medium">Both Legs Total: <span className="text-primary">₱{profitCalc.totalVolumeFromBothLegs.toLocaleString()}</span></p>
+                    <p>Total AI Cost: <span className="text-orange-500">-₱{profitCalc.totalAiCostBothLegs.toFixed(2)}</span></p>
+                    <p>Net Admin Profit: <span className="text-green-500">₱{profitCalc.netAdminProfit.toFixed(2)}</span></p>
                     <p className="font-medium pt-1 border-t">Affiliate Pool: <span className="text-primary">₱{profitCalc.affiliatePool.toFixed(2)}</span></p>
                   </div>
                 </div>
@@ -594,14 +615,26 @@ export default function BinarySystemManagement() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3 text-xs">
+                    <div className="p-2 rounded bg-blue-500/10 border border-blue-500/30 mb-2">
+                      <p className="text-blue-700 dark:text-blue-400 font-medium">📊 Binary System: Both Legs Contribute</p>
+                      <p className="text-xs text-muted-foreground">Volume from LEFT leg + RIGHT leg = Total Pool</p>
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="p-2 rounded bg-background/50">
-                        <p className="text-muted-foreground">Purchase Amount</p>
+                        <p className="text-muted-foreground">Per Leg Purchase</p>
                         <p className="font-bold">₱{profitCalc.purchaseAmount.toLocaleString()}</p>
                       </div>
+                      <div className="p-2 rounded bg-primary/10 border border-primary/30">
+                        <p className="text-muted-foreground">Both Legs Total</p>
+                        <p className="font-bold text-primary">₱{profitCalc.totalVolumeFromBothLegs.toLocaleString()}</p>
+                      </div>
                       <div className="p-2 rounded bg-background/50">
-                        <p className="text-muted-foreground">AI Cost (from tier)</p>
+                        <p className="text-muted-foreground">AI Cost (per leg)</p>
                         <p className="font-bold text-orange-600">₱{profitCalc.aiCost.toLocaleString()}</p>
+                      </div>
+                      <div className="p-2 rounded bg-orange-500/10 border border-orange-500/30">
+                        <p className="text-muted-foreground">Total AI Cost (×2)</p>
+                        <p className="font-bold text-orange-600">₱{profitCalc.totalAiCostBothLegs.toLocaleString()}</p>
                       </div>
                       <div className="p-2 rounded bg-background/50">
                         <p className="text-muted-foreground">Admin Keeps ({settings.adminSafetyNet}%)</p>
@@ -616,10 +649,10 @@ export default function BinarySystemManagement() {
                     </div>
                     <Separator />
                     <div className="p-2 rounded bg-primary/10 border border-primary/20">
-                      <p className="text-muted-foreground">Affiliate Pool (for commissions)</p>
+                      <p className="text-muted-foreground">Affiliate Pool (from both legs)</p>
                       <p className="font-bold text-primary text-lg">₱{profitCalc.affiliatePool.toFixed(2)}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        = ₱{profitCalc.purchaseAmount.toLocaleString()} - ₱{profitCalc.aiCost.toFixed(2)} (AI) - ₱{profitCalc.netAdminProfit.toFixed(2)} (Admin)
+                        = ₱{profitCalc.totalVolumeFromBothLegs.toLocaleString()} - ₱{profitCalc.totalAiCostBothLegs.toFixed(2)} (AI×2) - ₱{profitCalc.netAdminProfit.toFixed(2)} (Admin)
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -631,6 +664,20 @@ export default function BinarySystemManagement() {
                         <p className="text-muted-foreground">Max Cycles from Pool</p>
                         <p className="font-bold">{profitCalc.maxCyclesFromPool} cycles</p>
                       </div>
+                      <div>
+                        <p className="text-muted-foreground">Cycles per Purchase</p>
+                        <p className="font-bold">{profitCalc.cyclesPerPurchase} cycles</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Total Payout</p>
+                        <p className="font-bold">₱{profitCalc.totalPayoutForCycles.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className={`p-2 rounded ${profitCalc.poolSurplusDeficit >= 0 ? 'bg-green-500/10 border border-green-500/30' : 'bg-destructive/10 border border-destructive/30'}`}>
+                      <p className="text-muted-foreground">Pool Surplus/Deficit</p>
+                      <p className={`font-bold ${profitCalc.poolSurplusDeficit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        {profitCalc.poolSurplusDeficit >= 0 ? '+' : ''}₱{profitCalc.poolSurplusDeficit.toFixed(2)}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -685,8 +732,13 @@ export default function BinarySystemManagement() {
                     <div>
                       <p className="font-medium text-green-700 dark:text-green-400">Configuration is PROFITABLE</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        With current settings, admin earns <strong>₱{profitCalc.netAdminProfit.toFixed(2)}</strong> net profit per purchase after AI costs.
-                        Affiliate pool of <strong>₱{profitCalc.affiliatePool.toFixed(2)}</strong> can fund up to <strong>{profitCalc.maxCyclesFromPool} cycles</strong> at ₱{settings.cycleCommission}/cycle.
+                        <strong>Binary System (Both Legs):</strong> Total volume from both legs = <strong>₱{profitCalc.totalVolumeFromBothLegs.toLocaleString()}</strong>.
+                        After deducting AI costs (₱{profitCalc.totalAiCostBothLegs.toFixed(2)}) and admin profit (₱{profitCalc.netAdminProfit.toFixed(2)}), 
+                        the affiliate pool is <strong>₱{profitCalc.affiliatePool.toFixed(2)}</strong>.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        This pool can fund <strong>{profitCalc.maxCyclesFromPool} cycles</strong> at ₱{settings.cycleCommission}/cycle. 
+                        Expected payout: ₱{profitCalc.totalPayoutForCycles.toLocaleString()} | Surplus: <strong className="text-green-600">+₱{profitCalc.poolSurplusDeficit.toFixed(2)}</strong>
                       </p>
                     </div>
                   </div>
@@ -696,8 +748,11 @@ export default function BinarySystemManagement() {
                     <div>
                       <p className="font-medium text-destructive">Configuration may cause LOSSES</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Either increase admin retention %, reduce cycle commission, or select a tier with lower AI costs.
-                        Current AI cost (₱{profitCalc.aiCost}) may exceed admin retention.
+                        <strong>Binary System (Both Legs):</strong> Total volume = ₱{profitCalc.totalVolumeFromBothLegs.toLocaleString()}, 
+                        but total AI cost (₱{profitCalc.totalAiCostBothLegs.toFixed(2)}) leaves insufficient pool for {profitCalc.cyclesPerPurchase} expected cycles.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <strong className="text-destructive">Deficit: ₱{Math.abs(profitCalc.poolSurplusDeficit).toFixed(2)}</strong> — Increase admin retention %, reduce cycle commission, or select a tier with lower AI costs.
                       </p>
                     </div>
                   </div>
