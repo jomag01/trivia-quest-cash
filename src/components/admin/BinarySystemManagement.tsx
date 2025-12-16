@@ -66,7 +66,7 @@ interface CreditTier {
 
 export default function BinarySystemManagement() {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState<string | null>(null);
   const [members, setMembers] = useState<BinaryMember[]>([]);
   const [creditTiers, setCreditTiers] = useState<CreditTier[]>([]);
   const [stats, setStats] = useState({
@@ -210,37 +210,45 @@ export default function BinarySystemManagement() {
     }
   };
 
-  const handleSaveSettings = async () => {
-    setSaving(true);
+  const handleSaveSection = async (section: string, settingsToSave: { key: string; value: string }[]) => {
+    setSaving(section);
     try {
-      const settingsToSave = [
-        { key: 'binary_join_amount', value: settings.joinAmount.toString() },
-        { key: 'binary_cycle_volume', value: settings.cycleVolume.toString() },
-        { key: 'binary_cycle_commission', value: settings.cycleCommission.toString() },
-        { key: 'binary_daily_cap', value: settings.dailyCap.toString() },
-        { key: 'binary_admin_safety_net', value: settings.adminSafetyNet.toString() },
-        { key: 'binary_auto_replenish_enabled', value: settings.autoReplenishEnabled.toString() },
-        { key: 'binary_auto_replenish_percent', value: settings.autoReplenishPercent.toString() },
-        { key: 'binary_unilevel_deduct_percent', value: settings.unilevelDeductPercent.toString() },
-        { key: 'binary_stairstep_deduct_percent', value: settings.stairstepDeductPercent.toString() },
-        { key: 'binary_leadership_deduct_percent', value: settings.leadershipDeductPercent.toString() },
-        { key: 'binary_selected_tier_index', value: settings.selectedTierIndex.toString() }
-      ];
-
       for (const setting of settingsToSave) {
         await supabase
           .from('app_settings')
           .upsert({ key: setting.key, value: setting.value }, { onConflict: 'key' });
       }
-
-      toast.success('Binary system settings saved!');
+      toast.success(`${section} settings saved!`);
     } catch (error) {
       console.error('Error saving settings:', error);
       toast.error('Failed to save settings');
     } finally {
-      setSaving(false);
+      setSaving(null);
     }
   };
+
+  const saveBasicSettings = () => handleSaveSection('Basic', [
+    { key: 'binary_join_amount', value: settings.joinAmount.toString() },
+    { key: 'binary_cycle_volume', value: settings.cycleVolume.toString() },
+    { key: 'binary_cycle_commission', value: settings.cycleCommission.toString() },
+    { key: 'binary_daily_cap', value: settings.dailyCap.toString() }
+  ]);
+
+  const saveTierSettings = () => handleSaveSection('Tier', [
+    { key: 'binary_selected_tier_index', value: settings.selectedTierIndex.toString() }
+  ]);
+
+  const saveSafetySettings = () => handleSaveSection('Safety Net', [
+    { key: 'binary_admin_safety_net', value: settings.adminSafetyNet.toString() }
+  ]);
+
+  const saveAutoReplenishSettings = () => handleSaveSection('Auto-Replenish', [
+    { key: 'binary_auto_replenish_enabled', value: settings.autoReplenishEnabled.toString() },
+    { key: 'binary_auto_replenish_percent', value: settings.autoReplenishPercent.toString() },
+    { key: 'binary_unilevel_deduct_percent', value: settings.unilevelDeductPercent.toString() },
+    { key: 'binary_stairstep_deduct_percent', value: settings.stairstepDeductPercent.toString() },
+    { key: 'binary_leadership_deduct_percent', value: settings.leadershipDeductPercent.toString() }
+  ]);
 
   // Get selected tier info
   const selectedTier = creditTiers[settings.selectedTierIndex] || { name: 'N/A', price: 0, credits: 0, cost: 0, images: 0, videos: 0 };
@@ -435,6 +443,10 @@ export default function BinarySystemManagement() {
                 <p className="text-xs text-muted-foreground">Max daily earnings per user</p>
               </div>
             </div>
+            <Button onClick={saveBasicSettings} disabled={saving === 'Basic'} size="sm" className="gap-2 mt-2">
+              {saving === 'Basic' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Save Basic Settings
+            </Button>
 
             <Separator />
 
@@ -483,6 +495,10 @@ export default function BinarySystemManagement() {
                   <p className="text-amber-700 dark:text-amber-400">⚠️ No AI credit tiers configured. Please set up tiers in AI Hub Settings first.</p>
                 </div>
               )}
+              <Button onClick={saveTierSettings} disabled={saving === 'Tier'} size="sm" className="gap-2">
+                {saving === 'Tier' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Tier Selection
+              </Button>
             </div>
 
             <Separator />
@@ -515,6 +531,10 @@ export default function BinarySystemManagement() {
                   </div>
                 </div>
               </div>
+              <Button onClick={saveSafetySettings} disabled={saving === 'Safety Net'} size="sm" className="gap-2 mt-2">
+                {saving === 'Safety Net' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Safety Net
+              </Button>
             </div>
 
             <Separator />
@@ -701,12 +721,11 @@ export default function BinarySystemManagement() {
                   </div>
                 </div>
               )}
+              <Button onClick={saveAutoReplenishSettings} disabled={saving === 'Auto-Replenish'} size="sm" className="gap-2 mt-2">
+                {saving === 'Auto-Replenish' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Auto-Replenish Settings
+              </Button>
             </div>
-
-            <Button onClick={handleSaveSettings} disabled={saving} className="gap-2">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save Settings
-            </Button>
           </CardContent>
         </Card>
 
