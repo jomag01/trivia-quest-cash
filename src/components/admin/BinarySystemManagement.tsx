@@ -62,6 +62,7 @@ interface CreditTier {
   images: number;
   videos: number;
   cost: number;
+  dailyCap: number;
 }
 
 export default function BinarySystemManagement() {
@@ -88,7 +89,10 @@ export default function BinarySystemManagement() {
     unilevelDeductPercent: 20,
     stairstepDeductPercent: 20,
     leadershipDeductPercent: 20,
-    selectedTierIndex: 0
+    selectedTierIndex: 0,
+    upgradeUnilevelPercent: 40,
+    upgradeStairstepPercent: 35,
+    upgradeLeadershipPercent: 25
   });
 
   useEffect(() => {
@@ -116,7 +120,8 @@ export default function BinarySystemManagement() {
           credits: 0,
           images: 0,
           videos: 0,
-          cost: 0
+          cost: 0,
+          dailyCap: 5000 // Default daily cap per tier
         });
       }
 
@@ -134,6 +139,9 @@ export default function BinarySystemManagement() {
           if (s.key === 'binary_stairstep_deduct_percent') newSettings.stairstepDeductPercent = parseFloat(s.value || '20');
           if (s.key === 'binary_leadership_deduct_percent') newSettings.leadershipDeductPercent = parseFloat(s.value || '20');
           if (s.key === 'binary_selected_tier_index') newSettings.selectedTierIndex = parseInt(s.value || '0');
+          if (s.key === 'binary_upgrade_unilevel_percent') newSettings.upgradeUnilevelPercent = parseFloat(s.value || '40');
+          if (s.key === 'binary_upgrade_stairstep_percent') newSettings.upgradeStairstepPercent = parseFloat(s.value || '35');
+          if (s.key === 'binary_upgrade_leadership_percent') newSettings.upgradeLeadershipPercent = parseFloat(s.value || '25');
 
           // Parse tier settings
           const match = s.key.match(/ai_credit_tier_(\d+)_(\w+)/);
@@ -147,6 +155,7 @@ export default function BinarySystemManagement() {
               if (field === 'image') loadedTiers[tierIndex].images = parseFloat(s.value || '0');
               if (field === 'video') loadedTiers[tierIndex].videos = parseFloat(s.value || '0');
               if (field === 'cost') loadedTiers[tierIndex].cost = parseFloat(s.value || '0');
+              if (field === 'daily_cap') loadedTiers[tierIndex].dailyCap = parseFloat(s.value || '5000');
             }
           }
         });
@@ -253,6 +262,35 @@ export default function BinarySystemManagement() {
     { key: 'binary_leadership_deduct_percent', value: settings.leadershipDeductPercent.toString() }
   ]);
 
+  const saveTierDailyCaps = async () => {
+    setSaving('TierCaps');
+    try {
+      for (let i = 0; i < creditTiers.length; i++) {
+        await supabase
+          .from('app_settings')
+          .upsert({ key: `ai_credit_tier_${i + 1}_daily_cap`, value: creditTiers[i].dailyCap.toString() }, { onConflict: 'key' });
+      }
+      toast.success('Tier daily caps saved!');
+    } catch (error) {
+      console.error('Error saving tier daily caps:', error);
+      toast.error('Failed to save tier daily caps');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const saveUpgradeCommissionSettings = () => handleSaveSection('Upgrade Commission', [
+    { key: 'binary_upgrade_unilevel_percent', value: settings.upgradeUnilevelPercent.toString() },
+    { key: 'binary_upgrade_stairstep_percent', value: settings.upgradeStairstepPercent.toString() },
+    { key: 'binary_upgrade_leadership_percent', value: settings.upgradeLeadershipPercent.toString() }
+  ]);
+
+  const handleTierDailyCapChange = (tierIndex: number, value: number) => {
+    const updatedTiers = [...creditTiers];
+    updatedTiers[tierIndex] = { ...updatedTiers[tierIndex], dailyCap: value };
+    setCreditTiers(updatedTiers);
+  };
+
   // Handle tier selection change - update join amount to tier price
   const handleTierChange = (tierIndex: number) => {
     const tier = creditTiers[tierIndex];
@@ -266,7 +304,7 @@ export default function BinarySystemManagement() {
   };
 
   // Get selected tier info
-  const selectedTier = creditTiers[settings.selectedTierIndex] || { name: 'N/A', price: 0, credits: 0, cost: 0, images: 0, videos: 0 };
+  const selectedTier = creditTiers[settings.selectedTierIndex] || { name: 'N/A', price: 0, credits: 0, cost: 0, images: 0, videos: 0, dailyCap: 5000 };
 
   // Profitability Calculator - BINARY SYSTEM (Both Legs Contribute)
   const calculateProfitability = () => {
@@ -438,27 +476,112 @@ export default function BinarySystemManagement() {
             </div>
           </CardContent>
           <CardContent className="space-y-6">
-            {/* Basic Settings - Daily Cap Only */}
+            {/* Tier-Specific Daily Caps */}
             <div className="space-y-4">
               <h4 className="font-medium flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                Daily Limits
+                <Clock className="h-4 w-4" />
+                Tier-Specific Daily Earning Caps
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dailyCap">Daily Earning Cap (₱)</Label>
-                  <Input
-                    id="dailyCap"
-                    type="number"
-                    value={settings.dailyCap}
-                    onChange={(e) => setSettings({ ...settings, dailyCap: parseFloat(e.target.value) || 0 })}
-                  />
-                  <p className="text-xs text-muted-foreground">Max daily earnings per user</p>
+              <p className="text-xs text-muted-foreground">
+                Set different daily earning caps for each tier. Users can only earn up to the cap of their current tier.
+              </p>
+              {creditTiers.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {creditTiers.map((tier, idx) => (
+                    <div key={idx} className="p-4 rounded-lg border bg-muted/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{tier.name}</span>
+                        <Badge variant="outline">₱{tier.price.toLocaleString()}</Badge>
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`tierCap-${idx}`} className="text-xs">Daily Cap (₱)</Label>
+                        <Input
+                          id={`tierCap-${idx}`}
+                          type="number"
+                          value={tier.dailyCap}
+                          onChange={(e) => handleTierDailyCapChange(idx, parseFloat(e.target.value) || 0)}
+                          className="h-8"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Max cycles: {tier.dailyCap > 0 && settings.cycleCommission > 0 
+                          ? Math.floor(tier.dailyCap / settings.cycleCommission) 
+                          : 0}/day
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No tiers configured yet.</p>
+              )}
+              <Button onClick={saveTierDailyCaps} disabled={saving === 'TierCaps'} size="sm" className="gap-2 mt-2">
+                {saving === 'TierCaps' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Tier Daily Caps
+              </Button>
+            </div>
+
+            <Separator />
+
+            {/* Upgrade Commission Settings */}
+            <div className="space-y-4">
+              <h4 className="font-medium flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Tier Upgrade Commission Distribution
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                When users upgrade to a higher tier, the upgrade amount (minus AI cost and admin profit) is distributed to unilevel, stair-step, and leadership commissions.
+              </p>
+              <div className="p-4 rounded-lg border bg-primary/5 space-y-3">
+                <p className="text-sm font-medium">Commission Distribution for Upgrades:</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="upgradeUnilevel">Unilevel (%)</Label>
+                    <Input
+                      id="upgradeUnilevel"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={settings.upgradeUnilevelPercent}
+                      onChange={(e) => setSettings({ ...settings, upgradeUnilevelPercent: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="upgradeStairstep">Stair-Step (%)</Label>
+                    <Input
+                      id="upgradeStairstep"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={settings.upgradeStairstepPercent}
+                      onChange={(e) => setSettings({ ...settings, upgradeStairstepPercent: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="upgradeLeadership">Leadership (%)</Label>
+                    <Input
+                      id="upgradeLeadership"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={settings.upgradeLeadershipPercent}
+                      onChange={(e) => setSettings({ ...settings, upgradeLeadershipPercent: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+                <div className="p-3 rounded bg-muted/50 text-xs">
+                  <p className="font-medium mb-1">Example Upgrade Calculation:</p>
+                  <p className="text-muted-foreground">
+                    Upgrade from Tier 1 (₱{creditTiers[0]?.price || 500}) to Tier 2 (₱{creditTiers[1]?.price || 1000}):<br/>
+                    • Upgrade Amount: ₱{(creditTiers[1]?.price || 1000) - (creditTiers[0]?.price || 500)}<br/>
+                    • AI Cost (deducted): ₱{(creditTiers[1]?.cost || 0) - (creditTiers[0]?.cost || 0)}<br/>
+                    • Admin Profit ({settings.adminSafetyNet}%): ₱{(((creditTiers[1]?.price || 1000) - (creditTiers[0]?.price || 500)) * settings.adminSafetyNet / 100).toFixed(2)}<br/>
+                    • Remaining for Commissions: Distributed to Unilevel ({settings.upgradeUnilevelPercent}%), Stair-Step ({settings.upgradeStairstepPercent}%), Leadership ({settings.upgradeLeadershipPercent}%)
+                  </p>
                 </div>
               </div>
-              <Button onClick={saveBasicSettings} disabled={saving === 'Basic'} size="sm" className="gap-2 mt-2">
-                {saving === 'Basic' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save Daily Cap
+              <Button onClick={saveUpgradeCommissionSettings} disabled={saving === 'Upgrade Commission'} size="sm" className="gap-2 mt-2">
+                {saving === 'Upgrade Commission' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Upgrade Commission Settings
               </Button>
             </div>
 
