@@ -7,13 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Crown, ImageIcon, VideoIcon, Sparkles, Check, Loader2, CreditCard, Wallet } from 'lucide-react';
+import { Crown, ImageIcon, VideoIcon, Sparkles, Check, Loader2, CreditCard, Wallet, ArrowUp } from 'lucide-react';
+import TierUpgradeDialog from './TierUpgradeDialog';
 
 interface CreditTier {
   price: number;
   credits: number;
   images: number;
   videos: number;
+  dailyCap: number;
 }
 
 interface BuyAICreditsDialogProps {
@@ -30,6 +32,8 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
   const [purchasing, setPurchasing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'credits' | 'paymongo'>('credits');
   const [userCredits, setUserCredits] = useState(0);
+  const [currentUserTier, setCurrentUserTier] = useState<number>(-1);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [commissionSettings, setCommissionSettings] = useState({
     adminPercent: 35,
     unilevelPercent: 40,
@@ -41,6 +45,7 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
     if (open) {
       fetchSettings();
       fetchUserCredits();
+      fetchUserTier();
     }
   }, [open]);
 
@@ -58,18 +63,40 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
     }
   };
 
+  const fetchUserTier = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('binary_ai_purchases')
+        .select('amount')
+        .eq('user_id', user.id)
+        .eq('status', 'approved')
+        .order('amount', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (data) {
+        // Find which tier this amount corresponds to
+        const tierIndex = tiers.findIndex(t => t.price === data.amount);
+        setCurrentUserTier(tierIndex >= 0 ? tierIndex : -1);
+      }
+    } catch (error) {
+      console.error('Error fetching user tier:', error);
+    }
+  };
+
   const fetchSettings = async () => {
     setLoading(true);
     try {
       const { data } = await supabase
         .from('app_settings')
         .select('key, value')
-        .like('key', 'ai_%');
+        .or('key.like.ai_%,key.like.binary_%');
 
       const tierData: CreditTier[] = [
-        { price: 100, credits: 50, images: 30, videos: 10 },
-        { price: 250, credits: 150, images: 100, videos: 30 },
-        { price: 500, credits: 400, images: 300, videos: 80 }
+        { price: 100, credits: 50, images: 30, videos: 10, dailyCap: 5000 },
+        { price: 250, credits: 150, images: 100, videos: 30, dailyCap: 10000 },
+        { price: 500, credits: 400, images: 300, videos: 80, dailyCap: 20000 }
       ];
 
       data?.forEach(setting => {
@@ -82,6 +109,7 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
             if (field === 'credits') tierData[tierIndex].credits = parseInt(setting.value || '0');
             if (field === 'image') tierData[tierIndex].images = parseInt(setting.value || '0');
             if (field === 'video') tierData[tierIndex].videos = parseInt(setting.value || '0');
+            if (field === 'daily_cap') tierData[tierIndex].dailyCap = parseInt(setting.value || '5000');
           }
         }
         if (setting.key === 'ai_admin_earnings_percent') {
@@ -331,6 +359,29 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
               </p>
             </div>
 
+            {/* Upgrade Button for existing users */}
+            {currentUserTier >= 0 && currentUserTier < tiers.length - 1 && (
+              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Current Tier: {getTierLabel(currentUserTier)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Daily Cap: ₱{tiers[currentUserTier]?.dailyCap?.toLocaleString() || 0}
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={() => setShowUpgradeDialog(true)}
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                    Upgrade Tier
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Purchase Button */}
             <div className="flex items-center justify-end pt-4 border-t">
               <Button
@@ -353,6 +404,17 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
           </div>
         )}
       </DialogContent>
+
+      {/* Tier Upgrade Dialog */}
+      <TierUpgradeDialog
+        open={showUpgradeDialog}
+        onOpenChange={setShowUpgradeDialog}
+        currentTierIndex={currentUserTier}
+        onUpgradeComplete={() => {
+          fetchUserTier();
+          onPurchaseComplete?.();
+        }}
+      />
     </Dialog>
   );
 }
