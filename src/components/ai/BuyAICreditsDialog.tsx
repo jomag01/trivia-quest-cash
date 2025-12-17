@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Crown, ImageIcon, VideoIcon, Sparkles, Check, Loader2, CreditCard, Wallet, ArrowUp } from 'lucide-react';
+import { Crown, ImageIcon, VideoIcon, Sparkles, Check, Loader2, CreditCard, Wallet, ArrowUp, Smartphone, Building2 } from 'lucide-react';
 import TierUpgradeDialog from './TierUpgradeDialog';
 
 interface CreditTier {
@@ -30,7 +32,8 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'credits' | 'paymongo'>('credits');
+  const [paymentMethod, setPaymentMethod] = useState<'credits' | 'paymongo'>('paymongo');
+  const [paymongoMethod, setPaymongoMethod] = useState<'gcash' | 'paymaya' | 'card' | 'grab_pay'>('gcash');
   const [userCredits, setUserCredits] = useState(0);
   const [currentUserTier, setCurrentUserTier] = useState<number>(-1);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
@@ -217,7 +220,8 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
     try {
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
-          amount: tier.price * 100, // PayMongo uses centavos
+          amount: tier.price,
+          paymentMethod: paymongoMethod,
           description: `AI Credits - ${tier.credits} credits`,
           metadata: {
             user_id: user.id,
@@ -230,10 +234,17 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
 
       if (error) throw error;
 
-      if (data?.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+      if (data?.checkout_url) {
+        // Redirect to e-wallet payment page
+        window.location.href = data.checkout_url;
+      } else if (data?.client_key) {
+        // For card payments, we need to handle differently
+        // For now, show a message about the payment
+        toast.info("Payment initiated. Please complete the payment in the popup.");
+        // In production, you would integrate PayMongo.js for card payments
+        window.open(`https://pm.link/${data.payment_intent_id}`, '_blank');
       } else {
-        throw new Error('No checkout URL returned');
+        throw new Error('No payment URL returned');
       }
     } catch (error: any) {
       console.error('Payment error:', error);
@@ -323,11 +334,11 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
                 <TabsList className="grid grid-cols-2 w-full">
                   <TabsTrigger value="credits" className="gap-2">
                     <Wallet className="h-4 w-4" />
-                    Use Credits/Diamonds
+                    Use Credits
                   </TabsTrigger>
                   <TabsTrigger value="paymongo" className="gap-2">
                     <CreditCard className="h-4 w-4" />
-                    Pay with Card/GCash
+                    Pay Online
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="credits" className="mt-3">
@@ -340,10 +351,52 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
                     )}
                   </div>
                 </TabsContent>
-                <TabsContent value="paymongo" className="mt-3">
-                  <div className="p-3 rounded-lg bg-muted/50 border text-sm">
-                    <p>Pay securely with GCash, Maya, or Credit/Debit Card via PayMongo.</p>
-                  </div>
+                <TabsContent value="paymongo" className="mt-3 space-y-3">
+                  <RadioGroup value={paymongoMethod} onValueChange={(v) => setPaymongoMethod(v as any)} className="grid grid-cols-2 gap-2">
+                    <div>
+                      <RadioGroupItem value="gcash" id="gcash" className="peer sr-only" />
+                      <Label
+                        htmlFor="gcash"
+                        className="flex items-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                      >
+                        <Smartphone className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm font-medium">GCash</span>
+                      </Label>
+                    </div>
+                    <div>
+                      <RadioGroupItem value="paymaya" id="paymaya" className="peer sr-only" />
+                      <Label
+                        htmlFor="paymaya"
+                        className="flex items-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                      >
+                        <Smartphone className="h-4 w-4 text-green-500" />
+                        <span className="text-sm font-medium">Maya</span>
+                      </Label>
+                    </div>
+                    <div>
+                      <RadioGroupItem value="card" id="card" className="peer sr-only" />
+                      <Label
+                        htmlFor="card"
+                        className="flex items-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                      >
+                        <CreditCard className="h-4 w-4 text-purple-500" />
+                        <span className="text-sm font-medium">Card</span>
+                      </Label>
+                    </div>
+                    <div>
+                      <RadioGroupItem value="grab_pay" id="grab_pay" className="peer sr-only" />
+                      <Label
+                        htmlFor="grab_pay"
+                        className="flex items-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                      >
+                        <Building2 className="h-4 w-4 text-emerald-500" />
+                        <span className="text-sm font-medium">GrabPay</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                  <p className="text-xs text-muted-foreground">
+                    Pay securely via {paymongoMethod === 'gcash' ? 'GCash' : paymongoMethod === 'paymaya' ? 'Maya' : paymongoMethod === 'card' ? 'Credit/Debit Card' : 'GrabPay'}
+                  </p>
                 </TabsContent>
               </Tabs>
             </div>

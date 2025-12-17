@@ -74,63 +74,65 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
 
     setUploading(true);
     setUploadProgress(0);
-    setUploadStatus("Preparing upload...");
+    setUploadStatus("Preparing...");
 
     try {
       let mediaUrl = "";
       let fileToUpload = selectedFile;
 
-      // Compress images for optimal feed performance
+      // Fast image compression with lower quality for quick uploads
       if (mediaType === "image") {
-        setUploadStatus("Compressing image...");
+        setUploadStatus("Optimizing...");
         const options = {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1280,
+          maxSizeMB: 0.5, // Reduced for faster uploads
+          maxWidthOrHeight: 1080, // Reduced for faster processing
           useWebWorker: true,
-          initialQuality: 0.85,
+          initialQuality: 0.7, // Lower quality for speed
         };
         fileToUpload = await imageCompression(selectedFile, options);
-        setUploadProgress(10);
+        setUploadProgress(15);
       }
 
-      setUploadStatus("Uploading to AWS S3...");
+      setUploadStatus("Uploading...");
 
-      // Upload to AWS S3/CloudFront for fast global delivery
-      const awsResult = await uploadToAWS(
-        fileToUpload, 
-        `posts/${user.id}`,
-        (progress) => {
-          // Map progress to 10-90% range (compression takes 0-10%, DB insert takes 90-100%)
-          const mappedProgress = 10 + Math.round(progress.percentage * 0.8);
-          setUploadProgress(mappedProgress);
-          setUploadStatus(`Uploading... ${progress.percentage}%`);
+      // Try Supabase Storage first (faster for most cases)
+      const fileExt = fileToUpload.name.split(".").pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      try {
+        const { data: uploadData, error: uploadError } = await uploadToStorage("post-media", fileName, fileToUpload);
+        if (!uploadError && uploadData?.publicUrl) {
+          mediaUrl = uploadData.publicUrl;
+          setUploadProgress(85);
+        } else {
+          throw uploadError;
         }
-      );
-      
-      if (awsResult?.cdnUrl) {
-        mediaUrl = awsResult.cdnUrl;
-        console.log("Uploaded to AWS CDN:", mediaUrl);
-        setUploadStatus("Upload complete!");
-      } else {
-        // Fallback to Supabase Storage
-        setUploadStatus("Falling back to backup storage...");
-        console.log("AWS upload failed, falling back to Supabase Storage");
-        try {
-          const fileExt = fileToUpload.name.split(".").pop();
-          const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-
-          const { data: uploadData, error: uploadError } = await uploadToStorage("post-media", fileName, fileToUpload);
-          if (uploadError) throw uploadError;
-
-          mediaUrl = uploadData?.publicUrl || "";
-        } catch (storageError) {
-          console.warn("Storage upload failed, using data URL fallback:", storageError);
+      } catch (storageError) {
+        // Fallback to AWS if Supabase fails
+        console.log("Supabase storage failed, trying AWS...");
+        const awsResult = await uploadToAWS(
+          fileToUpload, 
+          `posts/${user.id}`,
+          (progress) => {
+            const mappedProgress = 15 + Math.round(progress.percentage * 0.7);
+            setUploadProgress(mappedProgress);
+          }
+        );
+        
+        if (awsResult?.cdnUrl) {
+          mediaUrl = awsResult.cdnUrl;
+        } else {
+          // Last resort - use data URL (not ideal but works)
           mediaUrl = previewUrl || "";
         }
       }
 
-      setUploadProgress(95);
-      setUploadStatus("Saving post...");
+      if (!mediaUrl) {
+        throw new Error("Failed to upload media");
+      }
+
+      setUploadProgress(90);
+      setUploadStatus("Saving...");
 
       // Create post in database
       const { error: insertError } = await supabase
@@ -145,23 +147,21 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
       if (insertError) throw insertError;
 
       setUploadProgress(100);
-      setUploadStatus("Post created!");
+      setUploadStatus("Done!");
 
-      toast.success("Post created successfully!");
+      toast.success("Post created!");
       
-      // Reset form after short delay to show completion
-      setTimeout(() => {
-        setContent("");
-        setSelectedFile(null);
-        setMediaType(null);
-        setPreviewUrl(null);
-        setUploadProgress(0);
-        setUploadStatus("");
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
-        onPostCreated();
-      }, 500);
+      // Reset form immediately
+      setContent("");
+      setSelectedFile(null);
+      setMediaType(null);
+      setPreviewUrl(null);
+      setUploadProgress(0);
+      setUploadStatus("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      onPostCreated();
     } catch (error: any) {
       console.error("Error creating post:", error);
       toast.error(error.message || "Failed to create post");

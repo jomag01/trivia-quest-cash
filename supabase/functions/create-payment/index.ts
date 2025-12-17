@@ -32,7 +32,7 @@ serve(async (req) => {
       throw new Error("Not authenticated");
     }
 
-    const { amount, paymentMethod } = await req.json();
+    const { amount, paymentMethod, description, metadata } = await req.json();
 
     if (!amount || amount <= 0) {
       throw new Error("Invalid amount");
@@ -41,7 +41,7 @@ serve(async (req) => {
     // Check if user is admin (for logging/auditing purposes)
     const userIsAdmin = await isAdmin(supabaseClient, user.id);
 
-    console.log("Creating payment for user:", user.id, "Amount:", amount, "Admin:", userIsAdmin);
+    console.log("Creating payment for user:", user.id, "Amount:", amount, "Method:", paymentMethod, "Admin:", userIsAdmin);
 
     // Create transaction record
     const { data: transaction, error: transactionError } = await supabaseClient
@@ -52,7 +52,7 @@ serve(async (req) => {
         amount,
         status: "pending",
         payment_method: paymentMethod,
-        metadata: { credits: Math.floor(amount / 10) }, // 1 credit = 10 PHP
+        metadata: { credits: Math.floor(amount / 10), ...metadata },
       })
       .select()
       .single();
@@ -64,29 +64,37 @@ serve(async (req) => {
 
     // Create PayMongo payment intent
     const paymongoSecret = Deno.env.get("PAYMONGO_SECRET_KEY");
+    if (!paymongoSecret) {
+      throw new Error("Payment provider not configured");
+    }
     const authHeader = btoa(paymongoSecret + ":");
+
+    // Map payment methods
+    const paymentMethodMap: Record<string, string[]> = {
+      'gcash': ['gcash'],
+      'paymaya': ['paymaya'],
+      'card': ['card'],
+      'grab_pay': ['grab_pay'],
+    };
+
+    const allowedMethods = paymentMethodMap[paymentMethod] || ['gcash', 'paymaya', 'card'];
 
     const paymentData: any = {
       data: {
         attributes: {
           amount: Math.floor(amount * 100), // Convert to centavos
           currency: "PHP",
-          description: `Credit Purchase - ${Math.floor(amount / 10)} credits`,
+          description: description || `Credit Purchase - ${Math.floor(amount / 10)} credits`,
           statement_descriptor: "QuizB Credits",
+          payment_method_allowed: allowedMethods,
           metadata: {
             transaction_id: transaction.id,
             user_id: user.id,
+            ...metadata
           },
         },
       },
     };
-
-    // Add payment method specific configuration
-    if (paymentMethod === "gcash" || paymentMethod === "paymaya") {
-      paymentData.data.attributes.payment_method_allowed = [paymentMethod];
-    } else if (paymentMethod === "card") {
-      paymentData.data.attributes.payment_method_allowed = ["card"];
-    }
 
     const paymentResponse = await fetch(
       "https://api.paymongo.com/v1/payment_intents",
@@ -132,9 +140,11 @@ serve(async (req) => {
       .update({ payment_provider_id: paymentIntent.data.id })
       .eq("id", transaction.id);
 
-    // Create payment method if needed (for e-wallets)
+    // Create payment method if needed (for e-wallets and GrabPay)
     let checkoutUrl = null;
-    if (paymentMethod === "gcash" || paymentMethod === "paymaya") {
+    const eWalletMethods = ['gcash', 'paymaya', 'grab_pay'];
+    
+    if (eWalletMethods.includes(paymentMethod)) {
       const paymentMethodResponse = await fetch(
         "https://api.paymongo.com/v1/payment_methods",
         {
@@ -154,6 +164,15 @@ serve(async (req) => {
       );
 
       const paymentMethodData = await paymentMethodResponse.json();
+      
+      if (!paymentMethodResponse.ok) {
+        console.error("Payment method creation failed:", paymentMethodData);
+        throw new Error("Failed to create payment method");
+      }
+
+      // Get return URL from environment or use default
+      const baseUrl = Deno.env.get("SUPABASE_URL") || "";
+      const returnUrl = `${baseUrl}/functions/v1/payment-webhook?transaction_id=${transaction.id}`;
 
       // Attach payment method to payment intent
       const attachResponse = await fetch(
@@ -168,7 +187,7 @@ serve(async (req) => {
             data: {
               attributes: {
                 payment_method: paymentMethodData.data.id,
-                return_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-webhook`,
+                return_url: returnUrl,
               },
             },
           }),
@@ -176,6 +195,12 @@ serve(async (req) => {
       );
 
       const attachedPayment = await attachResponse.json();
+      
+      if (!attachResponse.ok) {
+        console.error("Payment attachment failed:", attachedPayment);
+        throw new Error("Failed to attach payment method");
+      }
+      
       checkoutUrl = attachedPayment.data.attributes.next_action?.redirect?.url;
     }
 

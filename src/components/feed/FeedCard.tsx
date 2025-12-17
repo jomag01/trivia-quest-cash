@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, 
   Play, Pause, Volume2, VolumeX, UserPlus, UserCheck,
-  Send, ChevronDown, ChevronUp
+  Send, ChevronDown, ChevronUp, Maximize2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import MediaExpandDialog from "./MediaExpandDialog";
 
 interface FeedCardProps {
   post: {
@@ -55,6 +56,7 @@ export default function FeedCard({ post, onCommentsClick, onDelete, variant = "d
   const [isMuted, setIsMuted] = useState(true);
   const [showFullCaption, setShowFullCaption] = useState(false);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+  const [showExpandedMedia, setShowExpandedMedia] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -241,14 +243,15 @@ export default function FeedCard({ post, onCommentsClick, onDelete, variant = "d
       {/* Media */}
       {post.media_url && (
         <div 
-          className="relative bg-secondary aspect-square sm:aspect-video max-h-[600px] overflow-hidden"
+          className="relative bg-secondary aspect-square sm:aspect-video max-h-[600px] overflow-hidden cursor-pointer group"
           onDoubleClick={handleDoubleClick}
+          onClick={() => setShowExpandedMedia(true)}
         >
           {post.media_type === "image" ? (
             <img
               src={post.media_url}
               alt="Post"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform group-hover:scale-[1.02]"
               loading="lazy"
             />
           ) : post.media_type === "video" ? (
@@ -261,7 +264,7 @@ export default function FeedCard({ post, onCommentsClick, onDelete, variant = "d
                 loop
                 muted={isMuted}
                 playsInline
-                onClick={togglePlayPause}
+                onClick={(e) => { e.stopPropagation(); togglePlayPause(); }}
               />
               {/* Video Controls Overlay */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -272,7 +275,7 @@ export default function FeedCard({ post, onCommentsClick, onDelete, variant = "d
                 )}
               </div>
               <button
-                onClick={toggleMute}
+                onClick={(e) => { e.stopPropagation(); toggleMute(e); }}
                 className="absolute bottom-4 right-4 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm"
               >
                 {isMuted ? (
@@ -282,7 +285,19 @@ export default function FeedCard({ post, onCommentsClick, onDelete, variant = "d
                 )}
               </button>
             </>
+          ) : post.media_type === "audio" ? (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20" onClick={(e) => e.stopPropagation()}>
+              <audio src={post.media_url} controls className="w-3/4" />
+            </div>
           ) : null}
+
+          {/* Expand button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowExpandedMedia(true); }}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Maximize2 className="w-4 h-4 text-white" />
+          </button>
 
           {/* Like Animation Overlay */}
           {isLikeAnimating && (
@@ -291,6 +306,16 @@ export default function FeedCard({ post, onCommentsClick, onDelete, variant = "d
             </div>
           )}
         </div>
+      )}
+
+      {/* Media Expand Dialog */}
+      {post.media_url && (
+        <MediaExpandDialog
+          open={showExpandedMedia}
+          onOpenChange={setShowExpandedMedia}
+          mediaUrl={post.media_url}
+          mediaType={post.media_type}
+        />
       )}
 
       {/* Actions */}

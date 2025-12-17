@@ -61,6 +61,31 @@ export default function Feed() {
     if (liveStreamId) {
       loadStreamFromUrl(liveStreamId);
     }
+
+    // Subscribe to new posts for real-time updates
+    const channel = supabase
+      .channel('posts-realtime')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'posts'
+      }, async (payload) => {
+        // Enrich the new post with profile data and add to the top
+        const newPost = payload.new as any;
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, avatar_url")
+          .eq("id", newPost.user_id)
+          .single();
+        
+        const enrichedPost = { ...newPost, profiles: profile };
+        setPosts(prev => [enrichedPost, ...prev]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user, searchParams]);
 
   const loadStreamFromUrl = async (streamId: string) => {
