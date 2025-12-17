@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { isAdmin } from "../_shared/adminAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,38 +37,19 @@ serve(async (req) => {
       throw new Error("Invalid amount");
     }
 
-    // Check if user is admin (for logging/auditing purposes)
-    const userIsAdmin = await isAdmin(supabaseClient, user.id);
+    console.log("Creating payment for user:", user.id, "Amount:", amount, "Method:", paymentMethod);
 
-    console.log("Creating payment for user:", user.id, "Amount:", amount, "Method:", paymentMethod, "Admin:", userIsAdmin);
-
-    // Create transaction record
-    const { data: transaction, error: transactionError } = await supabaseClient
-      .from("transactions")
-      .insert({
-        user_id: user.id,
-        type: "credit_purchase",
-        amount,
-        status: "pending",
-        payment_method: paymentMethod,
-        metadata: { credits: Math.floor(amount / 10), ...metadata },
-      })
-      .select()
-      .single();
-
-    if (transactionError) {
-      console.error("Transaction creation error:", transactionError);
-      throw transactionError;
-    }
-
-    // Create PayMongo payment intent
+    // Create PayMongo checkout session for simpler flow
     const paymongoSecret = Deno.env.get("PAYMONGO_SECRET_KEY");
     if (!paymongoSecret) {
-      throw new Error("Payment provider not configured");
+      throw new Error("Payment provider not configured. Please add PAYMONGO_SECRET_KEY to secrets.");
     }
     const authHeader = btoa(paymongoSecret + ":");
 
-    // Map payment methods
+    // Get the app URL for redirects
+    const appUrl = Deno.env.get("APP_URL") || "https://c512181307b84e4689a38c4951e10c56.lovableproject.com";
+
+    // Map payment methods for checkout
     const paymentMethodMap: Record<string, string[]> = {
       'gcash': ['gcash'],
       'paymaya': ['paymaya'],
@@ -77,140 +57,99 @@ serve(async (req) => {
       'grab_pay': ['grab_pay'],
     };
 
-    const allowedMethods = paymentMethodMap[paymentMethod] || ['gcash', 'paymaya', 'card'];
+    const allowedMethods = paymentMethodMap[paymentMethod] || ['gcash', 'paymaya', 'card', 'grab_pay'];
 
-    const paymentData: any = {
+    // Create checkout session (simpler than payment intents for e-wallets)
+    const checkoutData = {
       data: {
         attributes: {
-          amount: Math.floor(amount * 100), // Convert to centavos
-          currency: "PHP",
-          description: description || `Credit Purchase - ${Math.floor(amount / 10)} credits`,
-          statement_descriptor: "QuizB Credits",
-          payment_method_allowed: allowedMethods,
+          send_email_receipt: true,
+          show_description: true,
+          show_line_items: true,
+          description: description || `AI Credits Purchase`,
+          line_items: [
+            {
+              currency: "PHP",
+              amount: Math.floor(amount * 100), // Convert to centavos
+              name: description || `AI Credits - ${metadata?.credits || Math.floor(amount / 10)} credits`,
+              quantity: 1,
+            }
+          ],
+          payment_method_types: allowedMethods,
+          success_url: `${appUrl}?payment=success&credits=${metadata?.credits || 0}`,
+          cancel_url: `${appUrl}?payment=cancelled`,
           metadata: {
-            transaction_id: transaction.id,
             user_id: user.id,
-            ...metadata
+            purchase_type: metadata?.purchase_type || 'ai_credits',
+            credits: metadata?.credits || Math.floor(amount / 10),
+            tier_index: metadata?.tier_index,
           },
         },
       },
     };
 
-    const paymentResponse = await fetch(
-      "https://api.paymongo.com/v1/payment_intents",
+    console.log("Creating checkout session with data:", JSON.stringify(checkoutData));
+
+    const checkoutResponse = await fetch(
+      "https://api.paymongo.com/v1/checkout_sessions",
       {
         method: "POST",
         headers: {
           Authorization: `Basic ${authHeader}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(paymentData),
+        body: JSON.stringify(checkoutData),
       }
     );
 
-    if (!paymentResponse.ok) {
-      const errorText = await paymentResponse.text();
-      console.error("PayMongo API error:", errorText);
-      
+    const responseText = await checkoutResponse.text();
+    console.log("PayMongo response:", responseText);
+
+    if (!checkoutResponse.ok) {
       try {
-        const errorData = JSON.parse(errorText);
+        const errorData = JSON.parse(responseText);
         if (errorData.errors && errorData.errors[0]) {
           const error = errorData.errors[0];
           if (error.code === "account_not_activated") {
-            throw new Error("Payment provider account needs to be activated. Please activate your PayMongo account at https://dashboard.paymongo.com to enable payments.");
+            throw new Error("Payment provider account needs to be activated. Please activate your PayMongo account.");
           }
           throw new Error(error.detail || error.code || "Payment processing failed");
         }
       } catch (parseError) {
-        // If we can't parse it, throw the original error
         if (parseError instanceof Error && parseError.message.includes("Payment provider")) {
           throw parseError;
         }
       }
-      
-      throw new Error("Payment processing failed. Please try again or contact support.");
+      throw new Error("Payment processing failed. Please try again.");
     }
 
-    const paymentIntent = await paymentResponse.json();
-    console.log("Payment intent created:", paymentIntent.data.id);
+    const checkoutSession = JSON.parse(responseText);
+    const checkoutUrl = checkoutSession.data.attributes.checkout_url;
 
-    // Update transaction with payment provider ID
-    await supabaseClient
-      .from("transactions")
-      .update({ payment_provider_id: paymentIntent.data.id })
-      .eq("id", transaction.id);
+    console.log("Checkout session created:", checkoutSession.data.id, "URL:", checkoutUrl);
 
-    // Create payment method if needed (for e-wallets and GrabPay)
-    let checkoutUrl = null;
-    const eWalletMethods = ['gcash', 'paymaya', 'grab_pay'];
-    
-    if (eWalletMethods.includes(paymentMethod)) {
-      const paymentMethodResponse = await fetch(
-        "https://api.paymongo.com/v1/payment_methods",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${authHeader}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            data: {
-              attributes: {
-                type: paymentMethod,
-              },
-            },
-          }),
-        }
-      );
+    // Record pending purchase
+    const { error: purchaseError } = await supabaseClient
+      .from('credit_purchases')
+      .insert({
+        user_id: user.id,
+        amount: amount,
+        credits: metadata?.credits || Math.floor(amount / 10),
+        payment_method: paymentMethod,
+        status: 'pending',
+        reference_number: checkoutSession.data.id,
+      });
 
-      const paymentMethodData = await paymentMethodResponse.json();
-      
-      if (!paymentMethodResponse.ok) {
-        console.error("Payment method creation failed:", paymentMethodData);
-        throw new Error("Failed to create payment method");
-      }
-
-      // Get return URL from environment or use default
-      const baseUrl = Deno.env.get("SUPABASE_URL") || "";
-      const returnUrl = `${baseUrl}/functions/v1/payment-webhook?transaction_id=${transaction.id}`;
-
-      // Attach payment method to payment intent
-      const attachResponse = await fetch(
-        `https://api.paymongo.com/v1/payment_intents/${paymentIntent.data.id}/attach`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${authHeader}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            data: {
-              attributes: {
-                payment_method: paymentMethodData.data.id,
-                return_url: returnUrl,
-              },
-            },
-          }),
-        }
-      );
-
-      const attachedPayment = await attachResponse.json();
-      
-      if (!attachResponse.ok) {
-        console.error("Payment attachment failed:", attachedPayment);
-        throw new Error("Failed to attach payment method");
-      }
-      
-      checkoutUrl = attachedPayment.data.attributes.next_action?.redirect?.url;
+    if (purchaseError) {
+      console.error("Error recording purchase:", purchaseError);
+      // Don't throw - still return checkout URL
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        transaction_id: transaction.id,
-        payment_intent_id: paymentIntent.data.id,
-        client_key: paymentIntent.data.attributes.client_key,
         checkout_url: checkoutUrl,
+        session_id: checkoutSession.data.id,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -219,16 +158,9 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in create-payment:", error);
     
-    // Map internal errors to user-friendly messages
-    let userMessage = "Payment processing failed. Please try again or contact support.";
+    let userMessage = "Payment processing failed. Please try again.";
     if (error instanceof Error) {
-      if (error.message.includes("Payment provider") || error.message.includes("PayMongo")) {
-        userMessage = error.message;
-      } else if (error.message === "Not authenticated") {
-        userMessage = "Please log in to continue.";
-      } else if (error.message === "Invalid amount") {
-        userMessage = "Invalid payment amount.";
-      }
+      userMessage = error.message;
     }
     
     return new Response(
