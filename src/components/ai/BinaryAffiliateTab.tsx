@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +23,10 @@ import {
   ImageIcon,
   VideoIcon,
   Music,
-  Check
+  Check,
+  CreditCard,
+  Smartphone,
+  Zap
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -102,6 +107,8 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
   const [purchasing, setPurchasing] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [userCredits, setUserCredits] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<'balance' | 'paymongo'>('paymongo');
+  const [paymongoMethod, setPaymongoMethod] = useState<'gcash' | 'paymaya' | 'card' | 'grab_pay'>('gcash');
 
   useEffect(() => {
     if (user) {
@@ -319,6 +326,61 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
     }
   };
 
+  const handlePurchaseWithPayMongo = async () => {
+    if (selectedTier === null || !user) {
+      toast.error('Please select a credit package first');
+      return;
+    }
+
+    if (!selectedServices.images && !selectedServices.video && !selectedServices.audio) {
+      toast.error('Please select at least one AI service');
+      return;
+    }
+
+    const tier = tiers[selectedTier];
+    const allocation = calculateServiceAllocation();
+
+    setPurchasing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
+          amount: tier.price,
+          paymentMethod: paymongoMethod,
+          description: `AI Credits - ${tier.credits + Math.floor(allocation.bonusCredits)} credits`,
+          metadata: {
+            user_id: user.id,
+            purchase_type: 'binary_ai_credits',
+            credits: tier.credits + Math.floor(allocation.bonusCredits),
+            tier_index: selectedTier,
+            images_allocated: allocation.images,
+            video_seconds: allocation.videoSeconds,
+            audio_seconds: allocation.audioSeconds
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else {
+        throw new Error('No payment URL returned');
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast.error(error.message || 'Failed to create payment');
+      setPurchasing(false);
+    }
+  };
+
+  const handlePurchase = () => {
+    if (paymentMethod === 'balance') {
+      handlePurchaseCredits();
+    } else {
+      handlePurchaseWithPayMongo();
+    }
+  };
+
   const getTierLabel = (index: number) => ['Starter', 'Popular', 'Pro'][index] || `Tier ${index + 1}`;
 
   if (loading) {
@@ -509,16 +571,109 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
                 </div>
               )}
 
+              {/* Payment Method Selection */}
+              {selectedTier !== null && (
+                <div className="space-y-3 p-3 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border">
+                  <p className="font-medium text-sm flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-purple-500" />
+                    Payment Method
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setPaymentMethod('paymongo')}
+                      className={`p-3 rounded-lg border-2 transition-all flex items-center gap-2 text-sm ${
+                        paymentMethod === 'paymongo'
+                          ? 'border-purple-500 bg-purple-100 dark:bg-purple-900/50'
+                          : 'border-border hover:border-purple-400/50'
+                      }`}
+                    >
+                      <Smartphone className="h-4 w-4" />
+                      <div className="text-left">
+                        <div className="font-medium">Pay Online</div>
+                        <div className="text-xs text-muted-foreground">GCash, Maya</div>
+                      </div>
+                      {paymentMethod === 'paymongo' && <Check className="h-4 w-4 ml-auto text-purple-500" />}
+                    </button>
+                    
+                    <button
+                      onClick={() => setPaymentMethod('balance')}
+                      className={`p-3 rounded-lg border-2 transition-all flex items-center gap-2 text-sm ${
+                        paymentMethod === 'balance'
+                          ? 'border-green-500 bg-green-100 dark:bg-green-900/50'
+                          : 'border-border hover:border-green-400/50'
+                      }`}
+                    >
+                      <Wallet className="h-4 w-4" />
+                      <div className="text-left">
+                        <div className="font-medium">Use Balance</div>
+                        <div className="text-xs text-muted-foreground">₱{userCredits}</div>
+                      </div>
+                      {paymentMethod === 'balance' && <Check className="h-4 w-4 ml-auto text-green-500" />}
+                    </button>
+                  </div>
+
+                  {paymentMethod === 'paymongo' && (
+                    <RadioGroup 
+                      value={paymongoMethod} 
+                      onValueChange={(v) => setPaymongoMethod(v as any)} 
+                      className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+                    >
+                      {[
+                        { value: 'gcash', label: 'GCash', color: 'bg-blue-500' },
+                        { value: 'paymaya', label: 'Maya', color: 'bg-green-500' },
+                        { value: 'card', label: 'Card', color: 'bg-purple-500' },
+                        { value: 'grab_pay', label: 'GrabPay', color: 'bg-emerald-500' }
+                      ].map(method => (
+                        <div key={method.value}>
+                          <RadioGroupItem value={method.value} id={`binary-${method.value}`} className="peer sr-only" />
+                          <Label
+                            htmlFor={`binary-${method.value}`}
+                            className={`flex flex-col items-center gap-1 rounded-lg border-2 p-2 cursor-pointer transition-all text-xs ${
+                              paymongoMethod === method.value 
+                                ? `border-transparent ${method.color} text-white` 
+                                : 'border-muted hover:border-purple-400/50'
+                            }`}
+                          >
+                            <Smartphone className="h-4 w-4" />
+                            <span className="font-medium">{method.label}</span>
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  )}
+
+                  {paymentMethod === 'balance' && userCredits < tiers[selectedTier].price && (
+                    <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs">
+                      <p className="text-red-600 dark:text-red-400 font-medium">
+                        Insufficient balance. You need ₱{tiers[selectedTier].price - userCredits} more.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Button 
-                onClick={handlePurchaseCredits} 
-                className="w-full gap-2" 
+                onClick={handlePurchase} 
+                className="w-full gap-2 h-12 text-base font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-violet-500 hover:from-pink-600 hover:via-purple-600 hover:to-violet-600 text-white border-0 shadow-lg" 
                 size="lg"
-                disabled={selectedTier === null || purchasing || (selectedTier !== null && userCredits < tiers[selectedTier]?.price) || (!selectedServices.images && !selectedServices.video && !selectedServices.audio)}
+                disabled={
+                  selectedTier === null || 
+                  purchasing || 
+                  (!selectedServices.images && !selectedServices.video && !selectedServices.audio) ||
+                  (paymentMethod === 'balance' && selectedTier !== null && userCredits < tiers[selectedTier]?.price)
+                }
               >
-                {purchasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {selectedTier !== null ? `Buy ${tiers[selectedTier]?.credits + Math.floor(calculateServiceAllocation().bonusCredits)} Credits (₱${tiers[selectedTier]?.price})` : 'Select a Package'}
+                {purchasing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
+                {selectedTier !== null 
+                  ? `Buy ${tiers[selectedTier]?.credits + Math.floor(calculateServiceAllocation().bonusCredits)} Credits (₱${tiers[selectedTier]?.price})` 
+                  : 'Select a Package'}
               </Button>
-              <p className="text-xs text-center text-muted-foreground">Your balance: ₱{userCredits}</p>
+              <p className="text-xs text-center text-muted-foreground">
+                {paymentMethod === 'paymongo' 
+                  ? `Pay securely with ${paymongoMethod === 'gcash' ? 'GCash' : paymongoMethod === 'paymaya' ? 'Maya' : paymongoMethod === 'card' ? 'Credit/Debit Card' : 'GrabPay'}` 
+                  : `Your balance: ₱${userCredits}`}
+              </p>
             </CardContent>
           </Card>
         ) : (
