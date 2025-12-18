@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Crown, ImageIcon, VideoIcon, Sparkles, Check, Loader2, CreditCard, Wallet, ArrowUp, Smartphone, Building2 } from 'lucide-react';
+import { Crown, ImageIcon, VideoIcon, Sparkles, Check, Loader2, CreditCard, Wallet, ArrowUp, Smartphone, Building2, Zap, Star, Timer } from 'lucide-react';
 import TierUpgradeDialog from './TierUpgradeDialog';
 
 interface CreditTier {
@@ -37,6 +35,7 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
   const [userCredits, setUserCredits] = useState(0);
   const [currentUserTier, setCurrentUserTier] = useState<number>(-1);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [countdown, setCountdown] = useState({ hours: 8, minutes: 59, seconds: 59 });
   const [commissionSettings, setCommissionSettings] = useState({
     adminPercent: 35,
     unilevelPercent: 40,
@@ -50,6 +49,22 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
       fetchUserCredits();
       fetchUserTier();
     }
+  }, [open]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!open) return;
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        let { hours, minutes, seconds } = prev;
+        seconds--;
+        if (seconds < 0) { seconds = 59; minutes--; }
+        if (minutes < 0) { minutes = 59; hours--; }
+        if (hours < 0) { hours = 23; minutes = 59; seconds = 59; }
+        return { hours, minutes, seconds };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
   }, [open]);
 
   const fetchUserCredits = async () => {
@@ -79,7 +94,6 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
         .maybeSingle();
       
       if (data) {
-        // Find which tier this amount corresponds to
         const tierIndex = tiers.findIndex(t => t.price === data.amount);
         setCurrentUserTier(tierIndex >= 0 ? tierIndex : -1);
       }
@@ -149,7 +163,6 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
 
     setPurchasing(true);
     try {
-      // Calculate commission distribution
       const affiliatePool = tier.price * (1 - commissionSettings.adminPercent / 100);
       const totalCommissionPercent = commissionSettings.unilevelPercent + commissionSettings.stairstepPercent + commissionSettings.leadershipPercent;
       
@@ -158,14 +171,12 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
       const stairstepCommission = affiliatePool * (commissionSettings.stairstepPercent / totalCommissionPercent);
       const leadershipCommission = affiliatePool * (commissionSettings.leadershipPercent / totalCommissionPercent);
 
-      // Get user's referrer
       const { data: profileData } = await supabase
         .from('profiles')
         .select('referred_by')
         .eq('id', user.id)
         .single();
 
-      // Deduct credits and add AI credits
       const newCredits = (userCredits - tier.price) + tier.credits;
       const { error: updateError } = await supabase
         .from('profiles')
@@ -174,7 +185,6 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
 
       if (updateError) throw updateError;
 
-      // Record the purchase
       await supabase.from('ai_credit_purchases').insert({
         user_id: user.id,
         amount: tier.price,
@@ -188,7 +198,6 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
         status: 'completed'
       });
 
-      // Distribute commissions if referrer exists
       if (profileData?.referred_by) {
         await supabase.from('commissions').insert({
           user_id: profileData.referred_by,
@@ -212,7 +221,10 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
   };
 
   const handlePurchaseWithPayMongo = async () => {
-    if (selectedTier === null || !user) return;
+    if (selectedTier === null || !user) {
+      toast.error('Please select a credit package first');
+      return;
+    }
 
     const tier = tiers[selectedTier];
 
@@ -235,13 +247,9 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
       if (error) throw error;
 
       if (data?.checkout_url) {
-        // Redirect to e-wallet payment page
         window.location.href = data.checkout_url;
       } else if (data?.client_key) {
-        // For card payments, we need to handle differently
-        // For now, show a message about the payment
         toast.info("Payment initiated. Please complete the payment in the popup.");
-        // In production, you would integrate PayMongo.js for card payments
         window.open(`https://pm.link/${data.payment_intent_id}`, '_blank');
       } else {
         throw new Error('No payment URL returned');
@@ -254,6 +262,10 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
   };
 
   const handlePurchase = () => {
+    if (selectedTier === null) {
+      toast.error('Please select a credit package first');
+      return;
+    }
     if (paymentMethod === 'credits') {
       handlePurchaseWithCredits();
     } else {
@@ -261,213 +273,326 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
     }
   };
 
-  const getTierLabel = (index: number) => {
-    const labels = ['Starter', 'Popular', 'Pro'];
-    return labels[index] || `Tier ${index + 1}`;
+  const getTierConfig = (index: number) => {
+    const configs = [
+      { label: 'Starter', discount: 40, gradient: 'from-cyan-500 to-blue-600', iconBg: 'bg-cyan-500' },
+      { label: 'Popular', discount: 50, gradient: 'from-pink-500 to-purple-600', iconBg: 'bg-pink-500' },
+      { label: 'Pro', discount: 60, gradient: 'from-amber-500 to-orange-600', iconBg: 'bg-amber-500' }
+    ];
+    return configs[index] || configs[0];
   };
+
+  const getOriginalPrice = (price: number, discount: number) => {
+    return Math.round(price / (1 - discount / 100));
+  };
+
+  const formatTime = (num: number) => num.toString().padStart(2, '0');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Crown className="h-5 w-5 text-yellow-500" />
-            Buy AI Credits
-          </DialogTitle>
-          <DialogDescription>
-            Choose a credit package to unlock more AI generations
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 border-0">
+        {/* Colorful Header */}
+        <div className="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 p-6 rounded-t-lg">
+          <div className="flex items-center justify-between mb-4">
+            <DialogHeader className="text-left">
+              <DialogTitle className="flex items-center gap-2 text-white text-xl">
+                <Crown className="h-6 w-6 text-yellow-400" />
+                AI Credits Store
+              </DialogTitle>
+              <DialogDescription className="text-purple-200">
+                Unlock powerful AI generations
+              </DialogDescription>
+            </DialogHeader>
+            <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0 text-sm px-3 py-1">
+              <Zap className="h-3 w-3 mr-1" />
+              Limited Offer
+            </Badge>
+          </div>
+          
+          {/* Countdown Timer */}
+          <div className="flex items-center justify-center gap-2">
+            <Timer className="h-4 w-4 text-yellow-400" />
+            <span className="text-yellow-400 text-sm mr-2">Offer ends in:</span>
+            <div className="flex gap-1">
+              {[
+                { value: countdown.hours, label: 'H' },
+                { value: countdown.minutes, label: 'M' },
+                { value: countdown.seconds, label: 'S' }
+              ].map((time, i) => (
+                <div key={i} className="flex items-center gap-1">
+                  <span className="bg-slate-800 text-white font-mono font-bold px-2 py-1 rounded text-sm">
+                    {formatTime(time.value)}
+                  </span>
+                  {i < 2 && <span className="text-white font-bold">:</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="p-6 space-y-6 bg-gradient-to-b from-background to-muted/30">
             {/* Credit Packages */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {tiers.map((tier, index) => (
-                <Card
-                  key={index}
-                  className={`cursor-pointer transition-all hover:border-primary ${
-                    selectedTier === index ? 'border-primary ring-2 ring-primary/20' : ''
-                  } ${index === 1 ? 'border-primary/50' : ''}`}
-                  onClick={() => setSelectedTier(index)}
-                >
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">{getTierLabel(index)}</span>
-                      {index === 1 && (
-                        <Badge variant="default" className="text-xs">Best Value</Badge>
-                      )}
-                      {selectedTier === index && (
-                        <Check className="h-4 w-4 text-primary" />
-                      )}
+              {tiers.map((tier, index) => {
+                const config = getTierConfig(index);
+                const originalPrice = getOriginalPrice(tier.price, config.discount);
+                const isSelected = selectedTier === index;
+                
+                return (
+                  <div
+                    key={index}
+                    onClick={() => setSelectedTier(index)}
+                    className={`relative cursor-pointer rounded-xl transition-all duration-300 transform hover:scale-105 ${
+                      isSelected 
+                        ? 'ring-4 ring-purple-500/50 shadow-2xl shadow-purple-500/20' 
+                        : 'hover:shadow-xl'
+                    }`}
+                  >
+                    {/* Discount Badge */}
+                    <div className="absolute -top-3 -right-3 z-10">
+                      <Badge className={`bg-gradient-to-r ${config.gradient} text-white border-0 text-xs px-3 py-1 shadow-lg`}>
+                        {config.discount}% OFF
+                      </Badge>
                     </div>
                     
-                    <div className="text-2xl font-bold">₱{tier.price}</div>
+                    {index === 1 && (
+                      <div className="absolute -top-3 left-3 z-10">
+                        <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0 text-xs px-3 py-1 shadow-lg">
+                          <Star className="h-3 w-3 mr-1" />
+                          Best Value
+                        </Badge>
+                      </div>
+                    )}
                     
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-primary" />
-                        <span>{tier.credits} AI Credits</span>
+                    <div className={`p-5 rounded-xl border-2 transition-all ${
+                      isSelected 
+                        ? `border-transparent bg-gradient-to-br ${config.gradient} text-white` 
+                        : 'border-border bg-card hover:border-purple-400/50'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className={`p-2 rounded-lg ${isSelected ? 'bg-white/20' : config.iconBg}`}>
+                          <Sparkles className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-white'}`} />
+                        </div>
+                        <span className="font-bold text-lg">{config.label}</span>
+                        {isSelected && <Check className="h-5 w-5 ml-auto" />}
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <ImageIcon className="h-4 w-4" />
-                        <span>~{tier.images} images</span>
+                      
+                      <div className="mb-4">
+                        <span className={`text-sm line-through ${isSelected ? 'text-white/60' : 'text-muted-foreground'}`}>
+                          ₱{originalPrice}
+                        </span>
+                        <div className="flex items-baseline gap-1">
+                          <span className={`text-3xl font-extrabold ${isSelected ? 'text-white' : `bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}`}>
+                            ₱{tier.price}
+                          </span>
+                          <span className={`text-sm ${isSelected ? 'text-white/80' : 'text-muted-foreground'}`}>
+                            /package
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <VideoIcon className="h-4 w-4" />
-                        <span>~{tier.videos} videos</span>
+                      
+                      <div className="space-y-2">
+                        <div className={`flex items-center gap-2 text-sm ${isSelected ? 'text-white/90' : ''}`}>
+                          <Sparkles className={`h-4 w-4 ${isSelected ? 'text-yellow-300' : 'text-purple-500'}`} />
+                          <span className="font-semibold">{tier.credits} AI Credits</span>
+                        </div>
+                        <div className={`flex items-center gap-2 text-sm ${isSelected ? 'text-white/80' : 'text-muted-foreground'}`}>
+                          <ImageIcon className="h-4 w-4" />
+                          <span>~{tier.images} images</span>
+                        </div>
+                        <div className={`flex items-center gap-2 text-sm ${isSelected ? 'text-white/80' : 'text-muted-foreground'}`}>
+                          <VideoIcon className="h-4 w-4" />
+                          <span>~{tier.videos} videos</span>
+                        </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Payment Method Selection */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">Payment Method</h4>
-              <Tabs value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'credits' | 'paymongo')}>
-                <TabsList className="grid grid-cols-2 w-full">
-                  <TabsTrigger value="credits" className="gap-2">
-                    <Wallet className="h-4 w-4" />
-                    Use Credits
-                  </TabsTrigger>
-                  <TabsTrigger value="paymongo" className="gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    Pay Online
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="credits" className="mt-3">
-                  <div className="p-3 rounded-lg bg-muted/50 border text-sm">
-                    <p>Your balance: <strong>₱{userCredits}</strong></p>
-                    {selectedTier !== null && userCredits < tiers[selectedTier].price && (
-                      <p className="text-destructive mt-1">
-                        Insufficient credits. You need ₱{tiers[selectedTier].price - userCredits} more.
-                      </p>
-                    )}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-lg flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-purple-500" />
+                Select Payment Method
+              </h4>
+              
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <button
+                  onClick={() => setPaymentMethod('paymongo')}
+                  className={`p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${
+                    paymentMethod === 'paymongo'
+                      ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/30'
+                      : 'border-border hover:border-purple-400/50'
+                  }`}
+                >
+                  <div className={`p-2 rounded-lg ${paymentMethod === 'paymongo' ? 'bg-purple-500' : 'bg-muted'}`}>
+                    <CreditCard className={`h-5 w-5 ${paymentMethod === 'paymongo' ? 'text-white' : ''}`} />
                   </div>
-                </TabsContent>
-                <TabsContent value="paymongo" className="mt-3 space-y-3">
-                  <RadioGroup value={paymongoMethod} onValueChange={(v) => setPaymongoMethod(v as any)} className="grid grid-cols-2 gap-2">
-                    <div>
-                      <RadioGroupItem value="gcash" id="gcash" className="peer sr-only" />
-                      <Label
-                        htmlFor="gcash"
-                        className="flex items-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                      >
-                        <Smartphone className="h-4 w-4 text-blue-500" />
-                        <span className="text-sm font-medium">GCash</span>
-                      </Label>
-                    </div>
-                    <div>
-                      <RadioGroupItem value="paymaya" id="paymaya" className="peer sr-only" />
-                      <Label
-                        htmlFor="paymaya"
-                        className="flex items-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                      >
-                        <Smartphone className="h-4 w-4 text-green-500" />
-                        <span className="text-sm font-medium">Maya</span>
-                      </Label>
-                    </div>
-                    <div>
-                      <RadioGroupItem value="card" id="card" className="peer sr-only" />
-                      <Label
-                        htmlFor="card"
-                        className="flex items-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                      >
-                        <CreditCard className="h-4 w-4 text-purple-500" />
-                        <span className="text-sm font-medium">Card</span>
-                      </Label>
-                    </div>
-                    <div>
-                      <RadioGroupItem value="grab_pay" id="grab_pay" className="peer sr-only" />
-                      <Label
-                        htmlFor="grab_pay"
-                        className="flex items-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                      >
-                        <Building2 className="h-4 w-4 text-emerald-500" />
-                        <span className="text-sm font-medium">GrabPay</span>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                  <p className="text-xs text-muted-foreground">
-                    Pay securely via {paymongoMethod === 'gcash' ? 'GCash' : paymongoMethod === 'paymaya' ? 'Maya' : paymongoMethod === 'card' ? 'Credit/Debit Card' : 'GrabPay'}
-                  </p>
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            {/* Affiliate Benefits */}
-            <div className="p-4 rounded-lg bg-muted/50 border">
-              <h4 className="font-medium text-sm mb-2">Affiliate Benefits</h4>
-              <p className="text-xs text-muted-foreground">
-                When you purchase credits, your referrer earns commission through the affiliate network!
-                Commissions are distributed across Unilevel ({commissionSettings.unilevelPercent}%), 
-                Stair-Step ({commissionSettings.stairstepPercent}%), and 
-                Leadership ({commissionSettings.leadershipPercent}%) programs.
-              </p>
-            </div>
-
-            {/* Upgrade Button for existing users */}
-            {currentUserTier >= 0 && currentUserTier < tiers.length - 1 && (
-              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">Current Tier: {getTierLabel(currentUserTier)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Daily Cap: ₱{tiers[currentUserTier]?.dailyCap?.toLocaleString() || 0}
-                    </p>
+                  <div className="text-left">
+                    <div className="font-semibold">Pay Online</div>
+                    <div className="text-xs text-muted-foreground">GCash, Maya, Card</div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-2"
-                    onClick={() => setShowUpgradeDialog(true)}
+                  {paymentMethod === 'paymongo' && <Check className="h-5 w-5 ml-auto text-purple-500" />}
+                </button>
+                
+                <button
+                  onClick={() => setPaymentMethod('credits')}
+                  className={`p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${
+                    paymentMethod === 'credits'
+                      ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
+                      : 'border-border hover:border-green-400/50'
+                  }`}
+                >
+                  <div className={`p-2 rounded-lg ${paymentMethod === 'credits' ? 'bg-green-500' : 'bg-muted'}`}>
+                    <Wallet className={`h-5 w-5 ${paymentMethod === 'credits' ? 'text-white' : ''}`} />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold">Use Balance</div>
+                    <div className="text-xs text-muted-foreground">₱{userCredits} available</div>
+                  </div>
+                  {paymentMethod === 'credits' && <Check className="h-5 w-5 ml-auto text-green-500" />}
+                </button>
+              </div>
+
+              {paymentMethod === 'paymongo' && (
+                <div className="space-y-3">
+                  <RadioGroup 
+                    value={paymongoMethod} 
+                    onValueChange={(v) => setPaymongoMethod(v as any)} 
+                    className="grid grid-cols-2 sm:grid-cols-4 gap-2"
                   >
-                    <ArrowUp className="h-4 w-4" />
-                    Upgrade Tier
-                  </Button>
+                    {[
+                      { value: 'gcash', label: 'GCash', color: 'text-blue-500', bg: 'bg-blue-500' },
+                      { value: 'paymaya', label: 'Maya', color: 'text-green-500', bg: 'bg-green-500' },
+                      { value: 'card', label: 'Card', color: 'text-purple-500', bg: 'bg-purple-500' },
+                      { value: 'grab_pay', label: 'GrabPay', color: 'text-emerald-500', bg: 'bg-emerald-500' }
+                    ].map(method => (
+                      <div key={method.value}>
+                        <RadioGroupItem value={method.value} id={method.value} className="peer sr-only" />
+                        <Label
+                          htmlFor={method.value}
+                          className={`flex flex-col items-center gap-2 rounded-xl border-2 p-3 cursor-pointer transition-all hover:scale-105 ${
+                            paymongoMethod === method.value 
+                              ? `border-transparent ${method.bg} text-white shadow-lg` 
+                              : 'border-muted hover:border-purple-400/50'
+                          }`}
+                        >
+                          <Smartphone className="h-5 w-5" />
+                          <span className="text-sm font-medium">{method.label}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              )}
+
+              {paymentMethod === 'credits' && selectedTier !== null && userCredits < tiers[selectedTier].price && (
+                <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                  <p className="text-red-600 dark:text-red-400 text-sm font-medium">
+                    Insufficient balance. You need ₱{tiers[selectedTier].price - userCredits} more.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Buy Now Button */}
+            <Button
+              onClick={handlePurchase}
+              disabled={purchasing || selectedTier === null || (paymentMethod === 'credits' && selectedTier !== null && userCredits < tiers[selectedTier].price)}
+              className="w-full h-14 text-lg font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-violet-500 hover:from-pink-600 hover:via-purple-600 hover:to-violet-600 text-white border-0 rounded-xl shadow-lg shadow-purple-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/40 hover:scale-[1.02]"
+            >
+              {purchasing ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Zap className="h-5 w-5 mr-2" />
+                  Buy Now {selectedTier !== null && `- ₱${tiers[selectedTier].price}`}
+                </>
+              )}
+            </Button>
+
+            {/* Pay with GCash Quick Option */}
+            {paymentMethod === 'paymongo' && paymongoMethod === 'gcash' && (
+              <Button
+                onClick={handlePurchase}
+                disabled={purchasing || selectedTier === null}
+                variant="outline"
+                className="w-full h-12 font-semibold border-2 border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-xl"
+              >
+                <span className="mr-2">Pay with</span>
+                <span className="font-bold text-blue-600">GCash</span>
+              </Button>
+            )}
+
+            {/* Features List */}
+            {selectedTier !== null && (
+              <div className="p-5 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800">
+                <h4 className="font-bold text-purple-700 dark:text-purple-300 mb-3">What you'll get:</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    `${tiers[selectedTier].credits} AI Credits`,
+                    `~${tiers[selectedTier].images} Image Generations`,
+                    `~${tiers[selectedTier].videos} Video Generations`,
+                    'Deep Research Access',
+                    'Image to Video',
+                    'Text to Video'
+                  ].map((feature, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span className="text-muted-foreground">{feature}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* Purchase Button */}
-            <div className="flex items-center justify-end pt-4 border-t">
-              <Button
-                onClick={handlePurchase}
-                disabled={
-                  selectedTier === null || 
-                  purchasing || 
-                  (paymentMethod === 'credits' && selectedTier !== null && userCredits < tiers[selectedTier].price)
-                }
-                className="gap-2"
-              >
-                {purchasing && <Loader2 className="h-4 w-4 animate-spin" />}
-                {selectedTier !== null
-                  ? paymentMethod === 'credits' 
-                    ? `Purchase ${tiers[selectedTier]?.credits} Credits`
-                    : `Pay ₱${tiers[selectedTier]?.price}`
-                  : 'Select a Package'}
-              </Button>
+            {/* Affiliate Benefits */}
+            <div className="p-4 rounded-xl bg-muted/50 border">
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <Star className="h-4 w-4 text-yellow-500" />
+                Affiliate Benefits
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Your referrer earns commission when you purchase! Commissions are distributed across 
+                Unilevel ({commissionSettings.unilevelPercent}%), Stair-Step ({commissionSettings.stairstepPercent}%), 
+                and Leadership ({commissionSettings.leadershipPercent}%) programs.
+              </p>
             </div>
+
+            {/* Upgrade Button */}
+            {currentUserTier >= 0 && currentUserTier < tiers.length - 1 && (
+              <Button
+                onClick={() => setShowUpgradeDialog(true)}
+                variant="outline"
+                className="w-full border-2 border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+              >
+                <ArrowUp className="h-4 w-4 mr-2" />
+                Upgrade Your Current Tier
+              </Button>
+            )}
           </div>
         )}
-      </DialogContent>
 
-      {/* Tier Upgrade Dialog */}
-      <TierUpgradeDialog
-        open={showUpgradeDialog}
-        onOpenChange={setShowUpgradeDialog}
-        currentTierIndex={currentUserTier}
-        onUpgradeComplete={() => {
-          fetchUserTier();
-          onPurchaseComplete?.();
-        }}
-      />
+        <TierUpgradeDialog
+          open={showUpgradeDialog}
+          onOpenChange={setShowUpgradeDialog}
+          currentTierIndex={currentUserTier}
+          onUpgradeComplete={() => {
+            onPurchaseComplete?.();
+            fetchUserTier();
+          }}
+        />
+      </DialogContent>
     </Dialog>
   );
 }
