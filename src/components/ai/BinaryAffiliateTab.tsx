@@ -359,16 +359,33 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Payment service unavailable');
+      }
+
+      // Check if the response contains an error (edge function returned 400)
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       if (data?.checkout_url) {
         window.location.href = data.checkout_url;
       } else {
-        throw new Error('No payment URL returned');
+        throw new Error('No payment URL returned. Please try again.');
       }
     } catch (error: any) {
       console.error('Payment error:', error);
-      toast.error(error.message || 'Failed to create payment');
+      const errorMessage = error.message || 'Failed to create payment';
+      
+      // Show more helpful message for account activation error
+      if (errorMessage.includes('activated')) {
+        toast.error('Payment provider not ready. Please contact admin to activate PayMongo account.', {
+          duration: 5000
+        });
+      } else {
+        toast.error(errorMessage);
+      }
       setPurchasing(false);
     }
   };
