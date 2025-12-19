@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Crown, ImageIcon, VideoIcon, Sparkles, Check, Loader2, CreditCard, Wallet, ArrowUp, Smartphone, Building2, Zap, Star, Timer } from 'lucide-react';
+import { Crown, ImageIcon, VideoIcon, Sparkles, Check, Loader2, CreditCard, Wallet, ArrowUp, Smartphone, Building2, Zap, Star, Timer, QrCode, Copy, CheckCircle2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import TierUpgradeDialog from './TierUpgradeDialog';
 
 interface CreditTier {
@@ -30,8 +31,13 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'credits' | 'paymongo'>('paymongo');
+  const [paymentMethod, setPaymentMethod] = useState<'credits' | 'paymongo' | 'qrcode'>('paymongo');
   const [paymongoMethod, setPaymongoMethod] = useState<'gcash' | 'paymaya' | 'card' | 'grab_pay'>('gcash');
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+  const [bankDetails, setBankDetails] = useState({ accountName: '', accountNumber: '', bankName: '' });
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [showQrSuccess, setShowQrSuccess] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [userCredits, setUserCredits] = useState(0);
   const [currentUserTier, setCurrentUserTier] = useState<number>(-1);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
@@ -140,6 +146,18 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
         }
         if (setting.key === 'ai_leadership_percent') {
           setCommissionSettings(prev => ({ ...prev, leadershipPercent: parseInt(setting.value || '25') }));
+        }
+        if (setting.key === 'payment_qr_code_url') {
+          setQrCodeUrl(setting.value || '');
+        }
+        if (setting.key === 'payment_bank_account_name') {
+          setBankDetails(prev => ({ ...prev, accountName: setting.value || '' }));
+        }
+        if (setting.key === 'payment_bank_account_number') {
+          setBankDetails(prev => ({ ...prev, accountNumber: setting.value || '' }));
+        }
+        if (setting.key === 'payment_bank_name') {
+          setBankDetails(prev => ({ ...prev, bankName: setting.value || '' }));
         }
       });
 
@@ -261,6 +279,50 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
     }
   };
 
+  const handlePurchaseWithQRCode = async () => {
+    if (selectedTier === null || !user) {
+      toast.error('Please select a credit package first');
+      return;
+    }
+
+    if (!referenceNumber.trim()) {
+      toast.error('Please enter your payment reference number');
+      return;
+    }
+
+    const tier = tiers[selectedTier];
+
+    setPurchasing(true);
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('referred_by')
+        .eq('id', user.id)
+        .single();
+
+      // Create pending purchase record for admin approval
+      const { error } = await supabase.from('ai_credit_purchases').insert({
+        user_id: user.id,
+        amount: tier.price,
+        credits_received: tier.credits,
+        payment_method: 'qrcode',
+        referrer_id: profileData?.referred_by || null,
+        status: 'pending'
+      });
+
+      if (error) throw error;
+
+      setShowQrSuccess(true);
+      setReferenceNumber('');
+      toast.success('Payment submitted! Awaiting admin approval.');
+    } catch (error: any) {
+      console.error('QR Payment error:', error);
+      toast.error(error.message || 'Failed to submit payment');
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
   const handlePurchase = () => {
     if (selectedTier === null) {
       toast.error('Please select a credit package first');
@@ -268,9 +330,18 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
     }
     if (paymentMethod === 'credits') {
       handlePurchaseWithCredits();
+    } else if (paymentMethod === 'qrcode') {
+      handlePurchaseWithQRCode();
     } else {
       handlePurchaseWithPayMongo();
     }
+  };
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast.success('Copied to clipboard!');
+    setTimeout(() => setCopiedField(null), 2000);
   };
 
   const getTierConfig = (index: number) => {
@@ -423,10 +494,10 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
                 Select Payment Method
               </h4>
               
-              <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="grid grid-cols-3 gap-3 mb-4">
                 <button
                   onClick={() => setPaymentMethod('paymongo')}
-                  className={`p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${
+                  className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
                     paymentMethod === 'paymongo'
                       ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/30'
                       : 'border-border hover:border-purple-400/50'
@@ -435,16 +506,34 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
                   <div className={`p-2 rounded-lg ${paymentMethod === 'paymongo' ? 'bg-purple-500' : 'bg-muted'}`}>
                     <CreditCard className={`h-5 w-5 ${paymentMethod === 'paymongo' ? 'text-white' : ''}`} />
                   </div>
-                  <div className="text-left">
-                    <div className="font-semibold">Pay Online</div>
-                    <div className="text-xs text-muted-foreground">GCash, Maya, Card</div>
+                  <div className="text-center">
+                    <div className="font-semibold text-sm">Pay Online</div>
+                    <div className="text-xs text-muted-foreground">GCash, Maya</div>
                   </div>
-                  {paymentMethod === 'paymongo' && <Check className="h-5 w-5 ml-auto text-purple-500" />}
+                  {paymentMethod === 'paymongo' && <Check className="h-4 w-4 text-purple-500" />}
+                </button>
+                
+                <button
+                  onClick={() => setPaymentMethod('qrcode')}
+                  className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                    paymentMethod === 'qrcode'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+                      : 'border-border hover:border-blue-400/50'
+                  }`}
+                >
+                  <div className={`p-2 rounded-lg ${paymentMethod === 'qrcode' ? 'bg-blue-500' : 'bg-muted'}`}>
+                    <QrCode className={`h-5 w-5 ${paymentMethod === 'qrcode' ? 'text-white' : ''}`} />
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-sm">QR / Bank</div>
+                    <div className="text-xs text-muted-foreground">Direct Transfer</div>
+                  </div>
+                  {paymentMethod === 'qrcode' && <Check className="h-4 w-4 text-blue-500" />}
                 </button>
                 
                 <button
                   onClick={() => setPaymentMethod('credits')}
-                  className={`p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${
+                  className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
                     paymentMethod === 'credits'
                       ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
                       : 'border-border hover:border-green-400/50'
@@ -453,11 +542,11 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
                   <div className={`p-2 rounded-lg ${paymentMethod === 'credits' ? 'bg-green-500' : 'bg-muted'}`}>
                     <Wallet className={`h-5 w-5 ${paymentMethod === 'credits' ? 'text-white' : ''}`} />
                   </div>
-                  <div className="text-left">
-                    <div className="font-semibold">Use Balance</div>
-                    <div className="text-xs text-muted-foreground">₱{userCredits} available</div>
+                  <div className="text-center">
+                    <div className="font-semibold text-sm">Balance</div>
+                    <div className="text-xs text-muted-foreground">₱{userCredits}</div>
                   </div>
-                  {paymentMethod === 'credits' && <Check className="h-5 w-5 ml-auto text-green-500" />}
+                  {paymentMethod === 'credits' && <Check className="h-4 w-4 text-green-500" />}
                 </button>
               </div>
 
@@ -493,6 +582,114 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
                 </div>
               )}
 
+              {/* QR Code / Bank Transfer Section */}
+              {paymentMethod === 'qrcode' && (
+                <div className="space-y-4">
+                  {showQrSuccess ? (
+                    <div className="p-6 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-center">
+                      <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                      <h4 className="font-bold text-green-700 dark:text-green-300 mb-2">Payment Submitted!</h4>
+                      <p className="text-sm text-green-600 dark:text-green-400">
+                        Your payment is pending admin approval. Credits will be added once verified.
+                      </p>
+                      <Button
+                        onClick={() => setShowQrSuccess(false)}
+                        variant="outline"
+                        className="mt-4"
+                      >
+                        Submit Another Payment
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* QR Code Display */}
+                      {qrCodeUrl ? (
+                        <div className="flex flex-col items-center p-4 rounded-xl bg-white dark:bg-slate-900 border">
+                          <p className="text-sm text-muted-foreground mb-3">Scan QR code to pay</p>
+                          <img 
+                            src={qrCodeUrl} 
+                            alt="Payment QR Code" 
+                            className="w-48 h-48 object-contain rounded-lg border"
+                          />
+                          {selectedTier !== null && (
+                            <p className="mt-3 text-lg font-bold text-primary">
+                              Amount: ₱{tiers[selectedTier].price}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-muted/50 border text-center">
+                          <QrCode className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            QR code not configured. Please use bank transfer details below.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Bank Details */}
+                      {(bankDetails.accountName || bankDetails.accountNumber || bankDetails.bankName) && (
+                        <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 space-y-3">
+                          <h5 className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            Bank Transfer Details
+                          </h5>
+                          {bankDetails.bankName && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-muted-foreground">Bank:</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{bankDetails.bankName}</span>
+                                <button onClick={() => copyToClipboard(bankDetails.bankName, 'bank')}>
+                                  {copiedField === 'bank' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground hover:text-primary" />}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {bankDetails.accountName && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-muted-foreground">Account Name:</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{bankDetails.accountName}</span>
+                                <button onClick={() => copyToClipboard(bankDetails.accountName, 'name')}>
+                                  {copiedField === 'name' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground hover:text-primary" />}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {bankDetails.accountNumber && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-muted-foreground">Account Number:</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium font-mono">{bankDetails.accountNumber}</span>
+                                <button onClick={() => copyToClipboard(bankDetails.accountNumber, 'number')}>
+                                  {copiedField === 'number' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground hover:text-primary" />}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Reference Number Input */}
+                      <div className="space-y-2">
+                        <Label htmlFor="reference" className="text-sm font-medium">
+                          Payment Reference Number <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="reference"
+                          placeholder="Enter your payment reference/transaction ID"
+                          value={referenceNumber}
+                          onChange={(e) => setReferenceNumber(e.target.value)}
+                          className="h-12"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Enter the reference number from your payment confirmation
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {paymentMethod === 'credits' && selectedTier !== null && userCredits < tiers[selectedTier].price && (
                 <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
                   <p className="text-red-600 dark:text-red-400 text-sm font-medium">
@@ -502,24 +699,36 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
               )}
             </div>
 
-            {/* Buy Now Button */}
-            <Button
-              onClick={handlePurchase}
-              disabled={purchasing || selectedTier === null || (paymentMethod === 'credits' && selectedTier !== null && userCredits < tiers[selectedTier].price)}
-              className="w-full h-14 text-lg font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-violet-500 hover:from-pink-600 hover:via-purple-600 hover:to-violet-600 text-white border-0 rounded-xl shadow-lg shadow-purple-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/40 hover:scale-[1.02]"
-            >
-              {purchasing ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Zap className="h-5 w-5 mr-2" />
-                  Buy Now {selectedTier !== null && `- ₱${tiers[selectedTier].price}`}
-                </>
-              )}
-            </Button>
+            {/* Buy Now Button - Hide when QR success shown */}
+            {!(paymentMethod === 'qrcode' && showQrSuccess) && (
+              <Button
+                onClick={handlePurchase}
+                disabled={
+                  purchasing || 
+                  selectedTier === null || 
+                  (paymentMethod === 'credits' && selectedTier !== null && userCredits < tiers[selectedTier].price) ||
+                  (paymentMethod === 'qrcode' && !referenceNumber.trim())
+                }
+                className="w-full h-14 text-lg font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-violet-500 hover:from-pink-600 hover:via-purple-600 hover:to-violet-600 text-white border-0 rounded-xl shadow-lg shadow-purple-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/40 hover:scale-[1.02]"
+              >
+                {purchasing ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : paymentMethod === 'qrcode' ? (
+                  <>
+                    <CheckCircle2 className="h-5 w-5 mr-2" />
+                    Submit Payment {selectedTier !== null && `- ₱${tiers[selectedTier].price}`}
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-5 w-5 mr-2" />
+                    Buy Now {selectedTier !== null && `- ₱${tiers[selectedTier].price}`}
+                  </>
+                )}
+              </Button>
+            )}
 
             {/* Pay with GCash Quick Option */}
             {paymentMethod === 'paymongo' && paymongoMethod === 'gcash' && (

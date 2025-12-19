@@ -63,6 +63,7 @@ import SystemResetManagement from "@/components/admin/SystemResetManagement";
 import AISettingsManagement from "@/components/admin/AISettingsManagement";
 import AIProviderPricing from "@/components/admin/AIProviderPricing";
 import BinarySystemManagement from "@/components/admin/BinarySystemManagement";
+import QRPaymentSettings from "@/components/admin/QRPaymentSettings";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -140,6 +141,7 @@ const Admin = () => {
     { id: "pos-system", label: "POS & Inventory", icon: Barcode },
     { id: "ai-settings", label: "AI Hub Settings", icon: Sparkles },
     { id: "ai-pricing", label: "AI Provider Costs", icon: DollarSign },
+    { id: "qr-payment", label: "QR Payment Settings", icon: CreditCard },
     { id: "binary-system", label: "Binary MLM System", icon: GitBranch },
     { id: "system-reset", label: "System Reset", icon: RotateCcw },
   ];
@@ -634,6 +636,7 @@ const Admin = () => {
           {activeTab === "unilevel-settings" && <UnilevelCommissionSettings />}
           {activeTab === "ai-settings" && <AISettingsManagement />}
           {activeTab === "ai-pricing" && <AIProviderPricing />}
+          {activeTab === "qr-payment" && <QRPaymentSettings />}
           {activeTab === "binary-system" && <BinarySystemManagement />}
           {activeTab === "system-reset" && <SystemResetManagement />}
         </main>
