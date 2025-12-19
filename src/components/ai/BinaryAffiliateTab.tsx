@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,7 +27,10 @@ import {
   Check,
   CreditCard,
   Smartphone,
-  Zap
+  Zap,
+  QrCode,
+  Copy,
+  CheckCircle2
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -107,8 +111,19 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
   const [purchasing, setPurchasing] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [userCredits, setUserCredits] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<'balance' | 'paymongo'>('paymongo');
+  const [paymentMethod, setPaymentMethod] = useState<'balance' | 'paymongo' | 'qr_bank'>('paymongo');
   const [paymongoMethod, setPaymongoMethod] = useState<'gcash' | 'paymaya' | 'card' | 'grab_pay'>('gcash');
+  
+  // QR/Bank payment states
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [bankDetails, setBankDetails] = useState<{
+    bankName: string | null;
+    accountName: string | null;
+    accountNumber: string | null;
+  }>({ bankName: null, accountName: null, accountNumber: null });
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [showQrSuccess, setShowQrSuccess] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -120,11 +135,11 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
     if (!user) return;
     setLoading(true);
     try {
-      // Fetch binary settings and AI tiers
+      // Fetch binary settings, AI tiers, and payment settings
       const { data: settingsData } = await supabase
         .from('app_settings')
         .select('key, value')
-        .or('key.like.binary_%,key.like.ai_%');
+        .or('key.like.binary_%,key.like.ai_%,key.like.payment_%');
 
       const rates: CreditRates = { creditsPerVideoMinute: 20, creditsPerAudioMinute: 5, creditsPerImage: 1 };
 
@@ -136,6 +151,11 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
 
       if (settingsData) {
         const newSettings = { ...settings };
+        let qrUrl: string | null = null;
+        let bankName: string | null = null;
+        let accountName: string | null = null;
+        let accountNumber: string | null = null;
+        
         settingsData.forEach(s => {
           if (s.key === 'binary_join_amount') newSettings.joinAmount = parseFloat(s.value || '500');
           if (s.key === 'binary_cycle_volume') newSettings.cycleVolume = parseFloat(s.value || '1000');
@@ -149,6 +169,12 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
           if (s.key === 'ai_credits_per_video_minute') rates.creditsPerVideoMinute = parseFloat(s.value || '20');
           if (s.key === 'ai_credits_per_audio_minute') rates.creditsPerAudioMinute = parseFloat(s.value || '5');
           if (s.key === 'ai_credits_per_image') rates.creditsPerImage = parseFloat(s.value || '1');
+
+          // QR/Bank payment settings
+          if (s.key === 'payment_qr_code_url') qrUrl = s.value;
+          if (s.key === 'payment_bank_name') bankName = s.value;
+          if (s.key === 'payment_bank_account_name') accountName = s.value;
+          if (s.key === 'payment_bank_account_number') accountNumber = s.value;
 
           // Parse tier data
           const match = s.key.match(/ai_credit_tier_(\d)_(\w+)/);
@@ -169,6 +195,8 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
         setSettings(newSettings);
         setTiers(tierData);
         setCreditRates(rates);
+        setQrCodeUrl(qrUrl);
+        setBankDetails({ bankName, accountName, accountNumber });
       }
 
       // Check if user is enrolled in binary system
@@ -390,9 +418,72 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
     }
   };
 
+  const handlePurchaseWithQRCode = async () => {
+    if (selectedTier === null || !user) {
+      toast.error('Please select a credit package first');
+      return;
+    }
+
+    if (!selectedServices.images && !selectedServices.video && !selectedServices.audio) {
+      toast.error('Please select at least one AI service');
+      return;
+    }
+
+    if (!referenceNumber.trim()) {
+      toast.error('Please enter your payment reference number');
+      return;
+    }
+
+    const tier = tiers[selectedTier];
+    const allocation = calculateServiceAllocation();
+
+    setPurchasing(true);
+    try {
+      // Get referrer
+      const { data: profileData } = await supabase.from('profiles').select('referred_by').eq('id', user.id).single();
+
+      // Create pending purchase for admin approval
+      const { error } = await supabase.from('binary_ai_purchases').insert({
+        user_id: user.id,
+        amount: tier.price,
+        credits_received: tier.credits + Math.floor(allocation.bonusCredits),
+        images_allocated: allocation.images,
+        video_minutes_allocated: allocation.videoSeconds / 60,
+        audio_minutes_allocated: allocation.audioSeconds / 60,
+        sponsor_id: profileData?.referred_by || null,
+        status: 'pending',
+        is_first_purchase: !isEnrolled,
+        admin_notes: `QR/Bank Payment - Ref: ${referenceNumber.trim()}`
+      });
+
+      if (error) throw error;
+
+      setShowQrSuccess(true);
+      setReferenceNumber('');
+      toast.success('Payment submitted! Your credits will be added once admin verifies the payment.');
+      fetchData();
+      setSelectedTier(null);
+      setSelectedServices({ images: true, video: true, audio: true });
+    } catch (error: any) {
+      console.error('QR Payment error:', error);
+      toast.error(error.message || 'Failed to submit payment');
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast.success('Copied to clipboard!');
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
   const handlePurchase = () => {
     if (paymentMethod === 'balance') {
       handlePurchaseCredits();
+    } else if (paymentMethod === 'qr_bank') {
+      handlePurchaseWithQRCode();
     } else {
       handlePurchaseWithPayMongo();
     }
@@ -596,37 +687,53 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
                     Payment Method
                   </p>
                   
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       onClick={() => setPaymentMethod('paymongo')}
-                      className={`p-3 rounded-lg border-2 transition-all flex items-center gap-2 text-sm ${
+                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 text-sm ${
                         paymentMethod === 'paymongo'
                           ? 'border-purple-500 bg-purple-100 dark:bg-purple-900/50'
                           : 'border-border hover:border-purple-400/50'
                       }`}
                     >
                       <Smartphone className="h-4 w-4" />
-                      <div className="text-left">
-                        <div className="font-medium">Pay Online</div>
+                      <div className="text-center">
+                        <div className="font-medium text-xs">Pay Online</div>
                         <div className="text-xs text-muted-foreground">GCash, Maya</div>
                       </div>
-                      {paymentMethod === 'paymongo' && <Check className="h-4 w-4 ml-auto text-purple-500" />}
+                      {paymentMethod === 'paymongo' && <Check className="h-4 w-4 text-purple-500" />}
+                    </button>
+                    
+                    <button
+                      onClick={() => setPaymentMethod('qr_bank')}
+                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 text-sm ${
+                        paymentMethod === 'qr_bank'
+                          ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/50'
+                          : 'border-border hover:border-amber-400/50'
+                      }`}
+                    >
+                      <QrCode className="h-4 w-4" />
+                      <div className="text-center">
+                        <div className="font-medium text-xs">QR / Bank</div>
+                        <div className="text-xs text-muted-foreground">Manual</div>
+                      </div>
+                      {paymentMethod === 'qr_bank' && <Check className="h-4 w-4 text-amber-500" />}
                     </button>
                     
                     <button
                       onClick={() => setPaymentMethod('balance')}
-                      className={`p-3 rounded-lg border-2 transition-all flex items-center gap-2 text-sm ${
+                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 text-sm ${
                         paymentMethod === 'balance'
                           ? 'border-green-500 bg-green-100 dark:bg-green-900/50'
                           : 'border-border hover:border-green-400/50'
                       }`}
                     >
                       <Wallet className="h-4 w-4" />
-                      <div className="text-left">
-                        <div className="font-medium">Use Balance</div>
+                      <div className="text-center">
+                        <div className="font-medium text-xs">Balance</div>
                         <div className="text-xs text-muted-foreground">₱{userCredits}</div>
                       </div>
-                      {paymentMethod === 'balance' && <Check className="h-4 w-4 ml-auto text-green-500" />}
+                      {paymentMethod === 'balance' && <Check className="h-4 w-4 text-green-500" />}
                     </button>
                   </div>
 
@@ -660,6 +767,115 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
                     </RadioGroup>
                   )}
 
+                  {paymentMethod === 'qr_bank' && (
+                    <div className="space-y-3">
+                      {showQrSuccess ? (
+                        <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-center">
+                          <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto mb-2" />
+                          <p className="font-medium text-green-700 dark:text-green-300">Payment Submitted!</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Your credits will be added once admin verifies the payment.
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-3"
+                            onClick={() => setShowQrSuccess(false)}
+                          >
+                            Make Another Purchase
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          {qrCodeUrl && (
+                            <div className="flex justify-center">
+                              <img 
+                                src={qrCodeUrl} 
+                                alt="Payment QR Code" 
+                                className="w-40 h-40 object-contain rounded-lg border"
+                              />
+                            </div>
+                          )}
+                          
+                          {(bankDetails.bankName || bankDetails.accountName || bankDetails.accountNumber) && (
+                            <div className="p-3 rounded-lg bg-muted/50 border space-y-2">
+                              <p className="font-medium text-xs">Bank Transfer Details:</p>
+                              {bankDetails.bankName && (
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-muted-foreground">Bank:</span>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium">{bankDetails.bankName}</span>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => copyToClipboard(bankDetails.bankName!, 'bank')}
+                                    >
+                                      {copiedField === 'bank' ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                              {bankDetails.accountName && (
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-muted-foreground">Account Name:</span>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium">{bankDetails.accountName}</span>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => copyToClipboard(bankDetails.accountName!, 'name')}
+                                    >
+                                      {copiedField === 'name' ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                              {bankDetails.accountNumber && (
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-muted-foreground">Account Number:</span>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium">{bankDetails.accountNumber}</span>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => copyToClipboard(bankDetails.accountNumber!, 'number')}
+                                    >
+                                      {copiedField === 'number' ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {!qrCodeUrl && !bankDetails.bankName && !bankDetails.accountName && (
+                            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-center">
+                              <p className="text-amber-600 dark:text-amber-400">
+                                QR/Bank payment not configured yet. Please contact admin.
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div className="space-y-2">
+                            <Label className="text-xs">Reference Number *</Label>
+                            <Input
+                              placeholder="Enter your payment reference number"
+                              value={referenceNumber}
+                              onChange={(e) => setReferenceNumber(e.target.value)}
+                              className="text-sm"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Enter the reference number from your payment confirmation
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   {paymentMethod === 'balance' && userCredits < tiers[selectedTier].price && (
                     <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs">
                       <p className="text-red-600 dark:text-red-400 font-medium">
@@ -677,19 +893,25 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
                 disabled={
                   selectedTier === null || 
                   purchasing || 
+                  showQrSuccess ||
                   (!selectedServices.images && !selectedServices.video && !selectedServices.audio) ||
-                  (paymentMethod === 'balance' && selectedTier !== null && userCredits < tiers[selectedTier]?.price)
+                  (paymentMethod === 'balance' && selectedTier !== null && userCredits < tiers[selectedTier]?.price) ||
+                  (paymentMethod === 'qr_bank' && !referenceNumber.trim())
                 }
               >
                 {purchasing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
-                {selectedTier !== null 
-                  ? `Buy ${tiers[selectedTier]?.credits + Math.floor(calculateServiceAllocation().bonusCredits)} Credits (₱${tiers[selectedTier]?.price})` 
-                  : 'Select a Package'}
+                {paymentMethod === 'qr_bank' && selectedTier !== null
+                  ? `Submit Payment (₱${tiers[selectedTier]?.price})`
+                  : selectedTier !== null 
+                    ? `Buy ${tiers[selectedTier]?.credits + Math.floor(calculateServiceAllocation().bonusCredits)} Credits (₱${tiers[selectedTier]?.price})` 
+                    : 'Select a Package'}
               </Button>
               <p className="text-xs text-center text-muted-foreground">
                 {paymentMethod === 'paymongo' 
                   ? `Pay securely with ${paymongoMethod === 'gcash' ? 'GCash' : paymongoMethod === 'paymaya' ? 'Maya' : paymongoMethod === 'card' ? 'Credit/Debit Card' : 'GrabPay'}` 
-                  : `Your balance: ₱${userCredits}`}
+                  : paymentMethod === 'qr_bank'
+                    ? 'Admin will verify your payment and add credits'
+                    : `Your balance: ₱${userCredits}`}
               </p>
             </CardContent>
           </Card>
