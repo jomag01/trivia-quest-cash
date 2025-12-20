@@ -80,3 +80,12 @@ verify_jwt = false
 
 [functions.deep-research]
 verify_jwt = false
+
+[functions.scrape-website]
+verify_jwt = false
+
+[functions.analyze-website]
+verify_jwt = false
+
+[functions.analyze-creator]
+verify_jwt = false
