@@ -4374,6 +4374,197 @@ export type Database = {
         }
         Relationships: []
       }
+      smm_analytics: {
+        Row: {
+          client_account_id: string | null
+          id: string
+          metric_type: string
+          metric_value: number | null
+          post_id: string | null
+          recorded_at: string
+          user_id: string
+        }
+        Insert: {
+          client_account_id?: string | null
+          id?: string
+          metric_type: string
+          metric_value?: number | null
+          post_id?: string | null
+          recorded_at?: string
+          user_id: string
+        }
+        Update: {
+          client_account_id?: string | null
+          id?: string
+          metric_type?: string
+          metric_value?: number | null
+          post_id?: string | null
+          recorded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smm_analytics_client_account_id_fkey"
+            columns: ["client_account_id"]
+            isOneToOne: false
+            referencedRelation: "smm_client_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smm_analytics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "smm_scheduled_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smm_client_accounts: {
+        Row: {
+          access_token_encrypted: string | null
+          account_id: string | null
+          account_name: string
+          client_email: string | null
+          client_name: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          monthly_fee: number | null
+          platform: string
+          refresh_token_encrypted: string | null
+          status: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          account_id?: string | null
+          account_name: string
+          client_email?: string | null
+          client_name: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          monthly_fee?: number | null
+          platform: string
+          refresh_token_encrypted?: string | null
+          status?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          account_id?: string | null
+          account_name?: string
+          client_email?: string | null
+          client_name?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          monthly_fee?: number | null
+          platform?: string
+          refresh_token_encrypted?: string | null
+          status?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      smm_content_templates: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          name: string
+          platform: string | null
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          name: string
+          platform?: string | null
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          name?: string
+          platform?: string | null
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      smm_scheduled_posts: {
+        Row: {
+          client_account_id: string
+          content: string
+          created_at: string
+          error_message: string | null
+          id: string
+          media_type: string | null
+          media_urls: Json | null
+          platform: string
+          post_result: Json | null
+          retry_count: number | null
+          scheduled_for: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_account_id: string
+          content: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          media_type?: string | null
+          media_urls?: Json | null
+          platform: string
+          post_result?: Json | null
+          retry_count?: number | null
+          scheduled_for: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_account_id?: string
+          content?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          media_type?: string | null
+          media_urls?: Json | null
+          platform?: string
+          post_result?: Json | null
+          retry_count?: number | null
+          scheduled_for?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smm_scheduled_posts_client_account_id_fkey"
+            columns: ["client_account_id"]
+            isOneToOne: false
+            referencedRelation: "smm_client_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       social_media_connections: {
         Row: {
           access_token: string | null
