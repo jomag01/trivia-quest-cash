@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3 } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users } from 'lucide-react';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
 import AdvancedChatAssistant from '@/components/ai/AdvancedChatAssistant';
@@ -20,6 +20,7 @@ import BinaryAffiliateTab from '@/components/ai/BinaryAffiliateTab';
 import AIHubGallery from '@/components/ai/AIHubGallery';
 import WebsiteScraper from '@/components/ai/WebsiteScraper';
 import CreatorAnalytics from '@/components/ai/CreatorAnalytics';
+import SocialMediaManager from '@/components/ai/SocialMediaManager';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -154,6 +155,7 @@ const AIHub = memo(() => {
     { id: 'video-editor', label: 'Editor', icon: Scissors },
     { id: 'web-scraper', label: 'Scraper', icon: Globe, premium: true },
     { id: 'creator-analytics', label: 'Analytics', icon: Crown, premium: true },
+    { id: 'social-media', label: 'Social', icon: Users, premium: true },
   ];
 
   useEffect(() => {
@@ -1683,6 +1685,13 @@ const AIHub = memo(() => {
           {activeTab === 'creator-analytics' && (
             <div className="p-4 md:p-6">
               <CreatorAnalytics userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
+          )}
+
+          {/* Social Media Manager - Premium */}
+          {activeTab === 'social-media' && (
+            <div className="p-4 md:p-6">
+              <SocialMediaManager userCredits={userCredits} onCreditsChange={fetchUserCredits} />
             </div>
           )}
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,11 +66,10 @@ interface CreatorAnalyticsProps {
   onCreditsChange: () => void;
 }
 
-const ANALYSIS_CREDIT_COST = 5;
-
 const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCreditsChange }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('youtube');
+  const [analysisCreditCost, setAnalysisCreditCost] = useState(5);
   
   // YouTube state
   const [youtubeInput, setYoutubeInput] = useState('');
@@ -89,6 +88,26 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
   const [websiteNiche, setWebsiteNiche] = useState('general');
   const [adsenseLoading, setAdsenseLoading] = useState(false);
   const [adsenseStats, setAdsenseStats] = useState<AdSenseStats | null>(null);
+
+  useEffect(() => {
+    fetchPricing();
+  }, []);
+
+  const fetchPricing = async () => {
+    try {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'ai_analytics_credit_cost')
+        .maybeSingle();
+      
+      if (data?.value) {
+        setAnalysisCreditCost(parseInt(data.value));
+      }
+    } catch (error) {
+      console.error('Error fetching pricing:', error);
+    }
+  };
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
@@ -126,15 +145,15 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
 
   const deductCredits = async (): Promise<boolean> => {
     if (!user) return false;
-    if (userCredits < ANALYSIS_CREDIT_COST) {
-      toast.error(`Insufficient credits. You need ${ANALYSIS_CREDIT_COST} credits.`);
+    if (userCredits < analysisCreditCost) {
+      toast.error(`Insufficient credits. You need ${analysisCreditCost} credits.`);
       return false;
     }
 
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ credits: userCredits - ANALYSIS_CREDIT_COST })
+        .update({ credits: userCredits - analysisCreditCost })
         .eq('id', user.id);
 
       if (error) throw error;
@@ -147,7 +166,7 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
     }
   };
 
-  const canAnalyze = userCredits >= ANALYSIS_CREDIT_COST;
+  const canAnalyze = userCredits >= analysisCreditCost;
 
   const handleYouTubeAnalyze = async () => {
     if (!youtubeInput.trim()) {
@@ -156,7 +175,7 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
     }
 
     if (!canAnalyze) {
-      toast.error(`You need ${ANALYSIS_CREDIT_COST} credits to analyze`);
+      toast.error(`You need ${analysisCreditCost} credits to analyze`);
       return;
     }
 
@@ -197,7 +216,7 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
     }
 
     if (!canAnalyze) {
-      toast.error(`You need ${ANALYSIS_CREDIT_COST} credits to analyze`);
+      toast.error(`You need ${analysisCreditCost} credits to analyze`);
       return;
     }
 
@@ -239,7 +258,7 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
     }
 
     if (!canAnalyze) {
-      toast.error(`You need ${ANALYSIS_CREDIT_COST} credits to analyze`);
+      toast.error(`You need ${analysisCreditCost} credits to analyze`);
       return;
     }
 
@@ -294,7 +313,7 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
         <CardContent>
           <div className="text-center py-8 space-y-4">
             <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
-            <p className="text-muted-foreground">You need at least {ANALYSIS_CREDIT_COST} credits to use this feature</p>
+            <p className="text-muted-foreground">You need at least {analysisCreditCost} credits to use this feature</p>
             <p className="text-sm text-muted-foreground">Current balance: {userCredits} credits</p>
           </div>
         </CardContent>
@@ -317,7 +336,7 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
           <CardDescription>
             Estimate how much creators earn on YouTube, Facebook, and websites with AdSense
           </CardDescription>
-          <Badge variant="outline" className="w-fit mt-2">{ANALYSIS_CREDIT_COST} credits/analysis</Badge>
+          <Badge variant="outline" className="w-fit mt-2">{analysisCreditCost} credits/analysis</Badge>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
