@@ -138,24 +138,24 @@ const AIHub = memo(() => {
     toast.success('Switching to Content Creator with your research!');
   };
 
-  // Navigation items for sidebar
+  // Navigation items for sidebar with colorful gradients
   const navItems = [
-    { id: 'home', label: 'Home', icon: Sparkles },
-    { id: 'affiliate', label: 'Affiliate', icon: GitBranch },
-    { id: 'research', label: 'Research', icon: Brain },
-    { id: 'chat', label: 'GPT-5', icon: MessageSquare },
-    { id: 'business', label: 'Business', icon: Briefcase },
-    { id: 'text-to-image', label: 'Image', icon: Wand2 },
-    { id: 'text-to-video', label: 'Video', icon: VideoIcon },
-    { id: 'text-to-music', label: 'Music', icon: Music },
-    { id: 'enhance', label: 'Enhance', icon: Sparkles },
-    { id: 'image-to-text', label: 'Analyze', icon: ImageIcon },
-    { id: 'video-to-text', label: 'V→Text', icon: TypeIcon },
-    { id: 'content-creator', label: 'Creator', icon: Film },
-    { id: 'video-editor', label: 'Editor', icon: Scissors },
-    { id: 'web-scraper', label: 'Scraper', icon: Globe, premium: true },
-    { id: 'creator-analytics', label: 'Analytics', icon: Crown, premium: true },
-    { id: 'social-media', label: 'Social', icon: Users, premium: true },
+    { id: 'home', label: 'Home', icon: Sparkles, gradient: 'from-yellow-400 to-orange-500', iconColor: 'text-yellow-500' },
+    { id: 'affiliate', label: 'Affiliate', icon: GitBranch, gradient: 'from-green-400 to-emerald-500', iconColor: 'text-green-500' },
+    { id: 'research', label: 'Research', icon: Brain, gradient: 'from-purple-400 to-indigo-500', iconColor: 'text-purple-500' },
+    { id: 'chat', label: 'GPT-5', icon: MessageSquare, gradient: 'from-blue-400 to-cyan-500', iconColor: 'text-blue-500' },
+    { id: 'business', label: 'Business', icon: Briefcase, gradient: 'from-slate-400 to-gray-600', iconColor: 'text-slate-500' },
+    { id: 'text-to-image', label: 'Image', icon: Wand2, gradient: 'from-pink-400 to-rose-500', iconColor: 'text-pink-500' },
+    { id: 'text-to-video', label: 'Video', icon: VideoIcon, gradient: 'from-red-400 to-orange-500', iconColor: 'text-red-500' },
+    { id: 'text-to-music', label: 'Music', icon: Music, gradient: 'from-violet-400 to-purple-500', iconColor: 'text-violet-500' },
+    { id: 'enhance', label: 'Enhance', icon: Sparkles, gradient: 'from-amber-400 to-yellow-500', iconColor: 'text-amber-500' },
+    { id: 'image-to-text', label: 'Analyze', icon: ImageIcon, gradient: 'from-teal-400 to-cyan-500', iconColor: 'text-teal-500' },
+    { id: 'video-to-text', label: 'V→Text', icon: TypeIcon, gradient: 'from-lime-400 to-green-500', iconColor: 'text-lime-500' },
+    { id: 'content-creator', label: 'Creator', icon: Film, gradient: 'from-fuchsia-400 to-pink-500', iconColor: 'text-fuchsia-500' },
+    { id: 'video-editor', label: 'Editor', icon: Scissors, gradient: 'from-orange-400 to-red-500', iconColor: 'text-orange-500' },
+    { id: 'web-scraper', label: 'Scraper', icon: Globe, gradient: 'from-cyan-400 to-blue-500', iconColor: 'text-cyan-500', premium: true },
+    { id: 'creator-analytics', label: 'Analytics', icon: Crown, gradient: 'from-yellow-400 to-amber-500', iconColor: 'text-yellow-500', premium: true },
+    { id: 'social-media', label: 'Social', icon: Users, gradient: 'from-indigo-400 to-violet-500', iconColor: 'text-indigo-500', premium: true },
   ];
 
   useEffect(() => {
@@ -714,7 +714,7 @@ const AIHub = memo(() => {
 
         {/* Navigation Items */}
         <ScrollArea className="flex-1 py-4">
-          <nav className="space-y-1 px-2">
+          <nav className="space-y-1.5 px-2">
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -723,14 +723,36 @@ const AIHub = memo(() => {
                   if (window.innerWidth < 768) setSidebarOpen(false);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden",
                   activeTab === item.id
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg shadow-${item.gradient.split('-')[1]}-500/30`
+                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                 )}
               >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                <span className={cn(!sidebarOpen && "md:hidden")}>{item.label}</span>
+                {activeTab === item.id && (
+                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+                <div className={cn(
+                  "flex items-center justify-center w-8 h-8 rounded-lg transition-all",
+                  activeTab === item.id
+                    ? "bg-white/20"
+                    : `bg-gradient-to-br ${item.gradient} shadow-sm`
+                )}>
+                  <item.icon className={cn(
+                    "h-4 w-4 flex-shrink-0",
+                    activeTab === item.id ? "text-white" : "text-white"
+                  )} />
+                </div>
+                <span className={cn("flex-1 text-left", !sidebarOpen && "md:hidden")}>
+                  {item.label}
+                </span>
+                {item.premium && (
+                  <Crown className={cn(
+                    "h-3 w-3",
+                    activeTab === item.id ? "text-white" : "text-yellow-500",
+                    !sidebarOpen && "md:hidden"
+                  )} />
+                )}
               </button>
             ))}
           </nav>
