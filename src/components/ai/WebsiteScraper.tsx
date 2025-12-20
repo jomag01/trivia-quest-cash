@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,9 +21,9 @@ import {
   Copy,
   ExternalLink,
   Sparkles,
-  Download,
-  Eye,
-  Wand2
+  Wand2,
+  Lock,
+  Crown
 } from 'lucide-react';
 
 interface ScrapedData {
@@ -48,7 +47,15 @@ interface AIAnalysis {
   cloneInstructions: string;
 }
 
-const WebsiteScraper: React.FC = () => {
+interface WebsiteScraperProps {
+  userCredits: number;
+  onCreditsChange: () => void;
+}
+
+const SCRAPE_CREDIT_COST = 5;
+const ANALYZE_CREDIT_COST = 10;
+
+const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsChange }) => {
   const { user } = useAuth();
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -56,6 +63,29 @@ const WebsiteScraper: React.FC = () => {
   const [scrapedData, setScrapedData] = useState<ScrapedData | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+
+  const deductCredits = async (amount: number): Promise<boolean> => {
+    if (!user) return false;
+    if (userCredits < amount) {
+      toast.error(`Insufficient credits. You need ${amount} credits.`);
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ credits: userCredits - amount })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      onCreditsChange();
+      return true;
+    } catch (error) {
+      console.error('Error deducting credits:', error);
+      toast.error('Failed to deduct credits');
+      return false;
+    }
+  };
 
   const handleScrape = async () => {
     if (!url.trim()) {
@@ -67,6 +97,14 @@ const WebsiteScraper: React.FC = () => {
       toast.error('Please login to use the scraper');
       return;
     }
+
+    if (userCredits < SCRAPE_CREDIT_COST) {
+      toast.error(`You need ${SCRAPE_CREDIT_COST} credits to scrape a website`);
+      return;
+    }
+
+    const deducted = await deductCredits(SCRAPE_CREDIT_COST);
+    if (!deducted) return;
 
     setIsLoading(true);
     setScrapedData(null);
@@ -98,6 +136,14 @@ const WebsiteScraper: React.FC = () => {
       toast.error('Please scrape a website first');
       return;
     }
+
+    if (userCredits < ANALYZE_CREDIT_COST) {
+      toast.error(`You need ${ANALYZE_CREDIT_COST} credits for AI analysis`);
+      return;
+    }
+
+    const deducted = await deductCredits(ANALYZE_CREDIT_COST);
+    if (!deducted) return;
 
     setIsAnalyzing(true);
 
@@ -134,6 +180,9 @@ const WebsiteScraper: React.FC = () => {
     toast.success(`${label} copied to clipboard!`);
   };
 
+  const canScrape = userCredits >= SCRAPE_CREDIT_COST;
+  const canAnalyze = userCredits >= ANALYZE_CREDIT_COST;
+
   return (
     <div className="space-y-4">
       <Card>
@@ -141,55 +190,73 @@ const WebsiteScraper: React.FC = () => {
           <CardTitle className="flex items-center gap-2 text-lg">
             <Globe className="h-5 w-5 text-primary" />
             Website Scraper & AI Cloner
+            <Badge variant="secondary" className="ml-2 gap-1">
+              <Crown className="h-3 w-3" />
+              Premium
+            </Badge>
           </CardTitle>
           <CardDescription>
             Scrape any website to get content ideas, analyze design, and get AI-powered instructions to clone it
           </CardDescription>
+          <div className="flex gap-2 text-xs text-muted-foreground mt-2">
+            <Badge variant="outline">{SCRAPE_CREDIT_COST} credits/scrape</Badge>
+            <Badge variant="outline">{ANALYZE_CREDIT_COST} credits/AI analysis</Badge>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Input
-                placeholder="Enter website URL (e.g., https://example.com)"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleScrape()}
-              />
+          {!canScrape ? (
+            <div className="text-center py-8 space-y-4">
+              <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
+              <p className="text-muted-foreground">You need at least {SCRAPE_CREDIT_COST} credits to use this feature</p>
+              <p className="text-sm text-muted-foreground">Current balance: {userCredits} credits</p>
             </div>
-            <Button onClick={handleScrape} disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Scraping...
-                </>
-              ) : (
-                <>
-                  <Search className="h-4 w-4 mr-2" />
-                  Scrape
-                </>
-              )}
-            </Button>
-          </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Enter website URL (e.g., https://example.com)"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleScrape()}
+                  />
+                </div>
+                <Button onClick={handleScrape} disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Scraping...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Scrape ({SCRAPE_CREDIT_COST}c)
+                    </>
+                  )}
+                </Button>
+              </div>
 
-          {scrapedData && (
-            <Button 
-              onClick={handleAIAnalysis} 
-              disabled={isAnalyzing}
-              variant="secondary"
-              className="w-full"
-            >
-              {isAnalyzing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing with AI...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="h-4 w-4 mr-2" />
-                  Analyze with AI & Get Clone Instructions
-                </>
+              {scrapedData && (
+                <Button 
+                  onClick={handleAIAnalysis} 
+                  disabled={isAnalyzing || !canAnalyze}
+                  variant="secondary"
+                  className="w-full"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Analyzing with AI...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Analyze with AI & Get Clone Instructions ({ANALYZE_CREDIT_COST}c)
+                    </>
+                  )}
+                </Button>
               )}
-            </Button>
+            </>
           )}
         </CardContent>
       </Card>
@@ -200,7 +267,7 @@ const WebsiteScraper: React.FC = () => {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid grid-cols-5 w-full">
                 <TabsTrigger value="overview" className="text-xs">
-                  <Eye className="h-3 w-3 mr-1" />
+                  <Globe className="h-3 w-3 mr-1" />
                   Overview
                 </TabsTrigger>
                 <TabsTrigger value="content" className="text-xs">
@@ -434,6 +501,7 @@ const WebsiteScraper: React.FC = () => {
                   <div className="text-center py-8 text-muted-foreground">
                     <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>Click "Analyze with AI" to get design insights and clone instructions</p>
+                    <p className="text-xs mt-1">Cost: {ANALYZE_CREDIT_COST} credits</p>
                   </div>
                 )}
               </TabsContent>

@@ -12,12 +12,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3 } from 'lucide-react';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
 import AdvancedChatAssistant from '@/components/ai/AdvancedChatAssistant';
 import BinaryAffiliateTab from '@/components/ai/BinaryAffiliateTab';
 import AIHubGallery from '@/components/ai/AIHubGallery';
+import WebsiteScraper from '@/components/ai/WebsiteScraper';
+import CreatorAnalytics from '@/components/ai/CreatorAnalytics';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -150,6 +152,8 @@ const AIHub = memo(() => {
     { id: 'video-to-text', label: 'V→Text', icon: TypeIcon },
     { id: 'content-creator', label: 'Creator', icon: Film },
     { id: 'video-editor', label: 'Editor', icon: Scissors },
+    { id: 'web-scraper', label: 'Scraper', icon: Globe, premium: true },
+    { id: 'creator-analytics', label: 'Analytics', icon: Crown, premium: true },
   ];
 
   useEffect(() => {
@@ -1665,6 +1669,20 @@ const AIHub = memo(() => {
                   )}
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* Website Scraper - Premium */}
+          {activeTab === 'web-scraper' && (
+            <div className="p-4 md:p-6">
+              <WebsiteScraper userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
+          )}
+
+          {/* Creator Analytics - Premium */}
+          {activeTab === 'creator-analytics' && (
+            <div className="p-4 md:p-6">
+              <CreatorAnalytics userCredits={userCredits} onCreditsChange={fetchUserCredits} />
             </div>
           )}
         </div>

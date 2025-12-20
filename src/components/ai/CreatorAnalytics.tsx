@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -22,8 +21,9 @@ import {
   Eye,
   Video,
   BarChart3,
-  Calculator,
-  Info
+  Info,
+  Lock,
+  Crown
 } from 'lucide-react';
 
 interface YouTubeStats {
@@ -61,7 +61,14 @@ interface AdSenseStats {
   grade: string;
 }
 
-const CreatorAnalytics: React.FC = () => {
+interface CreatorAnalyticsProps {
+  userCredits: number;
+  onCreditsChange: () => void;
+}
+
+const ANALYSIS_CREDIT_COST = 5;
+
+const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCreditsChange }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('youtube');
   
@@ -117,11 +124,44 @@ const CreatorAnalytics: React.FC = () => {
     return colors[grade] || 'bg-gray-500';
   };
 
+  const deductCredits = async (): Promise<boolean> => {
+    if (!user) return false;
+    if (userCredits < ANALYSIS_CREDIT_COST) {
+      toast.error(`Insufficient credits. You need ${ANALYSIS_CREDIT_COST} credits.`);
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ credits: userCredits - ANALYSIS_CREDIT_COST })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      onCreditsChange();
+      return true;
+    } catch (error) {
+      console.error('Error deducting credits:', error);
+      toast.error('Failed to deduct credits');
+      return false;
+    }
+  };
+
+  const canAnalyze = userCredits >= ANALYSIS_CREDIT_COST;
+
   const handleYouTubeAnalyze = async () => {
     if (!youtubeInput.trim()) {
       toast.error('Please enter a YouTube channel URL or username');
       return;
     }
+
+    if (!canAnalyze) {
+      toast.error(`You need ${ANALYSIS_CREDIT_COST} credits to analyze`);
+      return;
+    }
+
+    const deducted = await deductCredits();
+    if (!deducted) return;
 
     setYoutubeLoading(true);
     setYoutubeStats(null);
@@ -155,6 +195,14 @@ const CreatorAnalytics: React.FC = () => {
       toast.error('Please enter page name and follower count');
       return;
     }
+
+    if (!canAnalyze) {
+      toast.error(`You need ${ANALYSIS_CREDIT_COST} credits to analyze`);
+      return;
+    }
+
+    const deducted = await deductCredits();
+    if (!deducted) return;
 
     setFacebookLoading(true);
     setFacebookStats(null);
@@ -190,6 +238,14 @@ const CreatorAnalytics: React.FC = () => {
       return;
     }
 
+    if (!canAnalyze) {
+      toast.error(`You need ${ANALYSIS_CREDIT_COST} credits to analyze`);
+      return;
+    }
+
+    const deducted = await deductCredits();
+    if (!deducted) return;
+
     setAdsenseLoading(true);
     setAdsenseStats(null);
 
@@ -219,6 +275,33 @@ const CreatorAnalytics: React.FC = () => {
     }
   };
 
+  if (!canAnalyze) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Creator Analytics (Social Blade Style)
+            <Badge variant="secondary" className="ml-2 gap-1">
+              <Crown className="h-3 w-3" />
+              Premium
+            </Badge>
+          </CardTitle>
+          <CardDescription>
+            Estimate how much creators earn on YouTube, Facebook, and websites with AdSense
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 space-y-4">
+            <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
+            <p className="text-muted-foreground">You need at least {ANALYSIS_CREDIT_COST} credits to use this feature</p>
+            <p className="text-sm text-muted-foreground">Current balance: {userCredits} credits</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <Card>
@@ -226,10 +309,15 @@ const CreatorAnalytics: React.FC = () => {
           <CardTitle className="flex items-center gap-2 text-lg">
             <BarChart3 className="h-5 w-5 text-primary" />
             Creator Analytics (Social Blade Style)
+            <Badge variant="secondary" className="ml-2 gap-1">
+              <Crown className="h-3 w-3" />
+              Premium
+            </Badge>
           </CardTitle>
           <CardDescription>
             Estimate how much creators earn on YouTube, Facebook, and websites with AdSense
           </CardDescription>
+          <Badge variant="outline" className="w-fit mt-2">{ANALYSIS_CREDIT_COST} credits/analysis</Badge>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -437,22 +525,22 @@ const CreatorAnalytics: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="general">General</SelectItem>
-                      <SelectItem value="finance">Finance</SelectItem>
                       <SelectItem value="tech">Technology</SelectItem>
+                      <SelectItem value="finance">Finance</SelectItem>
                       <SelectItem value="health">Health</SelectItem>
                       <SelectItem value="travel">Travel</SelectItem>
                       <SelectItem value="food">Food</SelectItem>
-                      <SelectItem value="entertainment">Entertainment</SelectItem>
-                      <SelectItem value="education">Education</SelectItem>
+                      <SelectItem value="lifestyle">Lifestyle</SelectItem>
                       <SelectItem value="gaming">Gaming</SelectItem>
-                      <SelectItem value="fashion">Fashion</SelectItem>
+                      <SelectItem value="education">Education</SelectItem>
+                      <SelectItem value="news">News</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button onClick={handleAdSenseAnalyze} disabled={adsenseLoading}>
                     {adsenseLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <Calculator className="h-4 w-4" />
+                      <Search className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
@@ -517,7 +605,7 @@ const CreatorAnalytics: React.FC = () => {
 
                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                       <Info className="h-3 w-3" />
-                      Estimates based on traffic, niche CPM rates, and typical CTR. Actual earnings vary based on ad placement, audience geo, and content.
+                      Estimates based on traffic, niche CPC/CTR averages. Actual earnings vary by ad placement, audience location, and content quality.
                     </div>
                   </CardContent>
                 </Card>
