@@ -998,6 +998,437 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
               )}
             </TabsContent>
 
+            {/* TikTok Tab */}
+            <TabsContent value="tiktok" className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="relative">
+                  <Input
+                    placeholder="TikTok username or URL"
+                    value={tiktokInput}
+                    onChange={(e) => setTiktokInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleTikTokAnalyze()}
+                    className="pr-10"
+                  />
+                  <TikTokIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" />
+                </div>
+                <Input
+                  placeholder="Follower count (optional)"
+                  type="number"
+                  value={tiktokFollowers}
+                  onChange={(e) => setTiktokFollowers(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Select value={tiktokNiche} onValueChange={setTiktokNiche}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Niche" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      <SelectItem value="entertainment">Entertainment</SelectItem>
+                      <SelectItem value="dance">Dance</SelectItem>
+                      <SelectItem value="comedy">Comedy</SelectItem>
+                      <SelectItem value="education">Education</SelectItem>
+                      <SelectItem value="beauty">Beauty</SelectItem>
+                      <SelectItem value="fitness">Fitness</SelectItem>
+                      <SelectItem value="food">Food</SelectItem>
+                      <SelectItem value="gaming">Gaming</SelectItem>
+                      <SelectItem value="music">Music</SelectItem>
+                      <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={handleTikTokAnalyze} 
+                    disabled={tiktokLoading}
+                    className="bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 hover:from-pink-600 hover:via-red-600 hover:to-yellow-600"
+                  >
+                    {tiktokLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              {tiktokStats && (
+                <Card className="bg-gradient-to-br from-pink-500/5 via-red-500/5 to-yellow-500/5 border-pink-500/20 overflow-hidden">
+                  <CardContent className="pt-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {tiktokStats.profileImage && (
+                          <div className="relative">
+                            <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-pink-500 ring-offset-2 ring-offset-background">
+                              <img src={tiktokStats.profileImage} alt={tiktokStats.username} className="w-full h-full object-cover" />
+                            </div>
+                            {tiktokStats.verified && (
+                              <div className="absolute -bottom-1 -right-1 bg-cyan-500 rounded-full p-1">
+                                <CheckCircle2 className="h-4 w-4 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-bold text-lg flex items-center gap-2">
+                            {tiktokStats.nickname || tiktokStats.username}
+                            <TikTokIcon className="h-4 w-4" />
+                          </h3>
+                          <p className="text-sm text-muted-foreground">@{tiktokStats.username}</p>
+                          <Badge variant="secondary" className={`bg-gradient-to-r ${getCategoryGradient(tiktokStats.niche)} text-white border-0 mt-1`}>
+                            {tiktokStats.niche}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Badge className={`${getGradeColor(tiktokStats.grade)} text-white text-lg px-3 py-1 shadow-lg`}>
+                        {tiktokStats.grade}
+                      </Badge>
+                    </div>
+
+                    {tiktokStats.bio && <p className="text-sm text-muted-foreground line-clamp-2">{tiktokStats.bio}</p>}
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="bg-background rounded-lg p-3 text-center border border-pink-500/20 hover:border-pink-500/40 transition-colors">
+                        <Users className="h-5 w-5 mx-auto mb-1 text-pink-500" />
+                        <p className="text-xs text-muted-foreground">Followers</p>
+                        <p className="font-bold text-lg">{formatNumber(tiktokStats.followers)}</p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3 text-center border border-red-500/20 hover:border-red-500/40 transition-colors">
+                        <Heart className="h-5 w-5 mx-auto mb-1 text-red-500" />
+                        <p className="text-xs text-muted-foreground">Likes</p>
+                        <p className="font-bold text-lg">{formatNumber(tiktokStats.likes)}</p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3 text-center border border-purple-500/20 hover:border-purple-500/40 transition-colors">
+                        <Video className="h-5 w-5 mx-auto mb-1 text-purple-500" />
+                        <p className="text-xs text-muted-foreground">Videos</p>
+                        <p className="font-bold text-lg">{formatNumber(tiktokStats.videos)}</p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3 text-center border border-green-500/20 hover:border-green-500/40 transition-colors">
+                        <TrendingUp className="h-5 w-5 mx-auto mb-1 text-green-500" />
+                        <p className="text-xs text-muted-foreground">Engagement</p>
+                        <p className="font-bold text-lg">{tiktokStats.engagementRate}%</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-green-500/20"><DollarSign className="h-4 w-4 text-green-500" /></div>
+                          <span className="font-medium">Est. Monthly Earnings</span>
+                        </div>
+                        <p className="text-2xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+                          {formatCurrency(tiktokStats.estimatedMonthlyEarnings.low)} - {formatCurrency(tiktokStats.estimatedMonthlyEarnings.high)}
+                        </p>
+                      </div>
+                      <div className="bg-gradient-to-br from-pink-500/10 to-red-500/10 border border-pink-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-pink-500/20"><DollarSign className="h-4 w-4 text-pink-500" /></div>
+                          <span className="font-medium">Est. Per Sponsored Post</span>
+                        </div>
+                        <p className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-red-500 bg-clip-text text-transparent">
+                          {formatCurrency(tiktokStats.estimatedPerPost.low)} - {formatCurrency(tiktokStats.estimatedPerPost.high)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 bg-muted/50 rounded-lg p-2">
+                      <Info className="h-3 w-3" />
+                      Creator Fund CPM: ${tiktokStats.cpm.low} - ${tiktokStats.cpm.high}. Estimates based on engagement and niche rates.
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Instagram Tab */}
+            <TabsContent value="instagram" className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="relative">
+                  <Input
+                    placeholder="Instagram username or URL"
+                    value={instagramInput}
+                    onChange={(e) => setInstagramInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleInstagramAnalyze()}
+                    className="pr-10"
+                  />
+                  <InstagramIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-pink-500" />
+                </div>
+                <Input
+                  placeholder="Follower count (optional)"
+                  type="number"
+                  value={instagramFollowers}
+                  onChange={(e) => setInstagramFollowers(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Select value={instagramNiche} onValueChange={setInstagramNiche}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Niche" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      <SelectItem value="general">General</SelectItem>
+                      <SelectItem value="fashion">Fashion</SelectItem>
+                      <SelectItem value="beauty">Beauty</SelectItem>
+                      <SelectItem value="fitness">Fitness</SelectItem>
+                      <SelectItem value="travel">Travel</SelectItem>
+                      <SelectItem value="food">Food</SelectItem>
+                      <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                      <SelectItem value="photography">Photography</SelectItem>
+                      <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="art">Art</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={handleInstagramAnalyze} 
+                    disabled={instagramLoading}
+                    className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600"
+                  >
+                    {instagramLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              {instagramStats && (
+                <Card className="bg-gradient-to-br from-purple-500/5 via-pink-500/5 to-orange-500/5 border-pink-500/20 overflow-hidden">
+                  <CardContent className="pt-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {instagramStats.profileImage && (
+                          <div className="relative">
+                            <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-pink-500 ring-offset-2 ring-offset-background">
+                              <img src={instagramStats.profileImage} alt={instagramStats.username} className="w-full h-full object-cover" />
+                            </div>
+                            {instagramStats.verified && (
+                              <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1">
+                                <CheckCircle2 className="h-4 w-4 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-bold text-lg flex items-center gap-2">
+                            {instagramStats.fullName || instagramStats.username}
+                            <InstagramIcon className="h-4 w-4 text-pink-500" />
+                          </h3>
+                          <p className="text-sm text-muted-foreground">@{instagramStats.username}</p>
+                          <div className="flex gap-2 mt-1">
+                            <Badge variant="secondary" className={`bg-gradient-to-r ${getCategoryGradient(instagramStats.niche)} text-white border-0`}>
+                              {instagramStats.niche}
+                            </Badge>
+                            {instagramStats.isPrivate && <Badge variant="outline" className="text-xs">Private</Badge>}
+                          </div>
+                        </div>
+                      </div>
+                      <Badge className={`${getGradeColor(instagramStats.grade)} text-white text-lg px-3 py-1 shadow-lg`}>
+                        {instagramStats.grade}
+                      </Badge>
+                    </div>
+
+                    {instagramStats.bio && <p className="text-sm text-muted-foreground line-clamp-2">{instagramStats.bio}</p>}
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="bg-background rounded-lg p-3 text-center border border-pink-500/20 hover:border-pink-500/40 transition-colors">
+                        <Users className="h-5 w-5 mx-auto mb-1 text-pink-500" />
+                        <p className="text-xs text-muted-foreground">Followers</p>
+                        <p className="font-bold text-lg">{formatNumber(instagramStats.followers)}</p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3 text-center border border-purple-500/20 hover:border-purple-500/40 transition-colors">
+                        <Users className="h-5 w-5 mx-auto mb-1 text-purple-500" />
+                        <p className="text-xs text-muted-foreground">Following</p>
+                        <p className="font-bold text-lg">{formatNumber(instagramStats.following)}</p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3 text-center border border-orange-500/20 hover:border-orange-500/40 transition-colors">
+                        <ImageIcon className="h-5 w-5 mx-auto mb-1 text-orange-500" />
+                        <p className="text-xs text-muted-foreground">Posts</p>
+                        <p className="font-bold text-lg">{formatNumber(instagramStats.posts)}</p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3 text-center border border-green-500/20 hover:border-green-500/40 transition-colors">
+                        <TrendingUp className="h-5 w-5 mx-auto mb-1 text-green-500" />
+                        <p className="text-xs text-muted-foreground">Engagement</p>
+                        <p className="font-bold text-lg">{instagramStats.engagementRate}%</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="bg-gradient-to-br from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-pink-500/20"><ImageIcon className="h-4 w-4 text-pink-500" /></div>
+                          <span className="font-medium text-sm">Per Post</span>
+                        </div>
+                        <p className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                          {formatCurrency(instagramStats.estimatedPerPost.low)} - {formatCurrency(instagramStats.estimatedPerPost.high)}
+                        </p>
+                      </div>
+                      <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-purple-500/20"><Video className="h-4 w-4 text-purple-500" /></div>
+                          <span className="font-medium text-sm">Per Reel</span>
+                        </div>
+                        <p className="text-xl font-bold bg-gradient-to-r from-purple-500 to-indigo-500 bg-clip-text text-transparent">
+                          {formatCurrency(instagramStats.estimatedPerReel.low)} - {formatCurrency(instagramStats.estimatedPerReel.high)}
+                        </p>
+                      </div>
+                      <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-green-500/20"><DollarSign className="h-4 w-4 text-green-500" /></div>
+                          <span className="font-medium text-sm">Monthly</span>
+                        </div>
+                        <p className="text-xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+                          {formatCurrency(instagramStats.estimatedMonthlyEarnings.low)} - {formatCurrency(instagramStats.estimatedMonthlyEarnings.high)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 bg-muted/50 rounded-lg p-2">
+                      <Info className="h-3 w-3" />
+                      Estimates based on follower count, engagement rate, and industry sponsorship standards.
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Twitter/X Tab */}
+            <TabsContent value="twitter" className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="relative">
+                  <Input
+                    placeholder="Twitter/X username or URL"
+                    value={twitterInput}
+                    onChange={(e) => setTwitterInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleTwitterAnalyze()}
+                    className="pr-10"
+                  />
+                  <TwitterIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" />
+                </div>
+                <Input
+                  placeholder="Follower count (optional)"
+                  type="number"
+                  value={twitterFollowers}
+                  onChange={(e) => setTwitterFollowers(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Select value={twitterNiche} onValueChange={setTwitterNiche}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Niche" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      <SelectItem value="general">General</SelectItem>
+                      <SelectItem value="tech">Tech</SelectItem>
+                      <SelectItem value="crypto">Crypto/Web3</SelectItem>
+                      <SelectItem value="politics">Politics</SelectItem>
+                      <SelectItem value="sports">Sports</SelectItem>
+                      <SelectItem value="entertainment">Entertainment</SelectItem>
+                      <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="news">News</SelectItem>
+                      <SelectItem value="comedy">Comedy</SelectItem>
+                      <SelectItem value="gaming">Gaming</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={handleTwitterAnalyze} 
+                    disabled={twitterLoading}
+                    className="bg-black hover:bg-gray-900 text-white"
+                  >
+                    {twitterLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              {twitterStats && (
+                <Card className="bg-gradient-to-br from-gray-500/5 to-slate-500/5 border-gray-500/20 overflow-hidden">
+                  {twitterStats.bannerImage && (
+                    <div className="w-full h-24 md:h-32 overflow-hidden">
+                      <img src={twitterStats.bannerImage} alt={`${twitterStats.displayName} banner`} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <CardContent className="pt-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {twitterStats.profileImage && (
+                          <div className="relative">
+                            <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-gray-600 ring-offset-2 ring-offset-background">
+                              <img src={twitterStats.profileImage} alt={twitterStats.username} className="w-full h-full object-cover" />
+                            </div>
+                            {twitterStats.verified && (
+                              <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1">
+                                <CheckCircle2 className="h-4 w-4 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-bold text-lg flex items-center gap-2">
+                            {twitterStats.displayName}
+                            <TwitterIcon className="h-4 w-4" />
+                          </h3>
+                          <p className="text-sm text-muted-foreground">@{twitterStats.username}</p>
+                          <Badge variant="secondary" className={`bg-gradient-to-r ${getCategoryGradient(twitterStats.niche === 'tech' ? 'Tech' : 'default')} text-white border-0 mt-1`}>
+                            {twitterStats.niche}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Badge className={`${getGradeColor(twitterStats.grade)} text-white text-lg px-3 py-1 shadow-lg`}>
+                        {twitterStats.grade}
+                      </Badge>
+                    </div>
+
+                    {twitterStats.bio && <p className="text-sm text-muted-foreground line-clamp-2">{twitterStats.bio}</p>}
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="bg-background rounded-lg p-3 text-center border border-gray-500/20 hover:border-gray-500/40 transition-colors">
+                        <Users className="h-5 w-5 mx-auto mb-1 text-gray-500" />
+                        <p className="text-xs text-muted-foreground">Followers</p>
+                        <p className="font-bold text-lg">{formatNumber(twitterStats.followers)}</p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3 text-center border border-blue-500/20 hover:border-blue-500/40 transition-colors">
+                        <Users className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+                        <p className="text-xs text-muted-foreground">Following</p>
+                        <p className="font-bold text-lg">{formatNumber(twitterStats.following)}</p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3 text-center border border-cyan-500/20 hover:border-cyan-500/40 transition-colors">
+                        <MessageCircle className="h-5 w-5 mx-auto mb-1 text-cyan-500" />
+                        <p className="text-xs text-muted-foreground">Tweets</p>
+                        <p className="font-bold text-lg">{formatNumber(twitterStats.tweets)}</p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3 text-center border border-green-500/20 hover:border-green-500/40 transition-colors">
+                        <TrendingUp className="h-5 w-5 mx-auto mb-1 text-green-500" />
+                        <p className="text-xs text-muted-foreground">Engagement</p>
+                        <p className="font-bold text-lg">{twitterStats.engagementRate}%</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="bg-gradient-to-br from-gray-500/10 to-slate-500/10 border border-gray-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-gray-500/20"><MessageCircle className="h-4 w-4 text-gray-500" /></div>
+                          <span className="font-medium text-sm">Per Tweet</span>
+                        </div>
+                        <p className="text-xl font-bold">
+                          {formatCurrency(twitterStats.estimatedPerTweet.low)} - {formatCurrency(twitterStats.estimatedPerTweet.high)}
+                        </p>
+                      </div>
+                      <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-blue-500/20"><Crown className="h-4 w-4 text-blue-500" /></div>
+                          <span className="font-medium text-sm">Premium Revenue</span>
+                        </div>
+                        <p className="text-xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                          {formatCurrency(twitterStats.estimatedPremiumRevenue.low)} - {formatCurrency(twitterStats.estimatedPremiumRevenue.high)}
+                        </p>
+                      </div>
+                      <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-green-500/20"><DollarSign className="h-4 w-4 text-green-500" /></div>
+                          <span className="font-medium text-sm">Monthly</span>
+                        </div>
+                        <p className="text-xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+                          {formatCurrency(twitterStats.estimatedMonthlyEarnings.low)} - {formatCurrency(twitterStats.estimatedMonthlyEarnings.high)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 bg-muted/50 rounded-lg p-2">
+                      <Info className="h-3 w-3" />
+                      Includes X Premium ad revenue sharing estimates. Actual earnings depend on impressions and engagement.
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
             {/* Facebook Tab */}
             <TabsContent value="facebook" className="mt-4 space-y-4">
               <div ref={facebookRef} className="relative">
