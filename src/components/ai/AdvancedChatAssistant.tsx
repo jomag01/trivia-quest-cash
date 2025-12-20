@@ -102,15 +102,22 @@ const AdvancedChatAssistant: React.FC<AdvancedChatAssistantProps> = ({
   };
 
   return (
-    <Card className={cn("border-primary/20", compact ? "h-full" : "")}>
-      <CardHeader className="pb-3">
+    <Card className={cn("border-0 shadow-xl bg-gradient-to-br from-violet-500/10 via-purple-500/5 to-fuchsia-500/10 overflow-hidden", compact ? "h-full" : "")}>
+      {/* Colorful header gradient */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500" />
+      
+      <CardHeader className="pb-3 bg-gradient-to-r from-violet-500/5 to-purple-500/5">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            {title}
+            <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <span className="bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent font-bold">
+              {title}
+            </span>
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="gap-1">
+            <Badge className="gap-1 bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0">
               <Sparkles className="w-3 h-3" />
               GPT-5
             </Badge>
@@ -119,9 +126,9 @@ const AdvancedChatAssistant: React.FC<AdvancedChatAssistantProps> = ({
                 variant="ghost" 
                 size="sm" 
                 onClick={clearChat}
-                className="h-8"
+                className="h-8 hover:bg-violet-500/10"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4 text-violet-500" />
               </Button>
             )}
           </div>
@@ -136,14 +143,16 @@ const AdvancedChatAssistant: React.FC<AdvancedChatAssistantProps> = ({
         <ScrollArea 
           ref={scrollRef}
           className={cn(
-            "border rounded-lg p-4 bg-muted/30",
+            "rounded-xl p-4 bg-gradient-to-br from-violet-500/5 to-purple-500/5 border border-violet-500/20",
             compact ? "h-[250px]" : "h-[350px]"
           )}
         >
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-              <MessageSquare className="w-12 h-12 mb-4 opacity-20" />
-              <p>Start a conversation with GPT-5</p>
+              <div className="p-4 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 mb-4">
+                <MessageSquare className="w-12 h-12 text-violet-500" />
+              </div>
+              <p className="font-medium text-violet-600">Start a conversation with GPT-5</p>
               <p className="text-xs mt-2">Ask anything - coding, analysis, creative writing</p>
             </div>
           ) : (
@@ -152,19 +161,23 @@ const AdvancedChatAssistant: React.FC<AdvancedChatAssistantProps> = ({
                 <div
                   key={msg.id}
                   className={cn(
-                    "p-3 rounded-lg",
+                    "p-3 rounded-xl transition-all",
                     msg.role === 'user' 
-                      ? "bg-primary/10 ml-8" 
-                      : "bg-background border mr-8"
+                      ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 ml-8 border border-violet-500/30" 
+                      : "bg-gradient-to-r from-fuchsia-500/10 to-pink-500/10 border border-fuchsia-500/20 mr-8"
                   )}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     {msg.role === 'user' ? (
-                      <User className="w-4 h-4 text-primary" />
+                      <div className="p-1 rounded-full bg-violet-500/20">
+                        <User className="w-3 h-3 text-violet-600" />
+                      </div>
                     ) : (
-                      <Bot className="w-4 h-4 text-primary" />
+                      <div className="p-1 rounded-full bg-fuchsia-500/20">
+                        <Bot className="w-3 h-3 text-fuchsia-600" />
+                      </div>
                     )}
-                    <span className="text-xs font-medium">
+                    <span className="text-xs font-medium bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
                       {msg.role === 'user' ? 'You' : 'GPT-5'}
                     </span>
                   </div>
@@ -172,9 +185,9 @@ const AdvancedChatAssistant: React.FC<AdvancedChatAssistantProps> = ({
                 </div>
               ))}
               {isLoading && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-background border mr-8">
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                  <span className="text-sm">Thinking...</span>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20 mr-8">
+                  <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
+                  <span className="text-sm text-violet-600 font-medium">Thinking...</span>
                 </div>
               )}
             </div>
@@ -187,6 +200,7 @@ const AdvancedChatAssistant: React.FC<AdvancedChatAssistantProps> = ({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
+            className="border-violet-500/30 focus:border-violet-500 focus:ring-violet-500/20"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -198,6 +212,7 @@ const AdvancedChatAssistant: React.FC<AdvancedChatAssistantProps> = ({
             onClick={handleSend} 
             disabled={isLoading || !input.trim()}
             size="icon"
+            className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />

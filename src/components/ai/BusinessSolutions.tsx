@@ -420,10 +420,13 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <Sparkles className="h-6 w-6" />
+      <Card className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white border-0 overflow-hidden relative">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
+        <CardHeader className="relative z-10">
+          <CardTitle className="flex items-center gap-3 text-2xl">
+            <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+              <Sparkles className="h-6 w-6" />
+            </div>
             Business Solutions Hub
           </CardTitle>
           <CardDescription className="text-white/80">
@@ -433,13 +436,13 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="powerpoint" className="gap-2">
+        <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-1">
+          <TabsTrigger value="powerpoint" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white">
             <Presentation className="h-4 w-4" />
             <span className="hidden sm:inline">PowerPoint Generator</span>
             <span className="sm:hidden">PPT</span>
           </TabsTrigger>
-          <TabsTrigger value="excel" className="gap-2">
+          <TabsTrigger value="excel" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white">
             <FileSpreadsheet className="h-4 w-4" />
             <span className="hidden sm:inline">Excel Automation</span>
             <span className="sm:hidden">Excel</span>
@@ -448,11 +451,16 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
 
         {/* PowerPoint Generator */}
         <TabsContent value="powerpoint" className="space-y-4">
-          <Card>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500/5 via-red-500/5 to-pink-500/5 overflow-hidden relative">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500" />
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Presentation className="h-5 w-5 text-orange-500" />
-                AI PowerPoint Generator
+                <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 text-white">
+                  <Presentation className="h-5 w-5" />
+                </div>
+                <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent font-bold">
+                  AI PowerPoint Generator
+                </span>
               </CardTitle>
               <CardDescription>
                 Create professional presentations from documents or topics in seconds
