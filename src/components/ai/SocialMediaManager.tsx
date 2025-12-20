@@ -7,8 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,7 +39,15 @@ import {
   Globe,
   Zap,
   TrendingUp,
-  RefreshCw
+  RefreshCw,
+  Shield,
+  Eye,
+  AlertTriangle,
+  Target,
+  BarChart3,
+  Settings,
+  CreditCard,
+  FileText
 } from 'lucide-react';
 
 // Platform icons
@@ -62,7 +71,7 @@ const SnapchatIcon = ({ className }: { className?: string }) => (
 
 const ThreadsIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01c-.006-.761-.007-1.527.001-2.289.072-3.594.928-6.471 2.548-8.559C5.89-.896 8.656-2.086 12.251-2.086h.007c2.132 0 3.977.468 5.48 1.388 1.42.873 2.542 2.148 3.334 3.786a15.3 15.3 0 0 1 1.25 4.042 20.588 20.588 0 0 1 .313 3.599c.015 1.21-.059 2.462-.205 3.726-.157 1.348-.43 2.718-.822 4.077-.18.622-.36 1.152-.541 1.6l-.128.308c-.4.926-.862 1.55-1.405 1.906-.478.313-1.044.472-1.682.472-.575 0-1.102-.145-1.568-.432-.413-.255-.752-.625-1.01-1.1-.196-.362-.33-.773-.4-1.22-.097-.61-.117-1.268-.059-1.958.102-1.203.41-2.518.925-3.926.395-1.079.872-2.18 1.42-3.28a40.66 40.66 0 0 1 1.69-3.134 35.58 35.58 0 0 1 1.695-2.672 28.04 28.04 0 0 1 1.474-1.963c.395-.476.79-.889 1.175-1.237-.011-.03-.022-.06-.034-.089-.384-.94-.89-1.713-1.506-2.296-1.13-1.07-2.656-1.614-4.536-1.614h-.007c-2.896 0-5.098.987-6.548 2.937-1.358 1.822-2.054 4.406-2.069 7.678-.008.724-.007 1.441.001 2.152.024 3.177.756 5.664 2.177 7.392 1.358 1.649 3.466 2.485 6.267 2.485h.007c1.73 0 3.235-.313 4.477-.93 1.158-.577 2.087-1.39 2.765-2.423.613-.934 1.055-2.025 1.312-3.24.223-1.06.32-2.205.288-3.405-.048-1.787-.357-3.467-.917-4.993-.478-1.304-1.117-2.385-1.9-3.213-1.483-1.573-3.454-2.371-5.86-2.371h-.007c-2.27 0-4.173.789-5.661 2.348-1.393 1.457-2.25 3.5-2.546 6.079-.052.445-.08.922-.085 1.421-.004.499.009.977.038 1.437.128 2.037.61 3.77 1.433 5.147.756 1.263 1.77 2.224 3.014 2.854 1.144.578 2.456.872 3.9.872h.007c.847 0 1.73-.104 2.624-.311.829-.192 1.49-.417 1.967-.67l-.395-1.674c-.324.17-.812.343-1.451.511-.756.199-1.49.3-2.185.3h-.007c-2.11 0-3.762-.67-4.91-1.993-.992-1.144-1.575-2.72-1.732-4.682-.033-.412-.048-.84-.044-1.277.004-.437.03-.86.078-1.263.236-2.003.868-3.565 1.879-4.64 1.072-1.137 2.533-1.713 4.346-1.713h.007c1.884 0 3.351.597 4.363 1.776.576.67 1.035 1.505 1.365 2.48.372 1.099.568 2.363.581 3.761.013 1.1-.073 2.116-.257 3.02-.216 1.063-.56 1.955-.992 2.65-.474.762-1.116 1.38-1.908 1.835-.887.508-1.96.766-3.19.766h-.007c-2.188 0-3.9-.672-5.091-1.997-.99-1.101-1.572-2.577-1.731-4.393-.015-.174-.026-.35-.034-.527l1.996-.061c.008.14.018.28.03.421.116 1.31.516 2.325 1.19 3.018.75.773 1.87 1.164 3.33 1.164h.007c.934 0 1.736-.188 2.385-.558.58-.332 1.045-.786 1.382-1.352.313-.526.546-1.203.692-2.012.14-.775.203-1.614.189-2.497-.016-1.154-.173-2.17-.467-3.02-.26-.753-.611-1.35-1.045-1.772-.689-.673-1.617-1.013-2.76-1.013h-.007c-1.305 0-2.313.396-3.002 1.177-.648.735-1.033 1.837-1.143 3.276-.026.349-.032.716-.018 1.097.015.381.05.763.106 1.138.186 1.25.568 2.246 1.134 2.957.63.791 1.534 1.193 2.688 1.193h.007c.41 0 .835-.05 1.264-.149.389-.089.716-.201.974-.333l.376 1.64c-.387.19-.84.345-1.347.462-.571.132-1.151.199-1.724.199h-.007c-1.777 0-3.184-.627-4.184-1.864-.872-1.078-1.387-2.535-1.53-4.328-.032-.404-.044-.829-.034-1.267.01-.439.044-.876.101-1.307.207-1.562.625-2.893 1.243-3.956.688-1.181 1.613-2.058 2.75-2.604.992-.477 2.139-.72 3.41-.72h.007c1.647 0 3.024.374 4.097 1.112.943.65 1.686 1.58 2.207 2.764.494 1.124.817 2.475.958 4.017.036.388.056.8.061 1.226z"/>
+    <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-2.289c.072-3.594.928-6.471 2.548-8.559C5.89-.896 8.656-2.086 12.251-2.086h.007c2.132 0 3.977.468 5.48 1.388 1.42.873 2.542 2.148 3.334 3.786a15.3 15.3 0 0 1 1.25 4.042c.157 1.348.43 2.718.822 4.077.18.622.36 1.152.541 1.6l.128.308c.4.926.862 1.55 1.405 1.906.478.313 1.044.472 1.682.472"/>
   </svg>
 );
 
@@ -85,6 +94,17 @@ const ALL_PLATFORMS = [
   { id: 'tumblr', name: 'Tumblr', icon: Globe, color: 'text-blue-400' }
 ];
 
+const AD_TYPES = [
+  { id: 'feed', name: 'Feed Ad' },
+  { id: 'story', name: 'Story Ad' },
+  { id: 'carousel', name: 'Carousel Ad' },
+  { id: 'video', name: 'Video Ad' },
+  { id: 'sponsored', name: 'Sponsored Post' },
+  { id: 'reel', name: 'Reel/Short Ad' },
+  { id: 'search', name: 'Search Ad' },
+  { id: 'display', name: 'Display Ad' }
+];
+
 interface ClientAccount {
   id: string;
   user_id: string;
@@ -98,6 +118,9 @@ interface ClientAccount {
   metadata: any;
   created_at: string;
   updated_at: string;
+  is_locked?: boolean;
+  deletion_protected?: boolean;
+  security_level?: string;
 }
 
 interface ScheduledPost {
@@ -116,6 +139,38 @@ interface ScheduledPost {
   created_at: string;
 }
 
+interface ServicePricing {
+  id: string;
+  user_id: string;
+  service_type: string;
+  service_name: string;
+  description: string | null;
+  base_price: number;
+  price_per_post: number;
+  price_per_ad: number;
+  price_per_month: number;
+  currency: string;
+  is_active: boolean;
+}
+
+interface AdCampaign {
+  id: string;
+  user_id: string;
+  client_account_id: string;
+  campaign_name: string;
+  platform: string;
+  ad_type: string;
+  budget: number;
+  budget_type: string;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  target_audience: any;
+  ad_content: any;
+  performance_metrics: any;
+  created_at: string;
+}
+
 interface SocialMediaManagerProps {
   userCredits: number;
   onCreditsChange: () => void;
@@ -126,9 +181,13 @@ const SocialMediaManager: React.FC<SocialMediaManagerProps> = ({ userCredits, on
   const [activeTab, setActiveTab] = useState('clients');
   const [clients, setClients] = useState<ClientAccount[]>([]);
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
+  const [servicePricing, setServicePricing] = useState<ServicePricing[]>([]);
+  const [adCampaigns, setAdCampaigns] = useState<AdCampaign[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingClients, setLoadingClients] = useState(true);
   const [creditCost, setCreditCost] = useState(10);
+  const [adminCommission, setAdminCommission] = useState(15);
+  const [adsCommission, setAdsCommission] = useState(10);
   
   // Pagination for scalability
   const [clientPage, setClientPage] = useState(0);
@@ -155,6 +214,36 @@ const SocialMediaManager: React.FC<SocialMediaManagerProps> = ({ userCredits, on
   const [isGenerating, setIsGenerating] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
+
+  // Pricing dialog
+  const [showPricingDialog, setShowPricingDialog] = useState(false);
+  const [newPricing, setNewPricing] = useState({
+    service_name: '',
+    description: '',
+    base_price: 0,
+    price_per_post: 0,
+    price_per_ad: 0,
+    price_per_month: 0
+  });
+
+  // Ads campaign dialog
+  const [showAdDialog, setShowAdDialog] = useState(false);
+  const [newCampaign, setNewCampaign] = useState({
+    client_account_id: '',
+    campaign_name: '',
+    platform: 'facebook',
+    ad_type: 'feed',
+    budget: 0,
+    budget_type: 'daily',
+    start_date: '',
+    end_date: '',
+    target_audience: '',
+    ad_content: ''
+  });
+
+  // Security audit
+  const [showSecurityLog, setShowSecurityLog] = useState(false);
+  const [securityLogs, setSecurityLogs] = useState<any[]>([]);
 
   // Real-time subscription
   useEffect(() => {
@@ -185,25 +274,30 @@ const SocialMediaManager: React.FC<SocialMediaManagerProps> = ({ userCredits, on
 
   useEffect(() => {
     if (user) {
-      fetchCreditCost();
+      fetchSettings();
       loadClients();
       loadPosts();
+      loadServicePricing();
+      loadAdCampaigns();
     }
   }, [user]);
 
-  const fetchCreditCost = async () => {
+  const fetchSettings = async () => {
     try {
       const { data } = await supabase
         .from('app_settings')
-        .select('value')
-        .eq('key', 'ai_social_media_credit_cost')
-        .maybeSingle();
+        .select('key, value')
+        .in('key', ['ai_social_media_credit_cost', 'ai_smm_commission_percent', 'ai_smm_ads_commission_percent']);
       
-      if (data?.value) {
-        setCreditCost(parseInt(data.value));
+      if (data) {
+        data.forEach(s => {
+          if (s.key === 'ai_social_media_credit_cost') setCreditCost(parseInt(s.value || '10'));
+          if (s.key === 'ai_smm_commission_percent') setAdminCommission(parseInt(s.value || '15'));
+          if (s.key === 'ai_smm_ads_commission_percent') setAdsCommission(parseInt(s.value || '10'));
+        });
       }
     } catch (error) {
-      console.error('Error fetching credit cost:', error);
+      console.error('Error fetching settings:', error);
     }
   };
 
@@ -263,6 +357,49 @@ const SocialMediaManager: React.FC<SocialMediaManagerProps> = ({ userCredits, on
     }
   }, [user]);
 
+  const loadServicePricing = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('smm_service_pricing')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (data) setServicePricing(data as ServicePricing[]);
+    } catch (error) {
+      console.error('Error loading pricing:', error);
+    }
+  };
+
+  const loadAdCampaigns = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('smm_ad_campaigns')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (data) setAdCampaigns(data as AdCampaign[]);
+    } catch (error) {
+      console.error('Error loading campaigns:', error);
+    }
+  };
+
+  const loadSecurityLogs = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('smm_security_audit')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (data) setSecurityLogs(data);
+    } catch (error) {
+      console.error('Error loading security logs:', error);
+    }
+  };
+
   const loadMoreClients = () => {
     const nextPage = clientPage + 1;
     setClientPage(nextPage);
@@ -318,7 +455,9 @@ const SocialMediaManager: React.FC<SocialMediaManagerProps> = ({ userCredits, on
           client_name: newClient.client_name,
           client_email: newClient.client_email || null,
           monthly_fee: newClient.monthly_fee,
-          status: 'active'
+          status: 'active',
+          deletion_protected: true,
+          security_level: 'standard'
         })
         .select()
         .single();
@@ -335,7 +474,7 @@ const SocialMediaManager: React.FC<SocialMediaManagerProps> = ({ userCredits, on
         monthly_fee: 0
       });
       setShowAddClient(false);
-      toast.success('Client added successfully!');
+      toast.success('Client added successfully with security protection enabled!');
     } catch (error: any) {
       console.error('Error adding client:', error);
       toast.error('Failed to add client');
@@ -344,20 +483,130 @@ const SocialMediaManager: React.FC<SocialMediaManagerProps> = ({ userCredits, on
     }
   };
 
-  const handleDeleteClient = async (clientId: string) => {
+  const handleAddPricing = async () => {
+    if (!user || !newPricing.service_name) {
+      toast.error('Please enter a service name');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const { error } = await supabase
-        .from('smm_client_accounts')
-        .delete()
-        .eq('id', clientId);
+      const { data, error } = await supabase
+        .from('smm_service_pricing')
+        .insert({
+          user_id: user.id,
+          service_type: 'social_management',
+          service_name: newPricing.service_name,
+          description: newPricing.description || null,
+          base_price: newPricing.base_price,
+          price_per_post: newPricing.price_per_post,
+          price_per_ad: newPricing.price_per_ad,
+          price_per_month: newPricing.price_per_month,
+          is_active: true
+        })
+        .select()
+        .single();
 
       if (error) throw error;
-      
-      setClients(prev => prev.filter(c => c.id !== clientId));
-      toast.success('Client removed');
+
+      setServicePricing(prev => [data, ...prev]);
+      setNewPricing({
+        service_name: '',
+        description: '',
+        base_price: 0,
+        price_per_post: 0,
+        price_per_ad: 0,
+        price_per_month: 0
+      });
+      setShowPricingDialog(false);
+      toast.success('Service pricing created!');
     } catch (error) {
-      console.error('Error deleting client:', error);
-      toast.error('Failed to delete client');
+      console.error('Error adding pricing:', error);
+      toast.error('Failed to create pricing');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateAdCampaign = async () => {
+    if (!user || !newCampaign.campaign_name || !newCampaign.client_account_id) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const client = clients.find(c => c.id === newCampaign.client_account_id);
+      
+      const { data, error } = await supabase
+        .from('smm_ad_campaigns')
+        .insert({
+          user_id: user.id,
+          client_account_id: newCampaign.client_account_id,
+          campaign_name: newCampaign.campaign_name,
+          platform: client?.platform || newCampaign.platform,
+          ad_type: newCampaign.ad_type,
+          budget: newCampaign.budget,
+          budget_type: newCampaign.budget_type,
+          status: 'draft',
+          start_date: newCampaign.start_date || null,
+          end_date: newCampaign.end_date || null,
+          target_audience: { description: newCampaign.target_audience },
+          ad_content: { content: newCampaign.ad_content }
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setAdCampaigns(prev => [data, ...prev]);
+      setNewCampaign({
+        client_account_id: '',
+        campaign_name: '',
+        platform: 'facebook',
+        ad_type: 'feed',
+        budget: 0,
+        budget_type: 'daily',
+        start_date: '',
+        end_date: '',
+        target_audience: '',
+        ad_content: ''
+      });
+      setShowAdDialog(false);
+      toast.success('Ad campaign created!');
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      toast.error('Failed to create campaign');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChargeClient = async (clientId: string, amount: number, description: string) => {
+    if (!user) return;
+
+    try {
+      const commissionAmount = (amount * adminCommission) / 100;
+      const netAmount = amount - commissionAmount;
+
+      const { error } = await supabase
+        .from('smm_service_transactions')
+        .insert({
+          user_id: user.id,
+          client_account_id: clientId,
+          amount,
+          admin_commission: commissionAmount,
+          net_amount: netAmount,
+          transaction_type: 'service_fee',
+          status: 'pending',
+          description
+        });
+
+      if (error) throw error;
+      toast.success(`Charged ₱${amount}. Admin commission: ₱${commissionAmount.toFixed(2)}, Your earnings: ₱${netAmount.toFixed(2)}`);
+    } catch (error) {
+      console.error('Error charging client:', error);
+      toast.error('Failed to charge client');
     }
   };
 
@@ -372,7 +621,6 @@ const SocialMediaManager: React.FC<SocialMediaManagerProps> = ({ userCredits, on
       return;
     }
 
-    // Rate limit check
     if (!rateLimiter.canMakeRequest('ai')) {
       const resetTime = Math.ceil(rateLimiter.getResetTime('ai') / 1000);
       toast.error(`Rate limited. Please wait ${resetTime} seconds.`);
@@ -507,8 +755,9 @@ Generate only the post content, nothing else.`
     activeClients: clients.filter(c => c.status === 'active').length,
     scheduledPosts: scheduledPosts.filter(p => p.status === 'scheduled').length,
     postedPosts: scheduledPosts.filter(p => p.status === 'posted').length,
-    monthlyRevenue: clients.reduce((sum, c) => sum + (c.monthly_fee || 0), 0)
-  }), [clients, scheduledPosts]);
+    monthlyRevenue: clients.reduce((sum, c) => sum + (c.monthly_fee || 0), 0),
+    activeCampaigns: adCampaigns.filter(c => c.status === 'active').length
+  }), [clients, scheduledPosts, adCampaigns]);
 
   if (!hasAICredits) {
     return (
@@ -540,7 +789,7 @@ Generate only the post content, nothing else.`
   return (
     <div className="space-y-4">
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <Card className="bg-muted/30">
           <CardContent className="p-3 text-center">
             <Users className="h-5 w-5 mx-auto text-primary" />
@@ -564,9 +813,9 @@ Generate only the post content, nothing else.`
         </Card>
         <Card className="bg-muted/30">
           <CardContent className="p-3 text-center">
-            <TrendingUp className="h-5 w-5 mx-auto text-blue-500" />
-            <p className="text-2xl font-bold">{stats.postedPosts}</p>
-            <p className="text-xs text-muted-foreground">Posted</p>
+            <Target className="h-5 w-5 mx-auto text-purple-500" />
+            <p className="text-2xl font-bold">{stats.activeCampaigns}</p>
+            <p className="text-xs text-muted-foreground">Ad Campaigns</p>
           </CardContent>
         </Card>
         <Card className="bg-muted/30">
@@ -574,6 +823,13 @@ Generate only the post content, nothing else.`
             <DollarSign className="h-5 w-5 mx-auto text-green-500" />
             <p className="text-2xl font-bold">₱{stats.monthlyRevenue.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">Monthly</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-muted/30">
+          <CardContent className="p-3 text-center">
+            <Shield className="h-5 w-5 mx-auto text-blue-500" />
+            <p className="text-2xl font-bold">{adminCommission}%</p>
+            <p className="text-xs text-muted-foreground">Platform Fee</p>
           </CardContent>
         </Card>
       </div>
@@ -591,15 +847,23 @@ Generate only the post content, nothing else.`
               <Zap className="h-3 w-3" />
               100M+ Scale
             </Badge>
+            <Badge variant="outline" className="ml-2 gap-1 text-green-600">
+              <Shield className="h-3 w-3" />
+              Secured
+            </Badge>
           </CardTitle>
           <CardDescription>
-            Manage {ALL_PLATFORMS.length}+ social platforms for unlimited clients
+            Manage {ALL_PLATFORMS.length}+ social platforms with ads management & security protection
           </CardDescription>
-          <Badge variant="outline" className="w-fit mt-2">{creditCost} credits per AI-generated post</Badge>
+          <div className="flex gap-2 mt-2 flex-wrap">
+            <Badge variant="outline">{creditCost} credits per AI post</Badge>
+            <Badge variant="outline" className="text-orange-600">{adminCommission}% service commission</Badge>
+            <Badge variant="outline" className="text-purple-600">{adsCommission}% ads commission</Badge>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 w-full">
+            <TabsList className="grid grid-cols-5 w-full">
               <TabsTrigger value="clients" className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
                 Clients
@@ -608,9 +872,17 @@ Generate only the post content, nothing else.`
                 <Sparkles className="h-4 w-4" />
                 Create
               </TabsTrigger>
-              <TabsTrigger value="scheduled" className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                Queue
+              <TabsTrigger value="ads" className="flex items-center gap-1">
+                <Target className="h-4 w-4" />
+                Ads
+              </TabsTrigger>
+              <TabsTrigger value="pricing" className="flex items-center gap-1">
+                <DollarSign className="h-4 w-4" />
+                Pricing
+              </TabsTrigger>
+              <TabsTrigger value="security" className="flex items-center gap-1">
+                <Shield className="h-4 w-4" />
+                Security
               </TabsTrigger>
             </TabsList>
 
@@ -631,7 +903,7 @@ Generate only the post content, nothing else.`
                     <DialogHeader>
                       <DialogTitle>Add New Client</DialogTitle>
                       <DialogDescription>
-                        Add a client's social media account to manage
+                        Add a client's social media account to manage (Protected by security protocols)
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 pt-4">
@@ -698,88 +970,99 @@ Generate only the post content, nothing else.`
                           onChange={(e) => setNewClient({...newClient, monthly_fee: parseFloat(e.target.value) || 0})}
                         />
                       </div>
-                      <Button onClick={handleAddClient} className="w-full" disabled={loading}>
+
+                      <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-200 dark:border-green-800">
+                        <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                          <Shield className="h-4 w-4" />
+                          <span className="font-medium text-sm">Security Protection Enabled</span>
+                        </div>
+                        <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                          This account will be protected against ownership changes, unauthorized deletion, and sensitive data access.
+                        </p>
+                      </div>
+
+                      <Button 
+                        onClick={handleAddClient} 
+                        disabled={loading}
+                        className="w-full"
+                      >
                         {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                        Add Client
+                        Add Client Account
                       </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
               </div>
 
-              {loadingClients ? (
-                <div className="text-center py-8">
-                  <Loader2 className="h-8 w-8 mx-auto animate-spin text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mt-2">Loading clients...</p>
-                </div>
-              ) : clients.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No clients added yet</p>
-                  <p className="text-xs">Add your first client to start managing their social media</p>
-                </div>
-              ) : (
-                <ScrollArea className="h-[400px]">
-                  <div className="grid gap-3 pr-4">
-                    {clients.map((client) => (
-                      <Card key={client.id} className="bg-muted/30">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {getPlatformIcon(client.platform)}
-                              <div>
-                                <p className="font-medium">{client.account_name}</p>
-                                <p className="text-xs text-muted-foreground">{client.client_name}</p>
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3">
+                  {loadingClients ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : clients.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No clients yet. Add your first client to get started.</p>
+                  ) : (
+                    <>
+                      {clients.map(client => (
+                        <Card key={client.id} className="bg-muted/20">
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                {getPlatformIcon(client.platform)}
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium">{client.account_name}</p>
+                                    {client.deletion_protected && (
+                                      <Shield className="h-3 w-3 text-green-500" />
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">{client.client_name}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant={client.status === 'active' ? 'default' : 'secondary'}>
+                                  {client.status}
+                                </Badge>
+                                {client.monthly_fee > 0 && (
+                                  <Badge variant="outline">₱{client.monthly_fee}/mo</Badge>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleChargeClient(client.id, client.monthly_fee, 'Monthly service fee')}
+                                  disabled={!client.monthly_fee}
+                                >
+                                  <CreditCard className="h-3 w-3" />
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant={client.status === 'active' ? 'default' : 'secondary'}>
-                                {client.status}
-                              </Badge>
-                              {client.monthly_fee > 0 && (
-                                <Badge variant="outline" className="gap-1">
-                                  <DollarSign className="h-3 w-3" />
-                                  ₱{client.monthly_fee}/mo
-                                </Badge>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteClient(client.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                  {hasMoreClients && (
-                    <Button 
-                      variant="outline" 
-                      className="w-full mt-4" 
-                      onClick={loadMoreClients}
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Load More Clients
-                    </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {hasMoreClients && (
+                        <Button variant="outline" onClick={loadMoreClients} className="w-full">
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Load More
+                        </Button>
+                      )}
+                    </>
                   )}
-                </ScrollArea>
-              )}
+                </div>
+              </ScrollArea>
             </TabsContent>
 
             {/* Create Content Tab */}
             <TabsContent value="create" className="mt-4 space-y-4">
-              <div className="space-y-4">
+              <div className="grid gap-4">
                 <div className="space-y-2">
                   <Label>Select Client Account</Label>
                   <Select value={selectedClient} onValueChange={setSelectedClient}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Choose a client account" />
+                      <SelectValue placeholder="Select a client account" />
                     </SelectTrigger>
                     <SelectContent>
-                      {clients.map(client => (
+                      {clients.filter(c => c.status === 'active').map(client => (
                         <SelectItem key={client.id} value={client.id}>
                           <div className="flex items-center gap-2">
                             {getPlatformIcon(client.platform)}
@@ -792,7 +1075,7 @@ Generate only the post content, nothing else.`
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Content Topic/Idea</Label>
+                  <Label>Content Idea / Topic</Label>
                   <Textarea
                     placeholder="Describe what you want to post about..."
                     value={generatePrompt}
@@ -802,9 +1085,9 @@ Generate only the post content, nothing else.`
                 </div>
 
                 <Button 
-                  onClick={handleGenerateContent} 
-                  disabled={isGenerating || !selectedClient || !generatePrompt}
-                  className="w-full gap-2"
+                  onClick={handleGenerateContent}
+                  disabled={isGenerating || !selectedClient || !generatePrompt.trim()}
+                  className="gap-2"
                 >
                   {isGenerating ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -815,24 +1098,32 @@ Generate only the post content, nothing else.`
                 </Button>
 
                 {generatedContent && (
-                  <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                    <div className="flex items-center justify-between">
+                  <div className="space-y-4 mt-4">
+                    <div className="relative">
                       <Label>Generated Content</Label>
-                      <Button variant="ghost" size="sm" onClick={() => copyContent(generatedContent)}>
-                        <Copy className="h-4 w-4 mr-1" />
-                        Copy
+                      <Textarea
+                        value={generatedContent}
+                        onChange={(e) => setGeneratedContent(e.target.value)}
+                        rows={5}
+                        className="mt-2"
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute top-0 right-0"
+                        onClick={() => copyContent(generatedContent)}
+                      >
+                        <Copy className="h-4 w-4" />
                       </Button>
                     </div>
-                    <p className="text-sm whitespace-pre-wrap">{generatedContent}</p>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Schedule Date</Label>
                         <Input
                           type="date"
                           value={scheduleDate}
                           onChange={(e) => setScheduleDate(e.target.value)}
-                          min={new Date().toISOString().split('T')[0]}
                         />
                       </div>
                       <div className="space-y-2">
@@ -846,9 +1137,9 @@ Generate only the post content, nothing else.`
                     </div>
 
                     <Button 
-                      onClick={handleSchedulePost} 
-                      className="w-full gap-2"
+                      onClick={handleSchedulePost}
                       disabled={loading || !scheduleDate || !scheduleTime}
+                      className="w-full gap-2"
                     >
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
                       Schedule Post
@@ -858,98 +1149,440 @@ Generate only the post content, nothing else.`
               </div>
             </TabsContent>
 
-            {/* Scheduled Posts Tab */}
-            <TabsContent value="scheduled" className="mt-4 space-y-4">
-              {scheduledPosts.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No scheduled posts</p>
-                  <p className="text-xs">Generate content and schedule it to see it here</p>
-                </div>
-              ) : (
-                <ScrollArea className="h-[400px]">
-                  <div className="space-y-3 pr-4">
-                    {scheduledPosts.map((post) => {
-                      const client = clients.find(c => c.id === post.client_account_id);
-                      return (
-                        <Card key={post.id} className="bg-muted/30">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  {getPlatformIcon(post.platform)}
-                                  <span className="text-sm font-medium">{client?.account_name || 'Unknown'}</span>
-                                  <Badge variant={
-                                    post.status === 'posted' ? 'default' :
-                                    post.status === 'failed' ? 'destructive' : 'secondary'
-                                  }>
-                                    {post.status === 'scheduled' && <Clock className="h-3 w-3 mr-1" />}
-                                    {post.status === 'posted' && <CheckCircle className="h-3 w-3 mr-1" />}
-                                    {post.status === 'failed' && <AlertCircle className="h-3 w-3 mr-1" />}
-                                    {post.status}
-                                  </Badge>
+            {/* Ads Management Tab */}
+            <TabsContent value="ads" className="mt-4 space-y-4">
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-muted-foreground">
+                  {adCampaigns.length} ad campaigns • {adsCommission}% platform commission
+                </p>
+                <Dialog open={showAdDialog} onOpenChange={setShowAdDialog}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      New Campaign
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Create Ad Campaign</DialogTitle>
+                      <DialogDescription>
+                        Create a new ad campaign for your client
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label>Client Account *</Label>
+                        <Select
+                          value={newCampaign.client_account_id}
+                          onValueChange={(v) => setNewCampaign({...newCampaign, client_account_id: v})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select client" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clients.filter(c => c.status === 'active').map(client => (
+                              <SelectItem key={client.id} value={client.id}>
+                                <div className="flex items-center gap-2">
+                                  {getPlatformIcon(client.platform)}
+                                  {client.account_name}
                                 </div>
-                                <p className="text-sm line-clamp-2">{post.content}</p>
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  {new Date(post.scheduled_for).toLocaleString()}
-                                </p>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Campaign Name *</Label>
+                        <Input
+                          placeholder="e.g., Summer Sale 2024"
+                          value={newCampaign.campaign_name}
+                          onChange={(e) => setNewCampaign({...newCampaign, campaign_name: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Ad Type</Label>
+                        <Select
+                          value={newCampaign.ad_type}
+                          onValueChange={(v) => setNewCampaign({...newCampaign, ad_type: v})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {AD_TYPES.map(type => (
+                              <SelectItem key={type.id} value={type.id}>
+                                {type.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Budget (₱)</Label>
+                          <Input
+                            type="number"
+                            value={newCampaign.budget || ''}
+                            onChange={(e) => setNewCampaign({...newCampaign, budget: parseFloat(e.target.value) || 0})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Budget Type</Label>
+                          <Select
+                            value={newCampaign.budget_type}
+                            onValueChange={(v) => setNewCampaign({...newCampaign, budget_type: v})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="lifetime">Lifetime</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Start Date</Label>
+                          <Input
+                            type="date"
+                            value={newCampaign.start_date}
+                            onChange={(e) => setNewCampaign({...newCampaign, start_date: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>End Date</Label>
+                          <Input
+                            type="date"
+                            value={newCampaign.end_date}
+                            onChange={(e) => setNewCampaign({...newCampaign, end_date: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Target Audience</Label>
+                        <Textarea
+                          placeholder="Describe target demographics, interests, etc."
+                          value={newCampaign.target_audience}
+                          onChange={(e) => setNewCampaign({...newCampaign, target_audience: e.target.value})}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Ad Content</Label>
+                        <Textarea
+                          placeholder="Ad copy, headlines, descriptions..."
+                          value={newCampaign.ad_content}
+                          onChange={(e) => setNewCampaign({...newCampaign, ad_content: e.target.value})}
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="bg-purple-50 dark:bg-purple-950 p-3 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                          <Shield className="h-4 w-4" />
+                          <span className="font-medium text-sm">Ads Security Notice</span>
+                        </div>
+                        <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                          You cannot change the ads account ownership or access client's billing information. All ad spend is managed by the account owner.
+                        </p>
+                      </div>
+
+                      <Button 
+                        onClick={handleCreateAdCampaign} 
+                        disabled={loading}
+                        className="w-full"
+                      >
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Target className="h-4 w-4 mr-2" />}
+                        Create Campaign
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3">
+                  {adCampaigns.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No ad campaigns yet.</p>
+                  ) : (
+                    adCampaigns.map(campaign => {
+                      const client = clients.find(c => c.id === campaign.client_account_id);
+                      return (
+                        <Card key={campaign.id} className="bg-muted/20">
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                {client && getPlatformIcon(client.platform)}
+                                <div>
+                                  <p className="font-medium">{campaign.campaign_name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {AD_TYPES.find(t => t.id === campaign.ad_type)?.name} • ₱{campaign.budget} {campaign.budget_type}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => copyContent(post.content)}
-                                >
-                                  <Copy className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDeletePost(post.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
+                              <Badge variant={
+                                campaign.status === 'active' ? 'default' :
+                                campaign.status === 'paused' ? 'secondary' : 'outline'
+                              }>
+                                {campaign.status}
+                              </Badge>
                             </div>
                           </CardContent>
                         </Card>
                       );
-                    })}
+                    })
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Pricing Tab */}
+            <TabsContent value="pricing" className="mt-4 space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Set your service pricing • Admin takes {adminCommission}% commission
+                  </p>
+                </div>
+                <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Pricing
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create Service Pricing</DialogTitle>
+                      <DialogDescription>
+                        Set your pricing for social media management services
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label>Service Name *</Label>
+                        <Input
+                          placeholder="e.g., Basic SMM Package"
+                          value={newPricing.service_name}
+                          onChange={(e) => setNewPricing({...newPricing, service_name: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Textarea
+                          placeholder="What's included in this package..."
+                          value={newPricing.description}
+                          onChange={(e) => setNewPricing({...newPricing, description: e.target.value})}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Base Price (₱)</Label>
+                          <Input
+                            type="number"
+                            value={newPricing.base_price || ''}
+                            onChange={(e) => setNewPricing({...newPricing, base_price: parseFloat(e.target.value) || 0})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Per Post (₱)</Label>
+                          <Input
+                            type="number"
+                            value={newPricing.price_per_post || ''}
+                            onChange={(e) => setNewPricing({...newPricing, price_per_post: parseFloat(e.target.value) || 0})}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Per Ad Campaign (₱)</Label>
+                          <Input
+                            type="number"
+                            value={newPricing.price_per_ad || ''}
+                            onChange={(e) => setNewPricing({...newPricing, price_per_ad: parseFloat(e.target.value) || 0})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Monthly Retainer (₱)</Label>
+                          <Input
+                            type="number"
+                            value={newPricing.price_per_month || ''}
+                            onChange={(e) => setNewPricing({...newPricing, price_per_month: parseFloat(e.target.value) || 0})}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bg-orange-50 dark:bg-orange-950 p-3 rounded-lg border border-orange-200 dark:border-orange-800">
+                        <p className="text-xs text-orange-600 dark:text-orange-400">
+                          <strong>Commission Notice:</strong> Platform takes {adminCommission}% from service fees and {adsCommission}% from ad management.
+                        </p>
+                      </div>
+
+                      <Button 
+                        onClick={handleAddPricing} 
+                        disabled={loading}
+                        className="w-full"
+                      >
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Create Pricing
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3">
+                  {servicePricing.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No pricing set yet. Create your service packages.</p>
+                  ) : (
+                    servicePricing.map(pricing => (
+                      <Card key={pricing.id} className="bg-muted/20">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-medium">{pricing.service_name}</h4>
+                              {pricing.description && (
+                                <p className="text-xs text-muted-foreground mt-1">{pricing.description}</p>
+                              )}
+                              <div className="flex gap-2 mt-2 flex-wrap">
+                                {pricing.base_price > 0 && (
+                                  <Badge variant="outline">Base: ₱{pricing.base_price}</Badge>
+                                )}
+                                {pricing.price_per_post > 0 && (
+                                  <Badge variant="outline">₱{pricing.price_per_post}/post</Badge>
+                                )}
+                                {pricing.price_per_ad > 0 && (
+                                  <Badge variant="outline">₱{pricing.price_per_ad}/ad</Badge>
+                                )}
+                                {pricing.price_per_month > 0 && (
+                                  <Badge variant="outline">₱{pricing.price_per_month}/mo</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <Badge variant={pricing.is_active ? 'default' : 'secondary'}>
+                              {pricing.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Security Tab */}
+            <TabsContent value="security" className="mt-4 space-y-4">
+              <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-green-600" />
+                    Security Protocols Active
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3">
+                    <div className="flex items-center gap-3 p-2 bg-background rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <div>
+                        <p className="font-medium text-sm">Ownership Protection</p>
+                        <p className="text-xs text-muted-foreground">Account ownership cannot be transferred or changed</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-2 bg-background rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <div>
+                        <p className="font-medium text-sm">Deletion Protection</p>
+                        <p className="text-xs text-muted-foreground">Client accounts cannot be deleted without verification</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-2 bg-background rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <div>
+                        <p className="font-medium text-sm">Access Token Encryption</p>
+                        <p className="text-xs text-muted-foreground">All sensitive credentials are encrypted at rest</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-2 bg-background rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <div>
+                        <p className="font-medium text-sm">Audit Logging</p>
+                        <p className="text-xs text-muted-foreground">All sensitive actions are logged for review</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-2 bg-background rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <div>
+                        <p className="font-medium text-sm">No Billing Access</p>
+                        <p className="text-xs text-muted-foreground">You cannot access client's payment or billing information</p>
+                      </div>
+                    </div>
                   </div>
-                  {hasMorePosts && (
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Security Audit Log
+                    </CardTitle>
                     <Button 
                       variant="outline" 
-                      className="w-full mt-4" 
-                      onClick={loadMorePosts}
+                      size="sm" 
+                      onClick={loadSecurityLogs}
+                      className="gap-2"
                     >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Load More Posts
+                      <RefreshCw className="h-4 w-4" />
+                      Refresh
                     </Button>
-                  )}
-                </ScrollArea>
-              )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[200px]">
+                    {securityLogs.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">No security events recorded</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {securityLogs.map(log => (
+                          <div 
+                            key={log.id} 
+                            className={`p-2 rounded-lg border ${
+                              log.risk_level === 'critical' ? 'border-red-500 bg-red-50 dark:bg-red-950' :
+                              log.risk_level === 'high' ? 'border-orange-500 bg-orange-50 dark:bg-orange-950' :
+                              'border-muted'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {log.blocked ? (
+                                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span className="font-medium text-sm">{log.action_type}</span>
+                              </div>
+                              <Badge variant={log.blocked ? 'destructive' : 'outline'} className="text-xs">
+                                {log.blocked ? 'Blocked' : log.risk_level}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(log.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Supported Platforms */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            Supported Platforms ({ALL_PLATFORMS.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {ALL_PLATFORMS.map(platform => (
-              <Badge key={platform.id} variant="outline" className="gap-1">
-                <platform.icon className={`h-3 w-3 ${platform.color}`} />
-                {platform.name}
-              </Badge>
-            ))}
-          </div>
         </CardContent>
       </Card>
     </div>
