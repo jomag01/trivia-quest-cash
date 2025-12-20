@@ -36,6 +36,31 @@ const ADSENSE_CPC: { [key: string]: { low: number; high: number } } = {
   general: { low: 0.10, high: 0.50 },
 };
 
+// TikTok CPM rates (varies widely)
+const TIKTOK_CPM: { [key: string]: { low: number; high: number } } = {
+  entertainment: { low: 0.02, high: 0.08 },
+  gaming: { low: 0.015, high: 0.06 },
+  music: { low: 0.02, high: 0.07 },
+  fashion: { low: 0.03, high: 0.12 },
+  food: { low: 0.025, high: 0.10 },
+  education: { low: 0.03, high: 0.10 },
+  sports: { low: 0.02, high: 0.08 },
+  tech: { low: 0.025, high: 0.09 },
+  general: { low: 0.02, high: 0.06 },
+};
+
+// Instagram sponsorship rates per 1000 followers
+const INSTAGRAM_RATES: { [key: string]: { low: number; high: number } } = {
+  fashion: { low: 10, high: 25 },
+  beauty: { low: 10, high: 25 },
+  fitness: { low: 8, high: 20 },
+  travel: { low: 8, high: 20 },
+  food: { low: 6, high: 15 },
+  tech: { low: 8, high: 18 },
+  entertainment: { low: 5, high: 15 },
+  general: { low: 5, high: 12 },
+};
+
 // YouTube category mapping
 const YOUTUBE_CATEGORIES: { [key: string]: string } = {
   '1': 'Film & Animation',
@@ -91,6 +116,15 @@ serve(async (req) => {
         break;
       case 'facebook':
         stats = await analyzeFacebook(body);
+        break;
+      case 'tiktok':
+        stats = await analyzeTikTok(body);
+        break;
+      case 'instagram':
+        stats = await analyzeInstagram(body);
+        break;
+      case 'twitter':
+        stats = await analyzeTwitter(body);
         break;
       case 'adsense':
         stats = analyzeAdSense(body);
@@ -332,19 +366,91 @@ async function analyzeYouTube(body: any) {
 async function analyzeFacebook(body: any) {
   const { input, followers } = body;
   
-  // For Facebook, we use the provided follower count since Graph API requires authentication
-  const followerCount = parseInt(followers) || 10000;
+  // Extract page name/ID from URL
+  let pageName = input.replace(/^@/, '').replace(/https?:\/\/(www\.)?facebook\.com\//, '').split('/')[0].split('?')[0];
   
-  // Try to get page icon from Facebook
-  let pageImage = null;
-  const pageName = input.replace(/^@/, '').replace(/https?:\/\/(www\.)?facebook\.com\//, '').split('/')[0];
+  // For Facebook, we'll try to scrape public page data using their open graph
+  let pageData: any = {
+    name: pageName,
+    followers: parseInt(followers) || 10000,
+    likes: 0,
+    verified: false,
+    category: 'General',
+    about: '',
+    website: '',
+    pageImage: null,
+    coverImage: null,
+  };
   
-  // Use Facebook graph API for public page picture (no token needed for public pages)
   try {
-    pageImage = `https://graph.facebook.com/${pageName}/picture?type=large`;
+    // Try to get page picture using graph API (public, no token needed)
+    pageData.pageImage = `https://graph.facebook.com/${pageName}/picture?type=large`;
+    
+    // Try to fetch Open Graph data from the page
+    const ogUrl = `https://www.facebook.com/${pageName}`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(ogUrl)}`;
+    
+    try {
+      const resp = await fetch(proxyUrl, { 
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' }
+      });
+      
+      if (resp.ok) {
+        const html = await resp.text();
+        
+        // Extract page name from title
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        if (titleMatch) {
+          const title = titleMatch[1].replace(/ \| Facebook$/i, '').replace(/ - Home$/i, '');
+          pageData.name = title || pageName;
+        }
+        
+        // Try to find follower count in page content
+        const followersMatch = html.match(/(\d[\d,\.]+[KMB]?)\s*(?:followers|people follow)/i);
+        if (followersMatch && !followers) {
+          const count = followersMatch[1].replace(/,/g, '');
+          let multiplier = 1;
+          if (count.includes('K')) multiplier = 1000;
+          else if (count.includes('M')) multiplier = 1000000;
+          else if (count.includes('B')) multiplier = 1000000000;
+          pageData.followers = Math.round(parseFloat(count.replace(/[KMB]/g, '')) * multiplier);
+        }
+        
+        // Try to find likes count
+        const likesMatch = html.match(/(\d[\d,\.]+[KMB]?)\s*(?:likes|people like)/i);
+        if (likesMatch) {
+          const count = likesMatch[1].replace(/,/g, '');
+          let multiplier = 1;
+          if (count.includes('K')) multiplier = 1000;
+          else if (count.includes('M')) multiplier = 1000000;
+          pageData.likes = Math.round(parseFloat(count.replace(/[KMB]/g, '')) * multiplier);
+        }
+        
+        // Check for verified badge
+        pageData.verified = html.includes('verified') || html.includes('Verified');
+        
+        // Extract description/about
+        const descMatch = html.match(/content="([^"]+)"\s+property="og:description"/i) || 
+                          html.match(/property="og:description"\s+content="([^"]+)"/i);
+        if (descMatch) {
+          pageData.about = descMatch[1].substring(0, 200);
+        }
+        
+        // Extract cover image
+        const coverMatch = html.match(/content="([^"]+)"\s+property="og:image"/i) ||
+                          html.match(/property="og:image"\s+content="([^"]+)"/i);
+        if (coverMatch) {
+          pageData.coverImage = coverMatch[1];
+        }
+      }
+    } catch (scrapeError) {
+      console.log('Could not scrape Facebook page, using estimates:', scrapeError);
+    }
   } catch (e) {
-    console.error('Could not fetch Facebook page image');
+    console.error('Error fetching Facebook page data:', e);
   }
+  
+  const followerCount = pageData.followers || parseInt(followers) || 10000;
   
   // Estimate engagement rate (typically 1-5% for pages)
   const engagementRate = followerCount > 1000000 ? 1.5 : followerCount > 100000 ? 2.5 : 4;
@@ -364,14 +470,439 @@ async function analyzeFacebook(body: any) {
   const grade = getGrade(followerCount);
 
   return {
-    pageName: input,
-    pageImage,
+    pageName: pageData.name,
+    pageImage: pageData.pageImage,
+    coverImage: pageData.coverImage,
     followers: followerCount,
+    likes: pageData.likes || followerCount,
     estimatedReach,
     engagementRate,
+    verified: pageData.verified,
+    about: pageData.about,
+    category: 'General',
     estimatedMonthlyEarnings: { low: monthlyLow, high: monthlyHigh },
     estimatedPerPost: { low: perPostLow, high: perPostHigh },
     grade,
+  };
+}
+
+async function analyzeTikTok(body: any) {
+  const { input, followers: providedFollowers, niche } = body;
+  
+  // Extract username from URL or use directly
+  let username = input.trim()
+    .replace(/^@/, '')
+    .replace(/https?:\/\/(www\.)?(tiktok\.com|vm\.tiktok\.com)\//, '')
+    .replace(/^@/, '')
+    .split('/')[0]
+    .split('?')[0];
+  
+  if (username.startsWith('@')) {
+    username = username.substring(1);
+  }
+  
+  let profileData: any = {
+    username: username,
+    nickname: username,
+    followers: parseInt(providedFollowers) || 10000,
+    following: 0,
+    likes: 0,
+    videos: 0,
+    verified: false,
+    bio: '',
+    profileImage: null,
+    region: 'Unknown',
+  };
+  
+  try {
+    // Try to fetch TikTok profile data using a proxy/scraper approach
+    const profileUrl = `https://www.tiktok.com/@${username}`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(profileUrl)}`;
+    
+    try {
+      const resp = await fetch(proxyUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+      
+      if (resp.ok) {
+        const html = await resp.text();
+        
+        // Try to parse JSON data from TikTok page
+        const scriptMatch = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([^<]+)<\/script>/);
+        if (scriptMatch) {
+          try {
+            const jsonData = JSON.parse(scriptMatch[1]);
+            const userInfo = jsonData?.['__DEFAULT_SCOPE__']?.['webapp.user-detail']?.userInfo;
+            
+            if (userInfo) {
+              const user = userInfo.user || {};
+              const stats = userInfo.stats || {};
+              
+              profileData = {
+                username: user.uniqueId || username,
+                nickname: user.nickname || username,
+                followers: stats.followerCount || parseInt(providedFollowers) || 10000,
+                following: stats.followingCount || 0,
+                likes: stats.heartCount || stats.heart || 0,
+                videos: stats.videoCount || 0,
+                verified: user.verified || false,
+                bio: user.signature || '',
+                profileImage: user.avatarLarger || user.avatarMedium || user.avatarThumb || null,
+                region: user.region || 'Unknown',
+              };
+            }
+          } catch (parseErr) {
+            console.log('Could not parse TikTok JSON data:', parseErr);
+          }
+        }
+        
+        // Fallback: Try to extract from meta tags
+        if (!profileData.profileImage) {
+          const imageMatch = html.match(/content="([^"]+)"\s+property="og:image"/i) ||
+                            html.match(/property="og:image"\s+content="([^"]+)"/i);
+          if (imageMatch) {
+            profileData.profileImage = imageMatch[1];
+          }
+        }
+        
+        // Extract title for nickname
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        if (titleMatch && !profileData.nickname) {
+          profileData.nickname = titleMatch[1].replace(/ \| TikTok$/i, '').split('(')[0].trim();
+        }
+      }
+    } catch (scrapeError) {
+      console.log('Could not scrape TikTok profile, using estimates:', scrapeError);
+    }
+  } catch (e) {
+    console.error('Error fetching TikTok profile:', e);
+  }
+  
+  const followerCount = profileData.followers;
+  const videoCount = profileData.videos || 50;
+  const totalLikes = profileData.likes || followerCount * 5;
+  
+  // Calculate engagement rate (likes per video / followers)
+  const avgLikesPerVideo = videoCount > 0 ? totalLikes / videoCount : totalLikes;
+  const engagementRate = followerCount > 0 ? Math.min(((avgLikesPerVideo / followerCount) * 100), 30) : 5;
+  
+  // Estimate views (TikTok views are typically 10-30x likes)
+  const estimatedMonthlyViews = avgLikesPerVideo * 15 * 4; // Assuming 4 videos per week
+  
+  // Get CPM for niche
+  const nicheLower = (niche || 'general').toLowerCase();
+  const cpm = TIKTOK_CPM[nicheLower] || TIKTOK_CPM.general;
+  
+  // TikTok Creator Fund earnings (lower than YouTube)
+  const creatorFundLow = Math.round((estimatedMonthlyViews / 1000) * cpm.low);
+  const creatorFundHigh = Math.round((estimatedMonthlyViews / 1000) * cpm.high);
+  
+  // Sponsorship rates (typically $0.01-0.02 per follower per post)
+  const sponsorshipRate = followerCount > 1000000 ? 0.015 : followerCount > 100000 ? 0.02 : 0.025;
+  const perPostLow = Math.round(followerCount * sponsorshipRate * 0.5);
+  const perPostHigh = Math.round(followerCount * sponsorshipRate * 1.5);
+  
+  // Total monthly earnings (Creator Fund + 2-4 sponsored posts)
+  const monthlyLow = creatorFundLow + (perPostLow * 2);
+  const monthlyHigh = creatorFundHigh + (perPostHigh * 4);
+  
+  const grade = getGrade(followerCount);
+
+  return {
+    username: profileData.username,
+    nickname: profileData.nickname,
+    profileImage: profileData.profileImage,
+    followers: followerCount,
+    following: profileData.following,
+    likes: totalLikes,
+    videos: videoCount,
+    verified: profileData.verified,
+    bio: profileData.bio,
+    region: profileData.region,
+    engagementRate: Math.round(engagementRate * 100) / 100,
+    estimatedMonthlyViews,
+    estimatedCreatorFund: { low: creatorFundLow, high: creatorFundHigh },
+    estimatedPerPost: { low: perPostLow, high: perPostHigh },
+    estimatedMonthlyEarnings: { low: monthlyLow, high: monthlyHigh },
+    cpm,
+    grade,
+    niche: niche || 'Entertainment',
+  };
+}
+
+async function analyzeInstagram(body: any) {
+  const { input, followers: providedFollowers, niche } = body;
+  
+  // Extract username from URL or use directly
+  let username = input.trim()
+    .replace(/^@/, '')
+    .replace(/https?:\/\/(www\.)?instagram\.com\//, '')
+    .split('/')[0]
+    .split('?')[0];
+  
+  let profileData: any = {
+    username: username,
+    fullName: username,
+    followers: parseInt(providedFollowers) || 10000,
+    following: 0,
+    posts: 0,
+    verified: false,
+    bio: '',
+    profileImage: null,
+    isPrivate: false,
+    category: 'Creator',
+  };
+  
+  try {
+    // Try to fetch Instagram profile data
+    const profileUrl = `https://www.instagram.com/${username}/`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(profileUrl)}`;
+    
+    try {
+      const resp = await fetch(proxyUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+      
+      if (resp.ok) {
+        const html = await resp.text();
+        
+        // Try to extract from meta tags
+        const imageMatch = html.match(/content="([^"]+)"\s+property="og:image"/i) ||
+                          html.match(/property="og:image"\s+content="([^"]+)"/i);
+        if (imageMatch) {
+          profileData.profileImage = imageMatch[1];
+        }
+        
+        // Extract title for name
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        if (titleMatch) {
+          const title = titleMatch[1];
+          const nameMatch = title.match(/^([^(]+)/);
+          if (nameMatch) {
+            profileData.fullName = nameMatch[1].trim();
+          }
+        }
+        
+        // Extract description for bio
+        const descMatch = html.match(/content="([^"]+)"\s+property="og:description"/i) ||
+                         html.match(/property="og:description"\s+content="([^"]+)"/i);
+        if (descMatch) {
+          const desc = descMatch[1];
+          // Try to parse followers from description
+          const followersMatch = desc.match(/([\d,\.]+[KMB]?)\s*Followers/i);
+          if (followersMatch && !providedFollowers) {
+            const count = followersMatch[1].replace(/,/g, '');
+            let multiplier = 1;
+            if (count.includes('K')) multiplier = 1000;
+            else if (count.includes('M')) multiplier = 1000000;
+            else if (count.includes('B')) multiplier = 1000000000;
+            profileData.followers = Math.round(parseFloat(count.replace(/[KMB]/g, '')) * multiplier);
+          }
+          
+          const followingMatch = desc.match(/([\d,\.]+[KMB]?)\s*Following/i);
+          if (followingMatch) {
+            const count = followingMatch[1].replace(/,/g, '');
+            let multiplier = 1;
+            if (count.includes('K')) multiplier = 1000;
+            else if (count.includes('M')) multiplier = 1000000;
+            profileData.following = Math.round(parseFloat(count.replace(/[KMB]/g, '')) * multiplier);
+          }
+          
+          const postsMatch = desc.match(/([\d,\.]+[KMB]?)\s*Posts/i);
+          if (postsMatch) {
+            const count = postsMatch[1].replace(/,/g, '');
+            let multiplier = 1;
+            if (count.includes('K')) multiplier = 1000;
+            else if (count.includes('M')) multiplier = 1000000;
+            profileData.posts = Math.round(parseFloat(count.replace(/[KMB]/g, '')) * multiplier);
+          }
+          
+          // Extract bio part
+          const bioParts = desc.split(' - ');
+          if (bioParts.length > 1) {
+            profileData.bio = bioParts.slice(1).join(' - ').substring(0, 150);
+          }
+        }
+        
+        // Check for verified
+        profileData.verified = html.includes('is_verified":true') || html.includes('"verified":true');
+      }
+    } catch (scrapeError) {
+      console.log('Could not scrape Instagram profile, using estimates:', scrapeError);
+    }
+  } catch (e) {
+    console.error('Error fetching Instagram profile:', e);
+  }
+  
+  const followerCount = profileData.followers;
+  const postCount = profileData.posts || 100;
+  
+  // Estimate engagement rate (typically 1-5% for Instagram)
+  const engagementRate = followerCount > 1000000 ? 1.5 : followerCount > 100000 ? 3 : followerCount > 10000 ? 4 : 6;
+  
+  // Get rates for niche
+  const nicheLower = (niche || 'general').toLowerCase();
+  const rates = INSTAGRAM_RATES[nicheLower] || INSTAGRAM_RATES.general;
+  
+  // Sponsorship rates per post
+  const perPostLow = Math.round((followerCount / 1000) * rates.low);
+  const perPostHigh = Math.round((followerCount / 1000) * rates.high);
+  
+  // Story rates (typically 50-70% of post rate)
+  const perStoryLow = Math.round(perPostLow * 0.5);
+  const perStoryHigh = Math.round(perPostHigh * 0.7);
+  
+  // Reel rates (typically 1.5-2x post rate)
+  const perReelLow = Math.round(perPostLow * 1.5);
+  const perReelHigh = Math.round(perPostHigh * 2);
+  
+  // Monthly earnings (assuming 2-4 posts, 4-8 stories, 1-2 reels)
+  const monthlyLow = (perPostLow * 2) + (perStoryLow * 4) + (perReelLow * 1);
+  const monthlyHigh = (perPostHigh * 4) + (perStoryHigh * 8) + (perReelHigh * 2);
+  
+  const grade = getGrade(followerCount);
+
+  return {
+    username: profileData.username,
+    fullName: profileData.fullName,
+    profileImage: profileData.profileImage,
+    followers: followerCount,
+    following: profileData.following,
+    posts: postCount,
+    verified: profileData.verified,
+    bio: profileData.bio,
+    isPrivate: profileData.isPrivate,
+    category: profileData.category,
+    engagementRate,
+    estimatedPerPost: { low: perPostLow, high: perPostHigh },
+    estimatedPerStory: { low: perStoryLow, high: perStoryHigh },
+    estimatedPerReel: { low: perReelLow, high: perReelHigh },
+    estimatedMonthlyEarnings: { low: monthlyLow, high: monthlyHigh },
+    grade,
+    niche: niche || 'General',
+  };
+}
+
+async function analyzeTwitter(body: any) {
+  const { input, followers: providedFollowers, niche } = body;
+  
+  // Extract username from URL or use directly
+  let username = input.trim()
+    .replace(/^@/, '')
+    .replace(/https?:\/\/(www\.)?(twitter\.com|x\.com)\//, '')
+    .split('/')[0]
+    .split('?')[0];
+  
+  let profileData: any = {
+    username: username,
+    displayName: username,
+    followers: parseInt(providedFollowers) || 10000,
+    following: 0,
+    tweets: 0,
+    verified: false,
+    bio: '',
+    profileImage: null,
+    bannerImage: null,
+    joinedDate: null,
+  };
+  
+  try {
+    // Try to fetch Twitter/X profile data
+    const profileUrl = `https://twitter.com/${username}`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(profileUrl)}`;
+    
+    try {
+      const resp = await fetch(proxyUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+      
+      if (resp.ok) {
+        const html = await resp.text();
+        
+        // Extract from meta tags
+        const imageMatch = html.match(/content="([^"]+)"\s+property="og:image"/i) ||
+                          html.match(/property="og:image"\s+content="([^"]+)"/i);
+        if (imageMatch) {
+          profileData.profileImage = imageMatch[1];
+        }
+        
+        // Extract title for name
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        if (titleMatch) {
+          const title = titleMatch[1];
+          const nameMatch = title.match(/^([^(]+)\s*\(@/);
+          if (nameMatch) {
+            profileData.displayName = nameMatch[1].trim();
+          }
+        }
+        
+        // Extract description
+        const descMatch = html.match(/content="([^"]+)"\s+property="og:description"/i) ||
+                         html.match(/property="og:description"\s+content="([^"]+)"/i);
+        if (descMatch) {
+          profileData.bio = descMatch[1].substring(0, 160);
+        }
+        
+        // Check for verified
+        profileData.verified = html.includes('is_blue_verified') || html.includes('"verified":true');
+      }
+    } catch (scrapeError) {
+      console.log('Could not scrape Twitter profile, using estimates:', scrapeError);
+    }
+  } catch (e) {
+    console.error('Error fetching Twitter profile:', e);
+  }
+  
+  const followerCount = profileData.followers;
+  
+  // Estimate engagement rate (typically 0.5-3% for Twitter)
+  const engagementRate = followerCount > 1000000 ? 0.5 : followerCount > 100000 ? 1 : followerCount > 10000 ? 2 : 3;
+  
+  // Twitter sponsorship rates (typically $2-$5 per 1000 followers per tweet)
+  const ratePerThousand = followerCount > 1000000 ? 3 : followerCount > 100000 ? 4 : 5;
+  const perTweetLow = Math.round((followerCount / 1000) * ratePerThousand * 0.7);
+  const perTweetHigh = Math.round((followerCount / 1000) * ratePerThousand * 1.5);
+  
+  // Thread rates (typically 1.5-2x single tweet)
+  const perThreadLow = Math.round(perTweetLow * 1.5);
+  const perThreadHigh = Math.round(perTweetHigh * 2);
+  
+  // Monthly earnings (assuming 4-8 sponsored tweets, 1-2 threads)
+  const monthlyLow = (perTweetLow * 4) + (perThreadLow * 1);
+  const monthlyHigh = (perTweetHigh * 8) + (perThreadHigh * 2);
+  
+  // X Premium revenue share estimate
+  const impressionsPerTweet = followerCount * 0.1;
+  const monthlyImpressions = impressionsPerTweet * 30; // Assuming daily tweets
+  const premiumRevLow = Math.round(monthlyImpressions * 0.000005); // ~$5 per million impressions
+  const premiumRevHigh = Math.round(monthlyImpressions * 0.00002); // ~$20 per million impressions
+  
+  const grade = getGrade(followerCount);
+
+  return {
+    username: profileData.username,
+    displayName: profileData.displayName,
+    profileImage: profileData.profileImage,
+    bannerImage: profileData.bannerImage,
+    followers: followerCount,
+    following: profileData.following,
+    tweets: profileData.tweets,
+    verified: profileData.verified,
+    bio: profileData.bio,
+    joinedDate: profileData.joinedDate,
+    engagementRate,
+    estimatedPerTweet: { low: perTweetLow, high: perTweetHigh },
+    estimatedPerThread: { low: perThreadLow, high: perThreadHigh },
+    estimatedPremiumRevenue: { low: premiumRevLow, high: premiumRevHigh },
+    estimatedMonthlyEarnings: { low: monthlyLow + premiumRevLow, high: monthlyHigh + premiumRevHigh },
+    grade,
+    niche: niche || 'General',
   };
 }
 

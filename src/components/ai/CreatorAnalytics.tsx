@@ -25,8 +25,33 @@ import {
   Lock,
   Crown,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  Heart,
+  MessageCircle,
+  Image as ImageIcon,
+  Music
 } from 'lucide-react';
+
+// TikTok icon component
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+  </svg>
+);
+
+// Instagram icon component
+const InstagramIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+  </svg>
+);
+
+// Twitter/X icon component
+const TwitterIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  </svg>
+);
 
 interface RecentVideo {
   id: string;
@@ -63,12 +88,77 @@ interface YouTubeStats {
 interface FacebookStats {
   pageName: string;
   pageImage?: string;
+  coverImage?: string;
   followers: number;
+  likes?: number;
   estimatedReach: number;
   engagementRate: number;
+  verified?: boolean;
+  about?: string;
   estimatedMonthlyEarnings: { low: number; high: number };
   estimatedPerPost: { low: number; high: number };
   grade: string;
+}
+
+interface TikTokStats {
+  username: string;
+  nickname: string;
+  profileImage?: string;
+  followers: number;
+  following: number;
+  likes: number;
+  videos: number;
+  verified: boolean;
+  bio?: string;
+  region?: string;
+  engagementRate: number;
+  estimatedMonthlyViews: number;
+  estimatedCreatorFund: { low: number; high: number };
+  estimatedPerPost: { low: number; high: number };
+  estimatedMonthlyEarnings: { low: number; high: number };
+  cpm: { low: number; high: number };
+  grade: string;
+  niche: string;
+}
+
+interface InstagramStats {
+  username: string;
+  fullName: string;
+  profileImage?: string;
+  followers: number;
+  following: number;
+  posts: number;
+  verified: boolean;
+  bio?: string;
+  isPrivate?: boolean;
+  category?: string;
+  engagementRate: number;
+  estimatedPerPost: { low: number; high: number };
+  estimatedPerStory: { low: number; high: number };
+  estimatedPerReel: { low: number; high: number };
+  estimatedMonthlyEarnings: { low: number; high: number };
+  grade: string;
+  niche: string;
+}
+
+interface TwitterStats {
+  username: string;
+  displayName: string;
+  profileImage?: string;
+  bannerImage?: string;
+  followers: number;
+  following: number;
+  tweets: number;
+  verified: boolean;
+  bio?: string;
+  joinedDate?: string;
+  engagementRate: number;
+  estimatedPerTweet: { low: number; high: number };
+  estimatedPerThread: { low: number; high: number };
+  estimatedPremiumRevenue: { low: number; high: number };
+  estimatedMonthlyEarnings: { low: number; high: number };
+  grade: string;
+  niche: string;
 }
 
 interface AdSenseStats {
@@ -160,6 +250,27 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
   const [facebookStats, setFacebookStats] = useState<FacebookStats | null>(null);
   const [facebookSuggestions, setFacebookSuggestions] = useState<ChannelSuggestion[]>([]);
   const [showFacebookSuggestions, setShowFacebookSuggestions] = useState(false);
+  
+  // TikTok state
+  const [tiktokInput, setTiktokInput] = useState('');
+  const [tiktokFollowers, setTiktokFollowers] = useState('');
+  const [tiktokNiche, setTiktokNiche] = useState('entertainment');
+  const [tiktokLoading, setTiktokLoading] = useState(false);
+  const [tiktokStats, setTiktokStats] = useState<TikTokStats | null>(null);
+  
+  // Instagram state
+  const [instagramInput, setInstagramInput] = useState('');
+  const [instagramFollowers, setInstagramFollowers] = useState('');
+  const [instagramNiche, setInstagramNiche] = useState('general');
+  const [instagramLoading, setInstagramLoading] = useState(false);
+  const [instagramStats, setInstagramStats] = useState<InstagramStats | null>(null);
+  
+  // Twitter state
+  const [twitterInput, setTwitterInput] = useState('');
+  const [twitterFollowers, setTwitterFollowers] = useState('');
+  const [twitterNiche, setTwitterNiche] = useState('general');
+  const [twitterLoading, setTwitterLoading] = useState(false);
+  const [twitterStats, setTwitterStats] = useState<TwitterStats | null>(null);
   
   // AdSense state
   const [adsenseUrl, setAdsenseUrl] = useState('');
@@ -408,6 +519,93 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
     }
   };
 
+  const handleTikTokAnalyze = async () => {
+    if (!tiktokInput.trim()) {
+      toast.error('Please enter a TikTok username or URL');
+      return;
+    }
+    if (!canAnalyze) {
+      toast.error(`You need ${analysisCreditCost} credits to analyze`);
+      return;
+    }
+    const deducted = await deductCredits();
+    if (!deducted) return;
+    setTiktokLoading(true);
+    setTiktokStats(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-creator', {
+        body: { platform: 'tiktok', input: tiktokInput.trim(), followers: parseInt(tiktokFollowers) || undefined, niche: tiktokNiche }
+      });
+      if (error) throw error;
+      if (data?.stats) {
+        setTiktokStats(data.stats);
+        toast.success('TikTok analytics loaded!');
+      } else throw new Error(data?.error || 'Failed to analyze');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to analyze TikTok account');
+    } finally {
+      setTiktokLoading(false);
+    }
+  };
+
+  const handleInstagramAnalyze = async () => {
+    if (!instagramInput.trim()) {
+      toast.error('Please enter an Instagram username or URL');
+      return;
+    }
+    if (!canAnalyze) {
+      toast.error(`You need ${analysisCreditCost} credits to analyze`);
+      return;
+    }
+    const deducted = await deductCredits();
+    if (!deducted) return;
+    setInstagramLoading(true);
+    setInstagramStats(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-creator', {
+        body: { platform: 'instagram', input: instagramInput.trim(), followers: parseInt(instagramFollowers) || undefined, niche: instagramNiche }
+      });
+      if (error) throw error;
+      if (data?.stats) {
+        setInstagramStats(data.stats);
+        toast.success('Instagram analytics loaded!');
+      } else throw new Error(data?.error || 'Failed to analyze');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to analyze Instagram account');
+    } finally {
+      setInstagramLoading(false);
+    }
+  };
+
+  const handleTwitterAnalyze = async () => {
+    if (!twitterInput.trim()) {
+      toast.error('Please enter a Twitter/X username or URL');
+      return;
+    }
+    if (!canAnalyze) {
+      toast.error(`You need ${analysisCreditCost} credits to analyze`);
+      return;
+    }
+    const deducted = await deductCredits();
+    if (!deducted) return;
+    setTwitterLoading(true);
+    setTwitterStats(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-creator', {
+        body: { platform: 'twitter', input: twitterInput.trim(), followers: parseInt(twitterFollowers) || undefined, niche: twitterNiche }
+      });
+      if (error) throw error;
+      if (data?.stats) {
+        setTwitterStats(data.stats);
+        toast.success('Twitter/X analytics loaded!');
+      } else throw new Error(data?.error || 'Failed to analyze');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to analyze Twitter account');
+    } finally {
+      setTwitterLoading(false);
+    }
+  };
+
   const handleAdSenseAnalyze = async () => {
     if (!adsenseUrl.trim() || !monthlyVisitors.trim()) {
       toast.error('Please enter website URL and monthly visitors');
@@ -557,18 +755,30 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
         </CardHeader>
         <CardContent className="pt-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-red-500/10 via-blue-500/10 to-green-500/10">
-              <TabsTrigger value="youtube" className="flex items-center gap-1 data-[state=active]:bg-red-500 data-[state=active]:text-white">
-                <Youtube className="h-4 w-4" />
-                YouTube
+            <TabsList className="grid grid-cols-6 w-full bg-gradient-to-r from-red-500/10 via-blue-500/10 to-green-500/10">
+              <TabsTrigger value="youtube" className="flex items-center gap-1 text-xs data-[state=active]:bg-red-500 data-[state=active]:text-white">
+                <Youtube className="h-3 w-3" />
+                <span className="hidden sm:inline">YouTube</span>
               </TabsTrigger>
-              <TabsTrigger value="facebook" className="flex items-center gap-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                <Facebook className="h-4 w-4" />
-                Facebook
+              <TabsTrigger value="tiktok" className="flex items-center gap-1 text-xs data-[state=active]:bg-black data-[state=active]:text-white">
+                <TikTokIcon className="h-3 w-3" />
+                <span className="hidden sm:inline">TikTok</span>
               </TabsTrigger>
-              <TabsTrigger value="adsense" className="flex items-center gap-1 data-[state=active]:bg-green-600 data-[state=active]:text-white">
-                <Globe className="h-4 w-4" />
-                AdSense
+              <TabsTrigger value="instagram" className="flex items-center gap-1 text-xs data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white">
+                <InstagramIcon className="h-3 w-3" />
+                <span className="hidden sm:inline">Instagram</span>
+              </TabsTrigger>
+              <TabsTrigger value="facebook" className="flex items-center gap-1 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                <Facebook className="h-3 w-3" />
+                <span className="hidden sm:inline">Facebook</span>
+              </TabsTrigger>
+              <TabsTrigger value="twitter" className="flex items-center gap-1 text-xs data-[state=active]:bg-black data-[state=active]:text-white">
+                <TwitterIcon className="h-3 w-3" />
+                <span className="hidden sm:inline">X/Twitter</span>
+              </TabsTrigger>
+              <TabsTrigger value="adsense" className="flex items-center gap-1 text-xs data-[state=active]:bg-green-600 data-[state=active]:text-white">
+                <Globe className="h-3 w-3" />
+                <span className="hidden sm:inline">AdSense</span>
               </TabsTrigger>
             </TabsList>
 
