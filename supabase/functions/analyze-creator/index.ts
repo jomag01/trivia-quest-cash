@@ -16,6 +16,9 @@ const CPM_RATES: { [key: string]: { low: number; high: number } } = {
   travel: { low: 4, high: 12 },
   food: { low: 3, high: 10 },
   fashion: { low: 3, high: 12 },
+  music: { low: 2, high: 6 },
+  sports: { low: 3, high: 10 },
+  news: { low: 3, high: 10 },
   general: { low: 2, high: 8 },
 };
 
@@ -31,6 +34,42 @@ const ADSENSE_CPC: { [key: string]: { low: number; high: number } } = {
   food: { low: 0.15, high: 0.60 },
   fashion: { low: 0.15, high: 0.80 },
   general: { low: 0.10, high: 0.50 },
+};
+
+// YouTube category mapping
+const YOUTUBE_CATEGORIES: { [key: string]: string } = {
+  '1': 'Film & Animation',
+  '2': 'Autos & Vehicles',
+  '10': 'Music',
+  '15': 'Pets & Animals',
+  '17': 'Sports',
+  '18': 'Short Movies',
+  '19': 'Travel & Events',
+  '20': 'Gaming',
+  '21': 'Videoblogging',
+  '22': 'People & Blogs',
+  '23': 'Comedy',
+  '24': 'Entertainment',
+  '25': 'News & Politics',
+  '26': 'Howto & Style',
+  '27': 'Education',
+  '28': 'Science & Technology',
+  '29': 'Nonprofits & Activism',
+  '30': 'Movies',
+  '31': 'Anime/Animation',
+  '32': 'Action/Adventure',
+  '33': 'Classics',
+  '34': 'Comedy',
+  '35': 'Documentary',
+  '36': 'Drama',
+  '37': 'Family',
+  '38': 'Foreign',
+  '39': 'Horror',
+  '40': 'Sci-Fi/Fantasy',
+  '41': 'Thriller',
+  '42': 'Shorts',
+  '43': 'Shows',
+  '44': 'Trailers',
 };
 
 serve(async (req) => {
@@ -51,7 +90,7 @@ serve(async (req) => {
         stats = await analyzeYouTube(body);
         break;
       case 'facebook':
-        stats = analyzeFacebook(body);
+        stats = await analyzeFacebook(body);
         break;
       case 'adsense':
         stats = analyzeAdSense(body);
@@ -79,98 +118,233 @@ serve(async (req) => {
 
 async function analyzeYouTube(body: any) {
   const { input } = body;
+  const GOOGLE_API_KEY = Deno.env.get('GOOGLE_CLOUD_API_KEY');
   
-  // Extract channel name from URL or use directly
-  let channelName = input;
-  if (input.includes('youtube.com') || input.includes('youtu.be')) {
-    const match = input.match(/@([^\/\?]+)/) || input.match(/channel\/([^\/\?]+)/) || input.match(/c\/([^\/\?]+)/);
-    channelName = match ? match[1] : input;
+  if (!GOOGLE_API_KEY) {
+    throw new Error('YouTube API not configured');
   }
-  channelName = channelName.replace('@', '');
 
-  // Use AI to estimate stats based on channel name
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  // Extract channel identifier from URL or use directly
+  let channelIdentifier = input.trim();
+  let searchType: 'handle' | 'id' | 'username' | 'search' = 'search';
   
-  let estimatedData = {
-    subscribers: 100000,
-    totalViews: 50000000,
-    videoCount: 200,
-    category: 'Entertainment'
-  };
+  if (channelIdentifier.includes('youtube.com') || channelIdentifier.includes('youtu.be')) {
+    // Handle different URL formats
+    const handleMatch = channelIdentifier.match(/@([^\/\?\s]+)/);
+    const channelIdMatch = channelIdentifier.match(/channel\/([^\/\?\s]+)/);
+    const userMatch = channelIdentifier.match(/user\/([^\/\?\s]+)/);
+    const customMatch = channelIdentifier.match(/c\/([^\/\?\s]+)/);
+    
+    if (handleMatch) {
+      channelIdentifier = handleMatch[1];
+      searchType = 'handle';
+    } else if (channelIdMatch) {
+      channelIdentifier = channelIdMatch[1];
+      searchType = 'id';
+    } else if (userMatch) {
+      channelIdentifier = userMatch[1];
+      searchType = 'username';
+    } else if (customMatch) {
+      channelIdentifier = customMatch[1];
+      searchType = 'search';
+    }
+  } else if (channelIdentifier.startsWith('@')) {
+    channelIdentifier = channelIdentifier.substring(1);
+    searchType = 'handle';
+  } else if (channelIdentifier.startsWith('UC') && channelIdentifier.length === 24) {
+    searchType = 'id';
+  }
 
-  if (LOVABLE_API_KEY) {
-    try {
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            {
-              role: 'system',
-              content: 'You estimate YouTube channel statistics. Respond with JSON only: {"subscribers": number, "totalViews": number, "videoCount": number, "category": string}. Make realistic estimates for popular channels or reasonable guesses for unknown ones.'
-            },
-            {
-              role: 'user',
-              content: `Estimate statistics for YouTube channel: ${channelName}. If you know this channel, provide accurate estimates. If not, provide reasonable estimates based on the name.`
-            }
-          ],
-        }),
-      });
+  console.log('Channel identifier:', channelIdentifier, 'Type:', searchType);
 
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content || '';
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          estimatedData = { ...estimatedData, ...JSON.parse(jsonMatch[0]) };
-        }
-      }
-    } catch (e) {
-      console.error('AI estimation failed:', e);
+  let channelId: string | null = null;
+
+  // Step 1: Find channel ID
+  if (searchType === 'id') {
+    channelId = channelIdentifier;
+  } else if (searchType === 'handle') {
+    // Search for channel by handle
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=@${channelIdentifier}&maxResults=1&key=${GOOGLE_API_KEY}`;
+    const searchResp = await fetch(searchUrl);
+    const searchData = await searchResp.json();
+    
+    if (searchData.items && searchData.items.length > 0) {
+      channelId = searchData.items[0].snippet.channelId;
+    }
+  } else if (searchType === 'username') {
+    // Try forUsername parameter
+    const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=id&forUsername=${channelIdentifier}&key=${GOOGLE_API_KEY}`;
+    const channelResp = await fetch(channelUrl);
+    const channelData = await channelResp.json();
+    
+    if (channelData.items && channelData.items.length > 0) {
+      channelId = channelData.items[0].id;
+    }
+  }
+  
+  // Fallback to search if no channel found
+  if (!channelId) {
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(channelIdentifier)}&maxResults=1&key=${GOOGLE_API_KEY}`;
+    const searchResp = await fetch(searchUrl);
+    const searchData = await searchResp.json();
+    
+    if (searchData.items && searchData.items.length > 0) {
+      channelId = searchData.items[0].snippet.channelId;
     }
   }
 
-  const subscribers = estimatedData.subscribers;
-  const totalViews = estimatedData.totalViews;
-  const videoCount = estimatedData.videoCount;
-  const category = estimatedData.category.toLowerCase();
-  const averageViews = Math.round(totalViews / Math.max(videoCount, 1));
+  if (!channelId) {
+    throw new Error('Channel not found. Please check the channel name or URL.');
+  }
+
+  // Step 2: Get channel details with statistics and branding
+  const detailsUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings,contentDetails&id=${channelId}&key=${GOOGLE_API_KEY}`;
+  const detailsResp = await fetch(detailsUrl);
+  const detailsData = await detailsResp.json();
+
+  if (!detailsData.items || detailsData.items.length === 0) {
+    throw new Error('Could not retrieve channel details');
+  }
+
+  const channel = detailsData.items[0];
+  const snippet = channel.snippet;
+  const statistics = channel.statistics;
+  const branding = channel.brandingSettings;
+
+  // Get channel thumbnails
+  const thumbnails = snippet.thumbnails;
+  const channelImage = thumbnails?.high?.url || thumbnails?.medium?.url || thumbnails?.default?.url;
+  const bannerImage = branding?.image?.bannerExternalUrl || null;
+
+  // Parse statistics
+  const subscribers = parseInt(statistics.subscriberCount) || 0;
+  const totalViews = parseInt(statistics.viewCount) || 0;
+  const videoCount = parseInt(statistics.videoCount) || 0;
+  const averageViews = videoCount > 0 ? Math.round(totalViews / videoCount) : 0;
+
+  // Get recent videos to estimate monthly views
+  let recentViews = 0;
+  let recentVideos: any[] = [];
   
+  try {
+    const uploadsPlaylistId = channel.contentDetails?.relatedPlaylists?.uploads;
+    if (uploadsPlaylistId) {
+      const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=10&key=${GOOGLE_API_KEY}`;
+      const playlistResp = await fetch(playlistUrl);
+      const playlistData = await playlistResp.json();
+      
+      if (playlistData.items && playlistData.items.length > 0) {
+        const videoIds = playlistData.items.map((item: any) => item.snippet.resourceId.videoId).join(',');
+        
+        const videosUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}&key=${GOOGLE_API_KEY}`;
+        const videosResp = await fetch(videosUrl);
+        const videosData = await videosResp.json();
+        
+        if (videosData.items) {
+          recentVideos = videosData.items.map((v: any) => ({
+            id: v.id,
+            title: v.snippet.title,
+            thumbnail: v.snippet.thumbnails?.medium?.url || v.snippet.thumbnails?.default?.url,
+            views: parseInt(v.statistics.viewCount) || 0,
+            likes: parseInt(v.statistics.likeCount) || 0,
+            comments: parseInt(v.statistics.commentCount) || 0,
+            publishedAt: v.snippet.publishedAt,
+          }));
+          
+          recentViews = recentVideos.reduce((sum, v) => sum + v.views, 0);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error fetching recent videos:', e);
+  }
+
+  // Determine category from channel keywords or recent video categories
+  let category = 'Entertainment';
+  const keywords = branding?.channel?.keywords || '';
+  const description = snippet.description?.toLowerCase() || '';
+  
+  // Try to detect category from keywords/description
+  if (keywords.includes('gaming') || keywords.includes('game') || description.includes('gaming')) {
+    category = 'Gaming';
+  } else if (keywords.includes('music') || description.includes('music') || description.includes('song')) {
+    category = 'Music';
+  } else if (keywords.includes('tech') || keywords.includes('technology') || description.includes('tech')) {
+    category = 'Tech';
+  } else if (keywords.includes('education') || keywords.includes('learn') || description.includes('education')) {
+    category = 'Education';
+  } else if (keywords.includes('finance') || keywords.includes('money') || description.includes('finance')) {
+    category = 'Finance';
+  } else if (keywords.includes('health') || keywords.includes('fitness') || description.includes('health')) {
+    category = 'Health';
+  } else if (keywords.includes('travel') || description.includes('travel')) {
+    category = 'Travel';
+  } else if (keywords.includes('food') || keywords.includes('cooking') || description.includes('food')) {
+    category = 'Food';
+  } else if (keywords.includes('sports') || description.includes('sports')) {
+    category = 'Sports';
+  } else if (keywords.includes('news') || description.includes('news')) {
+    category = 'News';
+  }
+
   // Get CPM rates for category
-  const cpm = CPM_RATES[category] || CPM_RATES.general;
+  const categoryLower = category.toLowerCase();
+  const cpm = CPM_RATES[categoryLower] || CPM_RATES.general;
+
+  // Estimate monthly views based on recent video performance
+  let estimatedMonthlyViews = recentViews > 0 ? recentViews : averageViews * 4;
   
-  // Estimate monthly views (based on average views and typical upload frequency)
-  const estimatedMonthlyViews = averageViews * 4; // Assuming ~4 videos/month or view decay
-  
+  // Adjust based on subscriber count for more accuracy
+  if (subscribers > 1000000) {
+    estimatedMonthlyViews = Math.max(estimatedMonthlyViews, subscribers * 0.1);
+  }
+
   // Calculate earnings
   const monthlyLow = Math.round((estimatedMonthlyViews / 1000) * cpm.low);
   const monthlyHigh = Math.round((estimatedMonthlyViews / 1000) * cpm.high);
-  
+
   // Determine grade
   const grade = getGrade(subscribers);
 
   return {
-    channelName: channelName,
+    channelName: snippet.title,
+    channelHandle: snippet.customUrl || `@${channelIdentifier}`,
+    channelImage,
+    bannerImage,
+    description: snippet.description?.substring(0, 300) || '',
+    country: snippet.country || 'Unknown',
+    publishedAt: snippet.publishedAt,
     subscribers,
     totalViews,
     videoCount,
     averageViews,
+    estimatedMonthlyViews,
     estimatedMonthlyEarnings: { low: monthlyLow, high: monthlyHigh },
     estimatedYearlyEarnings: { low: monthlyLow * 12, high: monthlyHigh * 12 },
     cpm,
     grade,
-    category: estimatedData.category,
+    category,
+    recentVideos: recentVideos.slice(0, 5),
+    verified: statistics.hiddenSubscriberCount === false && subscribers > 100000,
   };
 }
 
-function analyzeFacebook(body: any) {
+async function analyzeFacebook(body: any) {
   const { input, followers } = body;
   
+  // For Facebook, we use the provided follower count since Graph API requires authentication
   const followerCount = parseInt(followers) || 10000;
+  
+  // Try to get page icon from Facebook
+  let pageImage = null;
+  const pageName = input.replace(/^@/, '').replace(/https?:\/\/(www\.)?facebook\.com\//, '').split('/')[0];
+  
+  // Use Facebook graph API for public page picture (no token needed for public pages)
+  try {
+    pageImage = `https://graph.facebook.com/${pageName}/picture?type=large`;
+  } catch (e) {
+    console.error('Could not fetch Facebook page image');
+  }
   
   // Estimate engagement rate (typically 1-5% for pages)
   const engagementRate = followerCount > 1000000 ? 1.5 : followerCount > 100000 ? 2.5 : 4;
@@ -191,6 +365,7 @@ function analyzeFacebook(body: any) {
 
   return {
     pageName: input,
+    pageImage,
     followers: followerCount,
     estimatedReach,
     engagementRate,
@@ -205,6 +380,15 @@ function analyzeAdSense(body: any) {
   
   const visitors = parseInt(monthlyVisitors) || 10000;
   const websiteNiche = niche || 'general';
+  
+  // Try to get favicon
+  let websiteFavicon = null;
+  try {
+    const domain = url.replace(/^https?:\/\//, '').split('/')[0];
+    websiteFavicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+  } catch (e) {
+    console.error('Could not fetch favicon');
+  }
   
   // Estimate page views (avg 2-3 pages per visit)
   const pageViewsPerVisit = 2.5;
@@ -228,6 +412,7 @@ function analyzeAdSense(body: any) {
 
   return {
     websiteUrl: url,
+    websiteFavicon,
     estimatedMonthlyVisitors: visitors,
     estimatedPageViews,
     estimatedCTR,
