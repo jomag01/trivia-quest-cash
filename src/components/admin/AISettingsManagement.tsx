@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings, Music } from 'lucide-react';
+import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings, Music, Globe, BarChart3, Share2 } from 'lucide-react';
 import AICostCalculator from './AICostCalculator';
 import AIProviderStatus from './AIProviderStatus';
 interface CreditTier {
@@ -31,6 +31,10 @@ const AISettingsManagement = () => {
   const [creditsPerVideoMinute, setCreditsPerVideoMinute] = useState('20');
   const [creditsPerAudioMinute, setCreditsPerAudioMinute] = useState('5');
   const [creditsPerImage, setCreditsPerImage] = useState('1');
+  const [scraperCreditCost, setScraperCreditCost] = useState('5');
+  const [scraperAnalysisCost, setScraperAnalysisCost] = useState('10');
+  const [analyticsCreditCost, setAnalyticsCreditCost] = useState('5');
+  const [socialMediaCreditCost, setSocialMediaCreditCost] = useState('10');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -103,6 +107,14 @@ const AISettingsManagement = () => {
           setLeadershipPercent(setting.value || '25');
         } else if (setting.key === 'ai_cost_markup_percent') {
           setCostMarkupPercent(setting.value || '100');
+        } else if (setting.key === 'ai_scraper_credit_cost') {
+          setScraperCreditCost(setting.value || '5');
+        } else if (setting.key === 'ai_scraper_analysis_cost') {
+          setScraperAnalysisCost(setting.value || '10');
+        } else if (setting.key === 'ai_analytics_credit_cost') {
+          setAnalyticsCreditCost(setting.value || '5');
+        } else if (setting.key === 'ai_social_media_credit_cost') {
+          setSocialMediaCreditCost(setting.value || '10');
         }
 
         // Parse tier settings
@@ -155,6 +167,10 @@ const AISettingsManagement = () => {
         { key: 'ai_stairstep_percent', value: stairstepPercent },
         { key: 'ai_leadership_percent', value: leadershipPercent },
         { key: 'ai_tier_count', value: tiers.length.toString() },
+        { key: 'ai_scraper_credit_cost', value: scraperCreditCost },
+        { key: 'ai_scraper_analysis_cost', value: scraperAnalysisCost },
+        { key: 'ai_analytics_credit_cost', value: analyticsCreditCost },
+        { key: 'ai_social_media_credit_cost', value: socialMediaCreditCost },
       ];
 
       // Add all tier settings dynamically
@@ -407,6 +423,79 @@ const AISettingsManagement = () => {
                 />
                 <p className="text-xs text-muted-foreground">
                   1 image = {creditsPerImage} credits
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Premium Services Pricing */}
+          <div className="pt-4 border-t">
+            <h4 className="font-medium text-sm mb-4 flex items-center gap-2">
+              <Crown className="h-4 w-4 text-yellow-500" />
+              Premium Services Pricing
+            </h4>
+            <p className="text-xs text-muted-foreground mb-4">
+              Set credit costs for premium AI services available to users who purchased AI credits.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <Globe className="h-3 w-3 text-blue-500" />
+                  Website Scraper (per scrape)
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={scraperCreditCost}
+                  onChange={(e) => setScraperCreditCost(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {scraperCreditCost} credits per website scrape
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <Sparkles className="h-3 w-3 text-purple-500" />
+                  AI Analysis (per analysis)
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={scraperAnalysisCost}
+                  onChange={(e) => setScraperAnalysisCost(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {scraperAnalysisCost} credits per AI clone analysis
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <BarChart3 className="h-3 w-3 text-green-500" />
+                  Creator Analytics (per lookup)
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={analyticsCreditCost}
+                  onChange={(e) => setAnalyticsCreditCost(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {analyticsCreditCost} credits per creator/website analysis
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <Share2 className="h-3 w-3 text-pink-500" />
+                  Social Media Management (per action)
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={socialMediaCreditCost}
+                  onChange={(e) => setSocialMediaCreditCost(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {socialMediaCreditCost} credits per AI-generated post/action
                 </p>
               </div>
             </div>

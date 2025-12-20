@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,9 +52,6 @@ interface WebsiteScraperProps {
   onCreditsChange: () => void;
 }
 
-const SCRAPE_CREDIT_COST = 5;
-const ANALYZE_CREDIT_COST = 10;
-
 const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsChange }) => {
   const { user } = useAuth();
   const [url, setUrl] = useState('');
@@ -63,6 +60,31 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
   const [scrapedData, setScrapedData] = useState<ScrapedData | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [scraperCreditCost, setScraperCreditCost] = useState(5);
+  const [analysisCreditCost, setAnalysisCreditCost] = useState(10);
+
+  useEffect(() => {
+    fetchPricing();
+  }, []);
+
+  const fetchPricing = async () => {
+    try {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('key, value')
+        .in('key', ['ai_scraper_credit_cost', 'ai_scraper_analysis_cost']);
+      
+      data?.forEach(setting => {
+        if (setting.key === 'ai_scraper_credit_cost') {
+          setScraperCreditCost(parseInt(setting.value || '5'));
+        } else if (setting.key === 'ai_scraper_analysis_cost') {
+          setAnalysisCreditCost(parseInt(setting.value || '10'));
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching pricing:', error);
+    }
+  };
 
   const deductCredits = async (amount: number): Promise<boolean> => {
     if (!user) return false;
@@ -98,12 +120,12 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
       return;
     }
 
-    if (userCredits < SCRAPE_CREDIT_COST) {
-      toast.error(`You need ${SCRAPE_CREDIT_COST} credits to scrape a website`);
+    if (userCredits < scraperCreditCost) {
+      toast.error(`You need ${scraperCreditCost} credits to scrape a website`);
       return;
     }
 
-    const deducted = await deductCredits(SCRAPE_CREDIT_COST);
+    const deducted = await deductCredits(scraperCreditCost);
     if (!deducted) return;
 
     setIsLoading(true);
@@ -137,12 +159,12 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
       return;
     }
 
-    if (userCredits < ANALYZE_CREDIT_COST) {
-      toast.error(`You need ${ANALYZE_CREDIT_COST} credits for AI analysis`);
+    if (userCredits < analysisCreditCost) {
+      toast.error(`You need ${analysisCreditCost} credits for AI analysis`);
       return;
     }
 
-    const deducted = await deductCredits(ANALYZE_CREDIT_COST);
+    const deducted = await deductCredits(analysisCreditCost);
     if (!deducted) return;
 
     setIsAnalyzing(true);
@@ -180,8 +202,8 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
     toast.success(`${label} copied to clipboard!`);
   };
 
-  const canScrape = userCredits >= SCRAPE_CREDIT_COST;
-  const canAnalyze = userCredits >= ANALYZE_CREDIT_COST;
+  const canScrape = userCredits >= scraperCreditCost;
+  const canAnalyze = userCredits >= analysisCreditCost;
 
   return (
     <div className="space-y-4">
@@ -199,15 +221,15 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
             Scrape any website to get content ideas, analyze design, and get AI-powered instructions to clone it
           </CardDescription>
           <div className="flex gap-2 text-xs text-muted-foreground mt-2">
-            <Badge variant="outline">{SCRAPE_CREDIT_COST} credits/scrape</Badge>
-            <Badge variant="outline">{ANALYZE_CREDIT_COST} credits/AI analysis</Badge>
+            <Badge variant="outline">{scraperCreditCost} credits/scrape</Badge>
+            <Badge variant="outline">{analysisCreditCost} credits/AI analysis</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {!canScrape ? (
             <div className="text-center py-8 space-y-4">
               <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
-              <p className="text-muted-foreground">You need at least {SCRAPE_CREDIT_COST} credits to use this feature</p>
+              <p className="text-muted-foreground">You need at least {scraperCreditCost} credits to use this feature</p>
               <p className="text-sm text-muted-foreground">Current balance: {userCredits} credits</p>
             </div>
           ) : (
@@ -230,7 +252,7 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
                   ) : (
                     <>
                       <Search className="h-4 w-4 mr-2" />
-                      Scrape ({SCRAPE_CREDIT_COST}c)
+                      Scrape ({scraperCreditCost}c)
                     </>
                   )}
                 </Button>
@@ -251,7 +273,7 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
                   ) : (
                     <>
                       <Wand2 className="h-4 w-4 mr-2" />
-                      Analyze with AI & Get Clone Instructions ({ANALYZE_CREDIT_COST}c)
+                      Analyze with AI & Get Clone Instructions ({analysisCreditCost}c)
                     </>
                   )}
                 </Button>
@@ -501,7 +523,7 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
                   <div className="text-center py-8 text-muted-foreground">
                     <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>Click "Analyze with AI" to get design insights and clone instructions</p>
-                    <p className="text-xs mt-1">Cost: {ANALYZE_CREDIT_COST} credits</p>
+                    <p className="text-xs mt-1">Cost: {analysisCreditCost} credits</p>
                   </div>
                 )}
               </TabsContent>
