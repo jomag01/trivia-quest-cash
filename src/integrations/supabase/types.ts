@@ -2289,6 +2289,217 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          listing_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_favorites_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_inquiries: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string
+          inquirer_id: string
+          listing_id: string
+          message: string
+          preferred_date: string | null
+          responded_at: string | null
+          seller_response: string | null
+          status: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          inquirer_id: string
+          listing_id: string
+          message: string
+          preferred_date?: string | null
+          responded_at?: string | null
+          seller_response?: string | null
+          status?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          inquirer_id?: string
+          listing_id?: string
+          message?: string
+          preferred_date?: string | null
+          responded_at?: string | null
+          seller_response?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_inquiries_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_listings: {
+        Row: {
+          amenities: string[] | null
+          area_sqm: number | null
+          available_from: string | null
+          available_until: string | null
+          bathrooms: number | null
+          bedrooms: number | null
+          brand: string | null
+          category: Database["public"]["Enums"]["marketplace_category"]
+          city: string | null
+          condition: string | null
+          country: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          expires_at: string | null
+          featured_until: string | null
+          fuel_type: string | null
+          id: string
+          images: string[] | null
+          inquiries_count: number | null
+          is_featured: boolean | null
+          location: string | null
+          max_guests: number | null
+          mileage: number | null
+          min_stay_nights: number | null
+          model: string | null
+          price: number
+          price_type: string | null
+          province: string | null
+          seller_id: string
+          specifications: Json | null
+          status:
+            | Database["public"]["Enums"]["marketplace_listing_status"]
+            | null
+          thumbnail_url: string | null
+          title: string
+          transmission: string | null
+          updated_at: string | null
+          views_count: number | null
+          year: number | null
+          year_built: number | null
+        }
+        Insert: {
+          amenities?: string[] | null
+          area_sqm?: number | null
+          available_from?: string | null
+          available_until?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          brand?: string | null
+          category: Database["public"]["Enums"]["marketplace_category"]
+          city?: string | null
+          condition?: string | null
+          country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          expires_at?: string | null
+          featured_until?: string | null
+          fuel_type?: string | null
+          id?: string
+          images?: string[] | null
+          inquiries_count?: number | null
+          is_featured?: boolean | null
+          location?: string | null
+          max_guests?: number | null
+          mileage?: number | null
+          min_stay_nights?: number | null
+          model?: string | null
+          price: number
+          price_type?: string | null
+          province?: string | null
+          seller_id: string
+          specifications?: Json | null
+          status?:
+            | Database["public"]["Enums"]["marketplace_listing_status"]
+            | null
+          thumbnail_url?: string | null
+          title: string
+          transmission?: string | null
+          updated_at?: string | null
+          views_count?: number | null
+          year?: number | null
+          year_built?: number | null
+        }
+        Update: {
+          amenities?: string[] | null
+          area_sqm?: number | null
+          available_from?: string | null
+          available_until?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          brand?: string | null
+          category?: Database["public"]["Enums"]["marketplace_category"]
+          city?: string | null
+          condition?: string | null
+          country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          expires_at?: string | null
+          featured_until?: string | null
+          fuel_type?: string | null
+          id?: string
+          images?: string[] | null
+          inquiries_count?: number | null
+          is_featured?: boolean | null
+          location?: string | null
+          max_guests?: number | null
+          mileage?: number | null
+          min_stay_nights?: number | null
+          model?: string | null
+          price?: number
+          price_type?: string | null
+          province?: string | null
+          seller_id?: string
+          specifications?: Json | null
+          status?:
+            | Database["public"]["Enums"]["marketplace_listing_status"]
+            | null
+          thumbnail_url?: string | null
+          title?: string
+          transmission?: string | null
+          updated_at?: string | null
+          views_count?: number | null
+          year?: number | null
+          year_built?: number | null
+        }
+        Relationships: []
+      }
       message_attachments: {
         Row: {
           created_at: string | null
@@ -5898,6 +6109,10 @@ export type Database = {
         Returns: undefined
       }
       check_level5_bonus: { Args: { player_id: string }; Returns: undefined }
+      check_marketplace_eligibility: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
       claim_level_prize: {
         Args: { _level: number; _user_id: string }
         Returns: Json
@@ -6019,6 +6234,20 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user"
       binary_leg: "left" | "right"
+      marketplace_category:
+        | "property_sale"
+        | "vehicle_sale"
+        | "secondhand_items"
+        | "property_rent"
+        | "room_rent"
+        | "hotel_staycation"
+      marketplace_listing_status:
+        | "active"
+        | "pending"
+        | "sold"
+        | "rented"
+        | "expired"
+        | "deleted"
       order_status:
         | "pending"
         | "processing"
@@ -6155,6 +6384,22 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user"],
       binary_leg: ["left", "right"],
+      marketplace_category: [
+        "property_sale",
+        "vehicle_sale",
+        "secondhand_items",
+        "property_rent",
+        "room_rent",
+        "hotel_staycation",
+      ],
+      marketplace_listing_status: [
+        "active",
+        "pending",
+        "sold",
+        "rented",
+        "expired",
+        "deleted",
+      ],
       order_status: [
         "pending",
         "processing",
