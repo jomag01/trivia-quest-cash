@@ -97,17 +97,17 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
   };
 
   return (
-    <div ref={galleryRef} className="relative min-h-screen pb-32">
+    <div ref={galleryRef} className="relative min-h-screen pb-32 bg-gradient-to-br from-purple-500/5 via-pink-500/5 to-orange-500/5">
       {/* Header Tabs */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border/50">
+      <div className="sticky top-0 z-20 bg-gradient-to-r from-background/95 via-background/90 to-background/95 backdrop-blur-xl border-b border-primary/10">
         <div className="flex items-center justify-center gap-2 py-3">
           <button
             onClick={() => setActiveMode('discover')}
             className={cn(
               "px-6 py-2 rounded-full text-sm font-medium transition-all",
               activeMode === 'discover' 
-                ? "bg-muted text-foreground" 
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25" 
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             )}
           >
             Discover
@@ -117,8 +117,8 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
             className={cn(
               "px-6 py-2 rounded-full text-sm font-medium transition-all",
               activeMode === 'effects' 
-                ? "bg-muted text-foreground" 
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/25" 
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             )}
           >
             Effects
@@ -128,20 +128,24 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
         {/* Category Pills */}
         <ScrollArea className="w-full pb-3">
           <div className="flex items-center gap-2 px-4">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={cn(
-                  "px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all border",
-                  activeCategory === cat.id 
-                    ? "bg-foreground text-background border-foreground" 
-                    : "bg-transparent text-foreground border-border hover:border-foreground/50"
-                )}
-              >
-                {cat.label}
-              </button>
-            ))}
+            {CATEGORIES.map((cat, index) => {
+              const colors = ['from-purple-500 to-pink-500', 'from-blue-500 to-cyan-500', 'from-green-500 to-emerald-500', 'from-orange-500 to-red-500', 'from-yellow-500 to-amber-500', 'from-indigo-500 to-purple-500', 'from-pink-500 to-rose-500'];
+              const gradientColor = colors[index % colors.length];
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all border",
+                    activeCategory === cat.id 
+                      ? `bg-gradient-to-r ${gradientColor} text-white border-transparent shadow-lg` 
+                      : "bg-transparent text-foreground border-border/50 hover:border-primary/50 hover:bg-muted"
+                  )}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
@@ -193,14 +197,17 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
         showFloatingInput ? "translate-y-0 opacity-100" : "translate-y-0 opacity-100"
       )}>
         <div className="max-w-2xl mx-auto">
-          <div className="bg-background/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-3">
+          <div className="bg-gradient-to-r from-background/95 via-background/98 to-background/95 backdrop-blur-xl border border-primary/20 rounded-2xl shadow-2xl shadow-purple-500/10 p-3">
             {/* Type Toggle */}
             <div className="flex items-center gap-2 mb-3 overflow-x-auto">
               <Button
                 variant={generationType === 'video' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setGenerationType('video')}
-                className="gap-1.5 rounded-full shrink-0"
+                className={cn(
+                  "gap-1.5 rounded-full shrink-0",
+                  generationType === 'video' && "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
+                )}
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 AI Video
@@ -209,7 +216,10 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
                 variant={generationType === 'image' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setGenerationType('image')}
-                className="gap-1.5 rounded-full shrink-0"
+                className={cn(
+                  "gap-1.5 rounded-full shrink-0",
+                  generationType === 'image' && "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0"
+                )}
               >
                 <ImageIcon className="h-3.5 w-3.5" />
                 AI Image
@@ -218,14 +228,17 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
                 variant={generationType === 'research' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setGenerationType('research')}
-                className="gap-1.5 rounded-full shrink-0"
+                className={cn(
+                  "gap-1.5 rounded-full shrink-0",
+                  generationType === 'research' && "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0"
+                )}
               >
                 <Search className="h-3.5 w-3.5" />
                 Deep Research
               </Button>
-              <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                <Crown className="h-3 w-3 text-yellow-500" />
-                {userCredits}
+              <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground shrink-0 bg-gradient-to-r from-amber-500/20 to-orange-500/20 px-2 py-1 rounded-full">
+                <Crown className="h-3 w-3 text-amber-500" />
+                <span className="font-semibold text-amber-600">{userCredits}</span>
               </div>
             </div>
 
@@ -247,7 +260,7 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
                 onClick={handleSubmit}
                 disabled={!promptValue.trim()}
                 size="icon" 
-                className="h-9 w-9 rounded-full bg-primary hover:bg-primary/90 shrink-0"
+                className="h-9 w-9 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shrink-0 shadow-lg shadow-purple-500/25"
               >
                 <ArrowUp className="h-4 w-4" />
               </Button>
@@ -255,15 +268,15 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
 
             {/* Options Row */}
             <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1">
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-full shrink-0 h-8">
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-full shrink-0 h-8 border-primary/30 hover:border-primary hover:bg-primary/5">
                 <Plus className="h-3.5 w-3.5" />
               </Button>
               
               {generationType === 'video' && (
                 <>
                   <Select value={videoQuality} onValueChange={setVideoQuality}>
-                    <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-border/50 text-xs">
-                      <Film className="h-3.5 w-3.5" />
+                    <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-purple-500/30 bg-purple-500/5 text-xs">
+                      <Film className="h-3.5 w-3.5 text-purple-500" />
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -274,8 +287,8 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
                   </Select>
 
                   <Select value={videoDuration} onValueChange={setVideoDuration}>
-                    <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-border/50 text-xs">
-                      <Clock className="h-3.5 w-3.5" />
+                    <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-pink-500/30 bg-pink-500/5 text-xs">
+                      <Clock className="h-3.5 w-3.5 text-pink-500" />
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -287,8 +300,8 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
                 </>
               )}
 
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-full shrink-0 h-8">
-                <Mic className="h-3.5 w-3.5" />
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-full shrink-0 h-8 border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/10">
+                <Mic className="h-3.5 w-3.5 text-cyan-500" />
               </Button>
             </div>
           </div>

@@ -207,12 +207,17 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="border-0 shadow-xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-cyan-500/10 overflow-hidden relative">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Globe className="h-5 w-5 text-primary" />
-            Website Scraper & AI Cloner
-            <Badge variant="secondary" className="ml-2 gap-1">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+              <Globe className="h-5 w-5" />
+            </div>
+            <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent font-bold">
+              Website Scraper & AI Cloner
+            </span>
+            <Badge className="ml-2 gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
               <Crown className="h-3 w-3" />
               Premium
             </Badge>
@@ -221,16 +226,18 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
             Scrape any website to get content ideas, analyze design, and get AI-powered instructions to clone it
           </CardDescription>
           <div className="flex gap-2 text-xs text-muted-foreground mt-2">
-            <Badge variant="outline">{scraperCreditCost} credits/scrape</Badge>
-            <Badge variant="outline">{analysisCreditCost} credits/AI analysis</Badge>
+            <Badge className="bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-700 border-emerald-500/30">{scraperCreditCost} credits/scrape</Badge>
+            <Badge className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-700 border-purple-500/30">{analysisCreditCost} credits/AI analysis</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {!canScrape ? (
-            <div className="text-center py-8 space-y-4">
-              <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
-              <p className="text-muted-foreground">You need at least {scraperCreditCost} credits to use this feature</p>
-              <p className="text-sm text-muted-foreground">Current balance: {userCredits} credits</p>
+            <div className="text-center py-8 space-y-4 rounded-xl bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/20">
+              <div className="p-3 rounded-full bg-gradient-to-br from-red-500/20 to-orange-500/20 w-fit mx-auto">
+                <Lock className="h-12 w-12 text-red-500" />
+              </div>
+              <p className="text-muted-foreground">You need at least <span className="font-bold text-red-500">{scraperCreditCost} credits</span> to use this feature</p>
+              <p className="text-sm text-muted-foreground">Current balance: <span className="font-bold">{userCredits} credits</span></p>
             </div>
           ) : (
             <>
@@ -241,9 +248,10 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleScrape()}
+                    className="border-emerald-500/30 focus:border-emerald-500 focus:ring-emerald-500/20"
                   />
                 </div>
-                <Button onClick={handleScrape} disabled={isLoading}>
+                <Button onClick={handleScrape} disabled={isLoading} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white">
                   {isLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -262,8 +270,7 @@ const WebsiteScraper: React.FC<WebsiteScraperProps> = ({ userCredits, onCreditsC
                 <Button 
                   onClick={handleAIAnalysis} 
                   disabled={isAnalyzing || !canAnalyze}
-                  variant="secondary"
-                  className="w-full"
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
                 >
                   {isAnalyzing ? (
                     <>
