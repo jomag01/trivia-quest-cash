@@ -64,6 +64,7 @@ import AISettingsManagement from "@/components/admin/AISettingsManagement";
 import AIProviderPricing from "@/components/admin/AIProviderPricing";
 import BinarySystemManagement from "@/components/admin/BinarySystemManagement";
 import QRPaymentSettings from "@/components/admin/QRPaymentSettings";
+import BinaryAIPurchaseManagement from "@/components/admin/BinaryAIPurchaseManagement";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -111,6 +112,7 @@ const Admin = () => {
     { id: "homepage", label: "Homepage Settings", icon: Home },
     { id: "app-logo", label: "App Logo", icon: Image },
     { id: "credits", label: "Credit Purchases", icon: CreditCard },
+    { id: "ai-packages", label: "AI Package Purchases", icon: Sparkles },
     { id: "payouts", label: "Payout Requests", icon: DollarSign },
     { id: "categories", label: "Game Categories", icon: Gamepad2 },
     { id: "treasure-hunt", label: "Treasure Hunt", icon: MapPin },
@@ -638,6 +640,7 @@ const Admin = () => {
           {activeTab === "ai-pricing" && <AIProviderPricing />}
           {activeTab === "qr-payment" && <QRPaymentSettings />}
           {activeTab === "binary-system" && <BinarySystemManagement />}
+          {activeTab === "ai-packages" && <BinaryAIPurchaseManagement />}
           {activeTab === "system-reset" && <SystemResetManagement />}
         </main>
       </div>
