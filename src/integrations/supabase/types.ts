@@ -4374,6 +4374,71 @@ export type Database = {
         }
         Relationships: []
       }
+      smm_ad_campaigns: {
+        Row: {
+          ad_content: Json | null
+          ad_type: string
+          budget: number | null
+          budget_type: string | null
+          campaign_name: string
+          client_account_id: string
+          created_at: string | null
+          end_date: string | null
+          id: string
+          performance_metrics: Json | null
+          platform: string
+          start_date: string | null
+          status: string | null
+          target_audience: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ad_content?: Json | null
+          ad_type?: string
+          budget?: number | null
+          budget_type?: string | null
+          campaign_name: string
+          client_account_id: string
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          performance_metrics?: Json | null
+          platform: string
+          start_date?: string | null
+          status?: string | null
+          target_audience?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ad_content?: Json | null
+          ad_type?: string
+          budget?: number | null
+          budget_type?: string | null
+          campaign_name?: string
+          client_account_id?: string
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          performance_metrics?: Json | null
+          platform?: string
+          start_date?: string | null
+          status?: string | null
+          target_audience?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smm_ad_campaigns_client_account_id_fkey"
+            columns: ["client_account_id"]
+            isOneToOne: false
+            referencedRelation: "smm_client_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       smm_analytics: {
         Row: {
           client_account_id: string | null
@@ -4427,15 +4492,22 @@ export type Database = {
           client_email: string | null
           client_name: string
           created_at: string
+          deletion_protected: boolean | null
           id: string
+          is_locked: boolean | null
+          last_activity_at: string | null
+          lock_reason: string | null
           metadata: Json | null
           monthly_fee: number | null
+          original_owner_id: string | null
           platform: string
           refresh_token_encrypted: string | null
+          security_level: string | null
           status: string | null
           token_expires_at: string | null
           updated_at: string
           user_id: string
+          verified_at: string | null
         }
         Insert: {
           access_token_encrypted?: string | null
@@ -4444,15 +4516,22 @@ export type Database = {
           client_email?: string | null
           client_name: string
           created_at?: string
+          deletion_protected?: boolean | null
           id?: string
+          is_locked?: boolean | null
+          last_activity_at?: string | null
+          lock_reason?: string | null
           metadata?: Json | null
           monthly_fee?: number | null
+          original_owner_id?: string | null
           platform: string
           refresh_token_encrypted?: string | null
+          security_level?: string | null
           status?: string | null
           token_expires_at?: string | null
           updated_at?: string
           user_id: string
+          verified_at?: string | null
         }
         Update: {
           access_token_encrypted?: string | null
@@ -4461,15 +4540,22 @@ export type Database = {
           client_email?: string | null
           client_name?: string
           created_at?: string
+          deletion_protected?: boolean | null
           id?: string
+          is_locked?: boolean | null
+          last_activity_at?: string | null
+          lock_reason?: string | null
           metadata?: Json | null
           monthly_fee?: number | null
+          original_owner_id?: string | null
           platform?: string
           refresh_token_encrypted?: string | null
+          security_level?: string | null
           status?: string | null
           token_expires_at?: string | null
           updated_at?: string
           user_id?: string
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -4561,6 +4647,158 @@ export type Database = {
             columns: ["client_account_id"]
             isOneToOne: false
             referencedRelation: "smm_client_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smm_security_audit: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          blocked: boolean | null
+          client_account_id: string | null
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          risk_level: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          blocked?: boolean | null
+          client_account_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          risk_level?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          blocked?: boolean | null
+          client_account_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          risk_level?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smm_security_audit_client_account_id_fkey"
+            columns: ["client_account_id"]
+            isOneToOne: false
+            referencedRelation: "smm_client_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smm_service_pricing: {
+        Row: {
+          base_price: number
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          price_per_ad: number | null
+          price_per_month: number | null
+          price_per_post: number | null
+          service_name: string
+          service_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          base_price?: number
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          price_per_ad?: number | null
+          price_per_month?: number | null
+          price_per_post?: number | null
+          service_name: string
+          service_type?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          base_price?: number
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          price_per_ad?: number | null
+          price_per_month?: number | null
+          price_per_post?: number | null
+          service_name?: string
+          service_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      smm_service_transactions: {
+        Row: {
+          admin_commission: number | null
+          amount: number
+          client_account_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          net_amount: number | null
+          pricing_id: string | null
+          status: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          admin_commission?: number | null
+          amount?: number
+          client_account_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          net_amount?: number | null
+          pricing_id?: string | null
+          status?: string | null
+          transaction_type?: string
+          user_id: string
+        }
+        Update: {
+          admin_commission?: number | null
+          amount?: number
+          client_account_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          net_amount?: number | null
+          pricing_id?: string | null
+          status?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smm_service_transactions_client_account_id_fkey"
+            columns: ["client_account_id"]
+            isOneToOne: false
+            referencedRelation: "smm_client_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smm_service_transactions_pricing_id_fkey"
+            columns: ["pricing_id"]
+            isOneToOne: false
+            referencedRelation: "smm_service_pricing"
             referencedColumns: ["id"]
           },
         ]

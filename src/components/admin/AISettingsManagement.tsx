@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings, Music, Globe, BarChart3, Share2 } from 'lucide-react';
+import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings, Music, Globe, BarChart3, Share2, TrendingUp } from 'lucide-react';
 import AICostCalculator from './AICostCalculator';
 import AIProviderStatus from './AIProviderStatus';
 interface CreditTier {
@@ -35,6 +35,8 @@ const AISettingsManagement = () => {
   const [scraperAnalysisCost, setScraperAnalysisCost] = useState('10');
   const [analyticsCreditCost, setAnalyticsCreditCost] = useState('5');
   const [socialMediaCreditCost, setSocialMediaCreditCost] = useState('10');
+  const [smmCommissionPercent, setSmmCommissionPercent] = useState('15');
+  const [smmAdsCommissionPercent, setSmmAdsCommissionPercent] = useState('10');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -115,6 +117,10 @@ const AISettingsManagement = () => {
           setAnalyticsCreditCost(setting.value || '5');
         } else if (setting.key === 'ai_social_media_credit_cost') {
           setSocialMediaCreditCost(setting.value || '10');
+        } else if (setting.key === 'ai_smm_commission_percent') {
+          setSmmCommissionPercent(setting.value || '15');
+        } else if (setting.key === 'ai_smm_ads_commission_percent') {
+          setSmmAdsCommissionPercent(setting.value || '10');
         }
 
         // Parse tier settings
@@ -171,6 +177,8 @@ const AISettingsManagement = () => {
         { key: 'ai_scraper_analysis_cost', value: scraperAnalysisCost },
         { key: 'ai_analytics_credit_cost', value: analyticsCreditCost },
         { key: 'ai_social_media_credit_cost', value: socialMediaCreditCost },
+        { key: 'ai_smm_commission_percent', value: smmCommissionPercent },
+        { key: 'ai_smm_ads_commission_percent', value: smmAdsCommissionPercent },
       ];
 
       // Add all tier settings dynamically
@@ -497,6 +505,51 @@ const AISettingsManagement = () => {
                 <p className="text-xs text-muted-foreground">
                   {socialMediaCreditCost} credits per AI-generated post/action
                 </p>
+              </div>
+            </div>
+            
+            {/* SMM Commission Settings */}
+            <div className="mt-6 pt-4 border-t">
+              <h4 className="font-medium text-sm mb-4 flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-green-500" />
+                Social Media Management Commission
+              </h4>
+              <p className="text-xs text-muted-foreground mb-4">
+                Set admin commission rates for social media management services. This is charged on user earnings from clients.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs">
+                    <Users className="h-3 w-3 text-blue-500" />
+                    SMM Service Commission (%)
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={smmCommissionPercent}
+                    onChange={(e) => setSmmCommissionPercent(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Admin takes {smmCommissionPercent}% from user's client fees
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs">
+                    <TrendingUp className="h-3 w-3 text-purple-500" />
+                    Ads Management Commission (%)
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={smmAdsCommissionPercent}
+                    onChange={(e) => setSmmAdsCommissionPercent(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Admin takes {smmAdsCommissionPercent}% from ad management services
+                  </p>
+                </div>
               </div>
             </div>
           </div>
