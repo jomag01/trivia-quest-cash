@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed } from "lucide-react";
+import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +28,7 @@ import { WishlistView } from "@/components/WishlistView";
 import AIProductRecommendations from "@/components/shop/AIProductRecommendations";
 import ServicesList from "@/components/booking/ServicesList";
 import AIHealthConsultant from "@/components/shop/AIHealthConsultant";
+import MarketplaceListings from "@/components/marketplace/MarketplaceListings";
 
 const Shop = () => {
   const {
@@ -341,7 +342,7 @@ const Shop = () => {
   }
   // Determine active tab from URL params
   const tabParam = searchParams.get('tab');
-  const activeTab = tabParam === 'cart' ? 'cart' : tabParam === 'wishlist' ? 'wishlist' : tabParam === 'seller' ? 'seller' : tabParam === 'food' ? 'food' : 'shop';
+  const activeTab = tabParam === 'cart' ? 'cart' : tabParam === 'wishlist' ? 'wishlist' : tabParam === 'seller' ? 'seller' : tabParam === 'food' ? 'food' : tabParam === 'marketplace' ? 'marketplace' : 'shop';
 
   const handleTabChange = (value: string) => {
     if (value === 'food') {
@@ -371,10 +372,14 @@ const Shop = () => {
           <ShopAccountOverview />
 
           {/* Navigation Tabs */}
-          <TabsList className="w-full grid grid-cols-4 mb-3 mt-2">
+          <TabsList className="w-full grid grid-cols-5 mb-3 mt-2">
             <TabsTrigger value="shop" className="text-xs gap-1">
               <Package className="w-3.5 h-3.5" />
               Shop
+            </TabsTrigger>
+            <TabsTrigger value="marketplace" className="text-xs gap-1">
+              <Building className="w-3.5 h-3.5" />
+              Market
             </TabsTrigger>
             <TabsTrigger value="food" className="text-xs gap-1">
               <UtensilsCrossed className="w-3.5 h-3.5" />
@@ -603,6 +608,10 @@ const Shop = () => {
               toggleWishlist(detailProduct.id);
             }
           }} inCart={detailProduct ? inCart.has(detailProduct.id) : false} inWishlist={detailProduct ? inWishlist.has(detailProduct.id) : false} />
+          </TabsContent>
+
+          <TabsContent value="marketplace" className="space-y-3 mt-0">
+            <MarketplaceListings />
           </TabsContent>
 
           <TabsContent value="seller">
