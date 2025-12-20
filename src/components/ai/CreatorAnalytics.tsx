@@ -28,18 +28,36 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
+interface RecentVideo {
+  id: string;
+  title: string;
+  thumbnail: string;
+  views: number;
+  likes: number;
+  comments: number;
+  publishedAt: string;
+}
+
 interface YouTubeStats {
   channelName: string;
+  channelHandle?: string;
   channelImage?: string;
+  bannerImage?: string;
+  description?: string;
+  country?: string;
+  publishedAt?: string;
   subscribers: number;
   totalViews: number;
   videoCount: number;
   averageViews: number;
+  estimatedMonthlyViews?: number;
   estimatedMonthlyEarnings: { low: number; high: number };
   estimatedYearlyEarnings: { low: number; high: number };
   cpm: { low: number; high: number };
   grade: string;
   category: string;
+  recentVideos?: RecentVideo[];
+  verified?: boolean;
 }
 
 interface FacebookStats {
@@ -603,17 +621,37 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
               </div>
 
               {youtubeStats && (
-                <Card className="bg-gradient-to-br from-red-500/5 to-orange-500/5 border-red-500/20">
+                <Card className="bg-gradient-to-br from-red-500/5 to-orange-500/5 border-red-500/20 overflow-hidden">
+                  {/* Banner Image */}
+                  {youtubeStats.bannerImage && (
+                    <div className="w-full h-32 md:h-40 overflow-hidden">
+                      <img 
+                        src={youtubeStats.bannerImage} 
+                        alt={`${youtubeStats.channelName} banner`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
                   <CardContent className="pt-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {youtubeStats.channelImage && (
-                          <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-red-500 ring-offset-2 ring-offset-background">
-                            <img 
-                              src={youtubeStats.channelImage} 
-                              alt={youtubeStats.channelName}
-                              className="w-full h-full object-cover"
-                            />
+                          <div className="relative">
+                            <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-red-500 ring-offset-2 ring-offset-background">
+                              <img 
+                                src={youtubeStats.channelImage} 
+                                alt={youtubeStats.channelName}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            {youtubeStats.verified && (
+                              <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1">
+                                <CheckCircle2 className="h-4 w-4 text-white" />
+                              </div>
+                            )}
                           </div>
                         )}
                         <div>
@@ -621,18 +659,35 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
                             {youtubeStats.channelName}
                             <Youtube className="h-4 w-4 text-red-500" />
                           </h3>
-                          <Badge 
-                            variant="secondary" 
-                            className={`bg-gradient-to-r ${getCategoryGradient(youtubeStats.category)} text-white border-0`}
-                          >
-                            {youtubeStats.category}
-                          </Badge>
+                          {youtubeStats.channelHandle && (
+                            <p className="text-sm text-muted-foreground">{youtubeStats.channelHandle}</p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge 
+                              variant="secondary" 
+                              className={`bg-gradient-to-r ${getCategoryGradient(youtubeStats.category)} text-white border-0`}
+                            >
+                              {youtubeStats.category}
+                            </Badge>
+                            {youtubeStats.country && youtubeStats.country !== 'Unknown' && (
+                              <Badge variant="outline" className="text-xs">
+                                {youtubeStats.country}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <Badge className={`${getGradeColor(youtubeStats.grade)} text-white text-lg px-3 py-1 shadow-lg`}>
                         {youtubeStats.grade}
                       </Badge>
                     </div>
+
+                    {/* Channel Description */}
+                    {youtubeStats.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {youtubeStats.description}
+                      </p>
+                    )}
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="bg-background rounded-lg p-3 text-center border border-red-500/20 hover:border-red-500/40 transition-colors">
@@ -668,6 +723,11 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
                         <p className="text-2xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
                           {formatCurrency(youtubeStats.estimatedMonthlyEarnings.low)} - {formatCurrency(youtubeStats.estimatedMonthlyEarnings.high)}
                         </p>
+                        {youtubeStats.estimatedMonthlyViews && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Based on ~{formatNumber(youtubeStats.estimatedMonthlyViews)} monthly views
+                          </p>
+                        )}
                       </div>
                       <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/30 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
@@ -682,9 +742,46 @@ const CreatorAnalytics: React.FC<CreatorAnalyticsProps> = ({ userCredits, onCred
                       </div>
                     </div>
 
+                    {/* Recent Videos Section */}
+                    {youtubeStats.recentVideos && youtubeStats.recentVideos.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-semibold text-sm flex items-center gap-2">
+                          <Video className="h-4 w-4 text-red-500" />
+                          Recent Videos
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                          {youtubeStats.recentVideos.slice(0, 5).map((video) => (
+                            <a
+                              key={video.id}
+                              href={`https://www.youtube.com/watch?v=${video.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group relative rounded-lg overflow-hidden border border-border hover:border-red-500/50 transition-all"
+                            >
+                              <div className="aspect-video bg-muted">
+                                <img 
+                                  src={video.thumbnail} 
+                                  alt={video.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                />
+                              </div>
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute bottom-0 left-0 right-0 p-2">
+                                  <p className="text-xs text-white line-clamp-2">{video.title}</p>
+                                  <p className="text-xs text-white/70 mt-0.5">
+                                    {formatNumber(video.views)} views
+                                  </p>
+                                </div>
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="text-xs text-muted-foreground flex items-center gap-1 bg-muted/50 rounded-lg p-2">
                       <Info className="h-3 w-3" />
-                      Estimated CPM: ${youtubeStats.cpm.low} - ${youtubeStats.cpm.high}. These are estimates based on public data.
+                      Estimated CPM: ${youtubeStats.cpm.low} - ${youtubeStats.cpm.high}. Data from YouTube API.
                     </div>
                   </CardContent>
                 </Card>
