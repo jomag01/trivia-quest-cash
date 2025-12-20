@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,15 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { uploadToAWS, getOptimizedImageUrl, isAWSUrl } from "@/lib/awsMedia";
 import { 
   Home, Car, Package, Hotel, BedDouble, Building, 
   Plus, Search, Heart, Eye, MapPin, Calendar,
   Phone, Mail, DollarSign, Clock, Star, Filter,
   ChevronLeft, ChevronRight, Lock, AlertCircle,
-  Sparkles, Image as ImageIcon, X
+  Sparkles, Image as ImageIcon, X, Loader2, Upload,
+  Grid, List, SlidersHorizontal, ArrowUpDown
 } from "lucide-react";
 
 type MarketplaceCategory = 'property_sale' | 'vehicle_sale' | 'secondhand_items' | 'property_rent' | 'room_rent' | 'hotel_staycation';
@@ -85,6 +88,8 @@ const PRICE_TYPES = [
   { value: 'per_month', label: 'Per Month' },
 ];
 
+const PAGE_SIZE = 24; // Optimized for grid display
+
 const MarketplaceListings = () => {
   const { user } = useAuth();
   const [isEligible, setIsEligible] = useState<boolean | null>(null);
@@ -92,13 +97,24 @@ const MarketplaceListings = () => {
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchDebounce, setSearchDebounce] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'price_low' | 'price_high' | 'popular'>('newest');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
   const [showInquiryDialog, setShowInquiryDialog] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Create listing form state
   const [newListing, setNewListing] = useState({
@@ -134,6 +150,27 @@ const MarketplaceListings = () => {
     preferred_date: '',
   });
 
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      setSearchDebounce(searchQuery);
+    }, 300);
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [searchQuery]);
+
+  // Reset and fetch when filters change
+  useEffect(() => {
+    setListings([]);
+    setCurrentPage(0);
+    setHasMore(true);
+    fetchListings(0, true);
+  }, [selectedCategory, searchDebounce, sortBy]);
+
   useEffect(() => {
     if (user) {
       checkEligibility();
@@ -141,8 +178,29 @@ const MarketplaceListings = () => {
     } else {
       setCheckingEligibility(false);
     }
-    fetchListings();
   }, [user]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (observerRef.current) observerRef.current.disconnect();
+    
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          loadMoreListings();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) observerRef.current.disconnect();
+    };
+  }, [hasMore, loading, loadingMore, currentPage]);
 
   const checkEligibility = async () => {
     try {
@@ -159,47 +217,97 @@ const MarketplaceListings = () => {
     }
   };
 
-  const fetchListings = async () => {
+  const fetchListings = async (page: number = 0, reset: boolean = false) => {
+    if (reset) setLoading(true);
+    else setLoadingMore(true);
+
     try {
+      // Get total count first (only on reset)
+      if (reset) {
+        let countQuery = supabase
+          .from('marketplace_listings')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'active');
+        
+        if (selectedCategory !== 'all') {
+          countQuery = countQuery.eq('category', selectedCategory as any);
+        }
+        if (searchDebounce) {
+          countQuery = countQuery.or(`title.ilike.%${searchDebounce}%,description.ilike.%${searchDebounce}%,city.ilike.%${searchDebounce}%,location.ilike.%${searchDebounce}%`);
+        }
+        
+        const { count } = await countQuery;
+        setTotalCount(count || 0);
+      }
+
+      // Build query with pagination
       let query = supabase
         .from('marketplace_listings')
-        .select('*')
+        .select('id, seller_id, category, title, price, price_type, currency, city, province, thumbnail_url, images, condition, status, views_count, is_featured, bedrooms, bathrooms, area_sqm, brand, model, year, mileage, created_at')
         .eq('status', 'active')
-        .order('is_featured', { ascending: false })
-        .order('created_at', { ascending: false });
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (selectedCategory !== 'all') {
         query = query.eq('category', selectedCategory as any);
+      }
+      
+      if (searchDebounce) {
+        query = query.or(`title.ilike.%${searchDebounce}%,description.ilike.%${searchDebounce}%,city.ilike.%${searchDebounce}%,location.ilike.%${searchDebounce}%`);
+      }
+
+      // Apply sorting
+      switch (sortBy) {
+        case 'price_low':
+          query = query.order('price', { ascending: true });
+          break;
+        case 'price_high':
+          query = query.order('price', { ascending: false });
+          break;
+        case 'popular':
+          query = query.order('views_count', { ascending: false });
+          break;
+        default:
+          query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
       }
 
       const { data, error } = await query;
       if (error) throw error;
 
-      // Fetch seller profiles
-      const sellerIds = [...new Set((data || []).map(l => l.seller_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .in('id', sellerIds);
-
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-
-      const listingsWithProfiles = (data || []).map(listing => ({
+      const newListings = (data || []).map(listing => ({
         ...listing,
         images: listing.images || [],
-        amenities: listing.amenities || [],
-        specifications: listing.specifications || {},
-        seller_profile: profileMap.get(listing.seller_id)
-      }));
+        amenities: [],
+        specifications: {},
+        description: null,
+        location: null,
+        fuel_type: null,
+        transmission: null,
+        min_stay_nights: null,
+        max_guests: null,
+      })) as MarketplaceListing[];
 
-      setListings(listingsWithProfiles as MarketplaceListing[]);
+      if (reset) {
+        setListings(newListings);
+      } else {
+        setListings(prev => [...prev, ...newListings]);
+      }
+      
+      setHasMore(newListings.length === PAGE_SIZE);
+      setCurrentPage(page);
     } catch (error) {
       console.error('Error fetching listings:', error);
       toast.error('Failed to load listings');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
+
+  const loadMoreListings = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      fetchListings(currentPage + 1, false);
+    }
+  }, [currentPage, loadingMore, hasMore]);
 
   const fetchFavorites = async () => {
     try {
@@ -308,7 +416,7 @@ const MarketplaceListings = () => {
       toast.success('Listing created successfully!');
       setShowCreateDialog(false);
       resetNewListing();
-      fetchListings();
+      fetchListings(0, true);
     } catch (error: any) {
       console.error('Error creating listing:', error);
       toast.error(error.message || 'Failed to create listing');
@@ -386,30 +494,49 @@ const MarketplaceListings = () => {
     const files = e.target.files;
     if (!files || !user) return;
 
+    if (newListing.images.length + files.length > 10) {
+      toast.error('Maximum 10 images allowed');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    const uploadedUrls: string[] = [];
+    const totalFiles = files.length;
+    let completedFiles = 0;
+
     for (const file of Array.from(files)) {
       try {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('marketplace')
-          .upload(fileName, file);
+        // Upload to AWS S3 via CloudFront
+        const result = await uploadToAWS(file, `marketplace/${user.id}`, (progress) => {
+          const fileProgress = progress.percentage / totalFiles;
+          const overallProgress = (completedFiles / totalFiles) * 100 + fileProgress;
+          setUploadProgress(Math.round(overallProgress));
+        });
 
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from('marketplace')
-          .getPublicUrl(fileName);
-
-        setNewListing(prev => ({
-          ...prev,
-          images: [...prev.images, urlData.publicUrl]
-        }));
+        if (result?.cdnUrl) {
+          uploadedUrls.push(result.cdnUrl);
+          completedFiles++;
+        } else {
+          throw new Error('Upload failed');
+        }
       } catch (error) {
         console.error('Error uploading image:', error);
-        toast.error('Failed to upload image');
+        toast.error(`Failed to upload ${file.name}`);
       }
     }
+
+    if (uploadedUrls.length > 0) {
+      setNewListing(prev => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls]
+      }));
+      toast.success(`Uploaded ${uploadedUrls.length} image(s)`);
+    }
+
+    setIsUploading(false);
+    setUploadProgress(0);
   };
 
   const removeImage = (index: number) => {
@@ -420,24 +547,60 @@ const MarketplaceListings = () => {
   };
 
   const openListingDetail = async (listing: MarketplaceListing) => {
-    setSelectedListing(listing);
     setCurrentImageIndex(0);
     setShowDetailDialog(true);
+    
+    // Fetch full details
+    const fullListing = await fetchListingDetails(listing.id);
+    if (fullListing) {
+      setSelectedListing(fullListing);
+    } else {
+      setSelectedListing(listing);
+    }
 
-    // Increment view count
-    await supabase
+    // Increment view count (fire and forget)
+    supabase
       .from('marketplace_listings')
       .update({ views_count: (listing.views_count || 0) + 1 })
-      .eq('id', listing.id);
+      .eq('id', listing.id)
+      .then(() => {});
   };
 
-  const filteredListings = listings.filter(listing => {
-    const matchesSearch = listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      listing.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      listing.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      listing.city?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+  // Get optimized image URL for thumbnails
+  const getThumbUrl = (url: string | null) => {
+    if (!url) return null;
+    if (isAWSUrl(url)) {
+      return getOptimizedImageUrl(url, { width: 400, quality: 80 });
+    }
+    return url;
+  };
+
+  // Fetch full listing details when opening detail dialog
+  const fetchListingDetails = async (listingId: string) => {
+    const { data, error } = await supabase
+      .from('marketplace_listings')
+      .select('*')
+      .eq('id', listingId)
+      .single();
+    
+    if (!error && data) {
+      // Fetch seller profile separately
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', data.seller_id)
+        .single();
+
+      return {
+        ...data,
+        images: data.images || [],
+        amenities: data.amenities || [],
+        specifications: data.specifications || {},
+        seller_profile: profile || undefined
+      } as MarketplaceListing;
+    }
+    return null;
+  };
 
   const formatPrice = (price: number, priceType: string, currency: string = 'PHP') => {
     const formatted = new Intl.NumberFormat('en-PH', {
@@ -526,7 +689,7 @@ const MarketplaceListings = () => {
           <Button
             variant={selectedCategory === 'all' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => { setSelectedCategory('all'); fetchListings(); }}
+            onClick={() => setSelectedCategory('all')}
             className="whitespace-nowrap"
           >
             All
@@ -536,7 +699,7 @@ const MarketplaceListings = () => {
               key={cat.id}
               variant={selectedCategory === cat.id ? 'default' : 'outline'}
               size="sm"
-              onClick={() => { setSelectedCategory(cat.id); fetchListings(); }}
+              onClick={() => setSelectedCategory(cat.id)}
               className="whitespace-nowrap gap-1"
             >
               <cat.icon className="w-4 h-4" />
@@ -546,16 +709,38 @@ const MarketplaceListings = () => {
         </div>
       </ScrollArea>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search listings..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
+      {/* Search & Sort */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search 200K+ listings..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+          <SelectTrigger className="w-[140px]">
+            <ArrowUpDown className="w-4 h-4 mr-1" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="price_low">Price: Low</SelectItem>
+            <SelectItem value="price_high">Price: High</SelectItem>
+            <SelectItem value="popular">Most Viewed</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      {/* Stats */}
+      {totalCount > 0 && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>{totalCount.toLocaleString()} listings available</span>
+          <span>Showing {listings.length.toLocaleString()}</span>
+        </div>
+      )}
 
       {/* Listings Grid */}
       {loading ? (
@@ -571,7 +756,7 @@ const MarketplaceListings = () => {
             </Card>
           ))}
         </div>
-      ) : filteredListings.length === 0 ? (
+      ) : listings.length === 0 ? (
         <Card className="p-8 text-center">
           <Package className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
           <h3 className="font-semibold">No listings found</h3>
@@ -579,7 +764,7 @@ const MarketplaceListings = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {filteredListings.map(listing => {
+          {listings.map(listing => {
             const CategoryIcon = getCategoryIcon(listing.category);
             return (
               <Card 
@@ -587,13 +772,14 @@ const MarketplaceListings = () => {
                 className="overflow-hidden cursor-pointer hover:shadow-lg transition-all group"
                 onClick={() => openListingDetail(listing)}
               >
-                {/* Image */}
+                {/* Image - CDN optimized */}
                 <div className="relative aspect-[4/3] bg-muted overflow-hidden">
                   {listing.thumbnail_url || listing.images[0] ? (
                     <img
-                      src={listing.thumbnail_url || listing.images[0]}
+                      src={getThumbUrl(listing.thumbnail_url || listing.images[0]) || ''}
                       alt={listing.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
                     />
                   ) : (
                     <div className={`w-full h-full bg-gradient-to-br ${getCategoryColor(listing.category)} flex items-center justify-center`}>
@@ -675,6 +861,21 @@ const MarketplaceListings = () => {
               </Card>
             );
           })}
+          
+          {/* Infinite Scroll Trigger */}
+          <div ref={loadMoreRef} className="col-span-full py-4 text-center">
+            {loadingMore && (
+              <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Loading more...</span>
+              </div>
+            )}
+            {!hasMore && listings.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Showing all {listings.length} of {totalCount} listings
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -964,33 +1165,53 @@ const MarketplaceListings = () => {
 
             {/* Images */}
             <div>
-              <Label>Images</Label>
+              <Label>Images (AWS CloudFront CDN)</Label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {newListing.images.map((img, index) => (
                   <div key={index} className="relative w-20 h-20">
-                    <img src={img} alt="" className="w-full h-full object-cover rounded-lg" />
+                    <img 
+                      src={getOptimizedImageUrl(img, { width: 80, quality: 80 })} 
+                      alt="" 
+                      className="w-full h-full object-cover rounded-lg" 
+                    />
                     <Button
                       variant="destructive"
                       size="icon"
                       className="absolute -top-2 -right-2 h-5 w-5"
                       onClick={() => removeImage(index)}
+                      disabled={isUploading}
                     >
                       <X className="w-3 h-3" />
                     </Button>
                   </div>
                 ))}
-                <label className="w-20 h-20 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                  <ImageIcon className="w-6 h-6 text-muted-foreground" />
-                </label>
+                {newListing.images.length < 10 && (
+                  <label className={`w-20 h-20 border-2 border-dashed border-muted-foreground/30 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                    />
+                    {isUploading ? (
+                      <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+                    ) : (
+                      <Upload className="w-5 h-5 text-muted-foreground" />
+                    )}
+                    <span className="text-[10px] text-muted-foreground mt-1">
+                      {isUploading ? `${uploadProgress}%` : 'Upload'}
+                    </span>
+                  </label>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Upload up to 10 images</p>
+              {isUploading && (
+                <Progress value={uploadProgress} className="mt-2 h-1" />
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Upload up to 10 images • Fast CDN delivery worldwide
+              </p>
             </div>
           </div>
 
