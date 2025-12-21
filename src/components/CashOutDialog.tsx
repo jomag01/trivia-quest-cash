@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Wallet, Building2, Trash2, GitBranch, Diamond } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Wallet, Building2, Trash2, GitBranch, Diamond, TrendingUp, Users, Award, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,6 +15,15 @@ interface PayoutAccount {
   account_name: string;
   account_number: string;
   bank_code?: string;
+}
+
+interface EarningsBreakdown {
+  unilevel: number;
+  stairstep: number;
+  leadership: number;
+  binary: number;
+  diamonds: number;
+  total: number;
 }
 
 interface CashOutDialogProps {
@@ -30,9 +39,14 @@ export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultS
   const [accounts, setAccounts] = useState<PayoutAccount[]>([]);
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [cashOutSource, setCashOutSource] = useState<"diamonds" | "binary">(defaultSource);
-  const [availableBalance, setAvailableBalance] = useState(0);
-  const [binaryBalance, setBinaryBalance] = useState(0);
+  const [earnings, setEarnings] = useState<EarningsBreakdown>({
+    unilevel: 0,
+    stairstep: 0,
+    leadership: 0,
+    binary: 0,
+    diamonds: 0,
+    total: 0
+  });
   const [totalDiamonds, setTotalDiamonds] = useState(0);
   const [diamondPrice, setDiamondPrice] = useState(10);
   
@@ -46,64 +60,83 @@ export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultS
   useEffect(() => {
     if (open) {
       fetchPayoutAccounts();
-      fetchDiamondBalance();
-      fetchBinaryBalance();
-      setCashOutSource(defaultSource);
+      fetchAllEarnings();
     }
-  }, [open, defaultSource]);
+  }, [open]);
 
-  const fetchBinaryBalance = async () => {
+  const fetchAllEarnings = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch binary commissions total
-      const { data: commissionsData, error } = await supabase
-        .from("binary_commissions")
-        .select("amount")
-        .eq("user_id", user.id);
+      // Fetch all commission types
+      const [unilevelResult, stairstepResult, leadershipResult, binaryResult, diamondsResult, diamondPriceResult] = await Promise.all([
+        // Unilevel commissions
+        supabase
+          .from("commissions")
+          .select("amount")
+          .eq("user_id", user.id)
+          .in("commission_type", ["unilevel", "ai_credit_unilevel", "direct_referral"]),
+        
+        // Stairstep commissions
+        supabase
+          .from("commissions")
+          .select("amount")
+          .eq("user_id", user.id)
+          .in("commission_type", ["stairstep", "ai_credit_stairstep"]),
+        
+        // Leadership commissions
+        supabase
+          .from("leadership_commissions")
+          .select("amount")
+          .eq("upline_id", user.id),
+        
+        // Binary commissions
+        supabase
+          .from("binary_commissions")
+          .select("amount")
+          .eq("user_id", user.id),
+        
+        // Diamond balance
+        supabase
+          .from("treasure_wallet")
+          .select("diamonds")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        
+        // Diamond price
+        supabase
+          .from("treasure_admin_settings")
+          .select("setting_value")
+          .eq("setting_key", "base_diamond_price")
+          .maybeSingle()
+      ]);
 
-      if (error) throw error;
-
-      const total = (commissionsData || []).reduce((sum, c) => sum + Number(c.amount), 0);
-      setBinaryBalance(total);
-    } catch (error: any) {
-      console.error("Error fetching binary balance:", error);
-    }
-  };
-
-  const fetchDiamondBalance = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Fetch user's diamonds from treasure_wallet
-      const { data: walletData, error: walletError } = await supabase
-        .from("treasure_wallet")
-        .select("diamonds")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (walletError) throw walletError;
-
-      // Fetch diamond base price from admin settings
-      const { data: settingsData, error: settingsError } = await supabase
-        .from("treasure_admin_settings")
-        .select("setting_value")
-        .eq("setting_key", "base_diamond_price")
-        .maybeSingle();
-
-      if (settingsError) throw settingsError;
-
-      const diamonds = walletData?.diamonds || 0;
-      const basePrice = settingsData?.setting_value ? parseFloat(settingsData.setting_value) : 10;
+      const unilevelTotal = (unilevelResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
+      const stairstepTotal = (stairstepResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
+      const leadershipTotal = (leadershipResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
+      const binaryTotal = (binaryResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
+      
+      const diamonds = diamondsResult.data?.diamonds || 0;
+      const basePrice = diamondPriceResult.data?.setting_value ? parseFloat(diamondPriceResult.data.setting_value) : 10;
+      const diamondValue = diamonds * basePrice;
 
       setTotalDiamonds(diamonds);
       setDiamondPrice(basePrice);
-      setAvailableBalance(diamonds * basePrice);
+      
+      const totalEarnings = unilevelTotal + stairstepTotal + leadershipTotal + binaryTotal + diamondValue;
+      
+      setEarnings({
+        unilevel: unilevelTotal,
+        stairstep: stairstepTotal,
+        leadership: leadershipTotal,
+        binary: binaryTotal,
+        diamonds: diamondValue,
+        total: totalEarnings
+      });
     } catch (error: any) {
-      console.error("Error fetching diamond balance:", error);
-      toast.error("Failed to load available balance");
+      console.error("Error fetching earnings:", error);
+      toast.error("Failed to load earnings");
     }
   };
 
@@ -177,15 +210,17 @@ export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultS
     }
   };
 
+  const handleCashOutAll = () => {
+    setAmount(earnings.total.toFixed(2));
+  };
+
   const handleCashOut = async () => {
-    const currentBalance = cashOutSource === "diamonds" ? availableBalance : binaryBalance;
-    
     if (!amount || Number(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
 
-    if (Number(amount) > currentBalance) {
+    if (Number(amount) > earnings.total) {
       toast.error("Insufficient balance");
       return;
     }
@@ -217,22 +252,22 @@ export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultS
         return;
       }
 
-      if (cashOutSource === "diamonds") {
-        // Calculate diamonds needed for this withdrawal
-        const diamondsNeeded = Math.ceil(Number(amount) / diamondPrice);
-        
-        if (diamondsNeeded > totalDiamonds) {
-          toast.error("Insufficient diamonds for this withdrawal");
-          setLoading(false);
-          return;
-        }
-      }
-
       // Get selected account details
       const account = accounts.find(acc => acc.id === selectedAccount);
       if (!account) throw new Error("Account not found");
 
-      // Create payout request for admin approval with source type
+      // Build breakdown notes
+      const breakdownNotes = `
+Earnings Breakdown:
+- Unilevel: ₱${earnings.unilevel.toFixed(2)}
+- Stairstep: ₱${earnings.stairstep.toFixed(2)}
+- Leadership: ₱${earnings.leadership.toFixed(2)}
+- Binary: ₱${earnings.binary.toFixed(2)}
+- Diamonds: ₱${earnings.diamonds.toFixed(2)} (${totalDiamonds} 💎)
+Total: ₱${earnings.total.toFixed(2)}
+      `.trim();
+
+      // Create payout request for admin approval
       const { error: payoutError } = await supabase
         .from("payout_requests")
         .insert([{
@@ -243,7 +278,7 @@ export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultS
           account_number: account.account_number,
           bank_name: account.account_type === 'bank' ? account.bank_code : null,
           status: 'pending',
-          notes: `Source: ${cashOutSource === "binary" ? "Binary AI Earnings" : "Diamond Balance"}`
+          notes: breakdownNotes
         }]);
 
       if (payoutError) throw payoutError;
@@ -259,52 +294,65 @@ export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultS
     }
   };
 
-  const currentBalance = cashOutSource === "diamonds" ? availableBalance : binaryBalance;
+  const earningsItems = [
+    { label: "Unilevel", value: earnings.unilevel, icon: Users, color: "text-blue-500" },
+    { label: "Stairstep", value: earnings.stairstep, icon: TrendingUp, color: "text-green-500" },
+    { label: "Leadership", value: earnings.leadership, icon: Award, color: "text-purple-500" },
+    { label: "Binary", value: earnings.binary, icon: GitBranch, color: "text-orange-500" },
+    { label: "Diamonds", value: earnings.diamonds, icon: Diamond, color: "text-cyan-500", subtext: `${totalDiamonds.toLocaleString()} 💎` },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Cash Out</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Banknote className="w-5 h-5 text-primary" />
+            Cash Out Earnings
+          </DialogTitle>
           <DialogDescription>
-            Withdraw your earnings to your GCash, Maya, or bank account
+            Withdraw your consolidated earnings to GCash, Maya, or bank
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Source Selection Tabs */}
-          <Tabs value={cashOutSource} onValueChange={(v) => setCashOutSource(v as "diamonds" | "binary")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="diamonds" className="flex items-center gap-2">
-                <Diamond className="w-4 h-4" />
-                Diamonds
-              </TabsTrigger>
-              <TabsTrigger value="binary" className="flex items-center gap-2">
-                <GitBranch className="w-4 h-4" />
-                Binary
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {/* Balance Display */}
-          <div className="p-4 bg-accent/50 rounded-lg space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                {cashOutSource === "diamonds" ? "Diamond Balance" : "Binary Earnings"}
+        <div className="space-y-4">
+          {/* Total Earnings Card */}
+          <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Total Available</span>
+                <Button variant="outline" size="sm" onClick={handleCashOutAll}>
+                  Cash Out All
+                </Button>
               </div>
-              {cashOutSource === "diamonds" && (
-                <div className="text-xs text-muted-foreground">
-                  {totalDiamonds.toLocaleString()} 💎 × ₱{diamondPrice.toFixed(2)}
+              <div className="text-3xl font-bold text-primary">₱{earnings.total.toFixed(2)}</div>
+            </CardContent>
+          </Card>
+
+          {/* Earnings Breakdown */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Earnings Breakdown</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {earningsItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-2 p-2 bg-accent/50 rounded-lg"
+                >
+                  <item.icon className={`w-4 h-4 ${item.color}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-muted-foreground">{item.label}</div>
+                    <div className="font-medium text-sm truncate">
+                      ₱{item.value.toFixed(2)}
+                      {item.subtext && (
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({item.subtext})
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              )}
-              {cashOutSource === "binary" && (
-                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                  <GitBranch className="w-3 h-3" />
-                  AI Binary Commissions
-                </div>
-              )}
+              ))}
             </div>
-            <div className="text-2xl font-bold text-primary">₱{currentBalance.toFixed(2)}</div>
           </div>
 
           {!showAddAccount ? (
@@ -316,13 +364,13 @@ export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultS
                   type="number"
                   min="1"
                   step="0.01"
-                  max={availableBalance}
+                  max={earnings.total}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="Enter amount"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Max: ₱{availableBalance.toFixed(2)} ({totalDiamonds} diamonds available)
+                  Max: ₱{earnings.total.toFixed(2)}
                 </p>
               </div>
 
