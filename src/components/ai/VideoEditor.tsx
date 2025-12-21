@@ -18,7 +18,10 @@ import {
   Undo, Redo, ZoomIn, ZoomOut, Layers, SlidersHorizontal,
   RotateCcw, Plus, Trash2, Settings, FileVideo, Film,
   Clock, Target, Users, Mic, ImagePlus, MonitorPlay, Upload,
-  ChevronRight, Wand2, PlayCircle, Eye
+  ChevronRight, Wand2, PlayCircle, Eye, Clapperboard, Video,
+  Camera, Zap, Wind, Droplets, Sun, Moon, Star, Flame, CloudFog,
+  Timer, Gauge, Volume1, Lightbulb, Shield, ToggleLeft, ToggleRight,
+  Tv, MonitorSpeaker, CircleDot, Focus, Maximize2
 } from "lucide-react";
 
 interface VideoEditorProps {
@@ -66,6 +69,20 @@ interface AestheticDirectives {
   contrast: number;
   saturation: number;
   hue: number;
+  // Cinematic Features
+  genrePreset: string;
+  vfxEffects: string[];
+  cameraMotion: string;
+  speedEffect: string;
+  audioSync: string;
+  filmGrain: number;
+  vignette: number;
+  highlightRolloff: number;
+  shadowDepth: number;
+  skinToneProtection: boolean;
+  hdrBalance: boolean;
+  depthOfField: boolean;
+  motionBlur: boolean;
 }
 
 interface ExportSpec {
@@ -132,16 +149,156 @@ const TONES = [
 ];
 
 const COLOR_GRADES = [
-  { id: "none", name: "None", css: "" },
-  { id: "cinematic-teal-orange", name: "Cinematic Teal & Orange", css: "contrast(110%) saturate(120%)" },
-  { id: "vintage-film", name: "Vintage Film", css: "sepia(30%) contrast(110%) brightness(95%)" },
-  { id: "moody-dark", name: "Moody Dark", css: "contrast(120%) brightness(85%) saturate(90%)" },
-  { id: "bright-pop", name: "Bright & Poppy", css: "brightness(110%) saturate(130%)" },
-  { id: "noir", name: "Film Noir", css: "grayscale(100%) contrast(130%)" },
-  { id: "cool-blue", name: "Cool Blue", css: "hue-rotate(180deg) saturate(70%) brightness(105%)" },
-  { id: "warm-golden", name: "Warm Golden Hour", css: "sepia(40%) saturate(120%) brightness(105%)" },
-  { id: "cyberpunk", name: "Cyberpunk Neon", css: "saturate(150%) hue-rotate(-10deg) contrast(120%)" },
-  { id: "muted-pastel", name: "Muted Pastel", css: "saturate(60%) brightness(110%) contrast(90%)" },
+  { id: "none", name: "None", css: "", category: "basic" },
+  { id: "cinematic-teal-orange", name: "Cinematic Teal & Orange", css: "contrast(110%) saturate(120%)", category: "hollywood" },
+  { id: "vintage-film", name: "Vintage Film", css: "sepia(30%) contrast(110%) brightness(95%)", category: "retro" },
+  { id: "moody-dark", name: "Moody Dark", css: "contrast(120%) brightness(85%) saturate(90%)", category: "drama" },
+  { id: "bright-pop", name: "Bright & Poppy", css: "brightness(110%) saturate(130%)", category: "commercial" },
+  { id: "noir", name: "Film Noir", css: "grayscale(100%) contrast(130%)", category: "drama" },
+  { id: "cool-blue", name: "Cool Blue", css: "hue-rotate(180deg) saturate(70%) brightness(105%)", category: "scifi" },
+  { id: "warm-golden", name: "Warm Golden Hour", css: "sepia(40%) saturate(120%) brightness(105%)", category: "romance" },
+  { id: "cyberpunk", name: "Cyberpunk Neon", css: "saturate(150%) hue-rotate(-10deg) contrast(120%)", category: "scifi" },
+  { id: "muted-pastel", name: "Muted Pastel", css: "saturate(60%) brightness(110%) contrast(90%)", category: "indie" },
+  // Hollywood Film Grade LUTs
+  { id: "hollywood-blockbuster", name: "Hollywood Blockbuster", css: "contrast(115%) saturate(105%) brightness(102%)", category: "hollywood" },
+  { id: "netflix-drama", name: "Netflix Drama", css: "contrast(108%) saturate(90%) brightness(95%)", category: "streaming" },
+  { id: "apple-tv-premium", name: "Apple TV+ Premium", css: "contrast(105%) saturate(95%) brightness(100%)", category: "streaming" },
+  { id: "anamorphic-cinema", name: "Anamorphic Cinema", css: "contrast(112%) saturate(88%) brightness(97%)", category: "hollywood" },
+  { id: "arri-alexa", name: "ARRI Alexa Look", css: "contrast(104%) saturate(92%) brightness(101%)", category: "hollywood" },
+  { id: "red-dragon", name: "RED Dragon Look", css: "contrast(110%) saturate(95%) brightness(99%)", category: "hollywood" },
+  // Genre-specific grades
+  { id: "horror-desaturated", name: "Horror Desaturated", css: "contrast(130%) saturate(40%) brightness(80%)", category: "horror" },
+  { id: "action-high-contrast", name: "Action High Contrast", css: "contrast(140%) saturate(110%) brightness(95%)", category: "action" },
+  { id: "romance-soft-glow", name: "Romance Soft Glow", css: "contrast(95%) saturate(85%) brightness(108%)", category: "romance" },
+  { id: "scifi-cold-steel", name: "Sci-Fi Cold Steel", css: "contrast(115%) saturate(70%) brightness(95%) hue-rotate(10deg)", category: "scifi" },
+  { id: "fantasy-ethereal", name: "Fantasy Ethereal", css: "contrast(105%) saturate(120%) brightness(105%)", category: "fantasy" },
+  { id: "documentary-natural", name: "Documentary Natural", css: "contrast(102%) saturate(98%) brightness(100%)", category: "documentary" },
+];
+
+// Cinematic VFX Effects
+const VFX_EFFECTS = [
+  { id: "none", name: "No VFX", description: "Clean footage without effects", icon: "🎬" },
+  { id: "anamorphic-flares", name: "Anamorphic Lens Flares", description: "Horizontal blue/orange light streaks", icon: "✨" },
+  { id: "volumetric-light", name: "Volumetric God Rays", description: "Dramatic light beams through atmosphere", icon: "☀️" },
+  { id: "atmospheric-fog", name: "Atmospheric Fog/Haze", description: "Subtle fog for depth and mood", icon: "🌫️" },
+  { id: "dust-particles", name: "Dust Particles", description: "Floating particles in light", icon: "💫" },
+  { id: "rain-overlay", name: "Rain Overlay", description: "Cinematic rain effect", icon: "🌧️" },
+  { id: "snow-overlay", name: "Snow Overlay", description: "Gentle falling snow", icon: "❄️" },
+  { id: "sparks-embers", name: "Sparks & Embers", description: "Floating fire particles", icon: "🔥" },
+  { id: "smoke-wisps", name: "Smoke Wisps", description: "Subtle smoke trails", icon: "💨" },
+  { id: "film-grain-35mm", name: "35mm Film Grain", description: "Authentic analog texture", icon: "🎞️" },
+  { id: "chromatic-aberration", name: "Chromatic Aberration", description: "Lens color fringing", icon: "🌈" },
+  { id: "vignette-cinematic", name: "Cinematic Vignette", description: "Edge darkening for focus", icon: "🔲" },
+  { id: "light-leak", name: "Light Leaks", description: "Organic light bleeds", icon: "🌟" },
+  { id: "bokeh-overlay", name: "Bokeh Overlay", description: "Out-of-focus light orbs", icon: "💡" },
+];
+
+// Camera Motion Effects
+const CAMERA_MOTIONS = [
+  { id: "none", name: "No Motion", description: "Static footage" },
+  { id: "stabilize", name: "Stabilize", description: "Remove unwanted camera shake" },
+  { id: "cinematic-shake", name: "Cinematic Shake", description: "Subtle organic handheld feel" },
+  { id: "push-in", name: "Push In", description: "Slow zoom towards subject" },
+  { id: "pull-out", name: "Pull Out", description: "Slow zoom away from subject" },
+  { id: "dolly-simulation", name: "Dolly Simulation", description: "Horizontal tracking movement" },
+  { id: "parallax-depth", name: "Parallax Depth", description: "3D depth separation effect" },
+  { id: "whip-pan", name: "Whip Pan", description: "Fast directional blur transition" },
+];
+
+// Speed Effects
+const SPEED_EFFECTS = [
+  { id: "normal", name: "Normal Speed", multiplier: 1 },
+  { id: "slow-25", name: "25% Slow Motion", multiplier: 0.25 },
+  { id: "slow-50", name: "50% Slow Motion", multiplier: 0.5 },
+  { id: "slow-75", name: "75% Slow Motion", multiplier: 0.75 },
+  { id: "fast-150", name: "1.5x Speed", multiplier: 1.5 },
+  { id: "fast-200", name: "2x Speed", multiplier: 2 },
+  { id: "speed-ramp", name: "Speed Ramp", multiplier: 1 },
+  { id: "reverse", name: "Reverse", multiplier: -1 },
+];
+
+// Genre Presets
+const GENRE_PRESETS = [
+  { 
+    id: "action", 
+    name: "Action/Thriller", 
+    icon: "💥",
+    colorGrade: "action-high-contrast",
+    vfx: ["sparks-embers", "chromatic-aberration"],
+    cameraMotion: "cinematic-shake",
+    description: "High contrast, fast pacing, aggressive motion"
+  },
+  { 
+    id: "drama", 
+    name: "Drama", 
+    icon: "🎭",
+    colorGrade: "netflix-drama",
+    vfx: ["vignette-cinematic", "film-grain-35mm"],
+    cameraMotion: "stabilize",
+    description: "Soft lighting, emotional tones, slower cuts"
+  },
+  { 
+    id: "scifi", 
+    name: "Sci-Fi/Fantasy", 
+    icon: "🚀",
+    colorGrade: "scifi-cold-steel",
+    vfx: ["volumetric-light", "dust-particles", "chromatic-aberration"],
+    cameraMotion: "parallax-depth",
+    description: "Stylized lighting, atmospheric depth, glow accents"
+  },
+  { 
+    id: "romance", 
+    name: "Romance", 
+    icon: "💕",
+    colorGrade: "romance-soft-glow",
+    vfx: ["light-leak", "bokeh-overlay"],
+    cameraMotion: "push-in",
+    description: "Warm tones, dreamy highlights, gentle transitions"
+  },
+  { 
+    id: "horror", 
+    name: "Horror/Thriller", 
+    icon: "👻",
+    colorGrade: "horror-desaturated",
+    vfx: ["atmospheric-fog", "vignette-cinematic"],
+    cameraMotion: "cinematic-shake",
+    description: "Low-key lighting, desaturated, shadow dominance"
+  },
+  { 
+    id: "documentary", 
+    name: "Documentary", 
+    icon: "📹",
+    colorGrade: "documentary-natural",
+    vfx: ["stabilize"],
+    cameraMotion: "stabilize",
+    description: "Natural realism, authentic look"
+  },
+  { 
+    id: "trailer", 
+    name: "Cinematic Trailer", 
+    icon: "🎬",
+    colorGrade: "hollywood-blockbuster",
+    vfx: ["anamorphic-flares", "volumetric-light", "film-grain-35mm"],
+    cameraMotion: "dolly-simulation",
+    description: "Maximum impact, premium feel"
+  },
+  { 
+    id: "commercial", 
+    name: "High-End Commercial", 
+    icon: "📺",
+    colorGrade: "apple-tv-premium",
+    vfx: ["vignette-cinematic"],
+    cameraMotion: "push-in",
+    description: "Clean, polished, product-focused"
+  },
+];
+
+// Audio Sync Options
+const AUDIO_SYNC_OPTIONS = [
+  { id: "none", name: "No Audio Sync", description: "Manual timing only" },
+  { id: "beat-sync", name: "Beat Sync", description: "Sync cuts to music beats" },
+  { id: "peak-emphasis", name: "Peak Emphasis", description: "Visual effects on audio peaks" },
+  { id: "fade-with-music", name: "Fade with Music", description: "Match visual fades to audio" },
 ];
 
 const TRANSITIONS = [
@@ -220,7 +377,21 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
     brightness: 100,
     contrast: 100,
     saturation: 100,
-    hue: 0
+    hue: 0,
+    // Cinematic Features
+    genrePreset: "trailer",
+    vfxEffects: [],
+    cameraMotion: "none",
+    speedEffect: "normal",
+    audioSync: "none",
+    filmGrain: 15,
+    vignette: 20,
+    highlightRolloff: 50,
+    shadowDepth: 50,
+    skinToneProtection: true,
+    hdrBalance: true,
+    depthOfField: false,
+    motionBlur: true,
   });
 
   // Export Specifications (Step 5)
@@ -426,6 +597,29 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
     toast.success(`Applied ${preset} preset`);
   };
 
+  const applyGenrePreset = (presetId: string) => {
+    const preset = GENRE_PRESETS.find(p => p.id === presetId);
+    if (!preset) return;
+    
+    setAesthetics(prev => ({
+      ...prev,
+      genrePreset: presetId,
+      colorGradeStyle: preset.colorGrade,
+      vfxEffects: preset.vfx,
+      cameraMotion: preset.cameraMotion,
+    }));
+    toast.success(`Applied ${preset.name} cinematic preset`);
+  };
+
+  const toggleVfxEffect = (effectId: string) => {
+    setAesthetics(prev => ({
+      ...prev,
+      vfxEffects: prev.vfxEffects.includes(effectId)
+        ? prev.vfxEffects.filter(e => e !== effectId)
+        : [...prev.vfxEffects, effectId]
+    }));
+  };
+
   const generatePromptJSON = () => {
     return {
       projectMetadata: metadata,
@@ -448,6 +642,21 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
         colorGradeStyle: COLOR_GRADES.find(g => g.id === aesthetics.colorGradeStyle)?.name || "None",
         textStyleDefault: aesthetics.textStyleDefault,
         transitionStyleDefault: TRANSITIONS.find(t => t.id === aesthetics.transitionStyleDefault)?.name || "Hard Cut"
+      },
+      cinematicFeatures: {
+        genrePreset: GENRE_PRESETS.find(p => p.id === aesthetics.genrePreset)?.name || "Custom",
+        vfxEffects: aesthetics.vfxEffects.map(e => VFX_EFFECTS.find(v => v.id === e)?.name || e),
+        cameraMotion: CAMERA_MOTIONS.find(m => m.id === aesthetics.cameraMotion)?.name || "None",
+        speedEffect: SPEED_EFFECTS.find(s => s.id === aesthetics.speedEffect)?.name || "Normal",
+        audioSync: AUDIO_SYNC_OPTIONS.find(a => a.id === aesthetics.audioSync)?.name || "None",
+        filmGrain: aesthetics.filmGrain,
+        vignette: aesthetics.vignette,
+        highlightRolloff: aesthetics.highlightRolloff,
+        shadowDepth: aesthetics.shadowDepth,
+        skinToneProtection: aesthetics.skinToneProtection,
+        hdrBalance: aesthetics.hdrBalance,
+        depthOfField: aesthetics.depthOfField,
+        motionBlur: aesthetics.motionBlur,
       },
       exportSpecifications: exportSpec,
       textOverlays: textOverlays
@@ -977,108 +1186,410 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
                     </div>
                   )}
 
-                  {/* Step 4: Aesthetic Directives */}
+                  {/* Step 4: Aesthetic Directives - Cinematic Edition */}
                   {currentStep === 4 && (
                     <div className="space-y-6">
                       <div className="text-center mb-8">
-                        <h2 className="text-2xl font-bold mb-2">Aesthetic Directives</h2>
-                        <p className="text-muted-foreground">Define the visual style for your entire video</p>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-red-500/20 border border-amber-500/30 mb-4">
+                          <Clapperboard className="h-5 w-5 text-amber-500" />
+                          <span className="text-sm font-medium bg-gradient-to-r from-amber-500 to-red-500 bg-clip-text text-transparent">
+                            Professional Post-Production Studio
+                          </span>
+                        </div>
+                        <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+                          Cinematic Aesthetic Directives
+                        </h2>
+                        <p className="text-muted-foreground">
+                          Transform your footage into cinema-ready, film-grade visuals
+                        </p>
                       </div>
 
+                      {/* Genre Presets - Hollywood Style */}
+                      <Card className="bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-red-500/5 border-amber-500/20">
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500">
+                              <Film className="h-4 w-4 text-white" />
+                            </div>
+                            <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+                              Genre Adaptation (Auto-Adjust Style)
+                            </span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {GENRE_PRESETS.map(preset => (
+                              <button
+                                key={preset.id}
+                                onClick={() => applyGenrePreset(preset.id)}
+                                className={`p-4 rounded-xl border transition-all text-left group hover:scale-[1.02] ${
+                                  aesthetics.genrePreset === preset.id
+                                    ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-amber-500/50 shadow-lg shadow-amber-500/10"
+                                    : "border-border hover:border-amber-500/30 hover:bg-amber-500/5"
+                                }`}
+                              >
+                                <div className="text-2xl mb-2">{preset.icon}</div>
+                                <div className="font-medium text-sm">{preset.name}</div>
+                                <div className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
+                                  {preset.description}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+
                       <div className="grid gap-6 md:grid-cols-2">
-                        <Card>
+                        {/* Film-Grade Color Science */}
+                        <Card className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 border-purple-500/20">
                           <CardHeader>
-                            <CardTitle className="text-base">Color Grading</CardTitle>
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500">
+                                <Palette className="h-4 w-4 text-white" />
+                              </div>
+                              <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                                Film-Grade Color Science
+                              </span>
+                            </CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-4">
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2">
                               {COLOR_GRADES.map(grade => (
                                 <button
                                   key={grade.id}
                                   onClick={() => setAesthetics({ ...aesthetics, colorGradeStyle: grade.id })}
-                                  className={`p-3 text-sm rounded-lg border text-center transition-all ${
+                                  className={`p-2.5 text-xs rounded-lg border text-center transition-all ${
                                     aesthetics.colorGradeStyle === grade.id
-                                      ? "border-primary bg-primary/10 font-medium"
-                                      : "border-border hover:border-primary/50"
+                                      ? "bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/50 font-medium"
+                                      : "border-border hover:border-purple-500/30"
                                   }`}
                                 >
                                   {grade.name}
                                 </button>
                               ))}
                             </div>
+                            
+                            {/* Cinematic Color Controls */}
+                            <div className="space-y-3 pt-3 border-t border-purple-500/20">
+                              <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="flex items-center gap-1"><Sun className="h-3 w-3" /> Highlight Roll-off</span>
+                                  <span className="text-purple-400">{aesthetics.highlightRolloff}%</span>
+                                </div>
+                                <Slider
+                                  value={[aesthetics.highlightRolloff]}
+                                  onValueChange={(v) => setAesthetics({ ...aesthetics, highlightRolloff: v[0] })}
+                                  min={0} max={100}
+                                  className="[&>span]:bg-gradient-to-r [&>span]:from-purple-500 [&>span]:to-pink-500"
+                                />
+                              </div>
+                              <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="flex items-center gap-1"><Moon className="h-3 w-3" /> Shadow Depth</span>
+                                  <span className="text-purple-400">{aesthetics.shadowDepth}%</span>
+                                </div>
+                                <Slider
+                                  value={[aesthetics.shadowDepth]}
+                                  onValueChange={(v) => setAesthetics({ ...aesthetics, shadowDepth: v[0] })}
+                                  min={0} max={100}
+                                  className="[&>span]:bg-gradient-to-r [&>span]:from-purple-500 [&>span]:to-pink-500"
+                                />
+                              </div>
+                            </div>
                           </CardContent>
                         </Card>
 
-                        <Card>
+                        {/* VFX Enhancements */}
+                        <Card className="bg-gradient-to-br from-cyan-500/5 to-blue-500/5 border-cyan-500/20">
                           <CardHeader>
-                            <CardTitle className="text-base flex items-center justify-between">
-                              Manual Adjustments
-                              <Button variant="ghost" size="sm" onClick={() => setAesthetics({
-                                ...aesthetics,
-                                brightness: 100,
-                                contrast: 100,
-                                saturation: 100,
-                                hue: 0
-                              })}>
-                                <RotateCcw className="h-3 w-3 mr-1" /> Reset
-                              </Button>
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <div className="p-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500">
+                                <Sparkles className="h-4 w-4 text-white" />
+                              </div>
+                              <span className="bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">
+                                VFX Enhancements
+                              </span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-2">
+                              {VFX_EFFECTS.map(effect => (
+                                <button
+                                  key={effect.id}
+                                  onClick={() => toggleVfxEffect(effect.id)}
+                                  disabled={effect.id === "none"}
+                                  className={`p-3 rounded-lg border text-left transition-all ${
+                                    aesthetics.vfxEffects.includes(effect.id)
+                                      ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-cyan-500/50"
+                                      : effect.id === "none" 
+                                        ? "opacity-50 cursor-not-allowed"
+                                        : "border-border hover:border-cyan-500/30"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-lg">{effect.icon}</span>
+                                    <div>
+                                      <div className="text-xs font-medium">{effect.name}</div>
+                                      <div className="text-[10px] text-muted-foreground">{effect.description}</div>
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                            
+                            {aesthetics.vfxEffects.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-cyan-500/20">
+                                {aesthetics.vfxEffects.map(e => (
+                                  <Badge key={e} className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border-cyan-500/30">
+                                    {VFX_EFFECTS.find(v => v.id === e)?.icon} {VFX_EFFECTS.find(v => v.id === e)?.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        {/* Camera & Motion Processing */}
+                        <Card className="bg-gradient-to-br from-green-500/5 to-emerald-500/5 border-green-500/20">
+                          <CardHeader>
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <div className="p-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500">
+                                <Camera className="h-4 w-4 text-white" />
+                              </div>
+                              <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+                                Camera & Motion Processing
+                              </span>
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-4">
                             <div>
-                              <div className="flex justify-between text-xs mb-1">
-                                <span>Brightness</span>
-                                <span>{aesthetics.brightness}%</span>
-                              </div>
-                              <Slider
-                                value={[aesthetics.brightness]}
-                                onValueChange={(v) => setAesthetics({ ...aesthetics, brightness: v[0] })}
-                                min={0}
-                                max={200}
-                              />
+                              <Label className="text-xs text-muted-foreground">Camera Motion</Label>
+                              <Select value={aesthetics.cameraMotion} onValueChange={(v) => setAesthetics({ ...aesthetics, cameraMotion: v })}>
+                                <SelectTrigger className="mt-1 border-green-500/30 focus:ring-green-500/50">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {CAMERA_MOTIONS.map(m => (
+                                    <SelectItem key={m.id} value={m.id}>
+                                      <div>
+                                        <div className="font-medium">{m.name}</div>
+                                        <div className="text-xs text-muted-foreground">{m.description}</div>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
+                            
                             <div>
-                              <div className="flex justify-between text-xs mb-1">
-                                <span>Contrast</span>
-                                <span>{aesthetics.contrast}%</span>
-                              </div>
-                              <Slider
-                                value={[aesthetics.contrast]}
-                                onValueChange={(v) => setAesthetics({ ...aesthetics, contrast: v[0] })}
-                                min={0}
-                                max={200}
-                              />
+                              <Label className="text-xs text-muted-foreground">Speed Effect</Label>
+                              <Select value={aesthetics.speedEffect} onValueChange={(v) => setAesthetics({ ...aesthetics, speedEffect: v })}>
+                                <SelectTrigger className="mt-1 border-green-500/30 focus:ring-green-500/50">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {SPEED_EFFECTS.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
-                            <div>
-                              <div className="flex justify-between text-xs mb-1">
-                                <span>Saturation</span>
-                                <span>{aesthetics.saturation}%</span>
-                              </div>
-                              <Slider
-                                value={[aesthetics.saturation]}
-                                onValueChange={(v) => setAesthetics({ ...aesthetics, saturation: v[0] })}
-                                min={0}
-                                max={200}
-                              />
-                            </div>
-                            <div>
-                              <div className="flex justify-between text-xs mb-1">
-                                <span>Hue Rotation</span>
-                                <span>{aesthetics.hue}°</span>
-                              </div>
-                              <Slider
-                                value={[aesthetics.hue]}
-                                onValueChange={(v) => setAesthetics({ ...aesthetics, hue: v[0] })}
-                                min={-180}
-                                max={180}
-                              />
+                            
+                            {/* Toggle Switches */}
+                            <div className="grid grid-cols-2 gap-2 pt-2">
+                              <button
+                                onClick={() => setAesthetics({ ...aesthetics, depthOfField: !aesthetics.depthOfField })}
+                                className={`p-3 rounded-lg border text-left transition-all flex items-center gap-2 ${
+                                  aesthetics.depthOfField 
+                                    ? "bg-green-500/20 border-green-500/50" 
+                                    : "border-border hover:border-green-500/30"
+                                }`}
+                              >
+                                <Focus className="h-4 w-4" />
+                                <div>
+                                  <div className="text-xs font-medium">Depth of Field</div>
+                                  <div className="text-[10px] text-muted-foreground">Bokeh simulation</div>
+                                </div>
+                              </button>
+                              <button
+                                onClick={() => setAesthetics({ ...aesthetics, motionBlur: !aesthetics.motionBlur })}
+                                className={`p-3 rounded-lg border text-left transition-all flex items-center gap-2 ${
+                                  aesthetics.motionBlur 
+                                    ? "bg-green-500/20 border-green-500/50" 
+                                    : "border-border hover:border-green-500/30"
+                                }`}
+                              >
+                                <Zap className="h-4 w-4" />
+                                <div>
+                                  <div className="text-xs font-medium">Motion Blur</div>
+                                  <div className="text-[10px] text-muted-foreground">Cinematic shutter</div>
+                                </div>
+                              </button>
                             </div>
                           </CardContent>
                         </Card>
 
+                        {/* Audio-Visual Sync */}
+                        <Card className="bg-gradient-to-br from-rose-500/5 to-red-500/5 border-rose-500/20">
+                          <CardHeader>
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <div className="p-2 rounded-lg bg-gradient-to-r from-rose-500 to-red-500">
+                                <Volume1 className="h-4 w-4 text-white" />
+                              </div>
+                              <span className="bg-gradient-to-r from-rose-500 to-red-500 bg-clip-text text-transparent">
+                                Audio-Visual Sync
+                              </span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Sync Mode</Label>
+                              <Select value={aesthetics.audioSync} onValueChange={(v) => setAesthetics({ ...aesthetics, audioSync: v })}>
+                                <SelectTrigger className="mt-1 border-rose-500/30 focus:ring-rose-500/50">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {AUDIO_SYNC_OPTIONS.map(a => (
+                                    <SelectItem key={a.id} value={a.id}>
+                                      <div>
+                                        <div className="font-medium">{a.name}</div>
+                                        <div className="text-xs text-muted-foreground">{a.description}</div>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="text-xs text-muted-foreground p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Music className="h-3 w-3 text-rose-400" />
+                                <span className="font-medium text-rose-400">Pro Tip</span>
+                              </div>
+                              Sync cuts and effects with music beats. Enhance emotional peaks visually with light pulses or subtle flashes for maximum impact.
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Fine Tuning Controls */}
+                      <Card className="bg-gradient-to-br from-slate-500/5 to-zinc-500/5 border-slate-500/20">
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-2 rounded-lg bg-gradient-to-r from-slate-500 to-zinc-600">
+                                <SlidersHorizontal className="h-4 w-4 text-white" />
+                              </div>
+                              <span>Fine-Tuning & Quality Controls</span>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => setAesthetics({
+                              ...aesthetics,
+                              brightness: 100,
+                              contrast: 100,
+                              saturation: 100,
+                              hue: 0,
+                              filmGrain: 15,
+                              vignette: 20
+                            })}>
+                              <RotateCcw className="h-3 w-3 mr-1" /> Reset All
+                            </Button>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid md:grid-cols-3 gap-6">
+                            {/* Basic Adjustments */}
+                            <div className="space-y-4">
+                              <div className="text-xs font-medium text-muted-foreground mb-2">Basic Adjustments</div>
+                              <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span>Brightness</span><span>{aesthetics.brightness}%</span>
+                                </div>
+                                <Slider value={[aesthetics.brightness]} onValueChange={(v) => setAesthetics({ ...aesthetics, brightness: v[0] })} min={0} max={200} />
+                              </div>
+                              <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span>Contrast</span><span>{aesthetics.contrast}%</span>
+                                </div>
+                                <Slider value={[aesthetics.contrast]} onValueChange={(v) => setAesthetics({ ...aesthetics, contrast: v[0] })} min={0} max={200} />
+                              </div>
+                              <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span>Saturation</span><span>{aesthetics.saturation}%</span>
+                                </div>
+                                <Slider value={[aesthetics.saturation]} onValueChange={(v) => setAesthetics({ ...aesthetics, saturation: v[0] })} min={0} max={200} />
+                              </div>
+                              <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span>Hue Rotation</span><span>{aesthetics.hue}°</span>
+                                </div>
+                                <Slider value={[aesthetics.hue]} onValueChange={(v) => setAesthetics({ ...aesthetics, hue: v[0] })} min={-180} max={180} />
+                              </div>
+                            </div>
+
+                            {/* Film Texture */}
+                            <div className="space-y-4">
+                              <div className="text-xs font-medium text-muted-foreground mb-2">Film Texture</div>
+                              <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="flex items-center gap-1">🎞️ 35mm Film Grain</span>
+                                  <span>{aesthetics.filmGrain}%</span>
+                                </div>
+                                <Slider value={[aesthetics.filmGrain]} onValueChange={(v) => setAesthetics({ ...aesthetics, filmGrain: v[0] })} min={0} max={100} />
+                              </div>
+                              <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="flex items-center gap-1">🔲 Cinematic Vignette</span>
+                                  <span>{aesthetics.vignette}%</span>
+                                </div>
+                                <Slider value={[aesthetics.vignette]} onValueChange={(v) => setAesthetics({ ...aesthetics, vignette: v[0] })} min={0} max={100} />
+                              </div>
+                            </div>
+
+                            {/* Quality Protection */}
+                            <div className="space-y-4">
+                              <div className="text-xs font-medium text-muted-foreground mb-2">Quality Protection</div>
+                              <button
+                                onClick={() => setAesthetics({ ...aesthetics, skinToneProtection: !aesthetics.skinToneProtection })}
+                                className={`w-full p-3 rounded-lg border text-left transition-all flex items-center justify-between ${
+                                  aesthetics.skinToneProtection ? "bg-primary/10 border-primary/50" : "border-border"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Shield className="h-4 w-4" />
+                                  <div>
+                                    <div className="text-xs font-medium">Skin Tone Protection</div>
+                                    <div className="text-[10px] text-muted-foreground">Preserve natural skin tones</div>
+                                  </div>
+                                </div>
+                                {aesthetics.skinToneProtection ? <ToggleRight className="h-5 w-5 text-primary" /> : <ToggleLeft className="h-5 w-5" />}
+                              </button>
+                              <button
+                                onClick={() => setAesthetics({ ...aesthetics, hdrBalance: !aesthetics.hdrBalance })}
+                                className={`w-full p-3 rounded-lg border text-left transition-all flex items-center justify-between ${
+                                  aesthetics.hdrBalance ? "bg-primary/10 border-primary/50" : "border-border"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Lightbulb className="h-4 w-4" />
+                                  <div>
+                                    <div className="text-xs font-medium">HDR Balance</div>
+                                    <div className="text-[10px] text-muted-foreground">HDR-balanced exposure</div>
+                                  </div>
+                                </div>
+                                {aesthetics.hdrBalance ? <ToggleRight className="h-5 w-5 text-primary" /> : <ToggleLeft className="h-5 w-5" />}
+                              </button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Text & Transition Defaults */}
+                      <div className="grid gap-6 md:grid-cols-2">
                         <Card>
                           <CardHeader>
-                            <CardTitle className="text-base">Default Text Style</CardTitle>
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <Type className="h-4 w-4" /> Default Text Style
+                            </CardTitle>
                           </CardHeader>
                           <CardContent>
                             <Input
@@ -1091,7 +1602,9 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
 
                         <Card>
                           <CardHeader>
-                            <CardTitle className="text-base">Default Transition</CardTitle>
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <Layers className="h-4 w-4" /> Default Transition
+                            </CardTitle>
                           </CardHeader>
                           <CardContent>
                             <Select 
@@ -1111,9 +1624,30 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
                         </Card>
                       </div>
 
+                      {/* Quality Assurance Notice */}
+                      <Card className="bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 border-emerald-500/30">
+                        <CardContent className="py-4">
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500">
+                              <Star className="h-5 w-5 text-white" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-emerald-400 mb-1">Cinema-Ready Quality Assurance</div>
+                              <div className="text-xs text-muted-foreground space-y-1">
+                                <p>✓ Every VFX element serves the story • ✓ Prioritizes realism and cinematic authenticity</p>
+                                <p>✓ Clean export with professional finishing • ✓ 4K resolution with upscaling if needed</p>
+                                <p className="text-emerald-400/80 font-medium mt-2">
+                                  Your video will look suitable for Movies, Netflix/Prime/Apple TV content, and high-end trailers.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
                       <div className="flex justify-between pt-4">
                         <Button variant="outline" onClick={() => setCurrentStep(3)}>Back</Button>
-                        <Button onClick={() => setCurrentStep(5)} className="gap-2">
+                        <Button onClick={() => setCurrentStep(5)} className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600">
                           Continue to Export <ChevronRight className="h-4 w-4" />
                         </Button>
                       </div>
