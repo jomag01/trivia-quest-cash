@@ -114,6 +114,8 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPaidAffiliate, setIsPaidAffiliate] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   
   // Step 1: Topic
   const [topic, setTopic] = useState('');
@@ -122,6 +124,32 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
   const [imageAnalysis, setImageAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check paid affiliate status
+  useEffect(() => {
+    const checkPaidStatus = async () => {
+      if (!user) {
+        setIsCheckingStatus(false);
+        return;
+      }
+      
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('is_paid_affiliate, is_verified_seller')
+          .eq('id', user.id)
+          .single();
+        
+        setIsPaidAffiliate(data?.is_paid_affiliate === true || data?.is_verified_seller === true);
+      } catch (error) {
+        console.error('Error checking paid status:', error);
+      } finally {
+        setIsCheckingStatus(false);
+      }
+    };
+    
+    checkPaidStatus();
+  }, [user]);
 
   // Effect to handle external research from Deep Research Assistant
   useEffect(() => {
@@ -175,7 +203,7 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
   // Social Media Publisher state
   const [showSocialPublisher, setShowSocialPublisher] = useState(false);
 
-  const isPaidUser = userCredits >= 10;
+  const isPaidUser = isPaidAffiliate;
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -740,6 +768,15 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
     { num: 5, title: 'Video', icon: Video },
     { num: 6, title: 'Download & Share', icon: Download },
   ];
+
+  if (isCheckingStatus) {
+    return (
+      <Card className="p-8 text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+        <p className="text-muted-foreground mt-2">Checking access...</p>
+      </Card>
+    );
+  }
 
   if (!isPaidUser) {
     return (
