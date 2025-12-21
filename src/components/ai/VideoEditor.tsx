@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, DragEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -21,8 +21,9 @@ import {
   ChevronRight, Wand2, PlayCircle, Eye, Clapperboard, Video,
   Camera, Zap, Wind, Droplets, Sun, Moon, Star, Flame, CloudFog,
   Timer, Gauge, Volume1, Lightbulb, Shield, ToggleLeft, ToggleRight,
-  Tv, MonitorSpeaker, CircleDot, Focus, Maximize2
+  Tv, MonitorSpeaker, CircleDot, Focus, Maximize2, GripVertical, Merge, Menu, X
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface VideoEditorProps {
   open: boolean;
@@ -47,6 +48,18 @@ interface Asset {
   source: string;
   description: string;
   name: string;
+  thumbnail?: string;
+}
+
+interface TimelineItem {
+  id: string;
+  assetId: string;
+  type: "video" | "image";
+  source: string;
+  name: string;
+  duration: number;
+  order: number;
+  thumbnail?: string;
 }
 
 interface SceneInstruction {
@@ -339,10 +352,12 @@ const EXPORT_PRESETS = {
 
 export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport }: VideoEditorProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const isMobile = useIsMobile();
   
   // Wizard step
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 5;
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -363,6 +378,11 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
   // Assets (Step 2)
   const [assets, setAssets] = useState<Asset[]>([]);
   const [newAssetDescription, setNewAssetDescription] = useState("");
+
+  // Timeline for merging videos/images
+  const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
+  const [draggedItem, setDraggedItem] = useState<TimelineItem | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Timeline/Scenes (Step 3)
   const [scenes, setScenes] = useState<SceneInstruction[]>([]);
@@ -588,6 +608,110 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
     if (selectedTextId === id) setSelectedTextId(null);
   };
 
+  // Timeline drag and drop handlers
+  const handleTimelineDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleTimelineDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleTimelineDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const validFiles = files.filter(file => 
+      file.type.startsWith('video/') || file.type.startsWith('image/')
+    );
+
+    validFiles.forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newItem: TimelineItem = {
+          id: `timeline-${Date.now()}-${index}`,
+          assetId: `dropped-${Date.now()}-${index}`,
+          type: file.type.startsWith('video/') ? 'video' : 'image',
+          source: reader.result as string,
+          name: file.name,
+          duration: file.type.startsWith('image/') ? 5 : 10, // Default durations
+          order: timelineItems.length + index,
+          thumbnail: file.type.startsWith('image/') ? reader.result as string : undefined
+        };
+        setTimelineItems(prev => [...prev, newItem]);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    if (validFiles.length > 0) {
+      toast.success(`Added ${validFiles.length} file(s) to timeline`);
+    }
+  };
+
+  const handleTimelineItemDragStart = (item: TimelineItem) => {
+    setDraggedItem(item);
+  };
+
+  const handleTimelineItemDragEnd = () => {
+    setDraggedItem(null);
+  };
+
+  const handleTimelineItemDrop = (targetIndex: number) => {
+    if (!draggedItem) return;
+    
+    const items = [...timelineItems];
+    const draggedIndex = items.findIndex(item => item.id === draggedItem.id);
+    
+    if (draggedIndex !== -1) {
+      items.splice(draggedIndex, 1);
+      items.splice(targetIndex, 0, draggedItem);
+      
+      // Update order
+      const reorderedItems = items.map((item, idx) => ({ ...item, order: idx }));
+      setTimelineItems(reorderedItems);
+    }
+    
+    setDraggedItem(null);
+  };
+
+  const removeTimelineItem = (id: string) => {
+    setTimelineItems(prev => prev.filter(item => item.id !== id));
+    toast.success("Item removed from timeline");
+  };
+
+  const addFileToTimeline = (type: 'video' | 'image') => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = type === 'video' ? 'video/*' : 'image/*';
+    input.multiple = true;
+    input.onchange = (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const newItem: TimelineItem = {
+            id: `timeline-${Date.now()}-${index}`,
+            assetId: `uploaded-${Date.now()}-${index}`,
+            type,
+            source: reader.result as string,
+            name: file.name,
+            duration: type === 'image' ? 5 : 10,
+            order: timelineItems.length + index,
+            thumbnail: type === 'image' ? reader.result as string : undefined
+          };
+          setTimelineItems(prev => [...prev, newItem]);
+        };
+        reader.readAsDataURL(file);
+      });
+      if (files.length > 0) {
+        toast.success(`Added ${files.length} ${type}(s) to timeline`);
+      }
+    };
+    input.click();
+  };
+
   const applyExportPreset = (preset: keyof typeof EXPORT_PRESETS) => {
     const config = EXPORT_PRESETS[preset];
     setExportSpec(prev => ({
@@ -701,44 +825,77 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[98vw] w-[1600px] h-[95vh] p-0 bg-background overflow-hidden">
+      <DialogContent className="max-w-[100vw] w-full md:max-w-[98vw] md:w-[1600px] h-[100dvh] md:h-[95vh] p-0 bg-background overflow-hidden">
         <div className="flex flex-col h-full">
           {/* Header */}
-          <DialogHeader className="px-4 py-3 border-b flex flex-row items-center justify-between bg-muted/30">
-            <div className="flex items-center gap-3">
-              <Film className="h-5 w-5 text-primary" />
-              <DialogTitle className="text-lg font-bold">{metadata.projectName}</DialogTitle>
-              <Badge variant="outline" className="text-xs">{metadata.targetDuration}</Badge>
+          <DialogHeader className="px-2 md:px-4 py-2 md:py-3 border-b flex flex-row items-center justify-between bg-muted/30">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+              {/* Mobile menu button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="md:hidden h-8 w-8 flex-shrink-0"
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+              <Film className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
+              <DialogTitle className="text-sm md:text-lg font-bold truncate">{metadata.projectName}</DialogTitle>
+              <Badge variant="outline" className="text-[10px] md:text-xs hidden sm:inline-flex">{metadata.targetDuration}</Badge>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={undo} disabled={historyIndex <= 0}>
+            <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+              <Button variant="ghost" size="icon" onClick={undo} disabled={historyIndex <= 0} className="h-8 w-8">
                 <Undo className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={redo} disabled={historyIndex >= history.length - 1}>
+              <Button variant="ghost" size="icon" onClick={redo} disabled={historyIndex >= history.length - 1} className="h-8 w-8">
                 <Redo className="h-4 w-4" />
               </Button>
               <Button variant="outline" size="sm" onClick={() => {
                 const json = generatePromptJSON();
                 navigator.clipboard.writeText(JSON.stringify(json, null, 2));
                 toast.success("Prompt JSON copied to clipboard");
-              }}>
+              }} className="hidden md:flex text-xs">
                 Copy JSON
               </Button>
-              <Button onClick={handleExport} className="gap-2 bg-primary">
-                <Download className="h-4 w-4" />
-                Export Video
+              <Button onClick={handleExport} className="gap-1 md:gap-2 bg-primary text-xs md:text-sm h-8 px-2 md:px-3">
+                <Download className="h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Export</span>
               </Button>
             </div>
           </DialogHeader>
 
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden relative">
+            {/* Mobile Sidebar Overlay */}
+            {sidebarOpen && (
+              <div 
+                className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
+
             {/* Step Navigation - Left Sidebar */}
-            <div className="w-56 border-r bg-muted/20 p-3 flex flex-col">
+            <div className={`
+              fixed md:relative inset-y-0 left-0 z-50 md:z-auto
+              w-64 md:w-56 border-r bg-background md:bg-muted/20 p-3 flex flex-col
+              transform transition-transform duration-300 ease-in-out
+              ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+            `}>
+              {/* Close button for mobile */}
+              <div className="flex items-center justify-between mb-4 md:hidden">
+                <span className="font-semibold text-sm">Steps</span>
+                <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)} className="h-8 w-8">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
               <div className="space-y-1">
                 {steps.map((step) => (
                   <button
                     key={step.number}
-                    onClick={() => setCurrentStep(step.number)}
+                    onClick={() => {
+                      setCurrentStep(step.number);
+                      setSidebarOpen(false);
+                    }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left ${
                       currentStep === step.number
                         ? "bg-primary text-primary-foreground"
@@ -776,7 +933,7 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
                     <div className="text-muted-foreground">Texts</div>
                   </div>
                   <div className="bg-muted/50 rounded p-2">
-                    <div className="font-medium">{exportSpec.resolution}</div>
+                    <div className="font-medium text-[10px]">{exportSpec.resolution}</div>
                     <div className="text-muted-foreground">Output</div>
                   </div>
                 </div>
@@ -962,6 +1119,121 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
                         </Card>
                       </div>
 
+                      {/* Video Merge Timeline Section */}
+                      <Card className="mt-6 border-2 border-dashed border-primary/30 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <Merge className="h-4 w-4 text-purple-500" />
+                              <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                                Video Merge Timeline
+                              </span>
+                            </CardTitle>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={() => addFileToTimeline('video')} className="gap-1 text-xs">
+                                <FileVideo className="h-3 w-3" /> Add Video
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => addFileToTimeline('image')} className="gap-1 text-xs">
+                                <ImagePlus className="h-3 w-3" /> Add Image
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {/* Drag and Drop Zone */}
+                          <div
+                            onDragOver={handleTimelineDragOver}
+                            onDragLeave={handleTimelineDragLeave}
+                            onDrop={handleTimelineDrop}
+                            className={`
+                              min-h-[120px] border-2 border-dashed rounded-lg p-4 transition-all
+                              ${isDragOver 
+                                ? 'border-purple-500 bg-purple-500/10' 
+                                : 'border-muted-foreground/30 hover:border-primary/50'
+                              }
+                            `}
+                          >
+                            {timelineItems.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center h-full py-6 text-center">
+                                <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                                <p className="text-sm font-medium text-muted-foreground">
+                                  Drag & drop videos or images here
+                                </p>
+                                <p className="text-xs text-muted-foreground/70 mt-1">
+                                  or use the buttons above to add files
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="text-xs text-muted-foreground mb-2">
+                                  Drag items to reorder • {timelineItems.length} item(s)
+                                </div>
+                                <div className="flex gap-2 flex-wrap">
+                                  {timelineItems.map((item, index) => (
+                                    <div
+                                      key={item.id}
+                                      draggable
+                                      onDragStart={() => handleTimelineItemDragStart(item)}
+                                      onDragEnd={handleTimelineItemDragEnd}
+                                      onDragOver={(e) => e.preventDefault()}
+                                      onDrop={() => handleTimelineItemDrop(index)}
+                                      className={`
+                                        relative group flex flex-col items-center p-2 bg-muted/50 rounded-lg border
+                                        cursor-grab active:cursor-grabbing transition-all
+                                        ${draggedItem?.id === item.id ? 'opacity-50 scale-95' : 'hover:border-primary/50'}
+                                      `}
+                                      style={{ minWidth: '100px', maxWidth: '120px' }}
+                                    >
+                                      <div className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">
+                                        {index + 1}
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute -top-2 -right-2 h-5 w-5 bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => removeTimelineItem(item.id)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                      <div className="w-full h-14 bg-black/20 rounded overflow-hidden mb-1">
+                                        {item.type === 'image' && item.source ? (
+                                          <img src={item.source} alt={item.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center">
+                                            <FileVideo className="h-6 w-6 text-muted-foreground" />
+                                          </div>
+                                        )}
+                                      </div>
+                                      <GripVertical className="h-3 w-3 text-muted-foreground mb-1" />
+                                      <span className="text-[10px] text-center truncate w-full">{item.name}</span>
+                                      <Badge variant="outline" className="text-[8px] mt-1">
+                                        {item.type === 'video' ? 'VIDEO' : 'IMAGE'}
+                                      </Badge>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {timelineItems.length > 0 && (
+                            <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                              <div className="flex items-center justify-between">
+                                <div className="text-sm">
+                                  <span className="font-medium">Total Duration:</span>
+                                  <span className="ml-2 text-muted-foreground">
+                                    {timelineItems.reduce((acc, item) => acc + item.duration, 0)} seconds
+                                  </span>
+                                </div>
+                                <Badge className="bg-gradient-to-r from-purple-500 to-pink-500">
+                                  {timelineItems.length} clips to merge
+                                </Badge>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
                       <div className="flex justify-between pt-4">
                         <Button variant="outline" onClick={() => setCurrentStep(1)}>Back</Button>
                         <Button onClick={() => setCurrentStep(3)} className="gap-2">
@@ -975,8 +1247,8 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
                   {currentStep === 3 && (
                     <div className="space-y-6">
                       <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold mb-2">Timeline & Sequencing</h2>
-                        <p className="text-muted-foreground">Arrange your scenes and define the edit</p>
+                        <h2 className="text-xl md:text-2xl font-bold mb-2">Timeline & Sequencing</h2>
+                        <p className="text-muted-foreground text-sm">Arrange your scenes and define the edit</p>
                       </div>
 
                       <div className="grid gap-4">
@@ -1871,10 +2143,10 @@ export function VideoEditor({ open, onOpenChange, mediaUrl, mediaType, onExport 
 
               {/* Preview Area - Fixed at bottom */}
               <div className="border-t bg-black/90">
-                <div className="p-4">
-                  <div className="flex items-center gap-4">
+                <div className="p-2 md:p-4">
+                  <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
                     {/* Mini Preview */}
-                    <div className="relative w-48 h-28 bg-black rounded overflow-hidden flex-shrink-0">
+                    <div className="relative w-24 md:w-48 h-16 md:h-28 bg-black rounded overflow-hidden flex-shrink-0 hidden sm:block">
                       {mediaType === "video" ? (
                         <video
                           ref={videoRef}
