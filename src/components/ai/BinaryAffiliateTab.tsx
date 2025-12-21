@@ -551,9 +551,13 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="p-4 rounded-lg bg-background/50 border">
-                  <p className="text-2xl font-bold text-primary">₱{settings.joinAmount}</p>
-                  <p className="text-xs text-muted-foreground">Minimum to Activate</p>
+                <div className={`p-4 rounded-lg border transition-all ${selectedTier !== null ? 'bg-primary/10 border-primary/30' : 'bg-background/50'}`}>
+                  <p className="text-2xl font-bold text-primary">
+                    ₱{selectedTier !== null && tiers[selectedTier] ? tiers[selectedTier].price : settings.joinAmount}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedTier !== null ? `${getTierLabel(selectedTier)} Package` : 'Minimum to Activate'}
+                  </p>
                 </div>
                 <div className="p-4 rounded-lg bg-background/50 border">
                   <p className="text-2xl font-bold text-primary">₱{settings.cycleCommission}</p>
