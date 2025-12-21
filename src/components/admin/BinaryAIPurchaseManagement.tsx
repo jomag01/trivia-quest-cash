@@ -194,21 +194,9 @@ const BinaryAIPurchaseManagement = () => {
   };
 
   const handleReject = async (id: string) => {
-    const { error } = await supabase
-      .from("binary_ai_purchases")
-      .update({
-        status: "rejected",
-        admin_notes: adminNotes || null,
-      })
-      .eq("id", id);
-
-    if (error) {
-      toast.error("Failed to reject purchase");
-      return;
-    }
-
-    // Find purchase to get user_id
     const purchase = purchases.find((p) => p.id === id);
+    
+    // Send notification before deleting
     if (purchase) {
       await supabase.from("notifications").insert({
         user_id: purchase.user_id,
@@ -219,7 +207,18 @@ const BinaryAIPurchaseManagement = () => {
       });
     }
 
-    toast.success("Purchase rejected");
+    // Delete the rejected purchase instead of just updating status
+    const { error } = await supabase
+      .from("binary_ai_purchases")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      toast.error("Failed to reject purchase");
+      return;
+    }
+
+    toast.success("Purchase rejected and removed");
     setAdminNotes("");
     setProcessingId(null);
     fetchPurchases();
