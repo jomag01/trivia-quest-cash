@@ -174,6 +174,101 @@ const BinaryAIPurchaseManagement = () => {
         console.error("Error activating paid affiliate:", profileUpdateError);
       }
 
+      // Add user to binary network
+      // First check if user already exists in binary network
+      const { data: existingNetwork } = await supabase
+        .from("binary_network")
+        .select("id")
+        .eq("user_id", purchase.user_id)
+        .maybeSingle();
+
+      if (!existingNetwork) {
+        // Check if there's a sponsor in the purchase
+        let parentId = null;
+        let placementLeg: "left" | "right" | null = null;
+
+        if (purchase.sponsor_id) {
+          // Get sponsor's binary network entry
+          const { data: sponsorNetwork } = await supabase
+            .from("binary_network")
+            .select("id, left_child_id, right_child_id")
+            .eq("user_id", purchase.sponsor_id)
+            .maybeSingle();
+
+          if (sponsorNetwork) {
+            // Find an empty spot - prefer left first, then right
+            if (!sponsorNetwork.left_child_id) {
+              parentId = sponsorNetwork.id;
+              placementLeg = "left";
+            } else if (!sponsorNetwork.right_child_id) {
+              parentId = sponsorNetwork.id;
+              placementLeg = "right";
+            } else {
+              // If sponsor's direct spots are full, find the next available spot using spillover
+              const findEmptySpot = async (networkId: string, leg: "left" | "right"): Promise<{ parentId: string; leg: "left" | "right" } | null> => {
+                const childField = leg === "left" ? "left_child_id" : "right_child_id";
+                const { data: node } = await supabase
+                  .from("binary_network")
+                  .select("id, left_child_id, right_child_id")
+                  .eq("id", networkId)
+                  .single();
+
+                if (!node) return null;
+                
+                if (!node.left_child_id) return { parentId: node.id, leg: "left" };
+                if (!node.right_child_id) return { parentId: node.id, leg: "right" };
+
+                // Recursively search left subtree first
+                if (node.left_child_id) {
+                  const leftSpot = await findEmptySpot(node.left_child_id, "left");
+                  if (leftSpot) return leftSpot;
+                }
+                if (node.right_child_id) {
+                  const rightSpot = await findEmptySpot(node.right_child_id, "right");
+                  if (rightSpot) return rightSpot;
+                }
+                return null;
+              };
+
+              const emptySpot = await findEmptySpot(sponsorNetwork.id, "left");
+              if (emptySpot) {
+                parentId = emptySpot.parentId;
+                placementLeg = emptySpot.leg;
+              }
+            }
+          }
+        }
+
+        // Create binary network entry for the new user
+        const { data: newNetworkEntry, error: networkInsertError } = await supabase
+          .from("binary_network")
+          .insert({
+            user_id: purchase.user_id,
+            sponsor_id: purchase.sponsor_id || null,
+            parent_id: parentId,
+            placement_leg: placementLeg,
+            left_volume: 0,
+            right_volume: 0,
+            total_cycles: 0,
+            joined_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
+
+        if (networkInsertError) {
+          console.error("Error adding user to binary network:", networkInsertError);
+        } else if (newNetworkEntry && parentId) {
+          // Update parent's child reference
+          const updateField = placementLeg === "left" ? "left_child_id" : "right_child_id";
+          await supabase
+            .from("binary_network")
+            .update({ [updateField]: newNetworkEntry.id })
+            .eq("id", parentId);
+        }
+
+        console.log("User added to binary network:", purchase.user_id);
+      }
+
       // Send notification
       await supabase.from("notifications").insert({
         user_id: purchase.user_id,
