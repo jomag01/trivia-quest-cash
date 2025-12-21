@@ -24,6 +24,7 @@ import SocialMediaManager from '@/components/ai/SocialMediaManager';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const AIHub = memo(() => {
   const { user, profile } = useAuth();
@@ -715,46 +716,61 @@ const AIHub = memo(() => {
         {/* Navigation Items */}
         <ScrollArea className="flex-1 py-4">
           <nav className="space-y-1.5 px-2">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  if (window.innerWidth < 768) setSidebarOpen(false);
-                }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden",
-                  activeTab === item.id
-                    ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg shadow-${item.gradient.split('-')[1]}-500/30`
-                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                )}
-              >
-                {activeTab === item.id && (
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                )}
-                <div className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-lg transition-all",
-                  activeTab === item.id
-                    ? "bg-white/20"
-                    : `bg-gradient-to-br ${item.gradient} shadow-sm`
-                )}>
-                  <item.icon className={cn(
-                    "h-4 w-4 flex-shrink-0",
-                    activeTab === item.id ? "text-white" : "text-white"
-                  )} />
-                </div>
-                <span className={cn("flex-1 text-left", !sidebarOpen && "md:hidden")}>
-                  {item.label}
-                </span>
-                {item.premium && (
-                  <Crown className={cn(
-                    "h-3 w-3",
-                    activeTab === item.id ? "text-white" : "text-yellow-500",
-                    !sidebarOpen && "md:hidden"
-                  )} />
-                )}
-              </button>
-            ))}
+            <TooltipProvider delayDuration={0}>
+              {navItems.map((item) => (
+                <Tooltip key={item.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        if (window.innerWidth < 768) setSidebarOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden",
+                        activeTab === item.id
+                          ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg shadow-${item.gradient.split('-')[1]}-500/30`
+                          : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                      )}
+                    >
+                      {activeTab === item.id && (
+                        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                      <div className={cn(
+                        "flex items-center justify-center w-8 h-8 rounded-lg transition-all",
+                        activeTab === item.id
+                          ? "bg-white/20"
+                          : `bg-gradient-to-br ${item.gradient} shadow-sm`
+                      )}>
+                        <item.icon className={cn(
+                          "h-4 w-4 flex-shrink-0",
+                          activeTab === item.id ? "text-white" : "text-white"
+                        )} />
+                      </div>
+                      <span className={cn("flex-1 text-left", !sidebarOpen && "md:hidden")}>
+                        {item.label}
+                      </span>
+                      {item.premium && (
+                        <Crown className={cn(
+                          "h-3 w-3",
+                          activeTab === item.id ? "text-white" : "text-yellow-500",
+                          !sidebarOpen && "md:hidden"
+                        )} />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent 
+                    side="right" 
+                    className={cn(
+                      "bg-background border shadow-lg z-50",
+                      sidebarOpen && "md:hidden" // Only show tooltip when sidebar is collapsed
+                    )}
+                  >
+                    <p className="font-medium">{item.label}</p>
+                    {item.premium && <p className="text-xs text-muted-foreground">Premium Feature</p>}
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </TooltipProvider>
           </nav>
         </ScrollArea>
 
