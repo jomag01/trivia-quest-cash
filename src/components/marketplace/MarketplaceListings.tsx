@@ -204,11 +204,17 @@ const MarketplaceListings = () => {
 
   const checkEligibility = async () => {
     try {
-      const { data, error } = await supabase.rpc('check_marketplace_eligibility', {
-        user_uuid: user?.id
-      });
+      // Check if user is a paid affiliate or verified seller
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('is_paid_affiliate, is_verified_seller')
+        .eq('id', user?.id)
+        .maybeSingle();
+      
       if (error) throw error;
-      setIsEligible(data);
+      
+      // User is eligible if they are a paid affiliate or verified seller
+      setIsEligible(profile?.is_paid_affiliate === true || profile?.is_verified_seller === true);
     } catch (error) {
       console.error('Error checking eligibility:', error);
       setIsEligible(false);

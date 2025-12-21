@@ -96,6 +96,9 @@ const BinaryAIPurchaseManagement = () => {
     if (!purchase) return;
 
     try {
+      // Get current user for approved_by
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+
       // Update purchase status
       const { error: updateError } = await supabase
         .from("binary_ai_purchases")
@@ -103,23 +106,29 @@ const BinaryAIPurchaseManagement = () => {
           status: "approved",
           admin_notes: adminNotes || null,
           approved_at: new Date().toISOString(),
+          approved_by: adminUser?.id || null,
         })
         .eq("id", id);
 
       if (updateError) {
-        toast.error("Failed to approve purchase");
+        console.error("Error updating purchase status:", updateError);
+        toast.error("Failed to approve purchase: " + updateError.message);
         return;
       }
 
       // Add credits to user's AI credits
-      const { data: currentCredits } = await supabase
+      const { data: currentCredits, error: fetchError } = await supabase
         .from("user_ai_credits")
         .select("total_credits, images_available, video_minutes_available, audio_minutes_available")
         .eq("user_id", purchase.user_id)
         .maybeSingle();
 
+      if (fetchError) {
+        console.error("Error fetching current credits:", fetchError);
+      }
+
       if (currentCredits) {
-        await supabase
+        const { error: creditUpdateError } = await supabase
           .from("user_ai_credits")
           .update({
             total_credits: (currentCredits.total_credits || 0) + purchase.credits_received,
@@ -129,14 +138,40 @@ const BinaryAIPurchaseManagement = () => {
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", purchase.user_id);
+        
+        if (creditUpdateError) {
+          console.error("Error updating AI credits:", creditUpdateError);
+          toast.error("Failed to add credits: " + creditUpdateError.message);
+          return;
+        }
       } else {
-        await supabase.from("user_ai_credits").insert({
+        const { error: insertError } = await supabase.from("user_ai_credits").insert({
           user_id: purchase.user_id,
           total_credits: purchase.credits_received,
           images_available: purchase.images_allocated || 0,
           video_minutes_available: purchase.video_minutes_allocated || 0,
           audio_minutes_available: purchase.audio_minutes_allocated || 0,
         });
+        
+        if (insertError) {
+          console.error("Error inserting AI credits:", insertError);
+          toast.error("Failed to add credits: " + insertError.message);
+          return;
+        }
+      }
+
+      // Activate paid affiliate status for the user
+      const { error: profileUpdateError } = await supabase
+        .from("profiles")
+        .update({
+          is_paid_affiliate: true,
+          is_verified_seller: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", purchase.user_id);
+
+      if (profileUpdateError) {
+        console.error("Error activating paid affiliate:", profileUpdateError);
       }
 
       // Send notification
@@ -144,11 +179,11 @@ const BinaryAIPurchaseManagement = () => {
         user_id: purchase.user_id,
         type: "ai_credits",
         title: "AI Credits Approved! 🎉",
-        message: `Your purchase of ${purchase.credits_received} AI credits has been approved and added to your account.`,
+        message: `Your purchase of ${purchase.credits_received} AI credits has been approved! You now have access to all premium features including ${purchase.images_allocated || 0} images, ${purchase.video_minutes_allocated || 0} video minutes, and ${purchase.audio_minutes_allocated || 0} audio minutes.`,
         reference_id: id,
       });
 
-      toast.success("Purchase approved and credits added!");
+      toast.success("Purchase approved, credits added, and affiliate status activated!");
       setAdminNotes("");
       setProcessingId(null);
       fetchPurchases();
