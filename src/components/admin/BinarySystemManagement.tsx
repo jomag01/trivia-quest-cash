@@ -56,10 +56,14 @@ interface BinaryMember {
     full_name: string;
     email: string;
   };
-  sponsor_profile?: {
+  upline_profile?: {
     full_name: string;
     email: string;
-  };
+  } | null;
+  referrer_profile?: {
+    full_name: string;
+    email: string;
+  } | null;
 }
 
 interface CreditTier {
@@ -181,46 +185,58 @@ export default function BinarySystemManagement() {
         .limit(50);
 
       if (membersData) {
-        // Fetch profile data for each member
+        // Fetch profile data for each member + their upline/referrer
         const memberIds = membersData.map(m => m.user_id);
         const sponsorIds = membersData.map(m => m.sponsor_id).filter(Boolean) as string[];
-        
-        // Get all sponsor network IDs to find their user_ids
-        const { data: sponsorNetworkData } = await supabase
-          .from('binary_network')
-          .select('id, user_id')
-          .in('id', sponsorIds);
-        
-        const sponsorUserIds = sponsorNetworkData?.map(s => s.user_id) || [];
-        const allUserIds = [...new Set([...memberIds, ...sponsorUserIds])];
-        
+        const parentIds = membersData.map(m => m.parent_id).filter(Boolean) as string[];
+
+        const relatedNetworkIds = [...new Set([...sponsorIds, ...parentIds])];
+
+        const { data: relatedNetworkData } = relatedNetworkIds.length
+          ? await supabase
+              .from('binary_network')
+              .select('id, user_id')
+              .in('id', relatedNetworkIds)
+          : { data: [] as { id: string; user_id: string }[] };
+
+        const relatedUserIds = (relatedNetworkData || []).map(n => n.user_id);
+        const allUserIds = [...new Set([...memberIds, ...relatedUserIds])];
+
         const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, full_name, email')
           .in('id', allUserIds);
 
-        const profileMap = new Map(profilesData?.map(p => [p.id, { full_name: p.full_name, email: p.email }]) || []);
-        const sponsorNetworkMap = new Map(sponsorNetworkData?.map(s => [s.id, s.user_id]) || []);
-        
+        const profileMap = new Map(
+          profilesData?.map(p => [p.id, { full_name: p.full_name, email: p.email }]) || []
+        );
+        const networkToUserId = new Map(relatedNetworkData?.map(n => [n.id, n.user_id]) || []);
+
         const membersWithProfiles = membersData.map(m => {
-          const sponsorUserId = m.sponsor_id ? sponsorNetworkMap.get(m.sponsor_id) : null;
+          const uplineUserId = m.parent_id ? networkToUserId.get(m.parent_id) : null;
+          const referrerUserId = m.sponsor_id ? networkToUserId.get(m.sponsor_id) : null;
+
           return {
             ...m,
             profiles: profileMap.get(m.user_id) || { full_name: 'Unknown', email: '' },
-            sponsor_profile: sponsorUserId ? profileMap.get(sponsorUserId) : null
+            upline_profile: uplineUserId ? (profileMap.get(uplineUserId) ?? null) : null,
+            referrer_profile: referrerUserId ? (profileMap.get(referrerUserId) ?? null) : null,
           };
         });
 
         setMembers(membersWithProfiles as BinaryMember[]);
-        
+
         // Calculate stats
-        const totalVolume = membersData.reduce((sum, m) => sum + Number(m.left_volume || 0) + Number(m.right_volume || 0), 0);
+        const totalVolume = membersData.reduce(
+          (sum, m) => sum + Number(m.left_volume || 0) + Number(m.right_volume || 0),
+          0
+        );
         const totalCycles = membersData.reduce((sum, m) => sum + Number(m.total_cycles || 0), 0);
         setStats({
           totalMembers: membersData.length,
           totalVolume,
           totalCycles,
-          totalPaid: totalCycles * settings.cycleCommission
+          totalPaid: totalCycles * settings.cycleCommission,
         });
       }
 
@@ -987,7 +1003,7 @@ export default function BinarySystemManagement() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Member</TableHead>
-                    <TableHead>Upline/Sponsor</TableHead>
+                    <TableHead>Upline</TableHead>
                     <TableHead className="text-right">Left Volume</TableHead>
                     <TableHead className="text-right">Right Volume</TableHead>
                     <TableHead className="text-right">Cycles</TableHead>
@@ -1007,14 +1023,19 @@ export default function BinarySystemManagement() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {member.sponsor_profile ? (
+                        {member.upline_profile ? (
                           <div>
-                            <p className="font-medium text-sm">{member.sponsor_profile.full_name}</p>
-                            <p className="text-xs text-muted-foreground">{member.sponsor_profile.email}</p>
+                            <p className="font-medium text-sm">{member.upline_profile.full_name}</p>
+                            <p className="text-xs text-muted-foreground">{member.upline_profile.email}</p>
                             {member.placement_leg && (
                               <Badge variant="outline" className="mt-1 text-xs">
                                 {member.placement_leg === 'left' ? 'Left Leg' : 'Right Leg'}
                               </Badge>
+                            )}
+                            {member.referrer_profile && member.sponsor_id && member.sponsor_id !== member.parent_id && (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Referrer: {member.referrer_profile.full_name}
+                              </p>
                             )}
                           </div>
                         ) : (

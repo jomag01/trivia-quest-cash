@@ -6103,6 +6103,10 @@ export type Database = {
       }
       can_become_seller: { Args: { p_user_id: string }; Returns: boolean }
       can_create_ads: { Args: { user_id_param: string }; Returns: boolean }
+      can_view_binary_network: {
+        Args: { _node_id: string; _requester: string }
+        Returns: boolean
+      }
       check_affiliate_eligibility: {
         Args: { user_id_param: string }
         Returns: Json
