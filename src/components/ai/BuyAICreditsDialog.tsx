@@ -618,56 +618,69 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
                           )}
                         </div>
                       ) : (
-                        <div className="p-4 rounded-xl bg-muted/50 border text-center">
-                          <QrCode className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">
-                            QR code not configured. Please use bank transfer details below.
+                        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-center">
+                          <Building2 className="h-12 w-12 text-amber-500 mx-auto mb-2" />
+                          <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+                            No QR code available. Please use bank transfer details below.
                           </p>
                         </div>
                       )}
 
-                      {/* Bank Details */}
-                      {(bankDetails.accountName || bankDetails.accountNumber || bankDetails.bankName) && (
-                        <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 space-y-3">
-                          <h5 className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2">
-                            <Building2 className="h-4 w-4" />
-                            Bank Transfer Details
-                          </h5>
-                          {bankDetails.bankName && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Bank:</span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{bankDetails.bankName}</span>
-                                <button onClick={() => copyToClipboard(bankDetails.bankName, 'bank')}>
-                                  {copiedField === 'bank' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground hover:text-primary" />}
-                                </button>
+                      {/* Bank Details - Always show section */}
+                      <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 space-y-3">
+                        <h5 className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          Bank Transfer Details
+                        </h5>
+                        
+                        {(bankDetails.accountName || bankDetails.accountNumber || bankDetails.bankName) ? (
+                          <div className="space-y-3">
+                            {bankDetails.bankName && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">Bank:</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{bankDetails.bankName}</span>
+                                  <button onClick={() => copyToClipboard(bankDetails.bankName, 'bank')}>
+                                    {copiedField === 'bank' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground hover:text-primary" />}
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          )}
-                          {bankDetails.accountName && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Account Name:</span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{bankDetails.accountName}</span>
-                                <button onClick={() => copyToClipboard(bankDetails.accountName, 'name')}>
-                                  {copiedField === 'name' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground hover:text-primary" />}
-                                </button>
+                            )}
+                            {bankDetails.accountName && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">Account Name:</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{bankDetails.accountName}</span>
+                                  <button onClick={() => copyToClipboard(bankDetails.accountName, 'name')}>
+                                    {copiedField === 'name' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground hover:text-primary" />}
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          )}
-                          {bankDetails.accountNumber && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Account Number:</span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium font-mono">{bankDetails.accountNumber}</span>
-                                <button onClick={() => copyToClipboard(bankDetails.accountNumber, 'number')}>
-                                  {copiedField === 'number' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground hover:text-primary" />}
-                                </button>
+                            )}
+                            {bankDetails.accountNumber && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">Account Number:</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium font-mono">{bankDetails.accountNumber}</span>
+                                  <button onClick={() => copyToClipboard(bankDetails.accountNumber, 'number')}>
+                                    {copiedField === 'number' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground hover:text-primary" />}
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-4">
+                            <Building2 className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                            <p className="text-sm text-blue-600 dark:text-blue-400">
+                              Bank details not yet configured by admin.
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Please contact admin for payment details.
+                            </p>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Reference Number Input */}
                       <div className="space-y-2">
