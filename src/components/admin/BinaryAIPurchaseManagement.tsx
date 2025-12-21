@@ -183,9 +183,9 @@ const BinaryAIPurchaseManagement = () => {
         .maybeSingle();
 
       if (!existingNetwork) {
-        // Check if there's a sponsor in the purchase
-        let parentId = null;
+        let parentId: string | null = null;
         let placementLeg: "left" | "right" | null = null;
+        let sponsorNetworkId: string | null = null;
 
         if (purchase.sponsor_id) {
           // Get sponsor's binary network entry
@@ -196,17 +196,25 @@ const BinaryAIPurchaseManagement = () => {
             .maybeSingle();
 
           if (sponsorNetwork) {
-            // Find an empty spot - prefer left first, then right
+            sponsorNetworkId = sponsorNetwork.id;
+            
+            // Binary placement logic:
+            // 1st referral → LEFT side (sponsor only works right side)
+            // 2nd referral → RIGHT side
+            // If both full → spillover to LEFT side of the tree (auto-fill left)
+            
             if (!sponsorNetwork.left_child_id) {
+              // First referral - place in LEFT
               parentId = sponsorNetwork.id;
               placementLeg = "left";
             } else if (!sponsorNetwork.right_child_id) {
+              // Second referral - place in RIGHT
               parentId = sponsorNetwork.id;
               placementLeg = "right";
             } else {
-              // If sponsor's direct spots are full, find the next available spot using spillover
-              const findEmptySpot = async (networkId: string, leg: "left" | "right"): Promise<{ parentId: string; leg: "left" | "right" } | null> => {
-                const childField = leg === "left" ? "left_child_id" : "right_child_id";
+              // Both slots full - spillover: always fill LEFT side first
+              // This means users only need to work on their RIGHT side
+              const findLeftmostEmptySpot = async (networkId: string): Promise<{ parentId: string; leg: "left" | "right" } | null> => {
                 const { data: node } = await supabase
                   .from("binary_network")
                   .select("id, left_child_id, right_child_id")
@@ -215,25 +223,43 @@ const BinaryAIPurchaseManagement = () => {
 
                 if (!node) return null;
                 
-                if (!node.left_child_id) return { parentId: node.id, leg: "left" };
-                if (!node.right_child_id) return { parentId: node.id, leg: "right" };
-
-                // Recursively search left subtree first
+                // First check if left is empty
+                if (!node.left_child_id) {
+                  return { parentId: node.id, leg: "left" };
+                }
+                
+                // If left is full, go down the left subtree first (auto-fill left)
                 if (node.left_child_id) {
-                  const leftSpot = await findEmptySpot(node.left_child_id, "left");
-                  if (leftSpot) return leftSpot;
+                  const leftSubtreeSpot = await findLeftmostEmptySpot(node.left_child_id);
+                  if (leftSubtreeSpot) return leftSubtreeSpot;
                 }
+                
+                // Only if entire left subtree is full, check right
+                if (!node.right_child_id) {
+                  return { parentId: node.id, leg: "right" };
+                }
+                
+                // Go down right subtree
                 if (node.right_child_id) {
-                  const rightSpot = await findEmptySpot(node.right_child_id, "right");
-                  if (rightSpot) return rightSpot;
+                  const rightSubtreeSpot = await findLeftmostEmptySpot(node.right_child_id);
+                  if (rightSubtreeSpot) return rightSubtreeSpot;
                 }
+                
                 return null;
               };
 
-              const emptySpot = await findEmptySpot(sponsorNetwork.id, "left");
+              // Start spillover search from sponsor's left child (to keep filling left side)
+              const emptySpot = await findLeftmostEmptySpot(sponsorNetwork.left_child_id);
               if (emptySpot) {
                 parentId = emptySpot.parentId;
                 placementLeg = emptySpot.leg;
+              } else {
+                // If left subtree is completely full, try right subtree
+                const rightSpot = await findLeftmostEmptySpot(sponsorNetwork.right_child_id!);
+                if (rightSpot) {
+                  parentId = rightSpot.parentId;
+                  placementLeg = rightSpot.leg;
+                }
               }
             }
           }
@@ -244,7 +270,7 @@ const BinaryAIPurchaseManagement = () => {
           .from("binary_network")
           .insert({
             user_id: purchase.user_id,
-            sponsor_id: purchase.sponsor_id || null,
+            sponsor_id: sponsorNetworkId,
             parent_id: parentId,
             placement_leg: placementLeg,
             left_volume: 0,
@@ -266,7 +292,7 @@ const BinaryAIPurchaseManagement = () => {
             .eq("id", parentId);
         }
 
-        console.log("User added to binary network:", purchase.user_id);
+        console.log("User added to binary network:", purchase.user_id, "under parent:", parentId, "leg:", placementLeg);
       }
 
       // Send notification
