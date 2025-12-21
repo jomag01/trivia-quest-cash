@@ -37,6 +37,8 @@ import DeepResearchAssistant from "@/components/ai/DeepResearchAssistant";
 import AdvancedChatAssistant from "@/components/ai/AdvancedChatAssistant";
 import AICreditsTracker from "@/components/AICreditsTracker";
 import { AppPresentationGenerator } from "@/components/AppPresentationGenerator";
+import BinaryEarningsAnalytics from "@/components/BinaryEarningsAnalytics";
+import BinaryTreeView from "@/components/BinaryTreeView";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -440,6 +442,12 @@ const Dashboard = () => {
                 }}>
                     Stair Step
                   </Button>
+                  <Button variant={activeTab === "binary-earnings" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  handleTabChange("binary-earnings");
+                  setMobileMenuOpen(false);
+                }}>
+                    Binary Earnings
+                  </Button>
                   <Button variant={activeTab === "advertising" ? "default" : "ghost"} className="justify-start" onClick={() => {
                   handleTabChange("advertising");
                   setMobileMenuOpen(false);
@@ -742,13 +750,18 @@ const Dashboard = () => {
 
         {/* Dialogs */}
         <BuyCreditsDialog open={showBuyCredits} onOpenChange={setShowBuyCredits} />
-        <CashOutDialog open={showCashOut} onOpenChange={setShowCashOut} currentBalance={wallet?.balance || 0} />
+        <CashOutDialog open={showCashOut} onOpenChange={setShowCashOut} initialBalance={wallet?.balance || 0} />
         <GenealogyDialog open={showGenealogy} onOpenChange={setShowGenealogy} level={selectedLevel} userId={user?.id || ''} />
       </TabsContent>
 
       <TabsContent value="network" className="space-y-6">
         <GenealogyTree userId={user?.id || ''} />
+        <BinaryTreeView userId={user?.id || ''} />
         <UplineTransferRequest />
+      </TabsContent>
+
+      <TabsContent value="binary-earnings" className="space-y-6">
+        <BinaryEarningsAnalytics onCashOut={() => setShowCashOut(true)} />
       </TabsContent>
 
       <TabsContent value="calculator" className="space-y-6">

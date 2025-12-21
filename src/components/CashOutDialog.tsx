@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Wallet, Building2, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Wallet, Building2, Trash2, GitBranch, Diamond } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,16 +20,19 @@ interface PayoutAccount {
 interface CashOutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentBalance: number;
+  initialBalance?: number;
+  defaultSource?: "diamonds" | "binary";
 }
 
-export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDialogProps) => {
+export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultSource = "diamonds" }: CashOutDialogProps) => {
   const [amount, setAmount] = useState("");
   const [selectedAccount, setSelectedAccount] = useState<string>("");
   const [accounts, setAccounts] = useState<PayoutAccount[]>([]);
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [cashOutSource, setCashOutSource] = useState<"diamonds" | "binary">(defaultSource);
   const [availableBalance, setAvailableBalance] = useState(0);
+  const [binaryBalance, setBinaryBalance] = useState(0);
   const [totalDiamonds, setTotalDiamonds] = useState(0);
   const [diamondPrice, setDiamondPrice] = useState(10);
   
@@ -43,8 +47,30 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
     if (open) {
       fetchPayoutAccounts();
       fetchDiamondBalance();
+      fetchBinaryBalance();
+      setCashOutSource(defaultSource);
     }
-  }, [open]);
+  }, [open, defaultSource]);
+
+  const fetchBinaryBalance = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch binary commissions total
+      const { data: commissionsData, error } = await supabase
+        .from("binary_commissions")
+        .select("amount")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      const total = (commissionsData || []).reduce((sum, c) => sum + Number(c.amount), 0);
+      setBinaryBalance(total);
+    } catch (error: any) {
+      console.error("Error fetching binary balance:", error);
+    }
+  };
 
   const fetchDiamondBalance = async () => {
     try {
@@ -152,12 +178,14 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
   };
 
   const handleCashOut = async () => {
+    const currentBalance = cashOutSource === "diamonds" ? availableBalance : binaryBalance;
+    
     if (!amount || Number(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
 
-    if (Number(amount) > availableBalance) {
+    if (Number(amount) > currentBalance) {
       toast.error("Insufficient balance");
       return;
     }
@@ -189,20 +217,22 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
         return;
       }
 
-      // Calculate diamonds needed for this withdrawal
-      const diamondsNeeded = Math.ceil(Number(amount) / diamondPrice);
-      
-      if (diamondsNeeded > totalDiamonds) {
-        toast.error("Insufficient diamonds for this withdrawal");
-        setLoading(false);
-        return;
+      if (cashOutSource === "diamonds") {
+        // Calculate diamonds needed for this withdrawal
+        const diamondsNeeded = Math.ceil(Number(amount) / diamondPrice);
+        
+        if (diamondsNeeded > totalDiamonds) {
+          toast.error("Insufficient diamonds for this withdrawal");
+          setLoading(false);
+          return;
+        }
       }
 
       // Get selected account details
       const account = accounts.find(acc => acc.id === selectedAccount);
       if (!account) throw new Error("Account not found");
 
-      // Create payout request for admin approval
+      // Create payout request for admin approval with source type
       const { error: payoutError } = await supabase
         .from("payout_requests")
         .insert([{
@@ -212,7 +242,8 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
           account_name: account.account_name,
           account_number: account.account_number,
           bank_name: account.account_type === 'bank' ? account.bank_code : null,
-          status: 'pending'
+          status: 'pending',
+          notes: `Source: ${cashOutSource === "binary" ? "Binary AI Earnings" : "Diamond Balance"}`
         }]);
 
       if (payoutError) throw payoutError;
@@ -228,6 +259,8 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
     }
   };
 
+  const currentBalance = cashOutSource === "diamonds" ? availableBalance : binaryBalance;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
@@ -239,14 +272,39 @@ export const CashOutDialog = ({ open, onOpenChange, currentBalance }: CashOutDia
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Source Selection Tabs */}
+          <Tabs value={cashOutSource} onValueChange={(v) => setCashOutSource(v as "diamonds" | "binary")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="diamonds" className="flex items-center gap-2">
+                <Diamond className="w-4 h-4" />
+                Diamonds
+              </TabsTrigger>
+              <TabsTrigger value="binary" className="flex items-center gap-2">
+                <GitBranch className="w-4 h-4" />
+                Binary
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {/* Balance Display */}
           <div className="p-4 bg-accent/50 rounded-lg space-y-2">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">Available Balance</div>
-              <div className="text-xs text-muted-foreground">
-                {totalDiamonds.toLocaleString()} 💎 × ₱{diamondPrice.toFixed(2)}
+              <div className="text-sm text-muted-foreground">
+                {cashOutSource === "diamonds" ? "Diamond Balance" : "Binary Earnings"}
               </div>
+              {cashOutSource === "diamonds" && (
+                <div className="text-xs text-muted-foreground">
+                  {totalDiamonds.toLocaleString()} 💎 × ₱{diamondPrice.toFixed(2)}
+                </div>
+              )}
+              {cashOutSource === "binary" && (
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <GitBranch className="w-3 h-3" />
+                  AI Binary Commissions
+                </div>
+              )}
             </div>
-            <div className="text-2xl font-bold text-primary">₱{availableBalance.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-primary">₱{currentBalance.toFixed(2)}</div>
           </div>
 
           {!showAddAccount ? (
