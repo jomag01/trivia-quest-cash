@@ -4011,6 +4011,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_creator: boolean | null
+          is_paid_affiliate: boolean | null
           is_verified: boolean | null
           is_verified_rider: boolean | null
           is_verified_seller: boolean | null
@@ -4041,6 +4042,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_creator?: boolean | null
+          is_paid_affiliate?: boolean | null
           is_verified?: boolean | null
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null
@@ -4071,6 +4073,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_creator?: boolean | null
+          is_paid_affiliate?: boolean | null
           is_verified?: boolean | null
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null

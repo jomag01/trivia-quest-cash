@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle } from 'lucide-react';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
 import AdvancedChatAssistant from '@/components/ai/AdvancedChatAssistant';
@@ -21,6 +21,7 @@ import AIHubGallery from '@/components/ai/AIHubGallery';
 import WebsiteScraper from '@/components/ai/WebsiteScraper';
 import CreatorAnalytics from '@/components/ai/CreatorAnalytics';
 import SocialMediaManager from '@/components/ai/SocialMediaManager';
+import AICreditsDisplay from '@/components/ai/AICreditsDisplay';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -774,23 +775,18 @@ const AIHub = memo(() => {
           </nav>
         </ScrollArea>
 
-        {/* Sidebar Footer - Credits */}
-        <div className={cn("p-4 border-t border-border/50", !sidebarOpen && "md:hidden")}>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Credits</span>
-              <span className="font-medium">{userCredits}</span>
-            </div>
-            <Button
-              onClick={() => setShowBuyCredits(true)}
-              variant="outline"
-              size="sm"
-              className="w-full gap-2"
-            >
-              <ShoppingCart className="h-3 w-3" />
-              Buy Credits
-            </Button>
-          </div>
+        {/* Sidebar Footer - AI Credits Display */}
+        <div className={cn("p-3 border-t border-border/50 space-y-3", !sidebarOpen && "md:hidden")}>
+          <AICreditsDisplay />
+          <Button
+            onClick={() => setShowBuyCredits(true)}
+            variant="outline"
+            size="sm"
+            className="w-full gap-2"
+          >
+            <ShoppingCart className="h-3 w-3" />
+            Buy AI Credits
+          </Button>
         </div>
       </aside>
 
