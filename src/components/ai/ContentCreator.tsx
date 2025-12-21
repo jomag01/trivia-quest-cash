@@ -32,9 +32,11 @@ import {
   User,
   UserCircle,
   Save,
-  FolderOpen
+  FolderOpen,
+  Send
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import SocialMediaPublisher from './SocialMediaPublisher';
 
 interface Scene {
   sceneNumber: number;
@@ -169,6 +171,9 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
   const [savedProjects, setSavedProjects] = useState<any[]>([]);
   const [showSavedProjects, setShowSavedProjects] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Social Media Publisher state
+  const [showSocialPublisher, setShowSocialPublisher] = useState(false);
 
   const isPaidUser = userCredits >= 10;
 
@@ -1698,32 +1703,43 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
 
                 <Separator />
 
-                {/* Social Media Instructions */}
-                <div className="p-4 rounded-lg border bg-primary/5 space-y-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <Share2 className="h-4 w-4 text-primary" />
-                    Share on Social Media
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    After downloading your video, upload it directly to your social media accounts:
-                  </p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Social Media Publisher */}
+                <div className="p-4 rounded-lg border bg-gradient-to-br from-primary/10 via-purple-500/5 to-pink-500/10 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Send className="h-4 w-4 text-primary" />
+                        Publish to Social Media
+                      </h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Upload directly to YouTube, Facebook, TikTok, and Instagram
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => setShowSocialPublisher(true)}
+                      className="gap-2"
+                      disabled={!videoUrl}
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span className="hidden sm:inline">Publish Now</span>
+                      <span className="sm:hidden">Publish</span>
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 gap-2">
                     {[
-                      { name: 'TikTok', icon: '🎵', url: 'https://www.tiktok.com/upload' },
-                      { name: 'YouTube', icon: '▶️', url: 'https://studio.youtube.com' },
-                      { name: 'Facebook', icon: '📘', url: 'https://www.facebook.com' },
-                      { name: 'Instagram', icon: '📷', url: 'https://www.instagram.com' },
-                    ].map(({ name, icon, url }) => (
-                      <a
+                      { name: 'YouTube', icon: '▶️', color: 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20' },
+                      { name: 'Facebook', icon: '📘', color: 'bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20' },
+                      { name: 'TikTok', icon: '🎵', color: 'bg-pink-500/10 border-pink-500/30 hover:bg-pink-500/20' },
+                      { name: 'Instagram', icon: '📷', color: 'bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20' },
+                    ].map(({ name, icon, color }) => (
+                      <div
                         key={name}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                        className={`flex flex-col items-center gap-1 p-3 rounded-lg border transition-colors ${color}`}
                       >
-                        <span className="text-2xl">{icon}</span>
+                        <span className="text-xl">{icon}</span>
                         <span className="text-xs font-medium">{name}</span>
-                      </a>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -1795,6 +1811,17 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Social Media Publisher Dialog */}
+      <SocialMediaPublisher
+        open={showSocialPublisher}
+        onOpenChange={setShowSocialPublisher}
+        videoUrl={videoUrl}
+        defaultTitle={script?.title || ''}
+        defaultDescription={script?.description || ''}
+        defaultHashtags={script?.hashtags || []}
+        thumbnailOptions={generatedImages}
+      />
     </div>
   );
 };
