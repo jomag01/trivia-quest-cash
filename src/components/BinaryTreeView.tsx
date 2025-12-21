@@ -53,7 +53,7 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
       const tree = await buildTree(userId, 1);
       setTreeData(tree);
 
-      // Calculate stats
+      // Calculate stats and auto-expand root node
       if (tree) {
         const leftCount = countNodes(tree.left_child);
         const rightCount = countNodes(tree.right_child);
@@ -63,6 +63,8 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
           directLeft: tree.left_child ? 1 : 0,
           directRight: tree.right_child ? 1 : 0
         });
+        // Auto-expand root node so user sees the tree structure
+        setExpandedNodes(new Set([tree.id]));
       }
     } catch (error: any) {
       console.error("Error fetching binary tree:", error);

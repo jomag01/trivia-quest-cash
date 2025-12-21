@@ -49,7 +49,14 @@ interface BinaryMember {
   right_volume: number;
   total_cycles: number;
   joined_at: string;
+  sponsor_id: string | null;
+  parent_id: string | null;
+  placement_leg: string | null;
   profiles?: {
+    full_name: string;
+    email: string;
+  };
+  sponsor_profile?: {
     full_name: string;
     email: string;
   };
@@ -176,17 +183,33 @@ export default function BinarySystemManagement() {
       if (membersData) {
         // Fetch profile data for each member
         const memberIds = membersData.map(m => m.user_id);
+        const sponsorIds = membersData.map(m => m.sponsor_id).filter(Boolean) as string[];
+        
+        // Get all sponsor network IDs to find their user_ids
+        const { data: sponsorNetworkData } = await supabase
+          .from('binary_network')
+          .select('id, user_id')
+          .in('id', sponsorIds);
+        
+        const sponsorUserIds = sponsorNetworkData?.map(s => s.user_id) || [];
+        const allUserIds = [...new Set([...memberIds, ...sponsorUserIds])];
+        
         const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, full_name, email')
-          .in('id', memberIds);
+          .in('id', allUserIds);
 
         const profileMap = new Map(profilesData?.map(p => [p.id, { full_name: p.full_name, email: p.email }]) || []);
+        const sponsorNetworkMap = new Map(sponsorNetworkData?.map(s => [s.id, s.user_id]) || []);
         
-        const membersWithProfiles = membersData.map(m => ({
-          ...m,
-          profiles: profileMap.get(m.user_id) || { full_name: 'Unknown', email: '' }
-        }));
+        const membersWithProfiles = membersData.map(m => {
+          const sponsorUserId = m.sponsor_id ? sponsorNetworkMap.get(m.sponsor_id) : null;
+          return {
+            ...m,
+            profiles: profileMap.get(m.user_id) || { full_name: 'Unknown', email: '' },
+            sponsor_profile: sponsorUserId ? profileMap.get(sponsorUserId) : null
+          };
+        });
 
         setMembers(membersWithProfiles as BinaryMember[]);
         
@@ -964,6 +987,7 @@ export default function BinarySystemManagement() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Member</TableHead>
+                    <TableHead>Upline/Sponsor</TableHead>
                     <TableHead className="text-right">Left Volume</TableHead>
                     <TableHead className="text-right">Right Volume</TableHead>
                     <TableHead className="text-right">Cycles</TableHead>
@@ -977,7 +1001,25 @@ export default function BinarySystemManagement() {
                         <div>
                           <p className="font-medium">{member.profiles?.full_name || 'Unknown'}</p>
                           <p className="text-xs text-muted-foreground">{member.profiles?.email}</p>
+                          {!member.sponsor_id && !member.parent_id && (
+                            <Badge variant="secondary" className="mt-1 text-xs">Root/Top</Badge>
+                          )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {member.sponsor_profile ? (
+                          <div>
+                            <p className="font-medium text-sm">{member.sponsor_profile.full_name}</p>
+                            <p className="text-xs text-muted-foreground">{member.sponsor_profile.email}</p>
+                            {member.placement_leg && (
+                              <Badge variant="outline" className="mt-1 text-xs">
+                                {member.placement_leg === 'left' ? 'Left Leg' : 'Right Leg'}
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">₱{Number(member.left_volume || 0).toLocaleString()}</TableCell>
                       <TableCell className="text-right">₱{Number(member.right_volume || 0).toLocaleString()}</TableCell>
