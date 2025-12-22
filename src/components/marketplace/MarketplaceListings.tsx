@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -690,13 +690,13 @@ const MarketplaceListings = () => {
       )}
 
       {/* Categories */}
-      <ScrollArea className="w-full">
-        <div className="flex gap-2 pb-2">
+      <ScrollArea className="w-full whitespace-nowrap">
+        <div className="flex gap-2 pb-2 pr-2 snap-x snap-mandatory">
           <Button
             variant={selectedCategory === 'all' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setSelectedCategory('all')}
-            className="whitespace-nowrap"
+            className="shrink-0 snap-start whitespace-nowrap"
           >
             All
           </Button>
@@ -706,13 +706,14 @@ const MarketplaceListings = () => {
               variant={selectedCategory === cat.id ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedCategory(cat.id)}
-              className="whitespace-nowrap gap-1"
+              className="shrink-0 snap-start whitespace-nowrap gap-1"
             >
               <cat.icon className="w-4 h-4" />
               {cat.label}
             </Button>
           ))}
         </div>
+        <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
       {/* Search & Sort */}
