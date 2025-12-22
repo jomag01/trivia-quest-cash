@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { onCartUpdated } from "@/lib/cartEvents";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,13 @@ export const CartWidget = ({ onViewCart }: CartWidgetProps) => {
     if (user) {
       fetchCart();
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    return onCartUpdated(() => {
+      fetchCart();
+    });
   }, [user]);
 
   const fetchCart = async () => {

@@ -96,20 +96,24 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
     if (networkError) throw networkError;
     if (!networkData) return null;
 
-    // Fetch profile data
+    // Fetch profile data (do not fail the whole tree if profile is not readable)
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("id, full_name, email, avatar_url")
       .eq("id", nodeUserId)
       .maybeSingle();
 
-    if (profileError) throw profileError;
+    if (profileError) {
+      console.warn("BinaryTreeView: unable to load profile for node", nodeUserId, profileError);
+    }
+
+    const safeEmail = profileData?.email || `member-${nodeUserId.slice(0, 6)}@network`;
 
     const node: BinaryNode = {
       id: networkData.id,
       user_id: nodeUserId,
       full_name: profileData?.full_name || null,
-      email: profileData?.email || "",
+      email: safeEmail,
       avatar_url: profileData?.avatar_url || null,
       left_volume: networkData.left_volume || 0,
       right_volume: networkData.right_volume || 0,
@@ -120,27 +124,31 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
       right_child: null
     };
 
-    // Fetch children
+    // Fetch children (tolerate missing/blocked child rows)
     if (networkData.left_child_id) {
-      const { data: leftChild } = await supabase
+      const { data: leftChild, error: leftChildError } = await supabase
         .from("binary_network")
         .select("user_id")
         .eq("id", networkData.left_child_id)
         .maybeSingle();
 
-      if (leftChild) {
+      if (leftChildError) {
+        console.warn("BinaryTreeView: unable to load left child", networkData.left_child_id, leftChildError);
+      } else if (leftChild) {
         node.left_child = await buildTree(leftChild.user_id, level + 1);
       }
     }
 
     if (networkData.right_child_id) {
-      const { data: rightChild } = await supabase
+      const { data: rightChild, error: rightChildError } = await supabase
         .from("binary_network")
         .select("user_id")
         .eq("id", networkData.right_child_id)
         .maybeSingle();
 
-      if (rightChild) {
+      if (rightChildError) {
+        console.warn("BinaryTreeView: unable to load right child", networkData.right_child_id, rightChildError);
+      } else if (rightChild) {
         node.right_child = await buildTree(rightChild.user_id, level + 1);
       }
     }

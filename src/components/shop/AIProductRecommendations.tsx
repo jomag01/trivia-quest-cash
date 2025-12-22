@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, ShoppingCart, Heart, RefreshCw, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { emitCartUpdated } from "@/lib/cartEvents";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -224,6 +225,8 @@ export default function AIProductRecommendations({
       } else {
         await supabase.from("cart").insert({ user_id: user.id, product_id: productId, quantity: 1 });
       }
+
+      emitCartUpdated();
       toast.success("Added to cart!");
     } catch {
       toast.error("Failed to add to cart");

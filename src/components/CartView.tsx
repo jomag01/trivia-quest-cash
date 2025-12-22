@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { onCartUpdated } from "@/lib/cartEvents";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -37,6 +38,13 @@ export const CartView = () => {
       fetchCart();
       fetchUserData();
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    return onCartUpdated(() => {
+      fetchCart();
+    });
   }, [user]);
 
   const fetchUserData = async () => {

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { emitCartUpdated } from "@/lib/cartEvents";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ProductDetailDialog } from "@/components/ProductDetailDialog";
@@ -182,6 +183,7 @@ const Shop = () => {
         if (error) throw error;
       }
       await fetchCartStatus();
+      emitCartUpdated();
       toast.success("Added to cart");
     } catch (error: any) {
       console.error("Error adding to cart:", error);
