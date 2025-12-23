@@ -54,7 +54,7 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2 } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent } from "lucide-react";
 import { POSSystem } from "@/components/admin/POSSystem";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
 import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
@@ -67,6 +67,7 @@ import QRPaymentSettings from "@/components/admin/QRPaymentSettings";
 import BinaryAIPurchaseManagement from "@/components/admin/BinaryAIPurchaseManagement";
 import MarketplaceCategoryManagement from "@/components/admin/MarketplaceCategoryManagement";
 import SupplierManagement from "@/components/admin/SupplierManagement";
+import RetailerCommissionSettings from "@/components/admin/RetailerCommissionSettings";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -149,6 +150,7 @@ const Admin = () => {
     { id: "qr-payment", label: "QR Payment Settings", icon: CreditCard },
     { id: "binary-system", label: "Binary MLM System", icon: GitBranch },
     { id: "suppliers", label: "Supplier Management", icon: Building2 },
+    { id: "retailer-commissions", label: "Retailer Commissions", icon: Percent },
     { id: "system-reset", label: "System Reset", icon: RotateCcw },
   ];
 
@@ -647,6 +649,7 @@ const Admin = () => {
           {activeTab === "ai-packages" && <BinaryAIPurchaseManagement />}
           {activeTab === "marketplace-categories" && <MarketplaceCategoryManagement />}
           {activeTab === "suppliers" && <SupplierManagement />}
+          {activeTab === "retailer-commissions" && <RetailerCommissionSettings />}
           {activeTab === "system-reset" && <SystemResetManagement />}
         </main>
       </div>

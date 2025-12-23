@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building } from "lucide-react";
+import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building, Truck } from "lucide-react";
+import SupplierApplication from "@/components/shop/SupplierApplication";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { emitCartUpdated } from "@/lib/cartEvents";
@@ -344,7 +345,7 @@ const Shop = () => {
   }
   // Determine active tab from URL params
   const tabParam = searchParams.get('tab');
-  const activeTab = tabParam === 'cart' ? 'cart' : tabParam === 'wishlist' ? 'wishlist' : tabParam === 'seller' ? 'seller' : tabParam === 'food' ? 'food' : tabParam === 'marketplace' ? 'marketplace' : 'shop';
+  const activeTab = tabParam === 'cart' ? 'cart' : tabParam === 'wishlist' ? 'wishlist' : tabParam === 'seller' ? 'seller' : tabParam === 'food' ? 'food' : tabParam === 'marketplace' ? 'marketplace' : tabParam === 'supplier' ? 'supplier' : 'shop';
 
   const handleTabChange = (value: string) => {
     if (value === 'food') {
@@ -438,7 +439,7 @@ const Shop = () => {
           <ShopAccountOverview />
 
           {/* Navigation Tabs */}
-          <TabsList className="w-full grid grid-cols-5 mb-3 mt-2">
+          <TabsList className="w-full grid grid-cols-6 mb-3 mt-2">
             <TabsTrigger value="shop" className="text-xs gap-1">
               <Package className="w-3.5 h-3.5" />
               Shop
@@ -454,6 +455,10 @@ const Shop = () => {
             <TabsTrigger value="seller" className="text-xs gap-1">
               <Store className="w-3.5 h-3.5" />
               Seller
+            </TabsTrigger>
+            <TabsTrigger value="supplier" className="text-xs gap-1">
+              <Truck className="w-3.5 h-3.5" />
+              Supplier
             </TabsTrigger>
             <TabsTrigger value="cart" className="text-xs gap-1" onClick={() => navigate('/shop?tab=cart')}>
               <ShoppingCart className="w-3.5 h-3.5" />
@@ -682,6 +687,10 @@ const Shop = () => {
 
           <TabsContent value="seller">
             <SellerDashboard />
+          </TabsContent>
+
+          <TabsContent value="supplier">
+            <SupplierApplication />
           </TabsContent>
 
           <TabsContent value="cart">

@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare, Sparkles } from "lucide-react";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare, Sparkles, Truck } from "lucide-react";
 import { toast } from "sonner";
+import RetailerSupplierProducts from "@/components/dashboard/RetailerSupplierProducts";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
 import { BuyCreditsDialog } from "@/components/BuyCreditsDialog";
@@ -487,6 +488,13 @@ const Dashboard = () => {
                     <Sparkles className="w-4 h-4 mr-2" />
                     AI Credits
                   </Button>
+                  <Button variant={activeTab === "supplier-products" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  handleTabChange("supplier-products");
+                  setMobileMenuOpen(false);
+                }}>
+                    <Truck className="w-4 h-4 mr-2" />
+                    Supplier Products
+                  </Button>
                   <div className="border-t border-border my-2" />
                   <Button variant="ghost" className="justify-start text-destructive hover:text-destructive" onClick={async () => {
                   await signOut();
@@ -523,6 +531,7 @@ const Dashboard = () => {
                 <SelectItem value="ai-research">AI Research</SelectItem>
                 <SelectItem value="ai-chat">GPT-5 Chat</SelectItem>
                 <SelectItem value="ai-credits">AI Credits</SelectItem>
+                <SelectItem value="supplier-products">Supplier Products</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -876,6 +885,10 @@ const Dashboard = () => {
 
       <TabsContent value="ai-credits">
         <AICreditsTracker />
+      </TabsContent>
+
+      <TabsContent value="supplier-products">
+        <RetailerSupplierProducts />
       </TabsContent>
     </Tabs>
   </div>
