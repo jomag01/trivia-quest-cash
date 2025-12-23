@@ -4231,6 +4231,198 @@ export type Database = {
         }
         Relationships: []
       }
+      retailer_promotional_links: {
+        Row: {
+          click_count: number | null
+          conversion_count: number | null
+          created_at: string
+          full_link: string
+          id: string
+          is_active: boolean | null
+          link_code: string
+          platform: string
+          retailer_id: string
+          supplier_product_id: string
+          updated_at: string
+        }
+        Insert: {
+          click_count?: number | null
+          conversion_count?: number | null
+          created_at?: string
+          full_link: string
+          id?: string
+          is_active?: boolean | null
+          link_code: string
+          platform: string
+          retailer_id: string
+          supplier_product_id: string
+          updated_at?: string
+        }
+        Update: {
+          click_count?: number | null
+          conversion_count?: number | null
+          created_at?: string
+          full_link?: string
+          id?: string
+          is_active?: boolean | null
+          link_code?: string
+          platform?: string
+          retailer_id?: string
+          supplier_product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retailer_promotional_links_supplier_product_id_fkey"
+            columns: ["supplier_product_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      retailer_stock_limits: {
+        Row: {
+          can_promote_socials: boolean | null
+          commission_percentage: number
+          created_at: string
+          id: string
+          max_products: number
+          max_stock_per_product: number
+          step_name: string
+          step_number: number
+          updated_at: string
+        }
+        Insert: {
+          can_promote_socials?: boolean | null
+          commission_percentage?: number
+          created_at?: string
+          id?: string
+          max_products?: number
+          max_stock_per_product?: number
+          step_name: string
+          step_number: number
+          updated_at?: string
+        }
+        Update: {
+          can_promote_socials?: boolean | null
+          commission_percentage?: number
+          created_at?: string
+          id?: string
+          max_products?: number
+          max_stock_per_product?: number
+          step_name?: string
+          step_number?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      retailer_supplier_access: {
+        Row: {
+          created_at: string
+          current_stock_allocated: number
+          id: string
+          is_active: boolean | null
+          max_stock_allowed: number
+          promotional_link: string | null
+          retailer_id: string
+          supplier_product_id: string
+          total_commission_earned: number | null
+          total_sales: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_stock_allocated?: number
+          id?: string
+          is_active?: boolean | null
+          max_stock_allowed?: number
+          promotional_link?: string | null
+          retailer_id: string
+          supplier_product_id: string
+          total_commission_earned?: number | null
+          total_sales?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_stock_allocated?: number
+          id?: string
+          is_active?: boolean | null
+          max_stock_allowed?: number
+          promotional_link?: string | null
+          retailer_id?: string
+          supplier_product_id?: string
+          total_commission_earned?: number | null
+          total_sales?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retailer_supplier_access_supplier_product_id_fkey"
+            columns: ["supplier_product_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      retailer_supplier_commissions: {
+        Row: {
+          commission_amount: number
+          commission_percentage: number
+          created_at: string
+          customer_id: string | null
+          id: string
+          order_id: string | null
+          paid_at: string | null
+          retailer_id: string
+          sale_amount: number
+          social_platform: string | null
+          source: string | null
+          status: string | null
+          supplier_product_id: string
+        }
+        Insert: {
+          commission_amount: number
+          commission_percentage: number
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          order_id?: string | null
+          paid_at?: string | null
+          retailer_id: string
+          sale_amount: number
+          social_platform?: string | null
+          source?: string | null
+          status?: string | null
+          supplier_product_id: string
+        }
+        Update: {
+          commission_amount?: number
+          commission_percentage?: number
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          order_id?: string | null
+          paid_at?: string | null
+          retailer_id?: string
+          sale_amount?: number
+          social_platform?: string | null
+          source?: string | null
+          status?: string | null
+          supplier_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retailer_supplier_commissions_supplier_product_id_fkey"
+            columns: ["supplier_product_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_verification_requests: {
         Row: {
           admin_notes: string | null
