@@ -41,6 +41,7 @@ import AICreditsTracker from "@/components/AICreditsTracker";
 import { AppPresentationGenerator } from "@/components/AppPresentationGenerator";
 import BinaryEarningsAnalytics from "@/components/BinaryEarningsAnalytics";
 import BinaryTreeView from "@/components/BinaryTreeView";
+import ProviderInbox from "@/components/chat/ProviderInbox";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -344,6 +345,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <ProviderInbox buttonVariant="outline" />
               {isAdmin && <Link to="/admin">
                   <Button variant="outline" className="gap-2">
                     <Shield className="w-4 h-4" />
