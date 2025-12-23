@@ -360,10 +360,74 @@ const Shop = () => {
         <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border shadow-sm px-3 py-2">
           <div className="flex items-center gap-2 max-w-7xl mx-auto">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search products..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm bg-muted/50 border-border" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+              <Input 
+                placeholder="Search products..." 
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)} 
+                className="pl-9 h-10 text-sm bg-muted/50 border-primary/30 focus:border-primary focus:ring-primary/20" 
+              />
+              {/* Search Results Dropdown */}
+              {searchQuery.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto z-50">
+                  {filteredProducts.length > 0 ? (
+                    filteredProducts.slice(0, 8).map(product => (
+                      <div 
+                        key={product.id}
+                        className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer border-b border-border/50 last:border-b-0 transition-colors"
+                        onClick={() => {
+                          trackInteraction('view', 'product', product.id, { name: product.name, source: 'search' });
+                          setDetailProduct(product);
+                          setDetailDialog(true);
+                          setSearchQuery("");
+                        }}
+                      >
+                        {product.image_url ? (
+                          <img 
+                            src={product.image_url} 
+                            alt={product.name} 
+                            className="w-12 h-12 object-cover rounded-md"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                            <Package className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{product.name}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-primary">
+                              ₱{getEffectivePrice(product).toFixed(2)}
+                            </span>
+                            {product.promo_active && product.promo_price && (
+                              <span className="text-xs text-muted-foreground line-through">
+                                ₱{product.base_price.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {product.promo_active && (
+                          <Badge className="text-[10px] bg-destructive text-destructive-foreground">Sale</Badge>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No products found for "{searchQuery}"</p>
+                    </div>
+                  )}
+                  {filteredProducts.length > 8 && (
+                    <div className="p-2 text-center border-t border-border">
+                      <p className="text-xs text-muted-foreground">
+                        Showing 8 of {filteredProducts.length} results
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/dashboard?tab=cart")}>
+            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate("/dashboard?tab=cart")}>
               <ShoppingCart className="w-5 h-5 text-foreground" />
             </Button>
           </div>
