@@ -30,7 +30,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
-  Plus, Edit, Trash2, GripVertical, 
+  Plus, Edit, Trash2, ChevronUp, ChevronDown,
   Home, Car, Package, Hotel, BedDouble, Building, 
   Tag, ShoppingBag, Briefcase, Gift, Smartphone, Laptop
 } from "lucide-react";
@@ -236,115 +236,216 @@ export default function MarketplaceCategoryManagement() {
     }
   };
 
+  // Mobile card view for a single category
+  const CategoryCard = ({ category, index }: { category: MarketplaceCategory; index: number }) => {
+    const IconComponent = getIconComponent(category.icon);
+    return (
+      <div className="border rounded-lg p-4 space-y-3 bg-card">
+        {/* Header with icon and label */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${category.color} flex items-center justify-center shrink-0`}>
+              <IconComponent className="w-6 h-6 text-white" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold truncate">{category.label}</div>
+              <div className="text-xs text-muted-foreground truncate">{category.id}</div>
+            </div>
+          </div>
+          <Badge variant={category.is_active ? "default" : "secondary"} className="shrink-0">
+            {category.is_active ? 'Active' : 'Inactive'}
+          </Badge>
+        </div>
+
+        {/* Info row */}
+        <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Icon:</span>
+            <Badge variant="outline" className="text-xs">{category.icon}</Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Color:</span>
+            <div className={`w-8 h-4 rounded bg-gradient-to-r ${category.color}`} />
+          </div>
+        </div>
+
+        {/* Actions row */}
+        <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => handleMoveOrder(category, 'up')}
+              disabled={index === 0}
+            >
+              <ChevronUp className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => handleMoveOrder(category, 'down')}
+              disabled={index === categories.length - 1}
+            >
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+            <span className="text-xs text-muted-foreground ml-1">#{index + 1}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={category.is_active}
+              onCheckedChange={() => handleToggleActive(category)}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => handleOpenEdit(category)}
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+              onClick={() => handleDelete(category)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return <div className="p-4 text-center text-muted-foreground">Loading categories...</div>;
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Marketplace Categories</CardTitle>
-        <Button onClick={handleOpenCreate} size="sm" className="gap-2">
+    <Card className="w-full">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4">
+        <CardTitle className="text-lg sm:text-xl">Marketplace Categories</CardTitle>
+        <Button onClick={handleOpenCreate} size="sm" className="gap-2 w-full sm:w-auto">
           <Plus className="w-4 h-4" />
           Add Category
         </Button>
       </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">Order</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Icon</TableHead>
-              <TableHead>Color</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categories.map((category, index) => {
-              const IconComponent = getIconComponent(category.icon);
-              return (
-                <TableRow key={category.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleMoveOrder(category, 'up')}
-                        disabled={index === 0}
-                      >
-                        ↑
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleMoveOrder(category, 'down')}
-                        disabled={index === categories.length - 1}
-                      >
-                        ↓
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center`}>
-                        <IconComponent className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <div className="font-medium">{category.label}</div>
-                        <div className="text-xs text-muted-foreground">{category.id}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{category.icon}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className={`w-16 h-4 rounded bg-gradient-to-r ${category.color}`} />
-                  </TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={category.is_active}
-                      onCheckedChange={() => handleToggleActive(category)}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleOpenEdit(category)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(category)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+      <CardContent className="p-3 sm:p-6">
+        {categories.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No categories yet. Click "Add Category" to create one.
+          </div>
+        ) : (
+          <>
+            {/* Mobile view: Cards */}
+            <div className="grid gap-3 md:hidden">
+              {categories.map((category, index) => (
+                <CategoryCard key={category.id} category={category} index={index} />
+              ))}
+            </div>
+
+            {/* Tablet/Desktop view: Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20">Order</TableHead>
+                    <TableHead className="min-w-[200px]">Category</TableHead>
+                    <TableHead className="w-24">Icon</TableHead>
+                    <TableHead className="w-24">Color</TableHead>
+                    <TableHead className="w-20">Status</TableHead>
+                    <TableHead className="w-24 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {categories.map((category, index) => {
+                    const IconComponent = getIconComponent(category.icon);
+                    return (
+                      <TableRow key={category.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleMoveOrder(category, 'up')}
+                              disabled={index === 0}
+                            >
+                              <ChevronUp className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleMoveOrder(category, 'down')}
+                              disabled={index === categories.length - 1}
+                            >
+                              <ChevronDown className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center shrink-0`}>
+                              <IconComponent className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">{category.label}</div>
+                              <div className="text-xs text-muted-foreground truncate">{category.id}</div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{category.icon}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className={`w-16 h-5 rounded bg-gradient-to-r ${category.color}`} />
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={category.is_active}
+                            onCheckedChange={() => handleToggleActive(category)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleOpenEdit(category)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleDelete(category)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
 
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
-          <DialogContent>
+          <DialogContent className="max-w-[95vw] sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
                 {editingCategory ? 'Edit Category' : 'Add New Category'}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 py-2">
               <div className="space-y-2">
                 <Label>Category ID (unique identifier)</Label>
                 <Input
@@ -352,6 +453,7 @@ export default function MarketplaceCategoryManagement() {
                   value={formData.id}
                   onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                   disabled={!!editingCategory}
+                  className="h-10"
                 />
               </div>
               <div className="space-y-2">
@@ -360,59 +462,78 @@ export default function MarketplaceCategoryManagement() {
                   placeholder="e.g., Electronics & Gadgets"
                   value={formData.label}
                   onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                  className="h-10"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Icon</Label>
-                <Select
-                  value={formData.icon}
-                  onValueChange={(value) => setFormData({ ...formData, icon: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ICON_OPTIONS.map((opt) => {
-                      const Icon = opt.icon;
-                      return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Icon</Label>
+                  <Select
+                    value={formData.icon}
+                    onValueChange={(value) => setFormData({ ...formData, icon: value })}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ICON_OPTIONS.map((opt) => {
+                        const Icon = opt.icon;
+                        return (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            <div className="flex items-center gap-2">
+                              <Icon className="w-4 h-4" />
+                              {opt.label}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Color Theme</Label>
+                  <Select
+                    value={formData.color}
+                    onValueChange={(value) => setFormData({ ...formData, color: value })}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COLOR_OPTIONS.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
                           <div className="flex items-center gap-2">
-                            <Icon className="w-4 h-4" />
+                            <div className={`w-4 h-4 rounded bg-gradient-to-r ${opt.value}`} />
                             {opt.label}
                           </div>
                         </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Color Theme</Label>
-                <Select
-                  value={formData.color}
-                  onValueChange={(value) => setFormData({ ...formData, color: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COLOR_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-4 h-4 rounded bg-gradient-to-r ${opt.value}`} />
-                          {opt.label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Preview */}
+              <div className="pt-2 border-t">
+                <Label className="text-muted-foreground text-xs">Preview</Label>
+                <div className="flex items-center gap-3 mt-2 p-3 rounded-lg bg-muted/50">
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${formData.color} flex items-center justify-center`}>
+                    {(() => {
+                      const IconComp = getIconComponent(formData.icon);
+                      return <IconComp className="w-6 h-6 text-white" />;
+                    })()}
+                  </div>
+                  <div>
+                    <div className="font-semibold">{formData.label || 'Category Name'}</div>
+                    <div className="text-xs text-muted-foreground">{formData.id || 'category_id'}</div>
+                  </div>
+                </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDialog(false)}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setShowDialog(false)} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button onClick={handleSave}>
+              <Button onClick={handleSave} className="w-full sm:w-auto">
                 {editingCategory ? 'Update' : 'Create'}
               </Button>
             </DialogFooter>
