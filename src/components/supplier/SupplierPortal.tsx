@@ -11,7 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { ProductVariantManager } from "@/components/ProductVariantManager";
 import { 
   Building2, 
   Package, 
@@ -28,7 +30,8 @@ import {
   Hash,
   Boxes,
   FileText,
-  ArrowLeft
+  ArrowLeft,
+  Palette
 } from "lucide-react";
 
 interface Supplier {
@@ -759,6 +762,38 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
                 </div>
               )}
             </div>
+
+            {/* Product Variants - Show when editing an existing product */}
+            {editingProduct && (
+              <>
+                <Separator className="my-4" />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Palette className="w-5 h-5 text-primary" />
+                    <Label className="text-base font-semibold">Product Variants</Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Add size, color, or weight variants to differentiate your products.
+                  </p>
+                  <ProductVariantManager 
+                    productId={editingProduct.id}
+                    productName={editingProduct.name}
+                    onVariantsChange={() => queryClient.invalidateQueries({ queryKey: ["my-supplier-products"] })}
+                  />
+                </div>
+              </>
+            )}
+
+            {!editingProduct && (
+              <div className="p-4 bg-muted/50 rounded-lg border border-dashed">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Palette className="w-5 h-5" />
+                  <span className="text-sm">
+                    Save the product first, then edit it to add variants (size, color, weight).
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
