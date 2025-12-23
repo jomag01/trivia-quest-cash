@@ -645,6 +645,47 @@ export type Database = {
           },
         ]
       }
+      binary_pending_placements: {
+        Row: {
+          chosen_leg: Database["public"]["Enums"]["binary_leg"] | null
+          created_at: string
+          id: string
+          pending_user_id: string
+          placed_at: string | null
+          purchase_id: string | null
+          sponsor_id: string
+          status: string
+        }
+        Insert: {
+          chosen_leg?: Database["public"]["Enums"]["binary_leg"] | null
+          created_at?: string
+          id?: string
+          pending_user_id: string
+          placed_at?: string | null
+          purchase_id?: string | null
+          sponsor_id: string
+          status?: string
+        }
+        Update: {
+          chosen_leg?: Database["public"]["Enums"]["binary_leg"] | null
+          created_at?: string
+          id?: string
+          pending_user_id?: string
+          placed_at?: string | null
+          purchase_id?: string | null
+          sponsor_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "binary_pending_placements_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "binary_ai_purchases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cart: {
         Row: {
           created_at: string | null
@@ -6796,6 +6837,10 @@ export type Database = {
         Args: { p_gem_amount: number; p_user_id: string }
         Returns: Json
       }
+      count_sponsor_direct_referrals: {
+        Args: { _sponsor_user_id: string }
+        Returns: number
+      }
       deduct_wrong_answer_penalty: {
         Args: { p_category_id: string; p_user_id: string }
         Returns: undefined
@@ -6876,10 +6921,26 @@ export type Database = {
       }
       is_public_group: { Args: { _group_id: string }; Returns: boolean }
       is_supplier: { Args: { _user_id: string }; Returns: boolean }
-      place_user_in_binary_network: {
-        Args: { _sponsor_user_id: string; _user_id: string }
+      place_pending_binary_user: {
+        Args: {
+          _chosen_leg: Database["public"]["Enums"]["binary_leg"]
+          _pending_id: string
+        }
         Returns: string
       }
+      place_user_in_binary_network:
+        | {
+            Args: { _sponsor_user_id: string; _user_id: string }
+            Returns: string
+          }
+        | {
+            Args: {
+              _chosen_leg?: Database["public"]["Enums"]["binary_leg"]
+              _sponsor_user_id: string
+              _user_id: string
+            }
+            Returns: string
+          }
       process_monthly_rank_reversion: { Args: never; Returns: undefined }
       process_upline_transfer: {
         Args: {
