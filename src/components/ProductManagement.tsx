@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageUploadCrop } from "@/components/ImageUploadCrop";
 import ProductImporter from "@/components/admin/ProductImporter";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Product {
   id: string;
@@ -65,6 +66,7 @@ interface ProductImage {
 }
 
 export const ProductManagement = () => {
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -226,9 +228,10 @@ export const ProductManagement = () => {
       }
       toast.success("Product updated successfully");
     } else {
+      // Set seller_id to current admin user when creating new products
       const { error } = await supabase
         .from("products")
-        .insert([productData]);
+        .insert([{ ...productData, seller_id: user?.id || null }]);
 
       if (error) {
         toast.error("Failed to create product");
