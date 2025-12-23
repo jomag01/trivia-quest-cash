@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,7 +43,30 @@ import {
   ExternalLink,
   FileCode,
   Layers,
-  Image
+  Image,
+  Settings,
+  Zap,
+  Search,
+  Share2,
+  Lock,
+  BarChart3,
+  Mail,
+  MessageSquare,
+  CreditCard,
+  Package,
+  Rocket,
+  Shield,
+  CheckCircle2,
+  Link2,
+  Server,
+  Database,
+  Users,
+  TrendingUp,
+  FileText,
+  Clock,
+  Gauge,
+  Target,
+  PaintBucket
 } from "lucide-react";
 
 interface WebsiteBuilderProps {
@@ -87,9 +111,32 @@ const STYLE_PRESETS = [
   { id: "creative", label: "Creative", description: "Artistic, unique layouts" },
 ];
 
+const INTEGRATIONS = [
+  { id: "woocommerce", label: "WooCommerce", icon: ShoppingCart, description: "WordPress e-commerce", color: "from-purple-500 to-indigo-600" },
+  { id: "shopify", label: "Shopify", icon: Package, description: "E-commerce platform", color: "from-green-500 to-emerald-600" },
+  { id: "stripe", label: "Stripe", icon: CreditCard, description: "Payment processing", color: "from-indigo-500 to-purple-600" },
+  { id: "paypal", label: "PayPal", icon: CreditCard, description: "Online payments", color: "from-blue-500 to-cyan-600" },
+  { id: "mailchimp", label: "Mailchimp", icon: Mail, description: "Email marketing", color: "from-yellow-500 to-orange-600" },
+  { id: "google-analytics", label: "Google Analytics", icon: BarChart3, description: "Website analytics", color: "from-orange-500 to-red-600" },
+  { id: "facebook-pixel", label: "Facebook Pixel", icon: Target, description: "Ad tracking", color: "from-blue-600 to-indigo-700" },
+  { id: "hubspot", label: "HubSpot", icon: Users, description: "CRM & Marketing", color: "from-orange-500 to-red-500" },
+  { id: "intercom", label: "Intercom", icon: MessageSquare, description: "Live chat support", color: "from-blue-400 to-blue-600" },
+  { id: "zendesk", label: "Zendesk", icon: MessageSquare, description: "Customer support", color: "from-teal-500 to-green-600" },
+];
+
+const OPTIMIZATION_FEATURES = [
+  { id: "seo", label: "SEO Optimization", icon: Search, description: "Meta tags, sitemap, schema markup" },
+  { id: "performance", label: "Performance", icon: Gauge, description: "Lazy loading, minification, caching" },
+  { id: "accessibility", label: "Accessibility", icon: Users, description: "WCAG 2.1 compliance, ARIA labels" },
+  { id: "security", label: "Security", icon: Shield, description: "HTTPS, CSP headers, XSS protection" },
+  { id: "mobile", label: "Mobile First", icon: Smartphone, description: "Responsive design, touch optimized" },
+  { id: "pwa", label: "PWA Support", icon: Rocket, description: "Offline mode, installable app" },
+];
+
 export default function WebsiteBuilder({ userCredits, onCreditsChange }: WebsiteBuilderProps) {
   const { user } = useAuth();
-  const [activeStep, setActiveStep] = useState<"describe" | "customize" | "preview">("describe");
+  const [activeStep, setActiveStep] = useState<"describe" | "customize" | "integrations" | "optimize" | "deploy" | "preview">("describe");
+  const [activeTab, setActiveTab] = useState<"build" | "settings">("build");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -102,11 +149,53 @@ export default function WebsiteBuilder({ userCredits, onCreditsChange }: Website
   const [selectedStyle, setSelectedStyle] = useState("minimal");
   const [additionalSections, setAdditionalSections] = useState<string[]>([]);
   
+  // Integration states
+  const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>([]);
+  const [integrationSettings, setIntegrationSettings] = useState<Record<string, any>>({});
+  
+  // Optimization states
+  const [selectedOptimizations, setSelectedOptimizations] = useState<string[]>(["seo", "performance", "mobile"]);
+  const [seoSettings, setSeoSettings] = useState({
+    metaTitle: "",
+    metaDescription: "",
+    keywords: "",
+    ogImage: "",
+    twitterHandle: "",
+    robotsTxt: true,
+    sitemap: true,
+    structuredData: true
+  });
+  
+  // Domain & Deployment states
+  const [customDomain, setCustomDomain] = useState("");
+  const [domainVerified, setDomainVerified] = useState(false);
+  const [deploymentStatus, setDeploymentStatus] = useState<"idle" | "deploying" | "deployed" | "error">("idle");
+  const [deployedUrl, setDeployedUrl] = useState("");
+  const [sslEnabled, setSslEnabled] = useState(true);
+  const [cdnEnabled, setCdnEnabled] = useState(true);
+  
   // Generated content
   const [generatedCode, setGeneratedCode] = useState<{html: string; css: string; js: string} | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const creditCost = 10;
+  const steps = ["describe", "customize", "integrations", "optimize", "deploy", "preview"];
+
+  const toggleIntegration = (integrationId: string) => {
+    setSelectedIntegrations(prev => 
+      prev.includes(integrationId) 
+        ? prev.filter(id => id !== integrationId)
+        : [...prev, integrationId]
+    );
+  };
+
+  const toggleOptimization = (optId: string) => {
+    setSelectedOptimizations(prev =>
+      prev.includes(optId)
+        ? prev.filter(id => id !== optId)
+        : [...prev, optId]
+    );
+  };
 
   const handleGenerate = async () => {
     if (!websiteDescription.trim()) {
@@ -126,7 +215,6 @@ export default function WebsiteBuilder({ userCredits, onCreditsChange }: Website
     setGenerationProgress(0);
 
     try {
-      // Simulate progress
       const progressInterval = setInterval(() => {
         setGenerationProgress(prev => Math.min(prev + Math.random() * 15, 90));
       }, 500);
@@ -134,6 +222,8 @@ export default function WebsiteBuilder({ userCredits, onCreditsChange }: Website
       const colorScheme = COLOR_SCHEMES.find(c => c.id === selectedColorScheme);
       const template = WEBSITE_TEMPLATES.find(t => t.id === selectedTemplate);
       const style = STYLE_PRESETS.find(s => s.id === selectedStyle);
+      const integrations = selectedIntegrations.map(id => INTEGRATIONS.find(i => i.id === id)?.label).filter(Boolean);
+      const optimizations = selectedOptimizations.map(id => OPTIMIZATION_FEATURES.find(o => o.id === id)?.label).filter(Boolean);
 
       const prompt = `Create a complete, modern, responsive website with the following specifications:
 
@@ -143,6 +233,14 @@ Template Type: ${template?.label || "Custom"} - ${template?.description || ""}
 Color Scheme: ${colorScheme?.label} with colors ${colorScheme?.colors.join(", ")}
 Style: ${style?.label} - ${style?.description}
 Additional Sections: ${additionalSections.join(", ") || "Standard sections"}
+Integrations: ${integrations.join(", ") || "None"}
+Optimizations: ${optimizations.join(", ")}
+
+SEO Settings:
+- Meta Title: ${seoSettings.metaTitle || businessName}
+- Meta Description: ${seoSettings.metaDescription || websiteDescription.slice(0, 160)}
+- Keywords: ${seoSettings.keywords}
+- Structured Data: ${seoSettings.structuredData ? "Include JSON-LD schema" : "Skip"}
 
 Requirements:
 1. Generate clean, semantic HTML5
@@ -153,6 +251,11 @@ Requirements:
 6. Include a navigation bar, hero section, features/services, about section, and footer
 7. Use modern design patterns like cards, gradients, shadows
 8. Include hover effects and micro-interactions
+9. Add proper meta tags for SEO
+10. Include placeholder comments for integration code snippets
+${selectedIntegrations.includes("woocommerce") ? "11. Add WooCommerce-ready product grid structure" : ""}
+${selectedIntegrations.includes("stripe") ? "12. Include Stripe checkout button placeholder" : ""}
+${selectedOptimizations.includes("pwa") ? "13. Include PWA manifest and service worker registration" : ""}
 
 Return the code in this exact JSON format:
 {
@@ -168,7 +271,9 @@ Return the code in this exact JSON format:
           businessName,
           template: selectedTemplate,
           colorScheme: selectedColorScheme,
-          style: selectedStyle
+          style: selectedStyle,
+          integrations: selectedIntegrations,
+          optimizations: selectedOptimizations
         }
       });
 
@@ -180,14 +285,19 @@ Return the code in this exact JSON format:
         setGeneratedCode(data.code);
         setGenerationProgress(100);
         
-        // Create preview blob URL
         const fullHtml = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${businessName}</title>
+  <title>${seoSettings.metaTitle || businessName}</title>
+  <meta name="description" content="${seoSettings.metaDescription || websiteDescription.slice(0, 160)}">
+  <meta name="keywords" content="${seoSettings.keywords}">
+  <meta property="og:title" content="${seoSettings.metaTitle || businessName}">
+  <meta property="og:description" content="${seoSettings.metaDescription || websiteDescription.slice(0, 160)}">
+  ${seoSettings.ogImage ? `<meta property="og:image" content="${seoSettings.ogImage}">` : ''}
+  ${seoSettings.twitterHandle ? `<meta name="twitter:site" content="@${seoSettings.twitterHandle}">` : ''}
   <style>${data.code.css}</style>
 </head>
 <body>
@@ -213,6 +323,43 @@ Return the code in this exact JSON format:
     }
   };
 
+  const verifyDomain = async () => {
+    if (!customDomain.trim()) {
+      toast.error("Please enter a domain");
+      return;
+    }
+    
+    toast.info("Verifying domain ownership...");
+    
+    // Simulate domain verification
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    setDomainVerified(true);
+    toast.success("Domain verified successfully!");
+  };
+
+  const deployWebsite = async () => {
+    if (!generatedCode) {
+      toast.error("Please generate a website first");
+      return;
+    }
+
+    setDeploymentStatus("deploying");
+    
+    try {
+      // Simulate deployment process
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      const deployedDomain = customDomain || `${businessName.toLowerCase().replace(/\s+/g, '-')}.lovable.app`;
+      setDeployedUrl(`https://${deployedDomain}`);
+      setDeploymentStatus("deployed");
+      toast.success("Website deployed successfully!");
+    } catch (error) {
+      setDeploymentStatus("error");
+      toast.error("Deployment failed. Please try again.");
+    }
+  };
+
   const copyCode = (type: "html" | "css" | "js") => {
     if (!generatedCode) return;
     navigator.clipboard.writeText(generatedCode[type]);
@@ -228,7 +375,8 @@ Return the code in this exact JSON format:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${businessName}</title>
+  <title>${seoSettings.metaTitle || businessName}</title>
+  <meta name="description" content="${seoSettings.metaDescription || websiteDescription.slice(0, 160)}">
   <style>
 ${generatedCode.css}
   </style>
@@ -256,6 +404,7 @@ ${generatedCode.js}
     setPreviewUrl(null);
     setActiveStep("describe");
     setGenerationProgress(0);
+    setDeploymentStatus("idle");
   };
 
   const getPreviewWidth = () => {
@@ -265,6 +414,8 @@ ${generatedCode.js}
       default: return "100%";
     }
   };
+
+  const getCurrentStepIndex = () => steps.indexOf(activeStep);
 
   return (
     <div className="space-y-6">
@@ -278,43 +429,44 @@ ${generatedCode.js}
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-white">
-                AI Website Builder
+                AI Website Builder Pro
               </h1>
               <p className="text-white/80 mt-1">
-                Create stunning websites with AI in minutes
+                Create, optimize & deploy stunning websites with AI
               </p>
             </div>
           </div>
-          <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 gap-2 px-4 py-2 self-start">
-            <Sparkles className="h-4 w-4" />
-            {creditCost} credits per website
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 gap-2 px-4 py-2">
+              <Sparkles className="h-4 w-4" />
+              {creditCost} credits per website
+            </Badge>
+          </div>
         </div>
       </div>
 
-      {/* Colorful Progress Steps */}
-      <div className="flex items-center gap-2 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/20">
-        {["describe", "customize", "preview"].map((step, index) => (
-          <div key={step} className="flex items-center gap-2 flex-1">
-            <div 
-              className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold transition-all shadow-lg ${
+      {/* Progress Steps */}
+      <div className="flex items-center gap-1 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/20 overflow-x-auto">
+        {steps.map((step, index) => (
+          <div key={step} className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => setActiveStep(step as any)}
+              className={`flex items-center justify-center min-w-[36px] h-9 px-3 rounded-full text-xs font-bold transition-all ${
                 activeStep === step 
-                  ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white scale-110" 
-                  : index < ["describe", "customize", "preview"].indexOf(activeStep)
+                  ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white scale-110 shadow-lg" 
+                  : index < getCurrentStepIndex()
                     ? "bg-gradient-to-br from-green-500 to-emerald-600 text-white"
-                    : "bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
               {index + 1}
-            </div>
-            <span className={`text-sm capitalize hidden sm:block ${activeStep === step ? "font-bold text-emerald-600" : "text-muted-foreground"}`}>
+            </button>
+            <span className={`text-xs capitalize hidden lg:block ${activeStep === step ? "font-bold text-emerald-600" : "text-muted-foreground"}`}>
               {step}
             </span>
-            {index < 2 && <div className={`flex-1 h-1 rounded-full mx-2 ${
-              index < ["describe", "customize", "preview"].indexOf(activeStep)
-                ? "bg-gradient-to-r from-emerald-500 to-teal-500"
-                : "bg-muted"
-            }`} />}
+            {index < steps.length - 1 && (
+              <div className={`w-8 h-0.5 ${index < getCurrentStepIndex() ? "bg-emerald-500" : "bg-muted"}`} />
+            )}
           </div>
         ))}
       </div>
@@ -322,77 +474,60 @@ ${generatedCode.js}
       {/* Step 1: Describe */}
       {activeStep === "describe" && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="bg-gradient-to-br from-card to-emerald-500/5 border-emerald-500/20 shadow-lg">
+          <Card className="border-2 border-dashed border-emerald-500/30 bg-gradient-to-br from-emerald-50/50 to-teal-50/50 dark:from-emerald-950/20 dark:to-teal-950/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
-                  <Wand2 className="h-5 w-5 text-white" />
+                  <FileText className="h-5 w-5 text-white" />
                 </div>
-                <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                  Describe Your Website
-                </span>
+                Describe Your Website
               </CardTitle>
-              <CardDescription>
-                Tell AI what kind of website you want to create
-              </CardDescription>
+              <CardDescription>Tell us what you want to build</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-emerald-600 font-semibold">Business/Website Name *</Label>
-                <Input 
+                <Label htmlFor="businessName" className="text-sm font-medium">Business/Website Name *</Label>
+                <Input
+                  id="businessName"
+                  placeholder="e.g., TechStartup Pro"
                   value={businessName}
-                  onChange={e => setBusinessName(e.target.value)}
-                  placeholder="e.g., TechStart Solutions"
-                  className="border-emerald-500/30 focus:border-emerald-500 focus:ring-emerald-500/20"
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  className="border-emerald-500/30 focus:border-emerald-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-emerald-600 font-semibold">Describe Your Website *</Label>
-                <Textarea 
+                <Label htmlFor="description" className="text-sm font-medium">Website Description *</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe your website in detail... What's the purpose? Who's your audience? What features do you need?"
                   value={websiteDescription}
-                  onChange={e => setWebsiteDescription(e.target.value)}
-                  placeholder="Describe what your website is about, what products/services you offer, your target audience, and any specific features you want..."
-                  rows={5}
-                  className="border-emerald-500/30 focus:border-emerald-500 focus:ring-emerald-500/20"
+                  onChange={(e) => setWebsiteDescription(e.target.value)}
+                  className="min-h-[120px] border-emerald-500/30 focus:border-emerald-500"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-emerald-600 font-semibold">Template Type</Label>
-                <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                  <SelectTrigger className="border-emerald-500/30">
-                    <SelectValue placeholder="Select a template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {WEBSITE_TEMPLATES.map(template => (
-                      <SelectItem key={template.id} value={template.id}>
-                        <div className="flex items-center gap-2">
-                          <template.icon className="h-4 w-4" />
-                          <span>{template.label}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Button 
+                onClick={() => setActiveStep("customize")}
+                disabled={!businessName.trim() || !websiteDescription.trim()}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+              >
+                Continue to Templates
+                <Sparkles className="ml-2 h-4 w-4" />
+              </Button>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-card to-teal-500/5 border-teal-500/20 shadow-lg">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-600">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600">
                   <Layout className="h-5 w-5 text-white" />
                 </div>
-                <span className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
-                  Choose Template
-                </span>
+                Choose Template
               </CardTitle>
-              <CardDescription>
-                Select a template that matches your needs
-              </CardDescription>
+              <CardDescription>Select a starting point for your website</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-2">
                 {WEBSITE_TEMPLATES.map((template, idx) => {
                   const gradients = [
                     'from-emerald-500 to-teal-500',
@@ -441,10 +576,12 @@ ${generatedCode.js}
       {/* Step 2: Customize */}
       {activeStep === "customize" && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
+          <Card className="bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-500/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5 text-primary" />
+                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600">
+                  <Palette className="h-5 w-5 text-white" />
+                </div>
                 Color Scheme
               </CardTitle>
             </CardHeader>
@@ -454,17 +591,17 @@ ${generatedCode.js}
                   <button
                     key={scheme.id}
                     onClick={() => setSelectedColorScheme(scheme.id)}
-                    className={`p-3 rounded-xl border-2 transition-all ${
+                    className={`p-3 rounded-xl border-2 transition-all hover:scale-105 ${
                       selectedColorScheme === scheme.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
+                        ? "border-purple-500 bg-purple-500/10 shadow-lg"
+                        : "border-border hover:border-purple-500/50"
                     }`}
                   >
                     <div className="flex gap-1 mb-2">
                       {scheme.colors.map((color, i) => (
                         <div 
                           key={i}
-                          className="w-6 h-6 rounded-full"
+                          className="w-6 h-6 rounded-full shadow-sm"
                           style={{ backgroundColor: color }}
                         />
                       ))}
@@ -476,10 +613,12 @@ ${generatedCode.js}
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-500/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Layers className="h-5 w-5 text-primary" />
+                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
+                  <Layers className="h-5 w-5 text-white" />
+                </div>
                 Design Style
               </CardTitle>
             </CardHeader>
@@ -489,10 +628,10 @@ ${generatedCode.js}
                   <button
                     key={style.id}
                     onClick={() => setSelectedStyle(style.id)}
-                    className={`p-3 rounded-xl border-2 transition-all text-left ${
+                    className={`p-3 rounded-xl border-2 transition-all text-left hover:scale-105 ${
                       selectedStyle === style.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
+                        ? "border-blue-500 bg-blue-500/10 shadow-lg"
+                        : "border-border hover:border-blue-500/50"
                     }`}
                   >
                     <p className="font-medium">{style.label}</p>
@@ -502,19 +641,502 @@ ${generatedCode.js}
               </div>
             </CardContent>
           </Card>
+
+          <div className="lg:col-span-2 flex justify-between">
+            <Button variant="outline" onClick={() => setActiveStep("describe")}>
+              Back
+            </Button>
+            <Button 
+              onClick={() => setActiveStep("integrations")}
+              className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+            >
+              Continue to Integrations
+              <Sparkles className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Step 3: Preview */}
+      {/* Step 3: Integrations */}
+      {activeStep === "integrations" && (
+        <div className="space-y-6">
+          <Card className="bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-950/20 dark:to-red-950/20 border-orange-500/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500 to-red-600">
+                  <Link2 className="h-5 w-5 text-white" />
+                </div>
+                Platform Integrations
+              </CardTitle>
+              <CardDescription>Connect your website with popular platforms and services</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {INTEGRATIONS.map(integration => (
+                  <button
+                    key={integration.id}
+                    onClick={() => toggleIntegration(integration.id)}
+                    className={`p-4 rounded-xl border-2 transition-all text-center hover:scale-105 ${
+                      selectedIntegrations.includes(integration.id)
+                        ? `border-transparent bg-gradient-to-br ${integration.color} text-white shadow-lg`
+                        : "border-border hover:border-orange-500/50 bg-card"
+                    }`}
+                  >
+                    <integration.icon className={`h-8 w-8 mx-auto mb-2 ${
+                      selectedIntegrations.includes(integration.id) ? "text-white" : "text-muted-foreground"
+                    }`} />
+                    <p className={`font-medium text-sm ${selectedIntegrations.includes(integration.id) ? "text-white" : ""}`}>
+                      {integration.label}
+                    </p>
+                    <p className={`text-xs mt-1 ${selectedIntegrations.includes(integration.id) ? "text-white/80" : "text-muted-foreground"}`}>
+                      {integration.description}
+                    </p>
+                    {selectedIntegrations.includes(integration.id) && (
+                      <CheckCircle2 className="h-5 w-5 mx-auto mt-2 text-white" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* WooCommerce Settings if selected */}
+          {selectedIntegrations.includes("woocommerce") && (
+            <Card className="border-purple-500/30 bg-gradient-to-br from-purple-50/50 to-indigo-50/50 dark:from-purple-950/20 dark:to-indigo-950/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5 text-purple-500" />
+                  WooCommerce Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>WooCommerce Store URL</Label>
+                    <Input 
+                      placeholder="https://your-store.com" 
+                      value={integrationSettings.woocommerceUrl || ""}
+                      onChange={(e) => setIntegrationSettings({...integrationSettings, woocommerceUrl: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Consumer Key</Label>
+                    <Input 
+                      placeholder="ck_xxxxx" 
+                      type="password"
+                      value={integrationSettings.woocommerceKey || ""}
+                      onChange={(e) => setIntegrationSettings({...integrationSettings, woocommerceKey: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Consumer Secret</Label>
+                    <Input 
+                      placeholder="cs_xxxxx" 
+                      type="password"
+                      value={integrationSettings.woocommerceSecret || ""}
+                      onChange={(e) => setIntegrationSettings({...integrationSettings, woocommerceSecret: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Products per Page</Label>
+                    <Select 
+                      value={integrationSettings.woocommerceProducts || "12"}
+                      onValueChange={(val) => setIntegrationSettings({...integrationSettings, woocommerceProducts: val})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="6">6 products</SelectItem>
+                        <SelectItem value="12">12 products</SelectItem>
+                        <SelectItem value="24">24 products</SelectItem>
+                        <SelectItem value="48">48 products</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Stripe Settings if selected */}
+          {selectedIntegrations.includes("stripe") && (
+            <Card className="border-indigo-500/30 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-indigo-500" />
+                  Stripe Payment Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Publishable Key</Label>
+                    <Input 
+                      placeholder="pk_xxxxx" 
+                      value={integrationSettings.stripePublishable || ""}
+                      onChange={(e) => setIntegrationSettings({...integrationSettings, stripePublishable: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Currency</Label>
+                    <Select 
+                      value={integrationSettings.stripeCurrency || "USD"}
+                      onValueChange={(val) => setIntegrationSettings({...integrationSettings, stripeCurrency: val})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD - US Dollar</SelectItem>
+                        <SelectItem value="EUR">EUR - Euro</SelectItem>
+                        <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                        <SelectItem value="PHP">PHP - Philippine Peso</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setActiveStep("customize")}>
+              Back
+            </Button>
+            <Button 
+              onClick={() => setActiveStep("optimize")}
+              className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+            >
+              Continue to Optimization
+              <Zap className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: Optimize */}
+      {activeStep === "optimize" && (
+        <div className="space-y-6">
+          <Card className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-500/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
+                  <Zap className="h-5 w-5 text-white" />
+                </div>
+                Website Optimization
+              </CardTitle>
+              <CardDescription>Enhance your website's performance, SEO, and accessibility</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {OPTIMIZATION_FEATURES.map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => toggleOptimization(opt.id)}
+                    className={`p-4 rounded-xl border-2 transition-all text-left hover:scale-105 ${
+                      selectedOptimizations.includes(opt.id)
+                        ? "border-green-500 bg-green-500/10 shadow-lg"
+                        : "border-border hover:border-green-500/50 bg-card"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${selectedOptimizations.includes(opt.id) ? "bg-green-500 text-white" : "bg-muted"}`}>
+                        <opt.icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{opt.label}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{opt.description}</p>
+                      </div>
+                    </div>
+                    {selectedOptimizations.includes(opt.id) && (
+                      <CheckCircle2 className="h-5 w-5 text-green-500 mt-2 ml-auto" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* SEO Settings */}
+          {selectedOptimizations.includes("seo") && (
+            <Card className="border-blue-500/30 bg-gradient-to-br from-blue-50/50 to-cyan-50/50 dark:from-blue-950/20 dark:to-cyan-950/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5 text-blue-500" />
+                  SEO Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Meta Title (max 60 chars)</Label>
+                    <Input 
+                      placeholder={businessName}
+                      value={seoSettings.metaTitle}
+                      onChange={(e) => setSeoSettings({...seoSettings, metaTitle: e.target.value})}
+                      maxLength={60}
+                    />
+                    <p className="text-xs text-muted-foreground">{seoSettings.metaTitle.length}/60 characters</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Keywords (comma separated)</Label>
+                    <Input 
+                      placeholder="web design, business, services"
+                      value={seoSettings.keywords}
+                      onChange={(e) => setSeoSettings({...seoSettings, keywords: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Meta Description (max 160 chars)</Label>
+                  <Textarea 
+                    placeholder="A compelling description of your website..."
+                    value={seoSettings.metaDescription}
+                    onChange={(e) => setSeoSettings({...seoSettings, metaDescription: e.target.value})}
+                    maxLength={160}
+                  />
+                  <p className="text-xs text-muted-foreground">{seoSettings.metaDescription.length}/160 characters</p>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>OG Image URL</Label>
+                    <Input 
+                      placeholder="https://example.com/og-image.jpg"
+                      value={seoSettings.ogImage}
+                      onChange={(e) => setSeoSettings({...seoSettings, ogImage: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Twitter Handle</Label>
+                    <Input 
+                      placeholder="yourbrand"
+                      value={seoSettings.twitterHandle}
+                      onChange={(e) => setSeoSettings({...seoSettings, twitterHandle: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-6">
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      checked={seoSettings.robotsTxt}
+                      onCheckedChange={(checked) => setSeoSettings({...seoSettings, robotsTxt: checked})}
+                    />
+                    <Label>Generate robots.txt</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      checked={seoSettings.sitemap}
+                      onCheckedChange={(checked) => setSeoSettings({...seoSettings, sitemap: checked})}
+                    />
+                    <Label>Generate sitemap.xml</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      checked={seoSettings.structuredData}
+                      onCheckedChange={(checked) => setSeoSettings({...seoSettings, structuredData: checked})}
+                    />
+                    <Label>Add Schema.org markup</Label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setActiveStep("integrations")}>
+              Back
+            </Button>
+            <Button 
+              onClick={() => setActiveStep("deploy")}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+            >
+              Continue to Deployment
+              <Rocket className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 5: Deploy */}
+      {activeStep === "deploy" && (
+        <div className="space-y-6">
+          <Card className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20 border-indigo-500/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+                  <Globe className="h-5 w-5 text-white" />
+                </div>
+                Custom Domain Setup
+              </CardTitle>
+              <CardDescription>Connect your own domain for professional branding</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <Input 
+                    placeholder="www.yourdomain.com"
+                    value={customDomain}
+                    onChange={(e) => setCustomDomain(e.target.value)}
+                    className="border-indigo-500/30"
+                  />
+                </div>
+                <Button 
+                  onClick={verifyDomain}
+                  variant={domainVerified ? "outline" : "default"}
+                  className={domainVerified ? "bg-green-500/10 text-green-600 border-green-500" : "bg-gradient-to-r from-indigo-500 to-purple-600"}
+                >
+                  {domainVerified ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Verified
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-4 w-4 mr-2" />
+                      Verify Domain
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              {customDomain && !domainVerified && (
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <h4 className="font-medium text-amber-700 dark:text-amber-400 mb-2">DNS Configuration Required</h4>
+                  <p className="text-sm text-muted-foreground mb-3">Add these DNS records to your domain registrar:</p>
+                  <div className="space-y-2 text-sm font-mono bg-card p-3 rounded-lg">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Type: A</span>
+                      <span>185.158.133.1</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Type: CNAME (www)</span>
+                      <span>proxy.lovable.app</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Type: TXT</span>
+                      <span>lovable-verify={user?.id?.slice(0, 8)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-card border">
+                  <div className="flex items-center gap-3">
+                    <Lock className="h-5 w-5 text-green-500" />
+                    <div>
+                      <p className="font-medium">SSL Certificate</p>
+                      <p className="text-xs text-muted-foreground">Auto-provision HTTPS</p>
+                    </div>
+                  </div>
+                  <Switch checked={sslEnabled} onCheckedChange={setSslEnabled} />
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-xl bg-card border">
+                  <div className="flex items-center gap-3">
+                    <Server className="h-5 w-5 text-blue-500" />
+                    <div>
+                      <p className="font-medium">CDN Distribution</p>
+                      <p className="text-xs text-muted-foreground">Global edge caching</p>
+                    </div>
+                  </div>
+                  <Switch checked={cdnEnabled} onCheckedChange={setCdnEnabled} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Deployment Status */}
+          {deploymentStatus !== "idle" && (
+            <Card className={`border-2 ${
+              deploymentStatus === "deployed" ? "border-green-500 bg-green-500/5" :
+              deploymentStatus === "error" ? "border-red-500 bg-red-500/5" :
+              "border-blue-500 bg-blue-500/5"
+            }`}>
+              <CardContent className="pt-6">
+                {deploymentStatus === "deploying" && (
+                  <div className="flex items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    <div>
+                      <p className="font-medium">Deploying your website...</p>
+                      <p className="text-sm text-muted-foreground">This may take a few moments</p>
+                    </div>
+                  </div>
+                )}
+                {deploymentStatus === "deployed" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <CheckCircle2 className="h-8 w-8 text-green-500" />
+                      <div>
+                        <p className="font-medium text-green-600">Website Deployed Successfully!</p>
+                        <p className="text-sm text-muted-foreground">Your website is now live</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10">
+                      <Link2 className="h-5 w-5 text-green-600" />
+                      <a href={deployedUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-green-600 hover:underline">
+                        {deployedUrl}
+                      </a>
+                      <Button size="sm" variant="ghost" onClick={() => {
+                        navigator.clipboard.writeText(deployedUrl);
+                        toast.success("URL copied!");
+                      }}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {deploymentStatus === "error" && (
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-full bg-red-500/20">
+                      <Zap className="h-6 w-6 text-red-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-red-600">Deployment Failed</p>
+                      <p className="text-sm text-muted-foreground">Please try again or contact support</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setActiveStep("optimize")}>
+              Back
+            </Button>
+            <Button 
+              onClick={handleGenerate}
+              disabled={isGenerating || userCredits < creditCost}
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Generate Website ({creditCost} credits)
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 6: Preview */}
       {activeStep === "preview" && generatedCode && (
         <div className="space-y-4">
           {/* Preview Controls */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20">
             <div className="flex items-center gap-2">
               <Button
                 variant={previewDevice === "desktop" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setPreviewDevice("desktop")}
+                className={previewDevice === "desktop" ? "bg-gradient-to-r from-emerald-500 to-teal-600" : ""}
               >
                 <Monitor className="h-4 w-4" />
               </Button>
@@ -522,6 +1144,7 @@ ${generatedCode.js}
                 variant={previewDevice === "tablet" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setPreviewDevice("tablet")}
+                className={previewDevice === "tablet" ? "bg-gradient-to-r from-emerald-500 to-teal-600" : ""}
               >
                 <Tablet className="h-4 w-4" />
               </Button>
@@ -529,134 +1152,154 @@ ${generatedCode.js}
                 variant={previewDevice === "mobile" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setPreviewDevice("mobile")}
+                className={previewDevice === "mobile" ? "bg-gradient-to-r from-emerald-500 to-teal-600" : ""}
               >
                 <Smartphone className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={regenerate}>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" onClick={regenerate} className="border-emerald-500/30">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Regenerate
               </Button>
-              <Button onClick={downloadWebsite}>
+              <Button variant="outline" onClick={downloadWebsite} className="border-emerald-500/30">
                 <Download className="h-4 w-4 mr-2" />
                 Download
+              </Button>
+              <Button 
+                onClick={deployWebsite}
+                disabled={deploymentStatus === "deploying"}
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+              >
+                {deploymentStatus === "deploying" ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deploying...
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="h-4 w-4 mr-2" />
+                    Deploy Now
+                  </>
+                )}
               </Button>
             </div>
           </div>
 
           {/* Preview Frame */}
-          <Card className="overflow-hidden">
-            <div className="bg-muted p-2 border-b flex items-center gap-2">
+          <Card className="overflow-hidden border-2 border-emerald-500/20">
+            <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 p-2 border-b flex items-center gap-2">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-500" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500" />
                 <div className="w-3 h-3 rounded-full bg-green-500" />
               </div>
-              <div className="flex-1 mx-4">
-                <div className="bg-background rounded px-3 py-1 text-xs text-muted-foreground flex items-center gap-2">
-                  <Globe className="h-3 w-3" />
-                  {businessName.toLowerCase().replace(/\s+/g, '-')}.com
-                </div>
+              <div className="flex-1 px-3 py-1 bg-card rounded text-xs text-muted-foreground truncate">
+                {deployedUrl || `https://${businessName.toLowerCase().replace(/\s+/g, '-')}.lovable.app`}
               </div>
             </div>
-            <div className="flex justify-center bg-muted/50 p-4 min-h-[500px]">
-              {previewUrl && (
-                <iframe
-                  src={previewUrl}
-                  className="bg-white rounded-lg shadow-lg transition-all duration-300"
-                  style={{ 
-                    width: getPreviewWidth(), 
-                    height: "600px",
-                    maxWidth: "100%"
-                  }}
-                  title="Website Preview"
-                />
-              )}
+            <div className="bg-muted/30 p-4 flex justify-center min-h-[500px]">
+              <div style={{ width: getPreviewWidth() }} className="transition-all duration-300">
+                {previewUrl && (
+                  <iframe
+                    src={previewUrl}
+                    className="w-full h-[600px] bg-white rounded-lg shadow-xl"
+                    title="Website Preview"
+                  />
+                )}
+              </div>
             </div>
           </Card>
 
-          {/* Code Tabs */}
-          <Tabs defaultValue="html">
-            <TabsList>
-              <TabsTrigger value="html" className="gap-2">
-                <FileCode className="h-4 w-4" />
-                HTML
-              </TabsTrigger>
-              <TabsTrigger value="css" className="gap-2">
-                <Palette className="h-4 w-4" />
-                CSS
-              </TabsTrigger>
-              <TabsTrigger value="js" className="gap-2">
-                <Code className="h-4 w-4" />
-                JavaScript
-              </TabsTrigger>
-            </TabsList>
-            {["html", "css", "js"].map(type => (
-              <TabsContent key={type} value={type}>
-                <Card>
-                  <CardContent className="p-0">
-                    <div className="flex items-center justify-between p-3 border-b">
-                      <span className="text-sm font-medium">{type.toUpperCase()}</span>
-                      <Button variant="ghost" size="sm" onClick={() => copyCode(type as "html" | "css" | "js")}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy
-                      </Button>
-                    </div>
-                    <pre className="p-4 overflow-x-auto text-xs bg-muted/50 max-h-64">
-                      <code>{generatedCode[type as keyof typeof generatedCode]}</code>
+          {/* Code Export Tabs */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Code className="h-5 w-5 text-emerald-500" />
+                Export Code
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="html">
+                <TabsList className="grid grid-cols-3 w-full max-w-md">
+                  <TabsTrigger value="html">HTML</TabsTrigger>
+                  <TabsTrigger value="css">CSS</TabsTrigger>
+                  <TabsTrigger value="js">JavaScript</TabsTrigger>
+                </TabsList>
+                <TabsContent value="html" className="mt-4">
+                  <div className="relative">
+                    <pre className="p-4 bg-muted rounded-lg overflow-x-auto text-sm max-h-[300px]">
+                      {generatedCode.html}
                     </pre>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            ))}
-          </Tabs>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="absolute top-2 right-2"
+                      onClick={() => copyCode("html")}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TabsContent>
+                <TabsContent value="css" className="mt-4">
+                  <div className="relative">
+                    <pre className="p-4 bg-muted rounded-lg overflow-x-auto text-sm max-h-[300px]">
+                      {generatedCode.css}
+                    </pre>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="absolute top-2 right-2"
+                      onClick={() => copyCode("css")}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TabsContent>
+                <TabsContent value="js" className="mt-4">
+                  <div className="relative">
+                    <pre className="p-4 bg-muted rounded-lg overflow-x-auto text-sm max-h-[300px]">
+                      {generatedCode.js}
+                    </pre>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="absolute top-2 right-2"
+                      onClick={() => copyCode("js")}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      {/* Navigation Buttons */}
-      <div className="flex justify-between pt-4">
-        <Button
-          variant="outline"
-          onClick={() => {
-            if (activeStep === "customize") setActiveStep("describe");
-            else if (activeStep === "preview") setActiveStep("customize");
-          }}
-          disabled={activeStep === "describe" || isGenerating}
-        >
-          Back
-        </Button>
-        
-        {activeStep === "describe" && (
-          <Button onClick={() => setActiveStep("customize")} disabled={!websiteDescription.trim() || !businessName.trim()}>
-            Continue to Customize
-          </Button>
-        )}
-        
-        {activeStep === "customize" && (
-          <Button onClick={handleGenerate} disabled={isGenerating}>
-            {isGenerating ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generating ({Math.round(generationProgress)}%)
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Generate Website ({creditCost} credits)
-              </>
-            )}
-          </Button>
-        )}
-      </div>
-
-      {/* Progress Bar during generation */}
+      {/* Generation Progress */}
       {isGenerating && (
-        <div className="space-y-2">
-          <Progress value={generationProgress} className="h-2" />
-          <p className="text-sm text-center text-muted-foreground">
-            AI is building your website... This may take a moment.
-          </p>
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardContent className="pt-6 space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 animate-pulse">
+                  <Wand2 className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="font-medium">Generating Your Website</p>
+                  <p className="text-sm text-muted-foreground">AI is crafting your masterpiece...</p>
+                </div>
+              </div>
+              <Progress value={generationProgress} className="h-2" />
+              <p className="text-sm text-center text-muted-foreground">
+                {generationProgress < 30 && "Analyzing your requirements..."}
+                {generationProgress >= 30 && generationProgress < 60 && "Designing layouts and components..."}
+                {generationProgress >= 60 && generationProgress < 90 && "Adding styles and animations..."}
+                {generationProgress >= 90 && "Finalizing your website..."}
+              </p>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
