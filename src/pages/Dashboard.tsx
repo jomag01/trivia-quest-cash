@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare, Sparkles, Truck } from "lucide-react";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare, Sparkles, Truck, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import RetailerSupplierProducts from "@/components/dashboard/RetailerSupplierProducts";
+import MyListingsHub from "@/components/dashboard/MyListingsHub";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
 import { BuyCreditsDialog } from "@/components/BuyCreditsDialog";
@@ -495,6 +496,13 @@ const Dashboard = () => {
                     <Truck className="w-4 h-4 mr-2" />
                     Supplier Products
                   </Button>
+                  <Button variant={activeTab === "my-listings" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  handleTabChange("my-listings");
+                  setMobileMenuOpen(false);
+                }}>
+                    <Building2 className="w-4 h-4 mr-2" />
+                    My Listings
+                  </Button>
                   <div className="border-t border-border my-2" />
                   <Button variant="ghost" className="justify-start text-destructive hover:text-destructive" onClick={async () => {
                   await signOut();
@@ -532,6 +540,7 @@ const Dashboard = () => {
                 <SelectItem value="ai-chat">GPT-5 Chat</SelectItem>
                 <SelectItem value="ai-credits">AI Credits</SelectItem>
                 <SelectItem value="supplier-products">Supplier Products</SelectItem>
+                <SelectItem value="my-listings">My Listings</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -889,6 +898,10 @@ const Dashboard = () => {
 
       <TabsContent value="supplier-products">
         <RetailerSupplierProducts />
+      </TabsContent>
+
+      <TabsContent value="my-listings">
+        <MyListingsHub />
       </TabsContent>
     </Tabs>
   </div>
