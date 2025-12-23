@@ -56,7 +56,7 @@ export default function ProviderInbox({
   buttonSize = "default",
   className = ""
 }: ProviderInboxProps) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [inboxOpen, setInboxOpen] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -64,20 +64,27 @@ export default function ProviderInbox({
   const [activeTab, setActiveTab] = useState<string>("all");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch all conversations where user is the provider
+  // Fetch all conversations where user is the provider (or admin for "admin" provider_id)
   const { data: conversations = [], isLoading: loadingConversations } = useQuery({
-    queryKey: ["provider-inbox-conversations", user?.id],
+    queryKey: ["provider-inbox-conversations", user?.id, isAdmin],
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
+      // For admins, also fetch conversations where provider_id is "admin"
+      let query = supabase
         .from('provider_conversations')
         .select('*')
-        .eq('provider_id', user.id)
         .order('last_message_at', { ascending: false });
       
-      if (error) throw error;
+      if (isAdmin) {
+        // Admins can see their own conversations AND "Store Support" (admin) conversations
+        query = query.or(`provider_id.eq.${user.id},provider_id.eq.admin`);
+      } else {
+        query = query.eq('provider_id', user.id);
+      }
       
+      const { data, error } = await query;
+      if (error) throw error;
       // Fetch customer profiles and unread counts
       const enrichedConversations = await Promise.all(
         (data || []).map(async (conv) => {
