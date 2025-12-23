@@ -428,6 +428,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           audio_minutes_allocated: number | null
+          binary_processed_at: string | null
           created_at: string | null
           credits_received: number
           id: string
@@ -445,6 +446,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           audio_minutes_allocated?: number | null
+          binary_processed_at?: string | null
           created_at?: string | null
           credits_received: number
           id?: string
@@ -462,6 +464,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           audio_minutes_allocated?: number | null
+          binary_processed_at?: string | null
           created_at?: string | null
           credits_received?: number
           id?: string
@@ -6745,6 +6748,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      binary_apply_purchase_volume: {
+        Args: { _amount: number; _buyer_user_id: string }
+        Returns: undefined
+      }
+      binary_find_leftmost_spot: {
+        Args: { _network_id: string }
+        Returns: {
+          leg: Database["public"]["Enums"]["binary_leg"]
+          parent_id: string
+        }[]
+      }
       calculate_player_level: { Args: { total_xp: number }; Returns: number }
       can_access_category_level: {
         Args: { p_category_id: string; p_level: number; p_user_id: string }
@@ -6862,6 +6876,10 @@ export type Database = {
       }
       is_public_group: { Args: { _group_id: string }; Returns: boolean }
       is_supplier: { Args: { _user_id: string }; Returns: boolean }
+      place_user_in_binary_network: {
+        Args: { _sponsor_user_id: string; _user_id: string }
+        Returns: string
+      }
       process_monthly_rank_reversion: { Args: never; Returns: undefined }
       process_upline_transfer: {
         Args: {
