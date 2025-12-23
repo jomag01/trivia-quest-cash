@@ -41,6 +41,7 @@ import AICreditsTracker from "@/components/AICreditsTracker";
 import { AppPresentationGenerator } from "@/components/AppPresentationGenerator";
 import BinaryEarningsAnalytics from "@/components/BinaryEarningsAnalytics";
 import BinaryTreeView from "@/components/BinaryTreeView";
+import BinaryPendingPlacements from "@/components/BinaryPendingPlacements";
 import ProviderInbox from "@/components/chat/ProviderInbox";
 import { AccountSettings } from "@/components/profile/AccountSettings";
 const Dashboard = () => {
@@ -784,6 +785,7 @@ const Dashboard = () => {
       </TabsContent>
 
       <TabsContent value="network" className="space-y-6">
+        <BinaryPendingPlacements userId={user?.id || ''} />
         <GenealogyTree userId={user?.id || ''} />
         <BinaryTreeView userId={user?.id || ''} />
         <UplineTransferRequest />

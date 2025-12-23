@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   GitBranch, 
   ChevronDown, 
@@ -12,7 +14,13 @@ import {
   ArrowDownLeft, 
   ArrowDownRight,
   RefreshCw,
-  Users
+  Users,
+  Search,
+  ChevronUp,
+  X,
+  ZoomIn,
+  ZoomOut,
+  Maximize2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -46,6 +54,12 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
     directLeft: 0,
     directRight: 0
   });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<BinaryNode[]>([]);
+  const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const treeContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchBinaryTree = useCallback(async () => {
     try {
@@ -53,7 +67,6 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
       const tree = await buildTree(userId, 1);
       setTreeData(tree);
 
-      // Calculate stats and auto-expand root node
       if (tree) {
         const leftCount = countNodes(tree.left_child);
         const rightCount = countNodes(tree.right_child);
@@ -63,7 +76,6 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
           directLeft: tree.left_child ? 1 : 0,
           directRight: tree.right_child ? 1 : 0
         });
-        // Auto-expand root node so user sees the tree structure
         setExpandedNodes(new Set([tree.id]));
       }
     } catch (error: any) {
@@ -78,15 +90,42 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
     fetchBinaryTree();
   }, [fetchBinaryTree]);
 
+  // Search functionality
+  useEffect(() => {
+    if (!searchQuery.trim() || !treeData) {
+      setSearchResults([]);
+      return;
+    }
+
+    const results: BinaryNode[] = [];
+    const searchLower = searchQuery.toLowerCase();
+
+    const searchTree = (node: BinaryNode | null | undefined) => {
+      if (!node) return;
+      
+      const nameMatch = node.full_name?.toLowerCase().includes(searchLower);
+      const emailMatch = node.email.toLowerCase().includes(searchLower);
+      
+      if (nameMatch || emailMatch) {
+        results.push(node);
+      }
+      
+      searchTree(node.left_child);
+      searchTree(node.right_child);
+    };
+
+    searchTree(treeData);
+    setSearchResults(results);
+  }, [searchQuery, treeData]);
+
   const countNodes = (node: BinaryNode | null | undefined): number => {
     if (!node) return 0;
     return 1 + countNodes(node.left_child) + countNodes(node.right_child);
   };
 
   const buildTree = async (nodeUserId: string, level: number): Promise<BinaryNode | null> => {
-    if (level > 7) return null; // Limit depth to 7 levels
+    if (level > 10) return null; // Increased depth limit
 
-    // Fetch binary network node
     const { data: networkData, error: networkError } = await supabase
       .from("binary_network")
       .select("*")
@@ -96,7 +135,6 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
     if (networkError) throw networkError;
     if (!networkData) return null;
 
-    // Fetch profile data (do not fail the whole tree if profile is not readable)
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("id, full_name, email, avatar_url")
@@ -124,7 +162,6 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
       right_child: null
     };
 
-    // Fetch children (tolerate missing/blocked child rows)
     if (networkData.left_child_id) {
       const { data: leftChild, error: leftChildError } = await supabase
         .from("binary_network")
@@ -168,6 +205,30 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
     });
   };
 
+  const expandPathToNode = (targetNode: BinaryNode) => {
+    const findPath = (node: BinaryNode | null | undefined, path: string[]): string[] | null => {
+      if (!node) return null;
+      if (node.id === targetNode.id) return [...path, node.id];
+      
+      const leftPath = findPath(node.left_child, [...path, node.id]);
+      if (leftPath) return leftPath;
+      
+      const rightPath = findPath(node.right_child, [...path, node.id]);
+      if (rightPath) return rightPath;
+      
+      return null;
+    };
+
+    if (treeData) {
+      const path = findPath(treeData, []);
+      if (path) {
+        setExpandedNodes(new Set(path));
+        setHighlightedNodeId(targetNode.id);
+        setTimeout(() => setHighlightedNodeId(null), 3000);
+      }
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
@@ -183,17 +244,39 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
     return email.substring(0, 2).toUpperCase();
   };
 
+  const scrollToTop = () => {
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      }
+    }
+  };
+
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 1.5));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
+  const handleZoomReset = () => setZoom(1);
+
   const renderNode = (node: BinaryNode, isRoot: boolean = false) => {
     const hasChildren = node.left_child || node.right_child;
     const isExpanded = expandedNodes.has(node.id);
+    const isHighlighted = highlightedNodeId === node.id;
 
     return (
       <div key={node.id} className="flex flex-col items-center">
-        {/* Node Card */}
         <div 
           className={`relative p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
             isRoot ? "bg-primary/10 border-primary" : "bg-card"
-          } min-w-[200px]`}
+          } ${isHighlighted ? "ring-2 ring-yellow-500 animate-pulse" : ""} min-w-[200px]`}
           onClick={() => hasChildren && toggleNode(node.id)}
         >
           <div className="flex items-center gap-3">
@@ -236,20 +319,16 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
           </div>
         </div>
 
-        {/* Children */}
         {hasChildren && isExpanded && (
           <div className="mt-4">
-            {/* Connector Lines */}
             <div className="flex justify-center mb-2">
               <div className="w-px h-4 bg-border" />
             </div>
             <div className="flex gap-8 relative">
-              {/* Horizontal connector */}
               {node.left_child && node.right_child && (
                 <div className="absolute top-0 left-1/4 right-1/4 h-px bg-border" style={{ transform: "translateY(-8px)" }} />
               )}
               
-              {/* Left Child */}
               <div className="flex flex-col items-center">
                 {node.left_child && (
                   <>
@@ -268,7 +347,6 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
                 )}
               </div>
               
-              {/* Right Child */}
               <div className="flex flex-col items-center">
                 {node.right_child && (
                   <>
@@ -323,6 +401,62 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
         </Button>
       </div>
 
+      {/* Search Bar */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search members by name or email..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 pr-10"
+        />
+        {searchQuery && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+            onClick={() => setSearchQuery("")}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      {/* Search Results */}
+      {searchResults.length > 0 && (
+        <div className="mb-4 p-3 bg-accent/30 rounded-lg max-h-48 overflow-y-auto">
+          <p className="text-sm font-medium mb-2">Found {searchResults.length} member(s):</p>
+          <div className="space-y-2">
+            {searchResults.map((result) => (
+              <div
+                key={result.id}
+                className="flex items-center gap-3 p-2 bg-background rounded-lg cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => {
+                  expandPathToNode(result);
+                  setSearchQuery("");
+                }}
+              >
+                <Avatar className="h-8 w-8">
+                  {result.avatar_url && <AvatarImage src={result.avatar_url} />}
+                  <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                    {getInitials(result.full_name, result.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {result.full_name || result.email.split("@")[0]}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">{result.email}</p>
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  {result.placement_leg === "left" ? "L" : result.placement_leg === "right" ? "R" : "Root"}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="p-3 bg-blue-500/10 rounded-lg text-center">
@@ -359,29 +493,65 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
         </div>
       </div>
 
-      {/* Tree View */}
-      <div className="overflow-x-auto">
-        <div className="flex justify-center min-w-max py-4">
-          {treeData ? (
-            renderNode(treeData, true)
-          ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <GitBranch className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No Binary Position</p>
-              <p className="text-sm">You haven't been placed in the binary network yet.</p>
-              <p className="text-sm mt-2">Purchase an AI package to get started!</p>
-            </div>
-          )}
+      {/* Zoom and Scroll Controls */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 0.5}>
+            <ZoomOut className="w-4 h-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground min-w-[60px] text-center">
+            {Math.round(zoom * 100)}%
+          </span>
+          <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 1.5}>
+            <ZoomIn className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleZoomReset}>
+            <Maximize2 className="w-4 h-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={scrollToTop}>
+            <ChevronUp className="w-4 h-4 mr-1" />
+            Top
+          </Button>
+          <Button variant="outline" size="sm" onClick={scrollToBottom}>
+            <ChevronDown className="w-4 h-4 mr-1" />
+            Bottom
+          </Button>
         </div>
       </div>
+
+      {/* Tree View with ScrollArea */}
+      <ScrollArea ref={scrollAreaRef} className="h-[500px] border rounded-lg">
+        <div 
+          ref={treeContainerRef}
+          className="overflow-x-auto p-4"
+          style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
+        >
+          <div className="flex justify-center min-w-max py-4">
+            {treeData ? (
+              renderNode(treeData, true)
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <GitBranch className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">No Binary Position</p>
+                <p className="text-sm">You haven't been placed in the binary network yet.</p>
+                <p className="text-sm mt-2">Purchase an AI package to get started!</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </ScrollArea>
 
       {/* Legend */}
       <div className="mt-6 p-4 bg-accent/30 rounded-lg">
         <h4 className="font-medium mb-2 text-sm">How it works:</h4>
         <ul className="text-xs text-muted-foreground space-y-1">
           <li>• Click on any node with children to expand/collapse</li>
-          <li>• <span className="text-blue-500">Blue</span> indicates left leg placement</li>
-          <li>• <span className="text-green-500">Green</span> indicates right leg placement</li>
+          <li>• Use search to find members quickly and navigate to them</li>
+          <li>• <span className="text-blue-500">Blue (Left)</span> - First referral placement</li>
+          <li>• <span className="text-green-500">Green (Right)</span> - Second referral placement</li>
+          <li>• 3rd+ referrals: You choose which leg to place them (spillover)</li>
           <li>• Volumes show the total purchase amount in each leg</li>
         </ul>
       </div>
