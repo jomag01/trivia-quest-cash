@@ -5425,6 +5425,149 @@ export type Database = {
           },
         ]
       }
+      supplier_products: {
+        Row: {
+          admin_markup_fixed: number | null
+          admin_markup_percent: number | null
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          barcode: string | null
+          category_id: string | null
+          created_at: string
+          description: string | null
+          final_price: number | null
+          id: string
+          images: Json | null
+          is_active: boolean | null
+          min_order_quantity: number | null
+          name: string
+          sku: string | null
+          specifications: Json | null
+          status: string
+          stock_quantity: number | null
+          supplier_id: string
+          supplier_price: number
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_markup_fixed?: number | null
+          admin_markup_percent?: number | null
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          barcode?: string | null
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          final_price?: number | null
+          id?: string
+          images?: Json | null
+          is_active?: boolean | null
+          min_order_quantity?: number | null
+          name: string
+          sku?: string | null
+          specifications?: Json | null
+          status?: string
+          stock_quantity?: number | null
+          supplier_id: string
+          supplier_price: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_markup_fixed?: number | null
+          admin_markup_percent?: number | null
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          barcode?: string | null
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          final_price?: number | null
+          id?: string
+          images?: Json | null
+          is_active?: boolean | null
+          min_order_quantity?: number | null
+          name?: string
+          sku?: string | null
+          specifications?: Json | null
+          status?: string
+          stock_quantity?: number | null
+          supplier_id?: string
+          supplier_price?: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          approved_at: string | null
+          approved_by: string | null
+          commission_rate: number | null
+          company_name: string
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          description: string | null
+          id: string
+          logo_url: string | null
+          notes: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          commission_rate?: number | null
+          company_name: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          commission_rate?: number | null
+          company_name?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       treasure_admin_settings: {
         Row: {
           created_at: string
@@ -6218,6 +6361,7 @@ export type Database = {
       generate_order_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       get_referral_count: { Args: { p_user_id: string }; Returns: number }
+      get_supplier_id: { Args: { _user_id: string }; Returns: string }
       get_unlocked_categories_count: {
         Args: { p_user_id: string }
         Returns: number
@@ -6240,6 +6384,7 @@ export type Database = {
         Returns: boolean
       }
       is_public_group: { Args: { _group_id: string }; Returns: boolean }
+      is_supplier: { Args: { _user_id: string }; Returns: boolean }
       process_monthly_rank_reversion: { Args: never; Returns: undefined }
       process_upline_transfer: {
         Args: {
@@ -6272,7 +6417,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "supplier"
       binary_leg: "left" | "right"
       marketplace_category:
         | "property_sale"
@@ -6422,7 +6567,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "supplier"],
       binary_leg: ["left", "right"],
       marketplace_category: [
         "property_sale",
