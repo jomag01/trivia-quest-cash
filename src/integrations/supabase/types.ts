@@ -5790,6 +5790,7 @@ export type Database = {
           barcode: string | null
           category_id: string | null
           created_at: string
+          currency: string | null
           description: string | null
           final_price: number | null
           id: string
@@ -5815,6 +5816,7 @@ export type Database = {
           barcode?: string | null
           category_id?: string | null
           created_at?: string
+          currency?: string | null
           description?: string | null
           final_price?: number | null
           id?: string
@@ -5840,6 +5842,7 @@ export type Database = {
           barcode?: string | null
           category_id?: string | null
           created_at?: string
+          currency?: string | null
           description?: string | null
           final_price?: number | null
           id?: string
@@ -5878,6 +5881,7 @@ export type Database = {
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
+          country: string | null
           created_at: string
           description: string | null
           dti_url: string | null
@@ -5902,6 +5906,7 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
+          country?: string | null
           created_at?: string
           description?: string | null
           dti_url?: string | null
@@ -5926,6 +5931,7 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
+          country?: string | null
           created_at?: string
           description?: string | null
           dti_url?: string | null

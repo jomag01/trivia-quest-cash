@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { ProductVariantManager } from "@/components/ProductVariantManager";
+import { CURRENCIES, getCurrencyFromCountry, type CurrencyCode } from "@/lib/currencies";
 import { 
   Building2, 
   Package, 
@@ -31,8 +32,38 @@ import {
   Boxes,
   FileText,
   ArrowLeft,
-  Palette
+  Palette,
+  Globe
 } from "lucide-react";
+
+// Country list with codes
+const COUNTRIES = [
+  { code: 'PH', name: 'Philippines' },
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'CN', name: 'China' },
+  { code: 'IN', name: 'India' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'MY', name: 'Malaysia' },
+  { code: 'TH', name: 'Thailand' },
+  { code: 'ID', name: 'Indonesia' },
+  { code: 'VN', name: 'Vietnam' },
+  { code: 'KR', name: 'South Korea' },
+  { code: 'HK', name: 'Hong Kong' },
+  { code: 'NZ', name: 'New Zealand' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'CH', name: 'Switzerland' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'ZA', name: 'South Africa' },
+];
 
 interface Supplier {
   id: string;
@@ -45,6 +76,7 @@ interface Supplier {
   description: string | null;
   logo_url: string | null;
   status: string;
+  country: string;
   created_at: string;
 }
 
@@ -58,6 +90,7 @@ interface SupplierProduct {
   category_id: string | null;
   images: string[];
   supplier_price: number;
+  currency: string;
   stock_quantity: number;
   min_order_quantity: number;
   unit: string;
@@ -88,6 +121,7 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
     category_id: "",
     images: [] as string[],
     supplier_price: "",
+    currency: "PHP",
     stock_quantity: "",
     min_order_quantity: "1",
     unit: "piece"
@@ -99,7 +133,8 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
     contact_email: "",
     contact_phone: "",
     address: "",
-    description: ""
+    description: "",
+    country: "PH"
   });
 
   // Check if user is a supplier
@@ -148,6 +183,14 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
     }
   });
 
+  // Get currency based on supplier's country
+  const getSupplierCurrency = (): CurrencyCode => {
+    if (supplier?.country) {
+      return getCurrencyFromCountry(supplier.country);
+    }
+    return getCurrencyFromCountry(supplierForm.country);
+  };
+
   // Register as supplier
   const registerSupplier = useMutation({
     mutationFn: async () => {
@@ -162,6 +205,7 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
           contact_phone: supplierForm.contact_phone,
           address: supplierForm.address,
           description: supplierForm.description,
+          country: supplierForm.country,
           status: "pending"
         });
       if (error) throw error;
@@ -181,6 +225,9 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
     mutationFn: async () => {
       if (!supplier) throw new Error("No supplier profile");
       
+      // Get currency based on supplier's country
+      const currency = getCurrencyFromCountry(supplier.country || 'PH');
+      
       const productData = {
         supplier_id: supplier.id,
         name: productForm.name,
@@ -190,6 +237,7 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
         category_id: productForm.category_id || null,
         images: productForm.images,
         supplier_price: parseFloat(productForm.supplier_price),
+        currency: currency,
         stock_quantity: parseInt(productForm.stock_quantity) || 0,
         min_order_quantity: parseInt(productForm.min_order_quantity) || 1,
         unit: productForm.unit,
@@ -247,6 +295,7 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
       category_id: "",
       images: [],
       supplier_price: "",
+      currency: getSupplierCurrency(),
       stock_quantity: "",
       min_order_quantity: "1",
       unit: "piece"
@@ -264,6 +313,7 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
       category_id: product.category_id || "",
       images: product.images || [],
       supplier_price: product.supplier_price.toString(),
+      currency: product.currency || getSupplierCurrency(),
       stock_quantity: product.stock_quantity.toString(),
       min_order_quantity: product.min_order_quantity.toString(),
       unit: product.unit
@@ -359,6 +409,27 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
                   placeholder="Complete business address"
                   rows={2}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Country *</Label>
+                <Select 
+                  value={supplierForm.country} 
+                  onValueChange={value => setSupplierForm(prev => ({ ...prev, country: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map(country => (
+                      <SelectItem key={country.code} value={country.code}>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Product prices will be in {CURRENCIES[getCurrencyFromCountry(supplierForm.country)].name} ({CURRENCIES[getCurrencyFromCountry(supplierForm.country)].symbol})
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Business Description</Label>
@@ -555,7 +626,9 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
                 <h3 className="font-semibold truncate">{product.name}</h3>
                 <p className="text-sm text-muted-foreground truncate">{product.description}</p>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-lg font-bold text-primary">₱{product.supplier_price.toFixed(2)}</span>
+                  <span className="text-lg font-bold text-primary">
+                    {CURRENCIES[product.currency as CurrencyCode]?.symbol || '₱'}{product.supplier_price.toFixed(2)} {product.currency || 'PHP'}
+                  </span>
                   <span className="text-sm text-muted-foreground">{product.stock_quantity} in stock</span>
                 </div>
                 {product.sku && (
@@ -660,9 +733,11 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Price *</Label>
+                <Label>Price * ({CURRENCIES[getSupplierCurrency()].symbol} {CURRENCIES[getSupplierCurrency()].code})</Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
+                    {CURRENCIES[getSupplierCurrency()].symbol}
+                  </span>
                   <Input 
                     type="number"
                     value={productForm.supplier_price}
@@ -671,6 +746,9 @@ export default function SupplierPortal({ onBack }: SupplierPortalProps) {
                     className="pl-9"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Based on your country: {COUNTRIES.find(c => c.code === supplier?.country)?.name || 'Philippines'}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Stock Qty</Label>
