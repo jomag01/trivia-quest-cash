@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToAWS } from "@/lib/awsMedia";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Edit, Image, Video, Eye, EyeOff, Youtube, Link } from "lucide-react";
+import { Plus, Trash2, Edit, Image, Video, Eye, EyeOff, Youtube } from "lucide-react";
 
 interface PromotionalAd {
   id: string;
@@ -99,44 +100,21 @@ export default function PromotionalAdsManagement() {
 
     setUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `promotional-ads/${fileName}`;
-
-      // Use the storage-upload edge function which handles bucket creation and fallback
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/storage-upload`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${session?.access_token || ""}`,
-            "Content-Type": file.type,
-            "x-bucket": "promotional-ads",
-            "x-path": filePath,
-            "x-filename": fileName,
-          },
-          body: file,
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Upload failed");
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData?.user) {
+        throw new Error("You must be logged in to upload files");
       }
 
-      const result = await response.json();
-      
-      if (!result.publicUrl) {
-        throw new Error("No URL returned from upload");
+      const result = await uploadToAWS(file, `posts/${userData.user.id}`);
+      if (!result?.cdnUrl) {
+        throw new Error("Upload failed. Please try again.");
       }
 
-      setFormData(prev => ({ ...prev, [field]: result.publicUrl }));
+      setFormData((prev) => ({ ...prev, [field]: result.cdnUrl }));
       toast.success("File uploaded successfully");
     } catch (error: any) {
       console.error("Upload error:", error);
-      toast.error(error.message || "Failed to upload file");
+      toast.error(error?.message || "Failed to upload file");
     } finally {
       setUploading(false);
     }
