@@ -116,6 +116,16 @@ export default function PromotionalAdsGallery() {
     window.open(`https://t.me/share/url?url=${url}&text=${text}`, "_blank");
   };
 
+  const shareToMessenger = (ad: PromotionalAd) => {
+    const url = encodeURIComponent(referralLink);
+    // Facebook Messenger share dialog - works on mobile and desktop
+    window.open(
+      `https://www.facebook.com/dialog/send?link=${url}&app_id=966242223397117&redirect_uri=${encodeURIComponent(window.location.href)}`,
+      "_blank",
+      "width=600,height=500"
+    );
+  };
+
   const shareNative = async (ad: PromotionalAd) => {
     if (navigator.share) {
       try {
@@ -339,6 +349,16 @@ export default function PromotionalAdsGallery() {
                 >
                   <Facebook className="w-5 h-5 mr-2 text-blue-600" />
                   Facebook
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-12"
+                  onClick={() => shareToMessenger(selectedAd)}
+                >
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="#0084FF">
+                    <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.17.16.14.26.35.27.57l.05 1.78c.02.62.66 1.02 1.22.77l1.98-.87c.17-.08.36-.1.55-.06.9.25 1.85.39 2.79.39 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm1 13.36L10.73 13l-4.49 2.49 4.94-5.24 2.32 2.35 4.44-2.49-4.94 5.25z"/>
+                  </svg>
+                  Messenger
                 </Button>
                 <Button
                   variant="outline"
