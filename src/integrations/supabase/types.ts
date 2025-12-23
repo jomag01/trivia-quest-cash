@@ -5823,6 +5823,8 @@ export type Database = {
           address: string | null
           approved_at: string | null
           approved_by: string | null
+          bir_url: string | null
+          business_permit_url: string | null
           commission_rate: number | null
           company_name: string
           contact_email: string | null
@@ -5830,17 +5832,23 @@ export type Database = {
           contact_phone: string | null
           created_at: string
           description: string | null
+          dti_url: string | null
+          email_verified: boolean | null
           id: string
           logo_url: string | null
           notes: string | null
           status: string
           updated_at: string
           user_id: string
+          verification_code: string | null
+          verification_expires_at: string | null
         }
         Insert: {
           address?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          bir_url?: string | null
+          business_permit_url?: string | null
           commission_rate?: number | null
           company_name: string
           contact_email?: string | null
@@ -5848,17 +5856,23 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           description?: string | null
+          dti_url?: string | null
+          email_verified?: boolean | null
           id?: string
           logo_url?: string | null
           notes?: string | null
           status?: string
           updated_at?: string
           user_id: string
+          verification_code?: string | null
+          verification_expires_at?: string | null
         }
         Update: {
           address?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          bir_url?: string | null
+          business_permit_url?: string | null
           commission_rate?: number | null
           company_name?: string
           contact_email?: string | null
@@ -5866,12 +5880,16 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           description?: string | null
+          dti_url?: string | null
+          email_verified?: boolean | null
           id?: string
           logo_url?: string | null
           notes?: string | null
           status?: string
           updated_at?: string
           user_id?: string
+          verification_code?: string | null
+          verification_expires_at?: string | null
         }
         Relationships: []
       }
