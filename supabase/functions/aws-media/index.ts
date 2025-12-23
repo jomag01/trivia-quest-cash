@@ -106,11 +106,11 @@ serve(async (req) => {
   }
 
   try {
-    const accessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID');
-    const secretAccessKey = Deno.env.get('AWS_SECRET_ACCESS_KEY');
-    const region = Deno.env.get('AWS_REGION') || 'us-east-1';
-    const bucketName = Deno.env.get('AWS_S3_BUCKET');
-    const cloudfrontDomain = Deno.env.get('AWS_CLOUDFRONT_DOMAIN');
+    const accessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID')?.trim();
+    const secretAccessKey = Deno.env.get('AWS_SECRET_ACCESS_KEY')?.trim();
+    const region = (Deno.env.get('AWS_REGION') || 'us-east-1').trim();
+    const bucketName = Deno.env.get('AWS_S3_BUCKET')?.trim();
+    const cloudfrontDomain = Deno.env.get('AWS_CLOUDFRONT_DOMAIN')?.trim();
 
     if (!accessKeyId || !secretAccessKey) {
       console.error('AWS credentials not configured');
