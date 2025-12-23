@@ -65,7 +65,7 @@ const RetailerSupplierProducts = () => {
   const [showSupplierPortal, setShowSupplierPortal] = useState(false);
 
   // Check if user is an approved supplier
-  const { data: supplierStatus } = useQuery({
+  const { data: supplierStatus, isLoading: supplierLoading } = useQuery({
     queryKey: ["my-supplier-status", user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -75,12 +75,17 @@ const RetailerSupplierProducts = () => {
         .eq("user_id", user.id)
         .maybeSingle();
       if (error) throw error;
+      console.log("Supplier status for user:", user.id, "=>", data);
       return data;
     },
     enabled: !!user
   });
 
+  // Check if supplier has approved OR pending status (pending suppliers can also upload)
   const isApprovedSupplier = supplierStatus?.status === "approved";
+  const hasSupplierAccess = supplierStatus?.status === "approved" || supplierStatus?.status === "pending";
+  
+  console.log("Supplier check - Status:", supplierStatus?.status, "isApproved:", isApprovedSupplier, "hasAccess:", hasSupplierAccess);
 
   // Fetch user's stairstep rank
   const { data: userRank } = useQuery({
