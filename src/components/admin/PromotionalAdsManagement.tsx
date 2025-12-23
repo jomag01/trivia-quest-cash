@@ -103,35 +103,40 @@ export default function PromotionalAdsManagement() {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `promotional-ads/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("promotional-ads")
-        .upload(filePath, file);
-
-      if (uploadError) {
-        // Try creating bucket if it doesn't exist
-        const { error: bucketError } = await supabase.storage.createBucket("promotional-ads", {
-          public: true,
-        });
-        
-        if (!bucketError) {
-          const { error: retryError } = await supabase.storage
-            .from("promotional-ads")
-            .upload(filePath, file);
-          if (retryError) throw retryError;
-        } else {
-          throw uploadError;
+      // Use the storage-upload edge function which handles bucket creation and fallback
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/storage-upload`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${session?.access_token || ""}`,
+            "Content-Type": file.type,
+            "x-bucket": "promotional-ads",
+            "x-path": filePath,
+            "x-filename": fileName,
+          },
+          body: file,
         }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload failed");
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("promotional-ads")
-        .getPublicUrl(filePath);
+      const result = await response.json();
+      
+      if (!result.publicUrl) {
+        throw new Error("No URL returned from upload");
+      }
 
-      setFormData(prev => ({ ...prev, [field]: publicUrl }));
+      setFormData(prev => ({ ...prev, [field]: result.publicUrl }));
       toast.success("File uploaded successfully");
     } catch (error: any) {
       console.error("Upload error:", error);
-      toast.error("Failed to upload file");
+      toast.error(error.message || "Failed to upload file");
     } finally {
       setUploading(false);
     }
