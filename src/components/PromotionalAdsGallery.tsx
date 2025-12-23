@@ -24,6 +24,12 @@ import {
   Play,
 } from "lucide-react";
 
+const YoutubeIcon = () => (
+  <svg className="w-12 h-12 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
+
 interface PromotionalAd {
   id: string;
   title: string;
@@ -127,6 +133,16 @@ export default function PromotionalAdsGallery() {
   };
 
   const downloadMedia = async (ad: PromotionalAd) => {
+    // For YouTube embeds, open the video in a new tab
+    if (ad.media_type === "youtube_embed") {
+      const videoId = ad.media_url.split("/embed/")[1]?.split("?")[0];
+      if (videoId) {
+        window.open(`https://www.youtube.com/watch?v=${videoId}`, "_blank");
+        toast.success("Opening YouTube video...");
+      }
+      return;
+    }
+    
     try {
       const response = await fetch(ad.media_url);
       const blob = await response.blob();
@@ -215,6 +231,17 @@ export default function PromotionalAdsGallery() {
                   alt={ad.title}
                   className="w-full h-full object-cover"
                 />
+              ) : ad.media_type === "youtube_embed" ? (
+                <div className="relative w-full h-full cursor-pointer" onClick={() => openShareDialog(ad)}>
+                  <img
+                    src={ad.thumbnail_url || `https://img.youtube.com/vi/${ad.media_url.split("/embed/")[1]?.split("?")[0]}/maxresdefault.jpg`}
+                    alt={ad.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors">
+                    <YoutubeIcon />
+                  </div>
+                </div>
               ) : (
                 <div className="relative w-full h-full">
                   <video
@@ -233,10 +260,12 @@ export default function PromotionalAdsGallery() {
                 <Badge variant="secondary" className="bg-background/80">
                   {ad.media_type === "image" ? (
                     <Image className="w-3 h-3 mr-1" />
+                  ) : ad.media_type === "youtube_embed" ? (
+                    <Video className="w-3 h-3 mr-1 text-red-500" />
                   ) : (
                     <Video className="w-3 h-3 mr-1" />
                   )}
-                  {ad.media_type}
+                  {ad.media_type === "youtube_embed" ? "YouTube" : ad.media_type}
                 </Badge>
               </div>
             </div>
@@ -282,6 +311,14 @@ export default function PromotionalAdsGallery() {
                     src={selectedAd.media_url}
                     alt={selectedAd.title}
                     className="w-full h-full object-cover"
+                  />
+                ) : selectedAd.media_type === "youtube_embed" ? (
+                  <iframe
+                    src={`${selectedAd.media_url}?autoplay=0&rel=0`}
+                    title={selectedAd.title}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
                   />
                 ) : (
                   <video

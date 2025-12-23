@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Edit, Image, Video, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Edit, Image, Video, Eye, EyeOff, Youtube, Link } from "lucide-react";
 
 interface PromotionalAd {
   id: string;
@@ -49,7 +49,24 @@ export default function PromotionalAdsManagement() {
     thumbnail_url: "",
     cta_text: "Join Now",
     display_order: 0,
+    youtube_url: "",
   });
+
+  const extractYouTubeId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/shorts\/([^&\n?#]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
+  const getYouTubeThumbnail = (videoId: string) => {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  };
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -121,7 +138,21 @@ export default function PromotionalAdsManagement() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.title || !formData.media_url) {
+    // For YouTube embed, extract video ID and create embed URL
+    let mediaUrl = formData.media_url;
+    let thumbnailUrl = formData.thumbnail_url;
+    
+    if (formData.media_type === "youtube_embed") {
+      const videoId = extractYouTubeId(formData.youtube_url);
+      if (!videoId) {
+        toast.error("Invalid YouTube URL. Please enter a valid YouTube video link.");
+        return;
+      }
+      mediaUrl = `https://www.youtube.com/embed/${videoId}`;
+      thumbnailUrl = thumbnailUrl || getYouTubeThumbnail(videoId);
+    }
+    
+    if (!formData.title || (!mediaUrl && formData.media_type !== "youtube_embed")) {
       toast.error("Title and media are required");
       return;
     }
@@ -134,8 +165,8 @@ export default function PromotionalAdsManagement() {
             title: formData.title,
             description: formData.description || null,
             media_type: formData.media_type,
-            media_url: formData.media_url,
-            thumbnail_url: formData.thumbnail_url || null,
+            media_url: mediaUrl,
+            thumbnail_url: thumbnailUrl || null,
             cta_text: formData.cta_text || "Join Now",
             display_order: formData.display_order,
           })
@@ -150,8 +181,8 @@ export default function PromotionalAdsManagement() {
             title: formData.title,
             description: formData.description || null,
             media_type: formData.media_type,
-            media_url: formData.media_url,
-            thumbnail_url: formData.thumbnail_url || null,
+            media_url: mediaUrl,
+            thumbnail_url: thumbnailUrl || null,
             cta_text: formData.cta_text || "Join Now",
             display_order: formData.display_order,
           });
@@ -205,6 +236,14 @@ export default function PromotionalAdsManagement() {
 
   const openEditDialog = (ad: PromotionalAd) => {
     setEditingAd(ad);
+    // Extract YouTube URL from embed format if it's a youtube_embed type
+    let youtubeUrl = "";
+    if (ad.media_type === "youtube_embed" && ad.media_url) {
+      const videoId = ad.media_url.includes("youtube.com/embed/") 
+        ? ad.media_url.split("/embed/")[1]?.split("?")[0]
+        : ad.media_url;
+      youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    }
     setFormData({
       title: ad.title,
       description: ad.description || "",
@@ -213,6 +252,7 @@ export default function PromotionalAdsManagement() {
       thumbnail_url: ad.thumbnail_url || "",
       cta_text: ad.cta_text || "Join Now",
       display_order: ad.display_order,
+      youtube_url: youtubeUrl,
     });
     setDialogOpen(true);
   };
@@ -227,6 +267,7 @@ export default function PromotionalAdsManagement() {
       thumbnail_url: "",
       cta_text: "Join Now",
       display_order: 0,
+      youtube_url: "",
     });
   };
 
@@ -264,6 +305,17 @@ export default function PromotionalAdsManagement() {
                   alt={ad.title}
                   className="w-full h-full object-cover"
                 />
+              ) : ad.media_type === "youtube_embed" ? (
+                <div className="relative w-full h-full">
+                  <img
+                    src={ad.thumbnail_url || `https://img.youtube.com/vi/${ad.media_url.split("/embed/")[1]?.split("?")[0]}/maxresdefault.jpg`}
+                    alt={ad.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <Youtube className="w-12 h-12 text-red-500" />
+                  </div>
+                </div>
               ) : (
                 <video
                   src={ad.media_url}
@@ -273,13 +325,15 @@ export default function PromotionalAdsManagement() {
                 />
               )}
               <div className="absolute top-2 left-2">
-                <Badge variant={ad.media_type === "image" ? "secondary" : "default"}>
+                <Badge variant={ad.media_type === "image" ? "secondary" : ad.media_type === "youtube_embed" ? "destructive" : "default"}>
                   {ad.media_type === "image" ? (
                     <Image className="w-3 h-3 mr-1" />
+                  ) : ad.media_type === "youtube_embed" ? (
+                    <Youtube className="w-3 h-3 mr-1" />
                   ) : (
                     <Video className="w-3 h-3 mr-1" />
                   )}
-                  {ad.media_type}
+                  {ad.media_type === "youtube_embed" ? "YouTube" : ad.media_type}
                 </Badge>
               </div>
               <div className="absolute top-2 right-2">
@@ -373,33 +427,81 @@ export default function PromotionalAdsManagement() {
               <Select
                 value={formData.media_type}
                 onValueChange={(value: string) =>
-                  setFormData((prev) => ({ ...prev, media_type: value }))
+                  setFormData((prev) => ({ ...prev, media_type: value, media_url: "", youtube_url: "" }))
                 }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="image">Image</SelectItem>
-                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="image">
+                    <div className="flex items-center gap-2">
+                      <Image className="w-4 h-4" />
+                      Image Upload
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="video">
+                    <div className="flex items-center gap-2">
+                      <Video className="w-4 h-4" />
+                      Video Upload
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="youtube_embed">
+                    <div className="flex items-center gap-2">
+                      <Youtube className="w-4 h-4 text-red-500" />
+                      YouTube Embed (saves storage)
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div>
-              <Label>Media File *</Label>
-              <Input
-                type="file"
-                accept={formData.media_type === "image" ? "image/*" : "video/*"}
-                onChange={(e) => handleFileUpload(e, "media_url")}
-                disabled={uploading}
-              />
-              {formData.media_url && (
-                <p className="text-xs text-muted-foreground mt-1 truncate">
-                  {formData.media_url}
-                </p>
-              )}
-            </div>
+            {formData.media_type === "youtube_embed" ? (
+              <div className="space-y-3">
+                <div>
+                  <Label>YouTube Video URL *</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      value={formData.youtube_url}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, youtube_url: e.target.value }))
+                      }
+                      placeholder="https://www.youtube.com/watch?v=..."
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Paste any YouTube URL (regular, shorts, or embed link)
+                  </p>
+                </div>
+                {formData.youtube_url && extractYouTubeId(formData.youtube_url) && (
+                  <div className="rounded-lg overflow-hidden border">
+                    <img
+                      src={getYouTubeThumbnail(extractYouTubeId(formData.youtube_url)!)}
+                      alt="YouTube thumbnail preview"
+                      className="w-full aspect-video object-cover"
+                    />
+                    <div className="p-2 bg-muted text-xs text-center">
+                      Video ID: {extractYouTubeId(formData.youtube_url)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <Label>Media File *</Label>
+                <Input
+                  type="file"
+                  accept={formData.media_type === "image" ? "image/*" : "video/*"}
+                  onChange={(e) => handleFileUpload(e, "media_url")}
+                  disabled={uploading}
+                />
+                {formData.media_url && (
+                  <p className="text-xs text-muted-foreground mt-1 truncate">
+                    {formData.media_url}
+                  </p>
+                )}
+              </div>
+            )}
 
             {formData.media_type === "video" && (
               <div>
