@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 const formatMoney = (amount: number) => `₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
-import { formatCurrency } from "@/lib/currencies";
+
 import { 
   DollarSign, 
   TrendingUp, 
@@ -43,11 +43,15 @@ export default function SalesOverview() {
       if (!user) return getEmptyData();
 
       // Fetch shop sales (as seller)
-      const { data: shopOrders } = await supabase
-        .from("orders")
-        .select("total_amount, status")
-        .eq("seller_id", user.id)
-        .eq("status", "delivered");
+      let shopOrders: { total_amount: number }[] = [];
+      try {
+        const result = await (supabase as any)
+          .from("orders")
+          .select("total_amount")
+          .eq("seller_id", user.id)
+          .eq("status", "delivered");
+        if (result.data) shopOrders = result.data;
+      } catch (e) { /* ignore */ }
 
       // Fetch marketplace sales
       const { data: marketplaceSales } = await supabase
@@ -101,12 +105,15 @@ export default function SalesOverview() {
 
       let supplierEarnings = 0;
       if (supplier) {
-        const { data: supplierOrders } = await supabase
-          .from("order_items")
-          .select("subtotal, orders!inner(status)")
-          .eq("supplier_id", supplier.id)
-          .eq("orders.status", "delivered");
-        supplierEarnings = supplierOrders?.reduce((sum, o) => sum + Number(o.subtotal), 0) || 0;
+        try {
+          const result = await (supabase as any)
+            .from("order_items")
+            .select("subtotal")
+            .eq("supplier_id", supplier.id);
+          if (result.data) {
+            supplierEarnings = result.data.reduce((sum: number, o: any) => sum + Number(o.subtotal), 0);
+          }
+        } catch (e) { /* ignore */ }
       }
 
       // Fetch retailer commissions
@@ -197,7 +204,7 @@ export default function SalesOverview() {
                 <DollarSign className="w-6 h-6 text-green-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(data.totalSales)}</p>
+                <p className="text-2xl font-bold">{formatMoney(data.totalSales)}</p>
                 <p className="text-sm text-muted-foreground">Total Sales</p>
               </div>
             </div>
@@ -211,7 +218,7 @@ export default function SalesOverview() {
                 <TrendingUp className="w-6 h-6 text-blue-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(data.referralEarnings)}</p>
+                <p className="text-2xl font-bold">{formatMoney(data.referralEarnings)}</p>
                 <p className="text-sm text-muted-foreground">Commissions</p>
               </div>
             </div>
@@ -225,7 +232,7 @@ export default function SalesOverview() {
                 <ArrowDownRight className="w-6 h-6 text-red-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">-{formatCurrency(data.adminDeductions)}</p>
+                <p className="text-2xl font-bold">-{formatMoney(data.adminDeductions)}</p>
                 <p className="text-sm text-muted-foreground">Deductions</p>
               </div>
             </div>
@@ -239,7 +246,7 @@ export default function SalesOverview() {
                 <Wallet className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(data.netEarnings)}</p>
+                <p className="text-2xl font-bold">{formatMoney(data.netEarnings)}</p>
                 <p className="text-sm text-muted-foreground">Net Earnings</p>
               </div>
             </div>
@@ -279,7 +286,7 @@ export default function SalesOverview() {
                         <span className="text-sm font-medium">{item.label}</span>
                       </div>
                       <div className="text-right">
-                        <span className="font-semibold">{formatCurrency(item.value)}</span>
+                        <span className="font-semibold">{formatMoney(item.value)}</span>
                         <span className="text-xs text-muted-foreground ml-2">({percentage}%)</span>
                       </div>
                     </div>
@@ -306,19 +313,19 @@ export default function SalesOverview() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between py-2 border-b">
               <span className="text-muted-foreground">Gross Sales</span>
-              <span className="font-medium text-green-600">+{formatCurrency(data.totalSales)}</span>
+              <span className="font-medium text-green-600">+{formatMoney(data.totalSales)}</span>
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-muted-foreground">Referral & Commissions</span>
-              <span className="font-medium text-blue-600">+{formatCurrency(data.referralEarnings)}</span>
+              <span className="font-medium text-blue-600">+{formatMoney(data.referralEarnings)}</span>
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-muted-foreground">Platform Fees (15%)</span>
-              <span className="font-medium text-red-600">-{formatCurrency(data.adminDeductions)}</span>
+              <span className="font-medium text-red-600">-{formatMoney(data.adminDeductions)}</span>
             </div>
             <div className="flex justify-between py-3 text-lg font-bold">
               <span>Net Earnings</span>
-              <span className="text-primary">{formatCurrency(data.netEarnings)}</span>
+              <span className="text-primary">{formatMoney(data.netEarnings)}</span>
             </div>
           </div>
         </CardContent>

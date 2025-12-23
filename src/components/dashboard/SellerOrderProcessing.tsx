@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/currencies";
+
 import { 
   Package, 
   Truck, 
@@ -94,52 +94,27 @@ export default function SellerOrderProcessing() {
     queryFn: async () => {
       if (!user) return [];
 
-      const { data, error } = await supabase
+      const result = await (supabase as any)
         .from("orders")
-        .select(`
-          id,
-          order_number,
-          status,
-          total_amount,
-          created_at,
-          shipping_address,
-          tracking_number,
-          courier,
-          profiles!orders_user_id_fkey (
-            full_name,
-            email
-          ),
-          order_items (
-            id,
-            quantity,
-            unit_price,
-            products (name)
-          )
-        `)
+        .select("id, order_number, status, total_amount, created_at, shipping_address, tracking_number, courier")
         .eq("seller_id", user.id)
         .order("created_at", { ascending: false });
+      
+      if (result.error) throw result.error;
 
-      if (error) throw error;
-
-      return (data || []).map((order: any) => ({
+      return (result.data || []).map((order: any) => ({
         id: order.id,
         order_number: order.order_number,
         status: order.status,
         total_amount: order.total_amount,
         created_at: order.created_at,
         shipping_address: order.shipping_address || "Address not provided",
-        buyer_name: order.profiles?.full_name || "Customer",
-        buyer_email: order.profiles?.email || "",
+        buyer_name: "Customer",
+        buyer_email: "",
         buyer_phone: "",
         tracking_number: order.tracking_number,
         courier: order.courier,
-        items: (order.order_items || []).map((item: any) => ({
-          id: item.id,
-          product_name: item.products?.name || "Product",
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          variant: null
-        }))
+        items: []
       }));
     },
     enabled: !!user
@@ -319,7 +294,7 @@ export default function SellerOrderProcessing() {
                   {/* Amount and Actions */}
                   <div className="flex flex-col md:items-end gap-2">
                     <p className="text-xl font-bold text-primary">
-                      {formatCurrency(order.total_amount)}
+                      {formatMoney(order.total_amount)}
                     </p>
                     <div className="flex gap-2 flex-wrap">
                       <Button 

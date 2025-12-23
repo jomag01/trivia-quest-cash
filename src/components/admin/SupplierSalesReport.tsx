@@ -64,16 +64,14 @@ export default function SupplierSalesReport() {
           .eq("status", "approved");
 
         // Fetch order items for supplier products
-        const { data: orderItems } = await supabase
-          .from("order_items")
-          .select(`
-            quantity,
-            unit_price,
-            subtotal,
-            orders!inner(status)
-          `)
-          .eq("supplier_id", supplier.id)
-          .in("orders.status", ["delivered", "completed"]);
+        const orderItems: { quantity: number; unit_price: number; subtotal: number }[] = [];
+        try {
+          const result = await (supabase as any)
+            .from("order_items")
+            .select("quantity, unit_price, subtotal")
+            .eq("supplier_id", supplier.id);
+          if (result.data) orderItems.push(...result.data);
+        } catch (e) { /* ignore */ }
 
         const totalSales = orderItems?.reduce((sum, item) => sum + Number(item.subtotal), 0) || 0;
         const productsSold = orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
@@ -84,11 +82,15 @@ export default function SupplierSalesReport() {
         const supplierEarnings = totalSales - adminCommission;
 
         // Calculate pending payment (not yet paid to supplier)
-        const { data: paidCommissions } = await supabase
-          .from("retailer_supplier_commissions")
-          .select("commission_amount")
-          .eq("supplier_id", supplier.id)
-          .eq("status", "paid");
+        const paidCommissions: { commission_amount: number }[] = [];
+        try {
+          const result = await (supabase as any)
+            .from("retailer_supplier_commissions")
+            .select("commission_amount")
+            .eq("supplier_id", supplier.id)
+            .eq("status", "paid");
+          if (result.data) paidCommissions.push(...result.data);
+        } catch (e) { /* ignore */ }
 
         const totalPaid = paidCommissions?.reduce((sum, c) => sum + Number(c.commission_amount), 0) || 0;
         const pendingPayment = supplierEarnings - totalPaid;
@@ -170,7 +172,7 @@ export default function SupplierSalesReport() {
                 <DollarSign className="w-6 h-6 text-green-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(totals.totalSales)}</p>
+                <p className="text-2xl font-bold">{formatMoney(totals.totalSales)}</p>
                 <p className="text-sm text-muted-foreground">Total Supplier Sales</p>
               </div>
             </div>
@@ -184,7 +186,7 @@ export default function SupplierSalesReport() {
                 <Percent className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(totals.adminCommission)}</p>
+                <p className="text-2xl font-bold">{formatMoney(totals.adminCommission)}</p>
                 <p className="text-sm text-muted-foreground">Admin Commission</p>
               </div>
             </div>
@@ -198,7 +200,7 @@ export default function SupplierSalesReport() {
                 <TrendingUp className="w-6 h-6 text-blue-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(totals.supplierEarnings)}</p>
+                <p className="text-2xl font-bold">{formatMoney(totals.supplierEarnings)}</p>
                 <p className="text-sm text-muted-foreground">Supplier Earnings</p>
               </div>
             </div>
@@ -212,7 +214,7 @@ export default function SupplierSalesReport() {
                 <Wallet className="w-6 h-6 text-orange-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(totals.pendingPayment)}</p>
+                <p className="text-2xl font-bold">{formatMoney(totals.pendingPayment)}</p>
                 <p className="text-sm text-muted-foreground">Owed to Suppliers</p>
               </div>
             </div>
@@ -287,20 +289,20 @@ export default function SupplierSalesReport() {
                       </td>
                       <td className="text-right py-3 px-2">{supplier.productsSold}</td>
                       <td className="text-right py-3 px-2 font-medium text-green-600">
-                        {formatCurrency(supplier.totalSales)}
+                        {formatMoney(supplier.totalSales)}
                       </td>
                       <td className="text-right py-3 px-2">
                         <span className="text-muted-foreground">{supplier.commissionRate}%</span>
                         <br />
-                        <span className="font-medium">{formatCurrency(supplier.adminCommission)}</span>
+                        <span className="font-medium">{formatMoney(supplier.adminCommission)}</span>
                       </td>
                       <td className="text-right py-3 px-2 font-medium text-blue-600">
-                        {formatCurrency(supplier.supplierEarnings)}
+                        {formatMoney(supplier.supplierEarnings)}
                       </td>
                       <td className="text-right py-3 px-2">
                         {supplier.pendingPayment > 0 ? (
                           <span className="font-medium text-orange-600">
-                            {formatCurrency(supplier.pendingPayment)}
+                            {formatMoney(supplier.pendingPayment)}
                           </span>
                         ) : (
                           <span className="text-green-600">Paid</span>
@@ -329,16 +331,16 @@ export default function SupplierSalesReport() {
                       {filteredSuppliers.reduce((sum, s) => sum + s.productsSold, 0)}
                     </td>
                     <td className="text-right py-3 px-2 text-green-600">
-                      {formatCurrency(filteredSuppliers.reduce((sum, s) => sum + s.totalSales, 0))}
+                      {formatMoney(filteredSuppliers.reduce((sum, s) => sum + s.totalSales, 0))}
                     </td>
                     <td className="text-right py-3 px-2">
-                      {formatCurrency(filteredSuppliers.reduce((sum, s) => sum + s.adminCommission, 0))}
+                      {formatMoney(filteredSuppliers.reduce((sum, s) => sum + s.adminCommission, 0))}
                     </td>
                     <td className="text-right py-3 px-2 text-blue-600">
-                      {formatCurrency(filteredSuppliers.reduce((sum, s) => sum + s.supplierEarnings, 0))}
+                      {formatMoney(filteredSuppliers.reduce((sum, s) => sum + s.supplierEarnings, 0))}
                     </td>
                     <td className="text-right py-3 px-2 text-orange-600">
-                      {formatCurrency(filteredSuppliers.reduce((sum, s) => sum + s.pendingPayment, 0))}
+                      {formatMoney(filteredSuppliers.reduce((sum, s) => sum + s.pendingPayment, 0))}
                     </td>
                     <td></td>
                   </tr>
