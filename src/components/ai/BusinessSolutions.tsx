@@ -28,7 +28,13 @@ import {
   Table,
   FileCheck,
   Wand2,
-  Layout
+  Layout,
+  User,
+  Briefcase,
+  FileSignature,
+  GraduationCap,
+  Building2,
+  ScrollText
 } from 'lucide-react';
 
 interface BusinessSolutionsProps {
@@ -54,6 +60,15 @@ const EXCEL_OPERATIONS = [
   { id: 'comparison', name: 'Comparison Report', description: 'Compare data periods', icon: Table },
 ];
 
+const DOCUMENT_SERVICES = [
+  { id: 'resume', name: 'Resume Maker', description: 'Create professional resumes and CVs', icon: User },
+  { id: 'pitch', name: 'Product/Company Pitch', description: 'Craft compelling pitch documents', icon: Briefcase },
+  { id: 'resolution', name: 'Resolution Paper', description: 'Professional resolution documents', icon: FileSignature },
+  { id: 'proposal', name: 'Business Proposal', description: 'Create winning business proposals', icon: Building2 },
+  { id: 'cover-letter', name: 'Cover Letter', description: 'Write impactful cover letters', icon: ScrollText },
+  { id: 'academic', name: 'Academic Paper', description: 'Structure academic documents', icon: GraduationCap },
+];
+
 const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCreditsChange }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('powerpoint');
@@ -77,8 +92,16 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
   const [isProcessingExcel, setIsProcessingExcel] = useState(false);
   const [excelResult, setExcelResult] = useState<any>(null);
   
+  // Document generator states
+  const [selectedDocService, setSelectedDocService] = useState('resume');
+  const [docContent, setDocContent] = useState('');
+  const [docInstructions, setDocInstructions] = useState('');
+  const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
+  const [generatedDocument, setGeneratedDocument] = useState<string | null>(null);
+  
   const PPT_CREDIT_COST = 5;
   const EXCEL_CREDIT_COST = 3;
+  const DOC_CREDIT_COST = 4;
 
   const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -261,6 +284,73 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
     }
   };
 
+  const handleGenerateDocument = async () => {
+    if (!user) {
+      toast.error('Please login to generate documents');
+      return;
+    }
+    
+    if (!docContent.trim()) {
+      toast.error('Please provide the content/information for your document');
+      return;
+    }
+    
+    if (userCredits < DOC_CREDIT_COST) {
+      toast.error(`You need at least ${DOC_CREDIT_COST} credits to generate documents`);
+      return;
+    }
+
+    setIsGeneratingDoc(true);
+    setGeneratedDocument(null);
+
+    try {
+      const deducted = await deductCredits(DOC_CREDIT_COST);
+      if (!deducted) {
+        toast.error('Failed to deduct credits');
+        return;
+      }
+
+      const selectedService = DOCUMENT_SERVICES.find(s => s.id === selectedDocService);
+      
+      const { data, error } = await supabase.functions.invoke('business-solutions', {
+        body: {
+          type: 'generate-document',
+          serviceType: selectedDocService,
+          serviceName: selectedService?.name || 'Document',
+          content: docContent,
+          instructions: docInstructions
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.document) {
+        setGeneratedDocument(data.document);
+        toast.success('Document generated successfully!');
+      } else {
+        throw new Error('No document returned');
+      }
+    } catch (error: any) {
+      console.error('Document generation error:', error);
+      toast.error(error.message || 'Failed to generate document');
+    } finally {
+      setIsGeneratingDoc(false);
+    }
+  };
+
+  const downloadDocument = () => {
+    if (!generatedDocument) return;
+    
+    const selectedService = DOCUMENT_SERVICES.find(s => s.id === selectedDocService);
+    const blob = new Blob([generatedDocument], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${selectedService?.name.toLowerCase().replace(/\s+/g, '-') || 'document'}-${Date.now()}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const downloadPPT = async () => {
     if (!generatedPPT) return;
     
@@ -436,15 +526,20 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-1">
+        <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-1">
           <TabsTrigger value="powerpoint" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white">
             <Presentation className="h-4 w-4" />
-            <span className="hidden sm:inline">PowerPoint Generator</span>
+            <span className="hidden sm:inline">PowerPoint</span>
             <span className="sm:hidden">PPT</span>
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Documents</span>
+            <span className="sm:hidden">Docs</span>
           </TabsTrigger>
           <TabsTrigger value="excel" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white">
             <FileSpreadsheet className="h-4 w-4" />
-            <span className="hidden sm:inline">Excel Automation</span>
+            <span className="hidden sm:inline">Excel</span>
             <span className="sm:hidden">Excel</span>
           </TabsTrigger>
         </TabsList>
@@ -646,6 +741,180 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
                       <Download className="h-4 w-4" />
                       Download Presentation Data
                     </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Document Generator */}
+        <TabsContent value="documents" className="space-y-4">
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-violet-500/5 overflow-hidden relative">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-bold">
+                  Professional Document Generator
+                </span>
+              </CardTitle>
+              <CardDescription>
+                Create professional documents for your career and business needs
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Service Selection Dropdown */}
+              <div className="space-y-2">
+                <Label>Select Document Type</Label>
+                <Select value={selectedDocService} onValueChange={setSelectedDocService}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose a document type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DOCUMENT_SERVICES.map((service) => {
+                      const IconComponent = service.icon;
+                      return (
+                        <SelectItem key={service.id} value={service.id}>
+                          <div className="flex items-center gap-2">
+                            <IconComponent className="h-4 w-4 text-blue-600" />
+                            <div>
+                              <span className="font-medium">{service.name}</span>
+                              <span className="text-muted-foreground text-xs ml-2">- {service.description}</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Service Cards Preview */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {DOCUMENT_SERVICES.map((service) => {
+                  const IconComponent = service.icon;
+                  const isSelected = selectedDocService === service.id;
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      onClick={() => setSelectedDocService(service.id)}
+                      className={`p-3 rounded-lg border-2 text-left transition-all ${
+                        isSelected 
+                          ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/20' 
+                          : 'border-border hover:border-blue-300 hover:bg-blue-500/5'
+                      }`}
+                    >
+                      <IconComponent className={`h-5 w-5 mb-2 ${isSelected ? 'text-blue-600' : 'text-muted-foreground'}`} />
+                      <p className={`text-sm font-medium ${isSelected ? 'text-blue-600' : ''}`}>{service.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{service.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Content Input */}
+              <div className="space-y-2">
+                <Label>
+                  {selectedDocService === 'resume' && 'Your Experience & Skills'}
+                  {selectedDocService === 'pitch' && 'Product/Company Details'}
+                  {selectedDocService === 'resolution' && 'Resolution Details'}
+                  {selectedDocService === 'proposal' && 'Proposal Details'}
+                  {selectedDocService === 'cover-letter' && 'Job & Your Background'}
+                  {selectedDocService === 'academic' && 'Paper Topic & Research'}
+                </Label>
+                <Textarea
+                  placeholder={
+                    selectedDocService === 'resume' 
+                      ? 'Enter your work experience, education, skills, and achievements...'
+                      : selectedDocService === 'pitch'
+                      ? 'Describe your product/company, target market, value proposition...'
+                      : selectedDocService === 'resolution'
+                      ? 'Enter the resolution topic, parties involved, terms, and conditions...'
+                      : selectedDocService === 'proposal'
+                      ? 'Describe the project, objectives, timeline, budget, and deliverables...'
+                      : selectedDocService === 'cover-letter'
+                      ? 'Enter the job title, company, and your relevant experience...'
+                      : 'Enter your research topic, thesis statement, and key points...'
+                  }
+                  value={docContent}
+                  onChange={(e) => setDocContent(e.target.value)}
+                  rows={6}
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Additional Instructions */}
+              <div className="space-y-2">
+                <Label>Additional Instructions (Optional)</Label>
+                <Textarea
+                  placeholder="Any specific requirements, tone, format preferences, or details to include..."
+                  value={docInstructions}
+                  onChange={(e) => setDocInstructions(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Generate Button */}
+              <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
+                    {DOC_CREDIT_COST} Credits
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">per document</span>
+                </div>
+                <Button
+                  onClick={handleGenerateDocument}
+                  disabled={isGeneratingDoc || !docContent.trim() || userCredits < DOC_CREDIT_COST}
+                  className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+                >
+                  {isGeneratingDoc ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-4 w-4" />
+                      Generate Document
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Generated Document Result */}
+              {generatedDocument && (
+                <Card className="border-green-500/50 bg-green-500/5">
+                  <CardContent className="pt-6 space-y-4">
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <Sparkles className="h-5 w-5" />
+                      <span className="font-medium">Document Generated!</span>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 max-h-96 overflow-y-auto border">
+                      <pre className="whitespace-pre-wrap text-sm font-sans">{generatedDocument}</pre>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button onClick={downloadDocument} className="flex-1 gap-2">
+                        <Download className="h-4 w-4" />
+                        Download Document
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          navigator.clipboard.writeText(generatedDocument);
+                          toast.success('Copied to clipboard!');
+                        }}
+                        className="gap-2"
+                      >
+                        Copy
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}
