@@ -16,6 +16,12 @@ interface Profile {
   is_verified_seller: boolean;
   seller_rating: number;
   total_reviews: number;
+  username?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  website?: string | null;
+  birthday?: string | null;
+  phone_number?: string | null;
 }
 
 type UserRole = 'admin' | 'user';
