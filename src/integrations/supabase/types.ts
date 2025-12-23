@@ -1255,6 +1255,48 @@ export type Database = {
           },
         ]
       }
+      email_change_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          new_email: string
+          old_email: string
+          reason: string | null
+          status: string
+          user_id: string
+          verification_token: string
+          verified_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          new_email: string
+          old_email: string
+          reason?: string | null
+          status?: string
+          user_id: string
+          verification_token: string
+          verified_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          new_email?: string
+          old_email?: string
+          reason?: string | null
+          status?: string
+          user_id?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       file_uploads: {
         Row: {
           base64_data: string | null
@@ -4030,6 +4072,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          birthday: string | null
           country: string | null
           cover_url: string | null
           created_at: string
@@ -4049,6 +4092,7 @@ export type Database = {
           is_verified_rider: boolean | null
           is_verified_seller: boolean | null
           location: string | null
+          phone_number: string | null
           referral_code: string
           referred_by: string | null
           seller_rating: number | null
@@ -4061,6 +4105,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          birthday?: string | null
           country?: string | null
           cover_url?: string | null
           created_at?: string
@@ -4080,6 +4125,7 @@ export type Database = {
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null
           location?: string | null
+          phone_number?: string | null
           referral_code: string
           referred_by?: string | null
           seller_rating?: number | null
@@ -4092,6 +4138,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          birthday?: string | null
           country?: string | null
           cover_url?: string | null
           created_at?: string
@@ -4111,6 +4158,7 @@ export type Database = {
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null
           location?: string | null
+          phone_number?: string | null
           referral_code?: string
           referred_by?: string | null
           seller_rating?: number | null

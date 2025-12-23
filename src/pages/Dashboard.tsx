@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare, Sparkles, Truck, Building2 } from "lucide-react";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare, Sparkles, Truck, Building2, Settings } from "lucide-react";
 import { toast } from "sonner";
 import RetailerSupplierProducts from "@/components/dashboard/RetailerSupplierProducts";
 import MyListingsHub from "@/components/dashboard/MyListingsHub";
@@ -42,6 +42,7 @@ import { AppPresentationGenerator } from "@/components/AppPresentationGenerator"
 import BinaryEarningsAnalytics from "@/components/BinaryEarningsAnalytics";
 import BinaryTreeView from "@/components/BinaryTreeView";
 import ProviderInbox from "@/components/chat/ProviderInbox";
+import { AccountSettings } from "@/components/profile/AccountSettings";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -505,6 +506,13 @@ const Dashboard = () => {
                     <Building2 className="w-4 h-4 mr-2" />
                     My Listings
                   </Button>
+                  <Button variant={activeTab === "account-settings" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  handleTabChange("account-settings");
+                  setMobileMenuOpen(false);
+                }}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Account Settings
+                  </Button>
                   <div className="border-t border-border my-2" />
                   <Button variant="ghost" className="justify-start text-destructive hover:text-destructive" onClick={async () => {
                   await signOut();
@@ -543,6 +551,7 @@ const Dashboard = () => {
                 <SelectItem value="ai-credits">AI Credits</SelectItem>
                 <SelectItem value="supplier-products">Supplier Products</SelectItem>
                 <SelectItem value="my-listings">My Listings</SelectItem>
+                <SelectItem value="account-settings">Account Settings</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -904,6 +913,10 @@ const Dashboard = () => {
 
       <TabsContent value="my-listings">
         <MyListingsHub />
+      </TabsContent>
+
+      <TabsContent value="account-settings">
+        <AccountSettings />
       </TabsContent>
     </Tabs>
   </div>
