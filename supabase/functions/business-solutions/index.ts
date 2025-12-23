@@ -270,6 +270,124 @@ Return a JSON object with this structure:
       );
     }
 
+    if (type === 'generate-document') {
+      const { serviceType, serviceName, content, instructions } = params;
+      
+      const documentPrompts: Record<string, string> = {
+        resume: `Create a professional, ATS-friendly resume/CV. Include sections for:
+- Contact Information header
+- Professional Summary (3-4 impactful sentences)
+- Work Experience (with bullet points highlighting achievements, quantified where possible)
+- Education
+- Skills (technical and soft skills)
+- Optional sections as relevant: Certifications, Projects, Languages, Awards
+
+Format it professionally with clear section headers and consistent formatting.`,
+        
+        pitch: `Create a compelling pitch document that includes:
+- Executive Summary / Hook
+- Problem Statement (pain points addressed)
+- Solution / Product Description
+- Unique Value Proposition
+- Target Market / Customer Segments
+- Business Model / How it works
+- Competitive Advantage
+- Traction / Milestones (if applicable)
+- Team Overview (if provided)
+- Call to Action / Next Steps
+
+Make it persuasive, professional, and investor/client-ready.`,
+        
+        resolution: `Create a formal resolution document that includes:
+- Document Header (Resolution Number, Date)
+- Title of Resolution
+- Preamble / Whereas Clauses (background and justification)
+- Resolved Clauses (specific actions or decisions)
+- Effective Date
+- Signatures / Authorization section
+
+Use formal legal language appropriate for official documentation.`,
+        
+        proposal: `Create a comprehensive business proposal that includes:
+- Cover Page
+- Executive Summary
+- Project Overview / Scope
+- Objectives and Goals
+- Methodology / Approach
+- Timeline / Milestones
+- Deliverables
+- Budget / Pricing
+- Team / Qualifications
+- Terms and Conditions
+- Call to Action
+
+Make it professional, detailed, and persuasive.`,
+        
+        'cover-letter': `Create a compelling cover letter that includes:
+- Professional header with contact info
+- Date and recipient information
+- Engaging opening paragraph (why this role/company)
+- Body paragraphs highlighting relevant experience and achievements
+- Demonstration of company knowledge and cultural fit
+- Strong closing with call to action
+- Professional sign-off
+
+Keep it concise (one page), personalized, and impactful.`,
+        
+        academic: `Create a well-structured academic paper that includes:
+- Title and Author Information
+- Abstract (150-250 words)
+- Introduction (background, objectives, thesis statement)
+- Literature Review / Background
+- Methodology (if applicable)
+- Main Body / Analysis
+- Discussion of Findings
+- Conclusion
+- References section
+
+Use academic language, proper citations format, and logical flow.`,
+      };
+
+      const systemPrompt = `You are a professional document writer specializing in ${serviceName}. ${documentPrompts[serviceType] || 'Create a professional document based on the provided information.'}
+
+${instructions ? `Additional requirements: ${instructions}` : ''}
+
+Create a polished, professional document that is ready for immediate use. Use appropriate formatting with clear sections and headers.`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Create a ${serviceName} based on the following information:\n\n${content}` }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI API error:', errorText);
+        throw new Error(`AI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const document = data.choices?.[0]?.message?.content;
+
+      if (!document) {
+        throw new Error('No content returned from AI');
+      }
+
+      return new Response(
+        JSON.stringify({ document }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     throw new Error(`Unknown operation type: ${type}`);
 
   } catch (error) {
