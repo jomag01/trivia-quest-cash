@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,7 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { 
   Building2, Package, Upload, CheckCircle, Clock, XCircle, 
-  Plus, Edit, Trash2, Image, Loader2, TrendingUp, Star
+  Plus, Edit, Trash2, Image, Loader2, TrendingUp, Star,
+  Mail, FileText, ShieldCheck, Send
 } from "lucide-react";
 
 interface SupplierProduct {
@@ -42,13 +43,29 @@ const SupplierApplication = () => {
   const [productDialog, setProductDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<SupplierProduct | null>(null);
   const [activeTab, setActiveTab] = useState("products");
+  
+  // Email verification state
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [sentCode, setSentCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  
+  // File upload refs
+  const businessPermitRef = useRef<HTMLInputElement>(null);
+  const birRef = useRef<HTMLInputElement>(null);
+  const dtiRef = useRef<HTMLInputElement>(null);
 
   const [supplierForm, setSupplierForm] = useState({
     company_name: "",
     contact_name: "",
+    contact_email: "",
     contact_phone: "",
     address: "",
-    description: ""
+    description: "",
+    business_permit: null as File | null,
+    bir: null as File | null,
+    dti: null as File | null
   });
 
   const [productForm, setProductForm] = useState({
@@ -96,20 +113,100 @@ const SupplierApplication = () => {
     enabled: !!supplier?.id
   });
 
+  // Send verification code
+  const sendVerificationCode = async () => {
+    if (!supplierForm.contact_email) {
+      toast.error("Please enter an email address");
+      return;
+    }
+    
+    setSendingCode(true);
+    try {
+      // Generate a 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      setSentCode(code);
+      
+      // For now, we'll just show the code in a toast (in production, you'd send an email)
+      toast.success(`Verification code sent! Code: ${code}`, { duration: 10000 });
+      setCodeSent(true);
+    } catch (error) {
+      toast.error("Failed to send verification code");
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
+  // Verify the code
+  const verifyCode = () => {
+    if (verificationCode === sentCode) {
+      setEmailVerified(true);
+      toast.success("Email verified successfully!");
+    } else {
+      toast.error("Invalid verification code");
+    }
+  };
+
+  // Upload file to storage
+  const uploadFile = async (file: File, path: string): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${path}/${Date.now()}.${fileExt}`;
+      
+      const { error } = await supabase.storage
+        .from('supplier-documents')
+        .upload(fileName, file);
+      
+      if (error) {
+        console.error("Upload error:", error);
+        return null;
+      }
+      
+      const { data: urlData } = supabase.storage
+        .from('supplier-documents')
+        .getPublicUrl(fileName);
+      
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error("Upload failed:", error);
+      return null;
+    }
+  };
+
   // Register as supplier
   const registerSupplier = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not authenticated");
+      if (!emailVerified) throw new Error("Please verify your email first");
+      
+      // Upload documents if provided
+      let businessPermitUrl = null;
+      let birUrl = null;
+      let dtiUrl = null;
+      
+      if (supplierForm.business_permit) {
+        businessPermitUrl = await uploadFile(supplierForm.business_permit, `${user.id}/business-permit`);
+      }
+      if (supplierForm.bir) {
+        birUrl = await uploadFile(supplierForm.bir, `${user.id}/bir`);
+      }
+      if (supplierForm.dti) {
+        dtiUrl = await uploadFile(supplierForm.dti, `${user.id}/dti`);
+      }
+      
       const { error } = await supabase
         .from("suppliers")
         .insert({
           user_id: user.id,
           company_name: supplierForm.company_name,
           contact_name: supplierForm.contact_name,
-          contact_email: user.email,
+          contact_email: supplierForm.contact_email,
           contact_phone: supplierForm.contact_phone,
           address: supplierForm.address,
           description: supplierForm.description,
+          email_verified: true,
+          business_permit_url: businessPermitUrl,
+          bir_url: birUrl,
+          dti_url: dtiUrl,
           status: "pending"
         });
       if (error) throw error;
@@ -243,76 +340,275 @@ const SupplierApplication = () => {
   // Not yet a supplier - show registration form
   if (!supplier) {
     return (
-      <div className="max-w-2xl mx-auto py-8 px-4">
+      <div className="w-full max-w-2xl mx-auto py-4 sm:py-8 px-2 sm:px-4">
         <Card className="overflow-hidden border-0 shadow-2xl">
-          <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 p-6 text-white">
-            <Building2 className="w-16 h-16 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-center">Become a Supplier</h2>
-            <p className="text-center text-violet-100 mt-2">
+          <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 p-4 sm:p-6 text-white">
+            <Building2 className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4" />
+            <h2 className="text-xl sm:text-2xl font-bold text-center">Become a Supplier</h2>
+            <p className="text-center text-violet-100 mt-2 text-sm sm:text-base">
               Join our marketplace and start selling your products to retailers
             </p>
           </div>
-          <CardContent className="p-6 space-y-4">
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Company Name *</Label>
-                <Input 
-                  value={supplierForm.company_name}
-                  onChange={e => setSupplierForm(prev => ({ ...prev, company_name: e.target.value }))}
-                  placeholder="Your company name"
-                  className="border-purple-200 focus:border-purple-500"
-                />
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            {/* Step 1: Email Verification */}
+            <div className="space-y-4 p-3 sm:p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+              <div className="flex items-center gap-2">
+                <div className={`p-2 rounded-full ${emailVerified ? 'bg-green-500' : 'bg-blue-500'}`}>
+                  {emailVerified ? <CheckCircle className="w-4 h-4 text-white" /> : <Mail className="w-4 h-4 text-white" />}
+                </div>
+                <h3 className="font-semibold text-sm sm:text-base">Step 1: Verify Your Email</h3>
+                {emailVerified && <Badge className="bg-green-500 text-xs">Verified</Badge>}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              
+              {!emailVerified && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Email Address *</Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input 
+                        type="email"
+                        value={supplierForm.contact_email}
+                        onChange={e => setSupplierForm(prev => ({ ...prev, contact_email: e.target.value }))}
+                        placeholder="your@email.com"
+                        className="flex-1 border-blue-200 focus:border-blue-500"
+                        disabled={codeSent}
+                      />
+                      <Button
+                        type="button"
+                        onClick={sendVerificationCode}
+                        disabled={!supplierForm.contact_email || sendingCode || codeSent}
+                        className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                      >
+                        {sendingCode && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        <Send className="w-4 h-4 mr-1" />
+                        {codeSent ? "Code Sent" : "Send Code"}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {codeSent && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Verification Code</Label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Input 
+                          value={verificationCode}
+                          onChange={e => setVerificationCode(e.target.value)}
+                          placeholder="Enter 6-digit code"
+                          maxLength={6}
+                          className="flex-1 border-blue-200 focus:border-blue-500"
+                        />
+                        <Button
+                          type="button"
+                          onClick={verifyCode}
+                          disabled={verificationCode.length !== 6}
+                          className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                        >
+                          <ShieldCheck className="w-4 h-4 mr-1" />
+                          Verify
+                        </Button>
+                      </div>
+                      <p className="text-xs text-blue-600">
+                        Didn't receive the code? <button onClick={() => { setCodeSent(false); setSentCode(""); }} className="underline">Resend</button>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: Company Information (enabled after email verification) */}
+            <div className={`space-y-4 p-3 sm:p-4 rounded-lg border ${emailVerified ? 'bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200' : 'bg-gray-50 border-gray-200 opacity-60'}`}>
+              <div className="flex items-center gap-2">
+                <div className={`p-2 rounded-full ${emailVerified ? 'bg-violet-500' : 'bg-gray-400'}`}>
+                  <Building2 className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="font-semibold text-sm sm:text-base">Step 2: Company Information</h3>
+              </div>
+              
+              <div className="grid gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Contact Person</Label>
+                  <Label className="text-sm font-semibold">Company Name *</Label>
                   <Input 
-                    value={supplierForm.contact_name}
-                    onChange={e => setSupplierForm(prev => ({ ...prev, contact_name: e.target.value }))}
-                    placeholder="Full name"
+                    value={supplierForm.company_name}
+                    onChange={e => setSupplierForm(prev => ({ ...prev, company_name: e.target.value }))}
+                    placeholder="Your company name"
+                    className="border-purple-200 focus:border-purple-500"
+                    disabled={!emailVerified}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Contact Person</Label>
+                    <Input 
+                      value={supplierForm.contact_name}
+                      onChange={e => setSupplierForm(prev => ({ ...prev, contact_name: e.target.value }))}
+                      placeholder="Full name"
+                      disabled={!emailVerified}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Phone Number</Label>
+                    <Input 
+                      value={supplierForm.contact_phone}
+                      onChange={e => setSupplierForm(prev => ({ ...prev, contact_phone: e.target.value }))}
+                      placeholder="+63 XXX XXX XXXX"
+                      disabled={!emailVerified}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Business Address</Label>
+                  <Textarea 
+                    value={supplierForm.address}
+                    onChange={e => setSupplierForm(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="Full business address"
+                    rows={2}
+                    disabled={!emailVerified}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Phone Number</Label>
-                  <Input 
-                    value={supplierForm.contact_phone}
-                    onChange={e => setSupplierForm(prev => ({ ...prev, contact_phone: e.target.value }))}
-                    placeholder="+63 XXX XXX XXXX"
+                  <Label className="text-sm font-semibold">Business Description</Label>
+                  <Textarea 
+                    value={supplierForm.description}
+                    onChange={e => setSupplierForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Describe your products and services..."
+                    rows={3}
+                    disabled={!emailVerified}
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Business Address</Label>
-                <Textarea 
-                  value={supplierForm.address}
-                  onChange={e => setSupplierForm(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder="Full business address"
-                  rows={2}
-                />
+            </div>
+
+            {/* Step 3: Business Documents (Optional) */}
+            <div className={`space-y-4 p-3 sm:p-4 rounded-lg border ${emailVerified ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200' : 'bg-gray-50 border-gray-200 opacity-60'}`}>
+              <div className="flex items-center gap-2">
+                <div className={`p-2 rounded-full ${emailVerified ? 'bg-amber-500' : 'bg-gray-400'}`}>
+                  <FileText className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="font-semibold text-sm sm:text-base">Step 3: Business Documents</h3>
+                <Badge variant="outline" className="text-xs">Optional</Badge>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Business Description</Label>
-                <Textarea 
-                  value={supplierForm.description}
-                  onChange={e => setSupplierForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe your products and services..."
-                  rows={3}
-                />
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Upload your business documents for faster approval (optional for now)
+              </p>
+              
+              <div className="grid gap-3">
+                {/* Business Permit */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-amber-600" />
+                    Business Permit
+                  </Label>
+                  <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                    <Input 
+                      ref={businessPermitRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={e => setSupplierForm(prev => ({ ...prev, business_permit: e.target.files?.[0] || null }))}
+                      className="hidden"
+                      disabled={!emailVerified}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => businessPermitRef.current?.click()}
+                      disabled={!emailVerified}
+                      className="w-full sm:w-auto border-amber-300 hover:bg-amber-50"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {supplierForm.business_permit ? "Change File" : "Upload File"}
+                    </Button>
+                    {supplierForm.business_permit && (
+                      <span className="text-xs sm:text-sm text-green-600 flex items-center gap-1 truncate max-w-[200px]">
+                        <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{supplierForm.business_permit.name}</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* BIR Certificate */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-amber-600" />
+                    BIR Certificate (COR)
+                  </Label>
+                  <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                    <Input 
+                      ref={birRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={e => setSupplierForm(prev => ({ ...prev, bir: e.target.files?.[0] || null }))}
+                      className="hidden"
+                      disabled={!emailVerified}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => birRef.current?.click()}
+                      disabled={!emailVerified}
+                      className="w-full sm:w-auto border-amber-300 hover:bg-amber-50"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {supplierForm.bir ? "Change File" : "Upload File"}
+                    </Button>
+                    {supplierForm.bir && (
+                      <span className="text-xs sm:text-sm text-green-600 flex items-center gap-1 truncate max-w-[200px]">
+                        <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{supplierForm.bir.name}</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* DTI/SEC Registration */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-amber-600" />
+                    DTI/SEC Registration
+                  </Label>
+                  <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                    <Input 
+                      ref={dtiRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={e => setSupplierForm(prev => ({ ...prev, dti: e.target.files?.[0] || null }))}
+                      className="hidden"
+                      disabled={!emailVerified}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => dtiRef.current?.click()}
+                      disabled={!emailVerified}
+                      className="w-full sm:w-auto border-amber-300 hover:bg-amber-50"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {supplierForm.dti ? "Change File" : "Upload File"}
+                    </Button>
+                    {supplierForm.dti && (
+                      <span className="text-xs sm:text-sm text-green-600 flex items-center gap-1 truncate max-w-[200px]">
+                        <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{supplierForm.dti.name}</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
             
-            <div className="bg-gradient-to-r from-violet-50 to-purple-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-violet-800 mb-2">Benefits of being a Supplier:</h4>
-              <ul className="text-sm text-violet-700 space-y-1">
-                <li className="flex items-center gap-2"><Star className="w-4 h-4 text-amber-500" />Reach thousands of retailers</li>
-                <li className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-green-500" />Scale your business nationwide</li>
-                <li className="flex items-center gap-2"><Package className="w-4 h-4 text-blue-500" />Easy inventory management</li>
+            <div className="bg-gradient-to-r from-violet-50 to-purple-50 p-3 sm:p-4 rounded-lg">
+              <h4 className="font-semibold text-violet-800 mb-2 text-sm sm:text-base">Benefits of being a Supplier:</h4>
+              <ul className="text-xs sm:text-sm text-violet-700 space-y-1">
+                <li className="flex items-center gap-2"><Star className="w-4 h-4 text-amber-500 flex-shrink-0" />Reach thousands of retailers</li>
+                <li className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-green-500 flex-shrink-0" />Scale your business nationwide</li>
+                <li className="flex items-center gap-2"><Package className="w-4 h-4 text-blue-500 flex-shrink-0" />Easy inventory management</li>
               </ul>
             </div>
 
             <Button 
               onClick={() => registerSupplier.mutate()}
-              disabled={!supplierForm.company_name || registerSupplier.isPending}
+              disabled={!supplierForm.company_name || !emailVerified || registerSupplier.isPending}
               className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
             >
               {registerSupplier.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
