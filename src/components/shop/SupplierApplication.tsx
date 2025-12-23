@@ -157,11 +157,21 @@ const SupplierApplication = () => {
 
   // Verify the code
   const verifyCode = () => {
-    if (verificationCode === sentCode) {
+    const trimmedCode = verificationCode.trim();
+    const trimmedSentCode = sentCode.trim();
+    
+    console.log("Verifying code:", trimmedCode, "against sent code:", trimmedSentCode);
+    
+    if (!trimmedSentCode) {
+      toast.error("No verification code was sent. Please request a new code.");
+      return;
+    }
+    
+    if (trimmedCode === trimmedSentCode) {
       setEmailVerified(true);
       toast.success("Email verified successfully!");
     } else {
-      toast.error("Invalid verification code");
+      toast.error("Invalid verification code. Please check and try again.");
     }
   };
 
