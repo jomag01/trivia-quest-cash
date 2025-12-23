@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Heart, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import SellerChat from "./shop/SellerChat";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductReviews } from "./ProductReviews";
 import { useInteractionTracking } from "@/hooks/useInteractionTracking";
@@ -20,6 +21,7 @@ interface Product {
   image_url?: string;
   stock_quantity?: number;
   diamond_reward?: number;
+  seller_id?: string;
   product_categories?: {
     name: string;
   };
@@ -62,6 +64,7 @@ export const ProductDetailDialog = ({
   const [showTryOn, setShowTryOn] = useState(false);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, ProductVariant>>({});
+  const [sellerInfo, setSellerInfo] = useState<{ id: string; name: string } | null>(null);
   const { trackInteraction } = useInteractionTracking();
 
   // Check if product is in a fashion/clothing category
@@ -89,9 +92,43 @@ export const ProductDetailDialog = ({
     if (product && open) {
       fetchProductImages();
       fetchProductVariants();
+      fetchSellerInfo();
       setSelectedVariants({});
     }
   }, [product?.id, open]);
+
+  const fetchSellerInfo = async () => {
+    if (!product?.seller_id) {
+      // Try to get seller from products table
+      const { data } = await supabase
+        .from("products")
+        .select("seller_id")
+        .eq("id", product?.id)
+        .single();
+      
+      if (data?.seller_id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .eq("id", data.seller_id)
+          .single();
+        
+        if (profile) {
+          setSellerInfo({ id: profile.id, name: profile.full_name || "Seller" });
+        }
+      }
+    } else {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("id", product.seller_id)
+        .single();
+      
+      if (profile) {
+        setSellerInfo({ id: profile.id, name: profile.full_name || "Seller" });
+      }
+    }
+  };
 
   const fetchProductImages = async () => {
     if (!product?.id) return;
@@ -461,13 +498,23 @@ export const ProductDetailDialog = ({
                   Virtual Try-On (AI)
                 </Button>
               )}
+
+              {/* Chat to Seller Button */}
+              {sellerInfo && (
+                <SellerChat
+                  productId={product.id}
+                  productName={product.name}
+                  sellerId={sellerInfo.id}
+                  sellerName={sellerInfo.name}
+                />
+              )}
             </div>
           </div>
         </div>
         
         {/* Product Reviews Section */}
         <div className="mt-6">
-          <ProductReviews productId={product.id} sellerId={null} />
+          <ProductReviews productId={product.id} sellerId={sellerInfo?.id || null} />
         </div>
       </DialogContent>
 
