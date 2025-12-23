@@ -68,6 +68,7 @@ import BinaryAIPurchaseManagement from "@/components/admin/BinaryAIPurchaseManag
 import MarketplaceCategoryManagement from "@/components/admin/MarketplaceCategoryManagement";
 import SupplierManagement from "@/components/admin/SupplierManagement";
 import RetailerCommissionSettings from "@/components/admin/RetailerCommissionSettings";
+import PromotionalAdsManagement from "@/components/admin/PromotionalAdsManagement";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -130,6 +131,7 @@ const Admin = () => {
     { id: "bulk-shipping", label: "Bulk Shipping", icon: Truck },
     { id: "courier-settings", label: "Courier Settings", icon: Truck },
     { id: "ad-management", label: "Ad Management", icon: Upload },
+    { id: "promotional-ads", label: "Promotional Ads", icon: Sparkles },
     { id: "user-ads", label: "User Ad Campaigns", icon: TrendingUp },
     { id: "migration", label: "Image Migration", icon: Upload },
     { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
@@ -616,6 +618,7 @@ const Admin = () => {
           {activeTab === "homepage" && <HomePageManagement />}
           {activeTab === "app-logo" && <AppLogoManagement />}
           {activeTab === "ad-management" && <AdManagement />}
+          {activeTab === "promotional-ads" && <PromotionalAdsManagement />}
           {activeTab === "user-ads" && <UserAdManagement />}
           {activeTab === "categories" && <CategoryManagement />}
           {activeTab === "treasure-hunt" && <TreasureHuntManagement />}

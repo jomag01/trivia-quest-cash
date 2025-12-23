@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare, Sparkles, Truck, Building2, Settings } from "lucide-react";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare, Sparkles, Truck, Building2, Settings, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import RetailerSupplierProducts from "@/components/dashboard/RetailerSupplierProducts";
 import MyListingsHub from "@/components/dashboard/MyListingsHub";
@@ -44,6 +44,7 @@ import BinaryTreeView from "@/components/BinaryTreeView";
 import BinaryPendingPlacements from "@/components/BinaryPendingPlacements";
 import ProviderInbox from "@/components/chat/ProviderInbox";
 import { AccountSettings } from "@/components/profile/AccountSettings";
+import PromotionalAdsGallery from "@/components/PromotionalAdsGallery";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -460,6 +461,13 @@ const Dashboard = () => {
                 }}>
                     Advertising
                   </Button>
+                  <Button variant={activeTab === "promo-ads" ? "default" : "ghost"} className="justify-start" onClick={() => {
+                  handleTabChange("promo-ads");
+                  setMobileMenuOpen(false);
+                }}>
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Promo Content
+                  </Button>
                   <Button variant={activeTab === "support" ? "default" : "ghost"} className="justify-start" onClick={() => {
                   handleTabChange("support");
                   setMobileMenuOpen(false);
@@ -545,6 +553,7 @@ const Dashboard = () => {
                 <SelectItem value="wishlist">Wishlist</SelectItem>
                 <SelectItem value="orders">Orders</SelectItem>
                 <SelectItem value="stair-step">Stair Step</SelectItem>
+                <SelectItem value="promo-ads">Promo Content</SelectItem>
                 <SelectItem value="advertising">Advertising</SelectItem>
                 <SelectItem value="transactions">Transactions</SelectItem>
                 <SelectItem value="ai-research">AI Research</SelectItem>
@@ -887,6 +896,10 @@ const Dashboard = () => {
 
       <TabsContent value="advertising" className="space-y-6">
         <UserAdCreation />
+      </TabsContent>
+
+      <TabsContent value="promo-ads" className="space-y-6">
+        <PromotionalAdsGallery />
       </TabsContent>
 
       <TabsContent value="support">

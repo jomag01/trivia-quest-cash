@@ -4222,6 +4222,51 @@ export type Database = {
           },
         ]
       }
+      promotional_ads: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cta_text: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_published: boolean | null
+          media_type: string
+          media_url: string
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cta_text?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_published?: boolean | null
+          media_type?: string
+          media_url: string
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cta_text?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_published?: boolean | null
+          media_type?: string
+          media_url?: string
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       provider_conversations: {
         Row: {
           created_at: string
