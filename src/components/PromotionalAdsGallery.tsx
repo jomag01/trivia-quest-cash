@@ -116,9 +116,37 @@ export default function PromotionalAdsGallery() {
     window.open(`https://t.me/share/url?url=${url}&text=${text}`, "_blank");
   };
 
-  const shareToMessenger = (ad: PromotionalAd) => {
+  const shareToMessenger = async (ad: PromotionalAd) => {
+    const message = getShareMessage(ad);
+    
+    // Try Web Share API with file support first (works on mobile for Messenger)
+    if (navigator.share && navigator.canShare) {
+      try {
+        // Fetch the image and convert to blob
+        const response = await fetch(ad.media_url);
+        const blob = await response.blob();
+        const extension = ad.media_type === 'video' ? 'mp4' : 'jpg';
+        const file = new File([blob], `promo.${extension}`, { type: blob.type });
+        
+        const shareData = {
+          title: ad.title,
+          text: message,
+          url: referralLink,
+          files: [file]
+        };
+        
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          toast.success("Shared successfully!");
+          return;
+        }
+      } catch (error) {
+        console.log("File share not supported, falling back to link share");
+      }
+    }
+    
+    // Fallback to Facebook Messenger dialog (link only)
     const url = encodeURIComponent(referralLink);
-    // Facebook Messenger share dialog - works on mobile and desktop
     window.open(
       `https://www.facebook.com/dialog/send?link=${url}&app_id=966242223397117&redirect_uri=${encodeURIComponent(window.location.href)}`,
       "_blank",
