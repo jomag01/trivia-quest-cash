@@ -98,35 +98,36 @@ export const ProductDetailDialog = ({
   }, [product?.id, open]);
 
   const fetchSellerInfo = async () => {
-    if (!product?.seller_id) {
-      // Try to get seller from products table
-      const { data } = await supabase
+    if (!product?.id) return;
+    
+    try {
+      // Always fetch seller_id from products table to ensure we have it
+      const { data: productData } = await supabase
         .from("products")
         .select("seller_id")
-        .eq("id", product?.id)
+        .eq("id", product.id)
         .single();
       
-      if (data?.seller_id) {
+      const sellerId = productData?.seller_id || product?.seller_id;
+      
+      if (sellerId) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("id, full_name")
-          .eq("id", data.seller_id)
+          .eq("id", sellerId)
           .single();
         
         if (profile) {
           setSellerInfo({ id: profile.id, name: profile.full_name || "Seller" });
         }
+      } else {
+        // No seller_id found - show default seller chat anyway for all products
+        setSellerInfo({ id: "admin", name: "Store Support" });
       }
-    } else {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .eq("id", product.seller_id)
-        .single();
-      
-      if (profile) {
-        setSellerInfo({ id: profile.id, name: profile.full_name || "Seller" });
-      }
+    } catch (error) {
+      console.error("Error fetching seller info:", error);
+      // Fallback to store support
+      setSellerInfo({ id: "admin", name: "Store Support" });
     }
   };
 
