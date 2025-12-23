@@ -510,6 +510,101 @@ Return JSON with "recommendations" (product IDs) and "reason" (short user-friend
         });
       }
 
+    } else if (type === 'website-builder') {
+      const { businessName, template, colorScheme, style } = await req.json().catch(() => ({}));
+      
+      console.log('Website builder request:', { businessName, template, colorScheme, style });
+      
+      const systemPrompt = `You are an expert web developer and designer. You create beautiful, modern, responsive websites. 
+      Always return valid JSON with this exact structure: {"html": "...", "css": "...", "js": "..."}
+      - Use semantic HTML5
+      - Create modern CSS with CSS variables for colors
+      - Include smooth animations and transitions
+      - Make it fully responsive (mobile-first)
+      - Add appropriate placeholder content
+      - Use modern design patterns`;
+
+      const response = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Website builder error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits depleted. Please add more credits." }), {
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`Website generation failed: ${errorText}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      
+      // Try to parse the JSON response
+      try {
+        // Clean up the response - remove markdown code blocks if present
+        let cleanContent = content;
+        if (content.includes('```json')) {
+          cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        } else if (content.includes('```')) {
+          cleanContent = content.replace(/```\w*\n?/g, '').replace(/```\n?/g, '');
+        }
+        
+        const parsed = JSON.parse(cleanContent.trim());
+        
+        return new Response(JSON.stringify({ 
+          code: {
+            html: parsed.html || '',
+            css: parsed.css || '',
+            js: parsed.js || ''
+          }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (parseError) {
+        console.error('Failed to parse website code:', parseError);
+        
+        // Fallback: try to extract code from response
+        const htmlMatch = content.match(/html['"]\s*:\s*['"]([^]+?)['"],\s*['"]css/);
+        const cssMatch = content.match(/css['"]\s*:\s*['"]([^]+?)['"],\s*['"]js/);
+        const jsMatch = content.match(/js['"]\s*:\s*['"]([^]+?)['"]\s*\}/);
+        
+        if (htmlMatch || cssMatch || jsMatch) {
+          return new Response(JSON.stringify({ 
+            code: {
+              html: htmlMatch?.[1] || '<div>Generated content</div>',
+              css: cssMatch?.[1] || 'body { font-family: sans-serif; }',
+              js: jsMatch?.[1] || ''
+            }
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        throw new Error('Failed to generate website code');
+      }
+
     } else {
       throw new Error(`Unknown type: ${type}`);
     }
