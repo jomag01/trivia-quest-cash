@@ -702,7 +702,6 @@ const AIHub = memo(() => {
         <div className="flex items-center justify-between p-4 border-b border-border/50">
           <div className={cn("flex items-center gap-2", !sidebarOpen && "md:hidden")}>
             {appLogo && <img src={appLogo} alt="Logo" className="h-8 w-8 object-contain rounded-lg" />}
-            <span className="font-bold text-lg">TRIVIABEES AI</span>
           </div>
           <Button
             variant="ghost"
@@ -812,7 +811,7 @@ const AIHub = memo(() => {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="font-bold">TRIVIABEES AI</span>
+          {appLogo && <img src={appLogo} alt="Logo" className="h-6 w-6 object-contain rounded" />}
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="gap-1">
               <Crown className="h-3 w-3 text-yellow-500" />
