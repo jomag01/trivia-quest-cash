@@ -98,7 +98,11 @@ export const ProductDetailDialog = ({
   }, [product?.id, open]);
 
   const fetchSellerInfo = async () => {
-    if (!product?.id) return;
+    if (!product?.id) {
+      // Always show chat even without product id
+      setSellerInfo({ id: "admin", name: "Store Support" });
+      return;
+    }
     
     try {
       // Always fetch seller_id from products table to ensure we have it
@@ -119,14 +123,15 @@ export const ProductDetailDialog = ({
         
         if (profile) {
           setSellerInfo({ id: profile.id, name: profile.full_name || "Seller" });
+          return;
         }
-      } else {
-        // No seller_id found - show default seller chat anyway for all products
-        setSellerInfo({ id: "admin", name: "Store Support" });
       }
+      
+      // Fallback to Store Support for all products without seller info
+      setSellerInfo({ id: "admin", name: "Store Support" });
     } catch (error) {
       console.error("Error fetching seller info:", error);
-      // Fallback to store support
+      // Fallback to store support on any error
       setSellerInfo({ id: "admin", name: "Store Support" });
     }
   };
