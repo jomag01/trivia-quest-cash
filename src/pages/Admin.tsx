@@ -65,6 +65,7 @@ import AIProviderPricing from "@/components/admin/AIProviderPricing";
 import BinarySystemManagement from "@/components/admin/BinarySystemManagement";
 import QRPaymentSettings from "@/components/admin/QRPaymentSettings";
 import BinaryAIPurchaseManagement from "@/components/admin/BinaryAIPurchaseManagement";
+import MarketplaceCategoryManagement from "@/components/admin/MarketplaceCategoryManagement";
 import { cn } from "@/lib/utils";
 
 interface CreditPurchase {
@@ -120,6 +121,7 @@ const Admin = () => {
     { id: "unilevel-settings", label: "Unilevel Network", icon: Users },
     { id: "prizes", label: "Prize Config", icon: Trophy },
     { id: "product-categories", label: "Product Categories", icon: FolderOpen },
+    { id: "marketplace-categories", label: "Marketplace Categories", icon: FolderOpen },
     { id: "products", label: "Products", icon: ShoppingBag },
     { id: "orders", label: "Orders", icon: Package },
     { id: "shipping-zones", label: "Shipping Zones", icon: MapPin },
@@ -641,6 +643,7 @@ const Admin = () => {
           {activeTab === "qr-payment" && <QRPaymentSettings />}
           {activeTab === "binary-system" && <BinarySystemManagement />}
           {activeTab === "ai-packages" && <BinaryAIPurchaseManagement />}
+          {activeTab === "marketplace-categories" && <MarketplaceCategoryManagement />}
           {activeTab === "system-reset" && <SystemResetManagement />}
         </main>
       </div>
