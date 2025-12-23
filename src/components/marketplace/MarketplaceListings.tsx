@@ -13,7 +13,8 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { uploadToAWS, getOptimizedImageUrl, isAWSUrl } from "@/lib/awsMedia";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
+import ProviderChat from "@/components/chat/ProviderChat";
 import { 
   Home, Car, Package, Hotel, BedDouble, Building, 
   Plus, Search, Heart, Eye, MapPin, Calendar,
@@ -514,22 +515,33 @@ const MarketplaceListings = () => {
 
     for (const file of Array.from(files)) {
       try {
-        // Upload to AWS S3 via CloudFront
-        const result = await uploadToAWS(file, `marketplace/${user.id}`, (progress) => {
-          const fileProgress = progress.percentage / totalFiles;
-          const overallProgress = (completedFiles / totalFiles) * 100 + fileProgress;
-          setUploadProgress(Math.round(overallProgress));
-        });
+        // Generate unique filename
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+        
+        // Upload to Supabase Storage (marketplace bucket)
+        const { data, error } = await supabase.storage
+          .from('marketplace')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
-        if (result?.cdnUrl) {
-          uploadedUrls.push(result.cdnUrl);
+        if (error) throw error;
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('marketplace')
+          .getPublicUrl(data.path);
+
+        if (urlData?.publicUrl) {
+          uploadedUrls.push(urlData.publicUrl);
           completedFiles++;
-        } else {
-          throw new Error('Upload failed');
+          setUploadProgress(Math.round((completedFiles / totalFiles) * 100));
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error uploading image:', error);
-        toast.error(`Failed to upload ${file.name}`);
+        toast.error(`Failed to upload ${file.name}: ${error.message || 'Unknown error'}`);
       }
     }
 
@@ -572,13 +584,9 @@ const MarketplaceListings = () => {
       .then(() => {});
   };
 
-  // Get optimized image URL for thumbnails
+  // Get optimized image URL for thumbnails - just return URL since we use Supabase storage now
   const getThumbUrl = (url: string | null) => {
-    if (!url) return null;
-    if (isAWSUrl(url)) {
-      return getOptimizedImageUrl(url, { width: 400, quality: 80 });
-    }
-    return url;
+    return url || null;
   };
 
   // Fetch full listing details when opening detail dialog
@@ -1172,12 +1180,12 @@ const MarketplaceListings = () => {
 
             {/* Images */}
             <div>
-              <Label>Images (AWS CloudFront CDN)</Label>
+              <Label>Images</Label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {newListing.images.map((img, index) => (
                   <div key={index} className="relative w-20 h-20">
                     <img 
-                      src={getOptimizedImageUrl(img, { width: 80, quality: 80 })} 
+                      src={img} 
                       alt="" 
                       className="w-full h-full object-cover rounded-lg" 
                     />
@@ -1390,10 +1398,16 @@ const MarketplaceListings = () => {
                     <Heart className={`w-4 h-4 mr-2 ${favorites.has(selectedListing.id) ? 'fill-current' : ''}`} />
                     {favorites.has(selectedListing.id) ? 'Saved' : 'Save'}
                   </Button>
-                  <Button className="flex-1" onClick={() => setShowInquiryDialog(true)}>
-                    <Mail className="w-4 h-4 mr-2" />
-                    Contact Seller
-                  </Button>
+                  <ProviderChat
+                    providerId={selectedListing.seller_id}
+                    providerName={selectedListing.seller_profile?.username || 'Seller'}
+                    providerAvatar={selectedListing.seller_profile?.avatar_url}
+                    providerType="marketplace"
+                    referenceId={selectedListing.id}
+                    referenceTitle={selectedListing.title}
+                    buttonVariant="default"
+                    buttonClassName="flex-1"
+                  />
                 </div>
               </div>
             </>

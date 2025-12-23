@@ -4130,6 +4130,77 @@ export type Database = {
           },
         ]
       }
+      provider_conversations: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          last_message_at: string | null
+          provider_id: string
+          provider_type: string
+          reference_id: string | null
+          reference_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          last_message_at?: string | null
+          provider_id: string
+          provider_type: string
+          reference_id?: string | null
+          reference_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          last_message_at?: string | null
+          provider_id?: string
+          provider_type?: string
+          reference_id?: string | null
+          reference_title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      provider_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "provider_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
