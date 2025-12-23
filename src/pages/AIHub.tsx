@@ -12,7 +12,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code } from 'lucide-react';
+import WebsiteBuilder from '@/components/ai/WebsiteBuilder';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
 import AdvancedChatAssistant from '@/components/ai/AdvancedChatAssistant';
@@ -156,6 +157,7 @@ const AIHub = memo(() => {
     { id: 'content-creator', label: 'Creator', icon: Film, gradient: 'from-fuchsia-400 to-pink-500', iconColor: 'text-fuchsia-500' },
     { id: 'video-editor', label: 'Editor', icon: Scissors, gradient: 'from-orange-400 to-red-500', iconColor: 'text-orange-500' },
     { id: 'web-scraper', label: 'Scraper', icon: Globe, gradient: 'from-cyan-400 to-blue-500', iconColor: 'text-cyan-500', premium: true },
+    { id: 'website-builder', label: 'Website', icon: Code, gradient: 'from-emerald-400 to-teal-500', iconColor: 'text-emerald-500', premium: true },
     { id: 'creator-analytics', label: 'Analytics', icon: Crown, gradient: 'from-yellow-400 to-amber-500', iconColor: 'text-yellow-500', premium: true },
     { id: 'social-media', label: 'Social', icon: Users, gradient: 'from-indigo-400 to-violet-500', iconColor: 'text-indigo-500', premium: true },
   ];
@@ -1711,6 +1713,13 @@ const AIHub = memo(() => {
           {activeTab === 'web-scraper' && (
             <div className="p-4 md:p-6">
               <WebsiteScraper userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
+          )}
+
+          {/* Website Builder - Premium */}
+          {activeTab === 'website-builder' && (
+            <div className="p-4 md:p-6">
+              <WebsiteBuilder userCredits={userCredits} onCreditsChange={fetchUserCredits} />
             </div>
           )}
 
