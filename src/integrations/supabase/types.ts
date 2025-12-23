@@ -5425,6 +5425,50 @@ export type Database = {
           },
         ]
       }
+      subscription_commissions: {
+        Row: {
+          amount: number
+          commission_type: string
+          created_at: string
+          from_user_id: string
+          id: string
+          level: number | null
+          status: string | null
+          subscription_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          commission_type: string
+          created_at?: string
+          from_user_id: string
+          id?: string
+          level?: number | null
+          status?: string | null
+          subscription_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          commission_type?: string
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          level?: number | null
+          status?: string | null
+          subscription_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_commissions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "website_builder_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_products: {
         Row: {
           admin_markup_fixed: number | null
@@ -6230,6 +6274,104 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_builder_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          leadership_commission_percent: number | null
+          monthly_price: number
+          name: string
+          stairstep_commission_percent: number | null
+          unilevel_commission_percent: number | null
+          updated_at: string
+          yearly_price: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          leadership_commission_percent?: number | null
+          monthly_price?: number
+          name: string
+          stairstep_commission_percent?: number | null
+          unilevel_commission_percent?: number | null
+          updated_at?: string
+          yearly_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          leadership_commission_percent?: number | null
+          monthly_price?: number
+          name?: string
+          stairstep_commission_percent?: number | null
+          unilevel_commission_percent?: number | null
+          updated_at?: string
+          yearly_price?: number
+        }
+        Relationships: []
+      }
+      website_builder_subscriptions: {
+        Row: {
+          amount_paid: number | null
+          billing_cycle: string
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          payment_method: string | null
+          plan_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid?: number | null
+          billing_cycle: string
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end: string
+          current_period_start?: string
+          id?: string
+          payment_method?: string | null
+          plan_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number | null
+          billing_cycle?: string
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          payment_method?: string | null
+          plan_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_builder_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "website_builder_plans"
             referencedColumns: ["id"]
           },
         ]
