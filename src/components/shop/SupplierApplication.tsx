@@ -126,11 +126,30 @@ const SupplierApplication = () => {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setSentCode(code);
       
-      // For now, we'll just show the code in a toast (in production, you'd send an email)
-      toast.success(`Verification code sent! Code: ${code}`, { duration: 10000 });
+      // Call edge function to send email
+      const { data, error } = await supabase.functions.invoke('send-supplier-verification', {
+        body: {
+          email: supplierForm.contact_email,
+          code: code,
+          companyName: supplierForm.company_name || undefined
+        }
+      });
+      
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Failed to send verification email");
+      }
+      
+      if (!data?.success) {
+        throw new Error(data?.error || "Failed to send verification email");
+      }
+      
+      toast.success("Verification code sent to your email!");
       setCodeSent(true);
-    } catch (error) {
-      toast.error("Failed to send verification code");
+    } catch (error: any) {
+      console.error("Verification error:", error);
+      toast.error(error.message || "Failed to send verification code");
+      setSentCode("");
     } finally {
       setSendingCode(false);
     }
