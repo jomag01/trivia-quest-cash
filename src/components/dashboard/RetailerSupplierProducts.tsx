@@ -13,8 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { 
   Package, ShoppingBag, Link2, Share2, TrendingUp, 
   Facebook, Instagram, Twitter, ExternalLink, Copy, 
-  Loader2, CheckCircle, AlertCircle, Star, Zap, Plus
+  Loader2, CheckCircle, AlertCircle, Star, Zap, Plus, Upload
 } from "lucide-react";
+import SupplierPortal from "@/components/supplier/SupplierPortal";
 
 interface SupplierProduct {
   id: string;
@@ -61,6 +62,25 @@ const RetailerSupplierProducts = () => {
   const [activeTab, setActiveTab] = useState("available");
   const [shareDialog, setShareDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<SupplierProduct | null>(null);
+  const [showSupplierPortal, setShowSupplierPortal] = useState(false);
+
+  // Check if user is an approved supplier
+  const { data: supplierStatus } = useQuery({
+    queryKey: ["my-supplier-status", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("suppliers")
+        .select("id, status, company_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user
+  });
+
+  const isApprovedSupplier = supplierStatus?.status === "approved";
 
   // Fetch user's stairstep rank
   const { data: userRank } = useQuery({
@@ -290,7 +310,7 @@ const RetailerSupplierProducts = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 bg-gradient-to-r from-violet-100 to-purple-100">
+        <TabsList className={`grid ${isApprovedSupplier ? 'grid-cols-4' : 'grid-cols-3'} bg-gradient-to-r from-violet-100 to-purple-100`}>
           <TabsTrigger value="available" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white">
             Available Products
           </TabsTrigger>
@@ -300,6 +320,12 @@ const RetailerSupplierProducts = () => {
           <TabsTrigger value="earnings" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white">
             Earnings
           </TabsTrigger>
+          {isApprovedSupplier && (
+            <TabsTrigger value="my-products" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white">
+              <Upload className="w-4 h-4 mr-1" />
+              Upload Products
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Available Products */}
@@ -451,6 +477,31 @@ const RetailerSupplierProducts = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* My Products Tab - For Approved Suppliers */}
+        {isApprovedSupplier && (
+          <TabsContent value="my-products" className="mt-4">
+            <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600">
+                      <Upload className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle>Supplier Products</CardTitle>
+                      <CardDescription>{supplierStatus?.company_name}</CardDescription>
+                    </div>
+                  </div>
+                  <Badge className="bg-gradient-to-r from-emerald-500 to-green-600">Approved Supplier</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <SupplierPortal />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Share Dialog */}
