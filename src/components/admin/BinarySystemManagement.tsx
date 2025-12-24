@@ -872,8 +872,14 @@ export default function BinarySystemManagement() {
                       </div>
                     </div>
                     <div className="p-2 rounded bg-background/50">
-                      <p className="text-muted-foreground">Daily Cap per User</p>
-                      <p className="font-bold">₱{settings.dailyCap.toLocaleString()}</p>
+                      <p className="text-muted-foreground">Daily Cap per Tier</p>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {creditTiers.map((tier, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            {tier.name}: ₱{tier.dailyCap.toLocaleString()}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                     <Separator />
                     <div className="p-2 rounded bg-destructive/10 border border-destructive/30">
