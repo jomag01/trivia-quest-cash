@@ -61,6 +61,7 @@ interface CreditTier {
   videos: number;
   maxVideoSeconds: number;
   maxAudioSeconds: number;
+  dailyCap: number;
 }
 
 interface CreditRates {
@@ -111,6 +112,7 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
   const [purchasing, setPurchasing] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [userCredits, setUserCredits] = useState(0);
+  const [userTierIndex, setUserTierIndex] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'balance' | 'paymongo' | 'qr_bank'>('paymongo');
   const [paymongoMethod, setPaymongoMethod] = useState<'gcash' | 'paymaya' | 'card' | 'grab_pay'>('gcash');
   
@@ -144,9 +146,9 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
       const rates: CreditRates = { creditsPerVideoMinute: 20, creditsPerAudioMinute: 5, creditsPerImage: 1 };
 
       const tierData: CreditTier[] = [
-        { price: 100, cost: 30, credits: 50, images: 30, videos: 10, maxVideoSeconds: 10, maxAudioSeconds: 60 },
-        { price: 250, cost: 75, credits: 150, images: 100, videos: 30, maxVideoSeconds: 60, maxAudioSeconds: 300 },
-        { price: 500, cost: 150, credits: 400, images: 300, videos: 80, maxVideoSeconds: 900, maxAudioSeconds: 1800 }
+        { price: 100, cost: 30, credits: 50, images: 30, videos: 10, maxVideoSeconds: 10, maxAudioSeconds: 60, dailyCap: 1500 },
+        { price: 250, cost: 75, credits: 150, images: 100, videos: 30, maxVideoSeconds: 60, maxAudioSeconds: 300, dailyCap: 3000 },
+        { price: 500, cost: 150, credits: 400, images: 300, videos: 80, maxVideoSeconds: 900, maxAudioSeconds: 1800, dailyCap: 9000 }
       ];
 
       if (settingsData) {
@@ -189,6 +191,7 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
               if (field === 'video') tierData[tierIndex].videos = parseInt(s.value || '0');
               if (field === 'videoseconds') tierData[tierIndex].maxVideoSeconds = parseInt(s.value || '0');
               if (field === 'audioseconds') tierData[tierIndex].maxAudioSeconds = parseInt(s.value || '0');
+              if (field === 'daily_cap') tierData[tierIndex].dailyCap = parseFloat(s.value || '5000');
             }
           }
         });
@@ -197,6 +200,28 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
         setCreditRates(rates);
         setQrCodeUrl(qrUrl);
         setBankDetails({ bankName, accountName, accountNumber });
+      }
+
+      // Fetch user's latest approved purchase to determine their tier
+      const { data: purchaseData } = await supabase
+        .from('binary_ai_purchases')
+        .select('amount')
+        .eq('user_id', user.id)
+        .eq('status', 'approved')
+        .order('approved_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (purchaseData) {
+        const purchaseAmount = Number(purchaseData.amount);
+        // Determine tier based on purchase amount
+        if (purchaseAmount >= 10000) {
+          setUserTierIndex(2); // Tier 3
+        } else if (purchaseAmount >= 5000) {
+          setUserTierIndex(1); // Tier 2
+        } else {
+          setUserTierIndex(0); // Tier 1
+        }
       }
 
       // Check if user is enrolled in binary system
@@ -267,9 +292,18 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
     return { leftPercent, rightPercent, potentialCycles };
   };
 
+  const getUserDailyCap = () => {
+    // Use tier-specific daily cap if user has a tier, otherwise use global setting
+    if (userTierIndex !== null && tiers[userTierIndex]) {
+      return tiers[userTierIndex].dailyCap;
+    }
+    return settings.dailyCap;
+  };
+
   const getDailyCapProgress = () => {
     if (!todayEarnings) return 0;
-    return Math.min((todayEarnings.total_earned / settings.dailyCap) * 100, 100);
+    const dailyCap = getUserDailyCap();
+    return dailyCap > 0 ? Math.min((todayEarnings.total_earned / dailyCap) * 100, 100) : 0;
   };
 
   // Helper function to format seconds as mm:ss
@@ -965,12 +999,15 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>₱{todayEarnings?.total_earned || 0}</span>
-                    <span className="text-muted-foreground">/ ₱{settings.dailyCap} cap</span>
+                    <span>₱{todayEarnings?.total_earned?.toLocaleString() || 0}</span>
+                    <span className="text-muted-foreground">/ ₱{getUserDailyCap().toLocaleString()} cap</span>
                   </div>
                   <Progress value={getDailyCapProgress()} className="h-2" />
                   {getDailyCapProgress() >= 100 && (
                     <p className="text-xs text-amber-500">Daily cap reached! Earnings continue tomorrow.</p>
+                  )}
+                  {userTierIndex !== null && (
+                    <p className="text-xs text-muted-foreground">Based on your {tiers[userTierIndex]?.dailyCap ? `Tier ${userTierIndex + 1}` : 'plan'}</p>
                   )}
                 </div>
               </CardContent>
