@@ -421,6 +421,57 @@ export type Database = {
         }
         Relationships: []
       }
+      binary_accounting_ledger: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          related_commission_id: string | null
+          related_purchase_id: string | null
+          transaction_type: string
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          related_commission_id?: string | null
+          related_purchase_id?: string | null
+          transaction_type: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          related_commission_id?: string | null
+          related_purchase_id?: string | null
+          transaction_type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "binary_accounting_ledger_related_commission_id_fkey"
+            columns: ["related_commission_id"]
+            isOneToOne: false
+            referencedRelation: "binary_commissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "binary_accounting_ledger_related_purchase_id_fkey"
+            columns: ["related_purchase_id"]
+            isOneToOne: false
+            referencedRelation: "binary_ai_purchases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       binary_ai_purchases: {
         Row: {
           admin_notes: string | null
@@ -565,6 +616,99 @@ export type Database = {
           total_earned?: number | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      binary_daily_summary: {
+        Row: {
+          created_at: string
+          id: string
+          net_admin_earnings: number
+          summary_date: string
+          total_admin_profit: number
+          total_ai_cost_deducted: number
+          total_commission_lost_to_caps: number
+          total_commissions_paid: number
+          total_cycles_completed: number
+          total_direct_referral_paid: number
+          total_purchases: number
+          total_users_cycled: number
+          total_volume_flushed: number
+          total_volume_generated: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          net_admin_earnings?: number
+          summary_date?: string
+          total_admin_profit?: number
+          total_ai_cost_deducted?: number
+          total_commission_lost_to_caps?: number
+          total_commissions_paid?: number
+          total_cycles_completed?: number
+          total_direct_referral_paid?: number
+          total_purchases?: number
+          total_users_cycled?: number
+          total_volume_flushed?: number
+          total_volume_generated?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          net_admin_earnings?: number
+          summary_date?: string
+          total_admin_profit?: number
+          total_ai_cost_deducted?: number
+          total_commission_lost_to_caps?: number
+          total_commissions_paid?: number
+          total_cycles_completed?: number
+          total_direct_referral_paid?: number
+          total_purchases?: number
+          total_users_cycled?: number
+          total_volume_flushed?: number
+          total_volume_generated?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      binary_flush_log: {
+        Row: {
+          actual_commission: number
+          commission_lost: number
+          created_at: string
+          cycles_affected: number | null
+          flush_reason: string
+          id: string
+          metadata: Json | null
+          potential_commission: number
+          user_id: string
+          volume_flushed: number
+        }
+        Insert: {
+          actual_commission?: number
+          commission_lost?: number
+          created_at?: string
+          cycles_affected?: number | null
+          flush_reason: string
+          id?: string
+          metadata?: Json | null
+          potential_commission?: number
+          user_id: string
+          volume_flushed?: number
+        }
+        Update: {
+          actual_commission?: number
+          commission_lost?: number
+          created_at?: string
+          cycles_affected?: number | null
+          flush_reason?: string
+          id?: string
+          metadata?: Json | null
+          potential_commission?: number
+          user_id?: string
+          volume_flushed?: number
         }
         Relationships: []
       }
@@ -6846,10 +6990,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      binary_apply_purchase_volume: {
-        Args: { p_amount: number; p_user_id: string }
-        Returns: Json
-      }
+      binary_apply_purchase_volume:
+        | {
+            Args: { p_amount: number; p_purchase_id: string; p_user_id: string }
+            Returns: Json
+          }
+        | { Args: { p_amount: number; p_user_id: string }; Returns: Json }
       binary_find_leftmost_spot: {
         Args: { _network_id: string }
         Returns: {
