@@ -63,6 +63,8 @@ import SystemResetManagement from "@/components/admin/SystemResetManagement";
 import AISettingsManagement from "@/components/admin/AISettingsManagement";
 import AIProviderPricing from "@/components/admin/AIProviderPricing";
 import BinarySystemManagement from "@/components/admin/BinarySystemManagement";
+import BinaryAccountingDashboard from "@/components/admin/BinaryAccountingDashboard";
+import BinaryCalculator from "@/components/admin/BinaryCalculator";
 import QRPaymentSettings from "@/components/admin/QRPaymentSettings";
 import BinaryAIPurchaseManagement from "@/components/admin/BinaryAIPurchaseManagement";
 import MarketplaceCategoryManagement from "@/components/admin/MarketplaceCategoryManagement";
@@ -70,6 +72,7 @@ import SupplierManagement from "@/components/admin/SupplierManagement";
 import RetailerCommissionSettings from "@/components/admin/RetailerCommissionSettings";
 import PromotionalAdsManagement from "@/components/admin/PromotionalAdsManagement";
 import { cn } from "@/lib/utils";
+import { BarChart3, Wallet } from "lucide-react";
 
 interface CreditPurchase {
   id: string;
@@ -151,6 +154,8 @@ const Admin = () => {
     { id: "ai-pricing", label: "AI Provider Costs", icon: DollarSign },
     { id: "qr-payment", label: "QR Payment Settings", icon: CreditCard },
     { id: "binary-system", label: "Binary MLM System", icon: GitBranch },
+    { id: "binary-accounting", label: "Binary Accounting", icon: BarChart3 },
+    { id: "binary-calculator", label: "Binary Calculator", icon: Calculator },
     { id: "suppliers", label: "Supplier Management", icon: Building2 },
     { id: "retailer-commissions", label: "Retailer Commissions", icon: Percent },
     { id: "system-reset", label: "System Reset", icon: RotateCcw },
@@ -649,6 +654,8 @@ const Admin = () => {
           {activeTab === "ai-pricing" && <AIProviderPricing />}
           {activeTab === "qr-payment" && <QRPaymentSettings />}
           {activeTab === "binary-system" && <BinarySystemManagement />}
+          {activeTab === "binary-accounting" && <BinaryAccountingDashboard />}
+          {activeTab === "binary-calculator" && <BinaryCalculator />}
           {activeTab === "ai-packages" && <BinaryAIPurchaseManagement />}
           {activeTab === "marketplace-categories" && <MarketplaceCategoryManagement />}
           {activeTab === "suppliers" && <SupplierManagement />}
