@@ -74,6 +74,8 @@ interface CreditTier {
   videos: number;
   cost: number;
   dailyCap: number;
+  cycleVolume: number;
+  cycleCommission: number;
 }
 
 export default function BinarySystemManagement() {
@@ -132,7 +134,9 @@ export default function BinarySystemManagement() {
           images: 0,
           videos: 0,
           cost: 0,
-          dailyCap: 5000 // Default daily cap per tier
+          dailyCap: 5000, // Default daily cap per tier
+          cycleVolume: 0, // Will be calculated as price × 4
+          cycleCommission: 0 // Will be calculated as 10% of matched volume
         });
       }
 
@@ -161,13 +165,26 @@ export default function BinarySystemManagement() {
             const field = match[2];
             if (tierIndex >= 0 && tierIndex < loadedTiers.length) {
               if (field === 'name') loadedTiers[tierIndex].name = s.value || `Tier ${tierIndex + 1}`;
-              if (field === 'price') loadedTiers[tierIndex].price = parseFloat(s.value || '0');
+              if (field === 'price') {
+                const price = parseFloat(s.value || '0');
+                loadedTiers[tierIndex].price = price;
+                // Auto-calculate cycle volume as price × 4
+                loadedTiers[tierIndex].cycleVolume = price * 4;
+              }
               if (field === 'credits') loadedTiers[tierIndex].credits = parseFloat(s.value || '0');
               if (field === 'image') loadedTiers[tierIndex].images = parseFloat(s.value || '0');
               if (field === 'video') loadedTiers[tierIndex].videos = parseFloat(s.value || '0');
               if (field === 'cost') loadedTiers[tierIndex].cost = parseFloat(s.value || '0');
               if (field === 'daily_cap') loadedTiers[tierIndex].dailyCap = parseFloat(s.value || '5000');
+              if (field === 'cycle_commission') loadedTiers[tierIndex].cycleCommission = parseFloat(s.value || '0');
             }
+          }
+        });
+        
+        // After loading, calculate cycle volumes and set initial settings from selected tier
+        loadedTiers.forEach((tier, idx) => {
+          if (tier.price > 0 && tier.cycleVolume === 0) {
+            tier.cycleVolume = tier.price * 4;
           }
         });
         setSettings(newSettings);
@@ -282,12 +299,31 @@ export default function BinarySystemManagement() {
     { key: 'binary_daily_cap', value: settings.dailyCap.toString() }
   ]);
 
-  const saveTierSettings = () => handleSaveSection('Tier', [
-    { key: 'binary_selected_tier_index', value: settings.selectedTierIndex.toString() },
-    { key: 'binary_join_amount', value: settings.joinAmount.toString() },
-    { key: 'binary_cycle_volume', value: settings.cycleVolume.toString() },
-    { key: 'binary_cycle_commission', value: settings.cycleCommission.toString() }
-  ]);
+  const saveTierSettings = async () => {
+    const tierIndex = settings.selectedTierIndex;
+    const tier = creditTiers[tierIndex];
+    if (!tier) return;
+    
+    // Save tier-specific settings
+    const settingsToSave = [
+      { key: 'binary_selected_tier_index', value: settings.selectedTierIndex.toString() },
+      { key: 'binary_join_amount', value: tier.price.toString() },
+      { key: 'binary_cycle_volume', value: (tier.price * 4).toString() }, // Volume = price × 4
+      { key: 'binary_cycle_commission', value: settings.cycleCommission.toString() },
+      { key: `ai_credit_tier_${tierIndex + 1}_cycle_commission`, value: settings.cycleCommission.toString() }
+    ];
+    
+    await handleSaveSection('Tier', settingsToSave);
+    
+    // Update the tier in creditTiers array
+    const updatedTiers = [...creditTiers];
+    updatedTiers[tierIndex] = { 
+      ...updatedTiers[tierIndex], 
+      cycleVolume: tier.price * 4,
+      cycleCommission: settings.cycleCommission 
+    };
+    setCreditTiers(updatedTiers);
+  };
 
   const saveSafetySettings = () => handleSaveSection('Safety Net', [
     { key: 'binary_admin_safety_net', value: settings.adminSafetyNet.toString() }
@@ -330,74 +366,98 @@ export default function BinarySystemManagement() {
     setCreditTiers(updatedTiers);
   };
 
-  // Handle tier selection change - update join amount to tier price
+  // Handle tier selection change - populate saved settings for that tier
   const handleTierChange = (tierIndex: number) => {
     const tier = creditTiers[tierIndex];
     if (tier) {
+      // Populate settings from the selected tier's saved values
       setSettings(prev => ({
         ...prev,
         selectedTierIndex: tierIndex,
-        joinAmount: tier.price
+        joinAmount: tier.price,
+        cycleVolume: tier.cycleVolume || tier.price * 4, // Use saved or calculate
+        cycleCommission: tier.cycleCommission || prev.cycleCommission, // Use saved or keep current
+        dailyCap: tier.dailyCap // Use tier-specific daily cap
       }));
     }
   };
 
-  // Get selected tier info
-  const selectedTier = creditTiers[settings.selectedTierIndex] || { name: 'N/A', price: 0, credits: 0, cost: 0, images: 0, videos: 0, dailyCap: 5000 };
+  // Get selected tier info with all saved settings
+  const selectedTier = creditTiers[settings.selectedTierIndex] || { 
+    name: 'N/A', 
+    price: 0, 
+    credits: 0, 
+    cost: 0, 
+    images: 0, 
+    videos: 0, 
+    dailyCap: 5000,
+    cycleVolume: 0,
+    cycleCommission: 0
+  };
 
-  // Profitability Calculator - BINARY SYSTEM (Both Legs Contribute)
+  // Profitability Calculator - BINARY SYSTEM with new volume/commission logic
   const calculateProfitability = () => {
     const purchaseAmount = selectedTier.price || settings.joinAmount;
     const aiCost = selectedTier.cost || 0;
     const adminSafetyNetPercent = settings.adminSafetyNet;
-    const cycleCommission = settings.cycleCommission;
-    const cycleVolume = settings.cycleVolume;
-    const dailyCap = settings.dailyCap;
+    const directReferralPercent = 5; // 5% direct referral deduction
+    const cycleCommissionPercent = 10; // 10% of matched volume
+    
+    // NEW: Cycle volume = tier price × 4 per leg
+    const cycleVolume = purchaseAmount * 4;
+    const dailyCap = selectedTier.dailyCap || settings.dailyCap;
 
     // BINARY SYSTEM: Both legs contribute to cycle matching
     // For one cycle to complete, you need cycleVolume from LEFT leg AND cycleVolume from RIGHT leg
-    // Total purchase volume from BOTH legs = purchaseAmount × 2
+    // Example: If tier price is ₱2,990, cycle volume per leg = ₱11,960
+    // Need 4 users on each leg at ₱2,990 each to make a cycle
     const totalVolumeFromBothLegs = purchaseAmount * 2;
     const totalAiCostBothLegs = aiCost * 2;
     
     // Admin keeps from TOTAL volume (safety net percentage from both legs)
     const adminKeeps = (totalVolumeFromBothLegs * adminSafetyNetPercent) / 100;
     
+    // Direct referral deduction (5% of total volume)
+    const directReferralAmount = (totalVolumeFromBothLegs * directReferralPercent) / 100;
+    
     // Net admin profit (admin's actual profit after covering AI cost from both purchases)
     const netAdminProfit = Math.max(0, adminKeeps - totalAiCostBothLegs);
     
-    // CRITICAL: Affiliate pool = ONLY remaining money after AI cost AND admin profit are deducted
-    // This pool comes from BOTH legs' purchases combined
-    const affiliatePool = Math.max(0, totalVolumeFromBothLegs - totalAiCostBothLegs - netAdminProfit);
+    // CRITICAL: Affiliate pool = ONLY remaining money after AI cost, admin profit, AND direct referral are deducted
+    const affiliatePool = Math.max(0, totalVolumeFromBothLegs - totalAiCostBothLegs - netAdminProfit - directReferralAmount);
     
     // Gross profit for reference (from both legs)
     const grossProfit = totalVolumeFromBothLegs - totalAiCostBothLegs;
     
+    // NEW: Cycle commission = 10% of matched volume (both legs combined for one cycle)
+    const matchedVolumePerCycle = cycleVolume * 2; // Both legs contribute cycleVolume each
+    const cycleCommission = (matchedVolumePerCycle * cycleCommissionPercent) / 100;
+    
     // Calculate max cycles possible from affiliate pool
-    // This represents how many cycles the combined pool can pay out
     const maxCyclesFromPool = cycleCommission > 0 ? Math.floor(affiliatePool / cycleCommission) : 0;
     
     // Max cycles per day per user (based on daily cap)
     const maxCyclesPerDayPerUser = cycleCommission > 0 ? Math.floor(dailyCap / cycleCommission) : 0;
     
     // Total possible cycles from matched volume
-    // One cycle requires cycleVolume from EACH leg, so cycles = min(leftVolume, rightVolume) / cycleVolume
-    // With equal legs: purchaseAmount / cycleVolume cycles
-    const cyclesPerPurchase = cycleVolume > 0 ? Math.floor(purchaseAmount / cycleVolume) : 0;
+    // With equal legs: purchaseAmount / cycleVolume cycles (usually < 1 for single purchase)
+    const cyclesPerPurchase = cycleVolume > 0 ? purchaseAmount / cycleVolume : 0;
+    
+    // How many users needed per leg to complete 1 cycle
+    const usersPerLegForCycle = cycleVolume > 0 && purchaseAmount > 0 ? Math.ceil(cycleVolume / purchaseAmount) : 0;
     
     // Overpay threshold - when payout exceeds affiliate pool
     const overpayThreshold = affiliatePool;
     const maxSafePayout = affiliatePool;
     
-    // Break-even analysis - how many cycles before admin covers AI cost
+    // Break-even analysis
     const breakEvenCycles = cycleCommission > 0 ? Math.ceil(totalAiCostBothLegs / cycleCommission) : 0;
     
     // Is the current setup profitable?
-    // Check if affiliate pool can cover the cycles that would be generated
     const totalPayoutForCycles = cyclesPerPurchase * cycleCommission;
     const isProfitable = netAdminProfit > 0 && affiliatePool >= totalPayoutForCycles;
-    const profitPerCycle = affiliatePool > 0 && cyclesPerPurchase > 0 
-      ? (affiliatePool - totalPayoutForCycles) / cyclesPerPurchase 
+    const profitPerCycle = affiliatePool > 0 && maxCyclesFromPool > 0 
+      ? affiliatePool / maxCyclesFromPool 
       : 0;
     
     // Surplus or deficit analysis
@@ -411,8 +471,12 @@ export default function BinarySystemManagement() {
       grossProfit,
       adminKeeps,
       netAdminProfit,
+      directReferralAmount,
       affiliatePool,
+      cycleVolume,
       cycleCommission,
+      cycleCommissionPercent,
+      usersPerLegForCycle,
       maxCyclesFromPool,
       maxCyclesPerDayPerUser,
       cyclesPerPurchase,
@@ -425,7 +489,8 @@ export default function BinarySystemManagement() {
       profitPerCycle,
       credits: selectedTier.credits,
       images: selectedTier.images,
-      videos: selectedTier.videos
+      videos: selectedTier.videos,
+      dailyCap
     };
   };
 
@@ -664,44 +729,47 @@ export default function BinarySystemManagement() {
                         <p>🖼️ ~Images: <strong>{selectedTier.images}</strong></p>
                         <p>🎬 ~Videos: <strong>{selectedTier.videos}</strong></p>
                         <p className="text-orange-600">📊 Cost: <strong>₱{selectedTier.cost.toLocaleString()}</strong></p>
+                        <p className="text-blue-600">📈 Daily Cap: <strong>₱{selectedTier.dailyCap.toLocaleString()}</strong></p>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Tier-Linked Settings */}
+                  {/* Tier-Linked Settings - Auto-calculated */}
                   <div className="p-4 rounded-lg bg-muted/50 border">
-                    <p className="text-sm font-medium mb-3">Configure Cycle Settings for this Tier:</p>
+                    <p className="text-sm font-medium mb-3">Cycle Settings for this Tier (Auto-calculated):</p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="tierJoinAmount">Join Amount (₱)</Label>
-                        <Input
-                          id="tierJoinAmount"
-                          type="number"
-                          value={settings.joinAmount}
-                          onChange={(e) => setSettings({ ...settings, joinAmount: parseFloat(e.target.value) || 0 })}
-                        />
-                        <p className="text-xs text-muted-foreground">Auto-set from tier price</p>
+                        <Label>Tier Price (₱)</Label>
+                        <div className="h-10 px-3 py-2 rounded-md border bg-muted flex items-center">
+                          <span className="font-medium">₱{selectedTier.price.toLocaleString()}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Base purchase amount</p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="tierCycleVolume">Cycle Volume (₱)</Label>
-                        <Input
-                          id="tierCycleVolume"
-                          type="number"
-                          value={settings.cycleVolume}
-                          onChange={(e) => setSettings({ ...settings, cycleVolume: parseFloat(e.target.value) || 0 })}
-                        />
-                        <p className="text-xs text-muted-foreground">Volume per leg for cycle</p>
+                        <Label>Cycle Volume per Leg (₱)</Label>
+                        <div className="h-10 px-3 py-2 rounded-md border bg-muted flex items-center">
+                          <span className="font-medium">₱{(selectedTier.price * 4).toLocaleString()}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">= Price × 4 ({Math.ceil(4)} users per leg)</p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="tierCycleCommission">Cycle Commission (₱)</Label>
-                        <Input
-                          id="tierCycleCommission"
-                          type="number"
-                          value={settings.cycleCommission}
-                          onChange={(e) => setSettings({ ...settings, cycleCommission: parseFloat(e.target.value) || 0 })}
-                        />
-                        <p className="text-xs text-muted-foreground">Earnings per cycle</p>
+                        <Label>Cycle Commission (10%)</Label>
+                        <div className="h-10 px-3 py-2 rounded-md border bg-muted flex items-center">
+                          <span className="font-medium">₱{profitCalc.cycleCommission.toLocaleString()}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">= 10% of matched volume</p>
                       </div>
+                    </div>
+                    
+                    {/* Cycle Explanation */}
+                    <div className="mt-4 p-3 rounded bg-blue-500/10 border border-blue-500/20 text-xs">
+                      <p className="font-medium text-blue-700 dark:text-blue-400 mb-1">📊 How Cycles Work:</p>
+                      <p className="text-muted-foreground">
+                        • Volume per leg = ₱{selectedTier.price.toLocaleString()} × 4 = <strong>₱{(selectedTier.price * 4).toLocaleString()}</strong><br/>
+                        • Users needed per leg = <strong>{profitCalc.usersPerLegForCycle}</strong> (at ₱{selectedTier.price.toLocaleString()} each)<br/>
+                        • When both legs have ₱{(selectedTier.price * 4).toLocaleString()}, a cycle completes<br/>
+                        • Commission = 10% of (₱{(selectedTier.price * 4).toLocaleString()} × 2) = <strong>₱{profitCalc.cycleCommission.toLocaleString()}</strong>
+                      </p>
                     </div>
                   </div>
                   
@@ -744,8 +812,10 @@ export default function BinarySystemManagement() {
                     <p>Per Leg Purchase: ₱{profitCalc.purchaseAmount.toLocaleString()}</p>
                     <p className="font-medium">Both Legs Total: <span className="text-primary">₱{profitCalc.totalVolumeFromBothLegs.toLocaleString()}</span></p>
                     <p>Total AI Cost: <span className="text-orange-500">-₱{profitCalc.totalAiCostBothLegs.toFixed(2)}</span></p>
-                    <p>Net Admin Profit: <span className="text-green-500">₱{profitCalc.netAdminProfit.toFixed(2)}</span></p>
+                    <p>Admin Profit ({settings.adminSafetyNet}%): <span className="text-green-500">₱{profitCalc.netAdminProfit.toFixed(2)}</span></p>
+                    <p>Direct Referral (5%): <span className="text-blue-500">-₱{profitCalc.directReferralAmount.toFixed(2)}</span></p>
                     <p className="font-medium pt-1 border-t">Affiliate Pool: <span className="text-primary">₱{profitCalc.affiliatePool.toFixed(2)}</span></p>
+                    <p>Cycle Commission (10%): <span className="text-amber-500">₱{profitCalc.cycleCommission.toFixed(2)}</span></p>
                   </div>
                 </div>
               </div>
