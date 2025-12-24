@@ -1,14 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Clock, Star, MapPin } from "lucide-react";
+import { Search, Clock, Star, MapPin, Navigation, AlertCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import BookServiceDialog from "./BookServiceDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useGeolocation, isWithinServiceArea, calculateDistance } from "@/hooks/useGeolocation";
 
 interface Service {
   id: string;
@@ -20,6 +22,9 @@ interface Service {
   image_url: string | null;
   diamond_reward: number;
   provider_id: string;
+  latitude: number | null;
+  longitude: number | null;
+  service_radius_km: number | null;
   profiles: {
     full_name: string | null;
     avatar_url: string | null;
@@ -40,6 +45,7 @@ const ServicesList = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [showBookDialog, setShowBookDialog] = useState(false);
+  const { latitude, longitude, error: locationError, loading: locationLoading } = useGeolocation();
 
   useEffect(() => {
     fetchCategories();
@@ -78,10 +84,39 @@ const ServicesList = () => {
     setLoading(false);
   };
 
-  const filteredServices = services.filter(service =>
-    service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    service.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter services by search, then by location
+  const filteredServices = useMemo(() => {
+    let result = services.filter(service =>
+      service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      service.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // Apply location filter
+    if (latitude && longitude) {
+      result = result.filter(service =>
+        isWithinServiceArea(
+          latitude,
+          longitude,
+          service.latitude,
+          service.longitude,
+          service.service_radius_km || 10
+        )
+      );
+    }
+
+    // Add distance and sort
+    return result.map(service => ({
+      ...service,
+      distance: latitude && longitude && service.latitude && service.longitude
+        ? calculateDistance(latitude, longitude, service.latitude, service.longitude)
+        : null
+    })).sort((a, b) => {
+      if (a.distance !== null && b.distance !== null) {
+        return a.distance - b.distance;
+      }
+      return 0;
+    });
+  }, [services, searchQuery, latitude, longitude]);
 
   const handleBookService = (service: Service) => {
     setSelectedService(service);
@@ -106,6 +141,28 @@ const ServicesList = () => {
 
   return (
     <div className="space-y-4">
+      {/* Location Status */}
+      {locationLoading && (
+        <Alert>
+          <Navigation className="h-4 w-4 animate-pulse" />
+          <AlertDescription>Getting your location to show nearby services...</AlertDescription>
+        </Alert>
+      )}
+      {locationError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{locationError} - Showing all services.</AlertDescription>
+        </Alert>
+      )}
+      {latitude && longitude && !locationError && (
+        <Alert className="bg-primary/10 border-primary/20">
+          <MapPin className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-primary">
+            Showing services available in your area
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
@@ -149,7 +206,11 @@ const ServicesList = () => {
       {/* Services Grid */}
       {filteredServices.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No services found</p>
+          <p className="text-muted-foreground">
+            {latitude && longitude 
+              ? "No services available in your area" 
+              : "No services found"}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -181,11 +242,19 @@ const ServicesList = () => {
                 <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                   {service.description}
                 </p>
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {service.duration_minutes} mins
-                  </span>
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {service.duration_minutes} mins
+                    </span>
+                  </div>
+                  {service.distance !== null && (
+                    <div className="flex items-center gap-1 text-primary">
+                      <Navigation className="h-4 w-4" />
+                      <span className="text-sm">{service.distance.toFixed(1)} km</span>
+                    </div>
+                  )}
                   <Badge variant="secondary" className="text-xs">
                     {service.category}
                   </Badge>
