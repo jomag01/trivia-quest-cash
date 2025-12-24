@@ -19,7 +19,9 @@ import {
   X,
   Gem,
   Users,
-  LogOut
+  LogOut,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import {
   Dialog,
@@ -27,6 +29,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { CategoryManagement } from "@/components/CategoryManagement";
 import { PrizeManagement } from "@/components/PrizeManagement";
 import { ProductManagement } from "@/components/ProductManagement";
@@ -54,7 +61,7 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent, Settings, Megaphone, Network } from "lucide-react";
 import { POSSystem } from "@/components/admin/POSSystem";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
 import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
@@ -72,7 +79,20 @@ import SupplierManagement from "@/components/admin/SupplierManagement";
 import RetailerCommissionSettings from "@/components/admin/RetailerCommissionSettings";
 import PromotionalAdsManagement from "@/components/admin/PromotionalAdsManagement";
 import { cn } from "@/lib/utils";
-import { BarChart3, Wallet } from "lucide-react";
+import { BarChart3 } from "lucide-react";
+
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: any;
+}
+
+interface MenuGroup {
+  id: string;
+  label: string;
+  icon: any;
+  items: MenuItem[];
+}
 
 interface CreditPurchase {
   id: string;
@@ -113,53 +133,144 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState("sales-analytics");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const menuItems = [
-    { id: "sales-analytics", label: "Sales Analytics", icon: TrendingUp },
-    { id: "accounting", label: "Accounting & Payouts", icon: Calculator },
-    { id: "homepage", label: "Homepage Settings", icon: Home },
-    { id: "app-logo", label: "App Logo", icon: Image },
-    { id: "credits", label: "Credit Purchases", icon: CreditCard },
-    { id: "ai-packages", label: "AI Package Purchases", icon: Sparkles },
-    { id: "payouts", label: "Payout Requests", icon: DollarSign },
-    { id: "categories", label: "Game Categories", icon: Gamepad2 },
-    { id: "treasure-hunt", label: "Treasure Hunt", icon: MapPin },
-    { id: "diamond-settings", label: "Diamond Settings", icon: Gem },
-    { id: "unilevel-settings", label: "Unilevel Network", icon: Users },
-    { id: "prizes", label: "Prize Config", icon: Trophy },
-    { id: "product-categories", label: "Product Categories", icon: FolderOpen },
-    { id: "marketplace-categories", label: "Marketplace Categories", icon: FolderOpen },
-    { id: "products", label: "Products", icon: ShoppingBag },
-    { id: "orders", label: "Orders", icon: Package },
-    { id: "shipping-zones", label: "Shipping Zones", icon: MapPin },
-    { id: "bulk-shipping", label: "Bulk Shipping", icon: Truck },
-    { id: "courier-settings", label: "Courier Settings", icon: Truck },
-    { id: "ad-management", label: "Ad Management", icon: Upload },
-    { id: "promotional-ads", label: "Promotional Ads", icon: Sparkles },
-    { id: "user-ads", label: "User Ad Campaigns", icon: TrendingUp },
-    { id: "migration", label: "Image Migration", icon: Upload },
-    { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
-    { id: "transfers", label: "Upline Transfers", icon: Users },
-    { id: "seller-verification", label: "Seller Verification", icon: CheckCircle },
-    { id: "multivendor-products", label: "User Products", icon: Package },
-    { id: "service-categories", label: "Service Categories", icon: Tags },
-    { id: "booking-services", label: "Booking Services", icon: CalendarCheck },
-    { id: "service-commissions", label: "Service Commissions", icon: DollarSign },
-    { id: "provider-verification", label: "Provider Verification", icon: Shield },
-    { id: "food-vendors", label: "Food Vendors", icon: UtensilsCrossed },
-    { id: "food-item-rewards", label: "Food Item Rewards", icon: Gem },
-    { id: "rider-management", label: "Rider Management", icon: Bike },
-    { id: "cookie-policy", label: "Cookie Policy", icon: Cookie },
-    { id: "pos-system", label: "POS & Inventory", icon: Barcode },
-    { id: "ai-settings", label: "AI Hub Settings", icon: Sparkles },
-    { id: "ai-pricing", label: "AI Provider Costs", icon: DollarSign },
-    { id: "qr-payment", label: "QR Payment Settings", icon: CreditCard },
-    { id: "binary-system", label: "Binary MLM System", icon: GitBranch },
-    { id: "binary-accounting", label: "Binary Accounting", icon: BarChart3 },
-    { id: "binary-calculator", label: "Binary Calculator", icon: Calculator },
-    { id: "suppliers", label: "Supplier Management", icon: Building2 },
-    { id: "retailer-commissions", label: "Retailer Commissions", icon: Percent },
-    { id: "system-reset", label: "System Reset", icon: RotateCcw },
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["finances", "mlm"]);
+
+  const menuGroups: MenuGroup[] = [
+    {
+      id: "finances",
+      label: "Finances & Payments",
+      icon: DollarSign,
+      items: [
+        { id: "sales-analytics", label: "Sales Analytics", icon: TrendingUp },
+        { id: "accounting", label: "Accounting & Payouts", icon: Calculator },
+        { id: "credits", label: "Credit Purchases", icon: CreditCard },
+        { id: "ai-packages", label: "AI Package Purchases", icon: Sparkles },
+        { id: "payouts", label: "Payout Requests", icon: DollarSign },
+        { id: "qr-payment", label: "QR Payment Settings", icon: CreditCard },
+      ],
+    },
+    {
+      id: "mlm",
+      label: "MLM & Network",
+      icon: Network,
+      items: [
+        { id: "binary-system", label: "Binary MLM System", icon: GitBranch },
+        { id: "binary-accounting", label: "Binary Accounting", icon: BarChart3 },
+        { id: "binary-calculator", label: "Binary Calculator", icon: Calculator },
+        { id: "unilevel-settings", label: "Unilevel Network", icon: Users },
+        { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
+        { id: "transfers", label: "Upline Transfers", icon: Users },
+        { id: "retailer-commissions", label: "Retailer Commissions", icon: Percent },
+      ],
+    },
+    {
+      id: "ecommerce",
+      label: "E-Commerce",
+      icon: ShoppingBag,
+      items: [
+        { id: "product-categories", label: "Product Categories", icon: FolderOpen },
+        { id: "marketplace-categories", label: "Marketplace Categories", icon: FolderOpen },
+        { id: "products", label: "Products", icon: ShoppingBag },
+        { id: "orders", label: "Orders", icon: Package },
+        { id: "pos-system", label: "POS & Inventory", icon: Barcode },
+        { id: "multivendor-products", label: "User Products", icon: Package },
+        { id: "seller-verification", label: "Seller Verification", icon: CheckCircle },
+        { id: "suppliers", label: "Supplier Management", icon: Building2 },
+      ],
+    },
+    {
+      id: "shipping",
+      label: "Shipping & Delivery",
+      icon: Truck,
+      items: [
+        { id: "shipping-zones", label: "Shipping Zones", icon: MapPin },
+        { id: "bulk-shipping", label: "Bulk Shipping", icon: Truck },
+        { id: "courier-settings", label: "Courier Settings", icon: Truck },
+      ],
+    },
+    {
+      id: "food",
+      label: "Food Delivery",
+      icon: UtensilsCrossed,
+      items: [
+        { id: "food-vendors", label: "Food Vendors", icon: UtensilsCrossed },
+        { id: "food-item-rewards", label: "Food Item Rewards", icon: Gem },
+        { id: "rider-management", label: "Rider Management", icon: Bike },
+      ],
+    },
+    {
+      id: "services",
+      label: "Services & Booking",
+      icon: CalendarCheck,
+      items: [
+        { id: "service-categories", label: "Service Categories", icon: Tags },
+        { id: "booking-services", label: "Booking Services", icon: CalendarCheck },
+        { id: "service-commissions", label: "Service Commissions", icon: DollarSign },
+        { id: "provider-verification", label: "Provider Verification", icon: Shield },
+      ],
+    },
+    {
+      id: "games",
+      label: "Games & Rewards",
+      icon: Gamepad2,
+      items: [
+        { id: "categories", label: "Game Categories", icon: Gamepad2 },
+        { id: "treasure-hunt", label: "Treasure Hunt", icon: MapPin },
+        { id: "diamond-settings", label: "Diamond Settings", icon: Gem },
+        { id: "prizes", label: "Prize Config", icon: Trophy },
+      ],
+    },
+    {
+      id: "advertising",
+      label: "Advertising",
+      icon: Megaphone,
+      items: [
+        { id: "ad-management", label: "Ad Management", icon: Upload },
+        { id: "promotional-ads", label: "Promotional Ads", icon: Sparkles },
+        { id: "user-ads", label: "User Ad Campaigns", icon: TrendingUp },
+      ],
+    },
+    {
+      id: "ai",
+      label: "AI Hub",
+      icon: Sparkles,
+      items: [
+        { id: "ai-settings", label: "AI Hub Settings", icon: Sparkles },
+        { id: "ai-pricing", label: "AI Provider Costs", icon: DollarSign },
+      ],
+    },
+    {
+      id: "settings",
+      label: "System Settings",
+      icon: Settings,
+      items: [
+        { id: "homepage", label: "Homepage Settings", icon: Home },
+        { id: "app-logo", label: "App Logo", icon: Image },
+        { id: "cookie-policy", label: "Cookie Policy", icon: Cookie },
+        { id: "migration", label: "Image Migration", icon: Upload },
+        { id: "system-reset", label: "System Reset", icon: RotateCcw },
+      ],
+    },
   ];
+
+  // Flatten menu items for header label lookup
+  const allMenuItems = menuGroups.flatMap(group => group.items);
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupId) 
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
+
+  // Auto-expand group containing active tab
+  useEffect(() => {
+    const group = menuGroups.find(g => g.items.some(item => item.id === activeTab));
+    if (group && !expandedGroups.includes(group.id)) {
+      setExpandedGroups(prev => [...prev, group.id]);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -427,26 +538,56 @@ const Admin = () => {
               <X className="w-5 h-5" />
             </Button>
           </div>
-          <nav className="flex-1 overflow-y-auto p-2">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
+          <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+            {menuGroups.map((group) => {
+              const GroupIcon = group.icon;
+              const isExpanded = expandedGroups.includes(group.id);
+              const hasActiveItem = group.items.some(item => item.id === activeTab);
+              
               return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setSidebarOpen(false);
-                  }}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors mb-1",
-                    activeTab === item.id
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  )}
+                <Collapsible
+                  key={group.id}
+                  open={isExpanded}
+                  onOpenChange={() => toggleGroup(group.id)}
                 >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </button>
+                  <CollapsibleTrigger className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                    hasActiveItem ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                  )}>
+                    <div className="flex items-center gap-3">
+                      <GroupIcon className="w-4 h-4" />
+                      {group.label}
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 mt-1 space-y-1">
+                    {group.items.map((item) => {
+                      const ItemIcon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setSidebarOpen(false);
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                            activeTab === item.id
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <ItemIcon className="w-4 h-4" />
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
               );
             })}
           </nav>
@@ -488,7 +629,7 @@ const Admin = () => {
             </Button>
             <Shield className="w-6 h-6 text-primary hidden lg:block" />
             <h1 className="text-2xl font-bold text-gradient-gold flex-1">
-              {menuItems.find(item => item.id === activeTab)?.label || "Admin Panel"}
+              {allMenuItems.find(item => item.id === activeTab)?.label || "Admin Panel"}
             </h1>
             <Button
               variant="outline"
