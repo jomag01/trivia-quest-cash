@@ -1749,6 +1749,7 @@ export type Database = {
           owner_id: string
           phone: string | null
           rating: number | null
+          service_radius_km: number | null
           total_orders: number | null
           updated_at: string | null
         }
@@ -1773,6 +1774,7 @@ export type Database = {
           owner_id: string
           phone?: string | null
           rating?: number | null
+          service_radius_km?: number | null
           total_orders?: number | null
           updated_at?: string | null
         }
@@ -1797,6 +1799,7 @@ export type Database = {
           owner_id?: string
           phone?: string | null
           rating?: number | null
+          service_radius_km?: number | null
           total_orders?: number | null
           updated_at?: string | null
         }
@@ -4903,12 +4906,15 @@ export type Database = {
           image_url: string | null
           inclusions: Json | null
           is_active: boolean | null
+          latitude: number | null
+          longitude: number | null
           max_guests: number | null
           meeting_point: string | null
           min_guests: number | null
           price: number
           provider_id: string
           referral_commission_diamonds: number | null
+          service_radius_km: number | null
           title: string
           updated_at: string
           vendor_price: number | null
@@ -4934,12 +4940,15 @@ export type Database = {
           image_url?: string | null
           inclusions?: Json | null
           is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           max_guests?: number | null
           meeting_point?: string | null
           min_guests?: number | null
           price?: number
           provider_id: string
           referral_commission_diamonds?: number | null
+          service_radius_km?: number | null
           title: string
           updated_at?: string
           vendor_price?: number | null
@@ -4965,12 +4974,15 @@ export type Database = {
           image_url?: string | null
           inclusions?: Json | null
           is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           max_guests?: number | null
           meeting_point?: string | null
           min_guests?: number | null
           price?: number
           provider_id?: string
           referral_commission_diamonds?: number | null
+          service_radius_km?: number | null
           title?: string
           updated_at?: string
           vendor_price?: number | null

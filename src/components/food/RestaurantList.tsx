@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Search, Star, Clock, MapPin } from "lucide-react";
+import { Search, Star, Clock, MapPin, Navigation, AlertCircle } from "lucide-react";
 import { RestaurantMenu } from "./RestaurantMenu";
+import { useGeolocation, isWithinServiceArea, calculateDistance } from "@/hooks/useGeolocation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface FoodCategory {
   id: string;
@@ -26,12 +28,16 @@ interface FoodVendor {
   estimated_delivery_time: string | null;
   delivery_fee: number;
   minimum_order: number;
+  latitude: number | null;
+  longitude: number | null;
+  service_radius_km: number | null;
 }
 
 export const RestaurantList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
+  const { latitude, longitude, error: locationError, loading: locationLoading } = useGeolocation();
 
   const { data: categories } = useQuery({
     queryKey: ["food-categories"],
@@ -47,7 +53,7 @@ export const RestaurantList = () => {
   });
 
   const { data: vendors, isLoading } = useQuery({
-    queryKey: ["food-vendors", selectedCategory, searchQuery],
+    queryKey: ["food-vendors", selectedCategory, searchQuery, latitude, longitude],
     queryFn: async () => {
       let query = (supabase as any)
         .from("food_vendors")
@@ -69,12 +75,57 @@ export const RestaurantList = () => {
     },
   });
 
+  // Filter vendors by user location
+  const filteredVendors = vendors?.filter((vendor) => {
+    if (!latitude || !longitude) return true; // Show all if no location
+    return isWithinServiceArea(
+      latitude,
+      longitude,
+      vendor.latitude,
+      vendor.longitude,
+      vendor.service_radius_km || 10
+    );
+  }).map(vendor => ({
+    ...vendor,
+    distance: latitude && longitude && vendor.latitude && vendor.longitude
+      ? calculateDistance(latitude, longitude, vendor.latitude, vendor.longitude)
+      : null
+  })).sort((a, b) => {
+    // Sort by distance if available, otherwise by rating
+    if (a.distance !== null && b.distance !== null) {
+      return a.distance - b.distance;
+    }
+    return (b.rating || 0) - (a.rating || 0);
+  });
+
   if (selectedVendor) {
     return <RestaurantMenu vendorId={selectedVendor} onBack={() => setSelectedVendor(null)} />;
   }
 
   return (
     <div className="space-y-4">
+      {/* Location Status */}
+      {locationLoading && (
+        <Alert>
+          <Navigation className="h-4 w-4 animate-pulse" />
+          <AlertDescription>Getting your location to show nearby restaurants...</AlertDescription>
+        </Alert>
+      )}
+      {locationError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{locationError} - Showing all restaurants.</AlertDescription>
+        </Alert>
+      )}
+      {latitude && longitude && !locationError && (
+        <Alert className="bg-primary/10 border-primary/20">
+          <MapPin className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-primary">
+            Showing restaurants that deliver to your location
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -125,13 +176,17 @@ export const RestaurantList = () => {
             </Card>
           ))}
         </div>
-      ) : vendors?.length === 0 ? (
+      ) : filteredVendors?.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">No restaurants found</p>
+          <p className="text-muted-foreground">
+            {latitude && longitude 
+              ? "No restaurants deliver to your area" 
+              : "No restaurants found"}
+          </p>
         </div>
       ) : (
         <div className="grid gap-4">
-          {vendors?.map((vendor) => (
+          {filteredVendors?.map((vendor) => (
             <Card
               key={vendor.id}
               className="cursor-pointer hover:shadow-lg transition-shadow overflow-hidden"
@@ -173,10 +228,17 @@ export const RestaurantList = () => {
                       <Clock className="w-4 h-4" />
                       <span>{vendor.estimated_delivery_time}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      <span className="truncate max-w-[150px]">{vendor.address || "No address"}</span>
-                    </div>
+                    {vendor.distance !== null ? (
+                      <div className="flex items-center gap-1 text-primary">
+                        <Navigation className="w-4 h-4" />
+                        <span>{vendor.distance.toFixed(1)} km away</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-4 h-4" />
+                        <span className="truncate max-w-[150px]">{vendor.address || "No address"}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     {vendor.delivery_fee === 0 ? (
