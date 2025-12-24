@@ -304,11 +304,11 @@ export default function BinarySystemManagement() {
     const tier = creditTiers[tierIndex];
     if (!tier) return;
     
-    // Save tier-specific settings
+    // Save tier-specific settings - cycle volume is FIXED at 11,960
     const settingsToSave = [
       { key: 'binary_selected_tier_index', value: settings.selectedTierIndex.toString() },
       { key: 'binary_join_amount', value: tier.price.toString() },
-      { key: 'binary_cycle_volume', value: (tier.price * 4).toString() }, // Volume = price × 4
+      { key: 'binary_cycle_volume', value: '11960' }, // Fixed: 11,960 per leg
       { key: 'binary_cycle_commission', value: settings.cycleCommission.toString() },
       { key: `ai_credit_tier_${tierIndex + 1}_cycle_commission`, value: settings.cycleCommission.toString() }
     ];
@@ -319,7 +319,7 @@ export default function BinarySystemManagement() {
     const updatedTiers = [...creditTiers];
     updatedTiers[tierIndex] = { 
       ...updatedTiers[tierIndex], 
-      cycleVolume: tier.price * 4,
+      cycleVolume: 11960, // Fixed cycle volume
       cycleCommission: settings.cycleCommission 
     };
     setCreditTiers(updatedTiers);
@@ -395,7 +395,7 @@ export default function BinarySystemManagement() {
     cycleCommission: 0
   };
 
-  // Profitability Calculator - BINARY SYSTEM with new volume/commission logic
+  // Profitability Calculator - BINARY SYSTEM with FIXED 11,960 cycle volume
   const calculateProfitability = () => {
     const purchaseAmount = selectedTier.price || settings.joinAmount;
     const aiCost = selectedTier.cost || 0;
@@ -403,14 +403,13 @@ export default function BinarySystemManagement() {
     const directReferralPercent = 5; // 5% direct referral deduction
     const cycleCommissionPercent = 10; // 10% of matched volume
     
-    // NEW: Cycle volume = tier price × 4 per leg
-    const cycleVolume = purchaseAmount * 4;
+    // FIXED: Cycle volume is always 11,960 per leg (not tier × 4)
+    const cycleVolume = 11960; // Fixed cycle volume per leg
     const dailyCap = selectedTier.dailyCap || settings.dailyCap;
 
     // BINARY SYSTEM: Both legs contribute to cycle matching
-    // For one cycle to complete, you need cycleVolume from LEFT leg AND cycleVolume from RIGHT leg
-    // Example: If tier price is ₱2,990, cycle volume per leg = ₱11,960
-    // Need 4 users on each leg at ₱2,990 each to make a cycle
+    // A cycle = 11,960 on left leg AND 11,960 on right leg
+    // Examples: 4×₱2,990 = 11,960 OR 2×₱5,990 = 11,980 OR 1×₱11,960
     const totalVolumeFromBothLegs = purchaseAmount * 2;
     const totalAiCostBothLegs = aiCost * 2;
     
@@ -429,8 +428,8 @@ export default function BinarySystemManagement() {
     // Gross profit for reference (from both legs)
     const grossProfit = totalVolumeFromBothLegs - totalAiCostBothLegs;
     
-    // NEW: Cycle commission = 10% of matched volume (both legs combined for one cycle)
-    const matchedVolumePerCycle = cycleVolume * 2; // Both legs contribute cycleVolume each
+    // Cycle commission = 10% of matched volume (11,960 × 2 = 23,920 per cycle)
+    const matchedVolumePerCycle = cycleVolume * 2; // 11,960 left + 11,960 right = 23,920
     const cycleCommission = (matchedVolumePerCycle * cycleCommissionPercent) / 100;
     
     // Calculate max cycles possible from affiliate pool
@@ -440,11 +439,10 @@ export default function BinarySystemManagement() {
     const maxCyclesPerDayPerUser = cycleCommission > 0 ? Math.floor(dailyCap / cycleCommission) : 0;
     
     // Total possible cycles from matched volume
-    // With equal legs: purchaseAmount / cycleVolume cycles (usually < 1 for single purchase)
     const cyclesPerPurchase = cycleVolume > 0 ? purchaseAmount / cycleVolume : 0;
     
-    // How many users needed per leg to complete 1 cycle
-    const usersPerLegForCycle = cycleVolume > 0 && purchaseAmount > 0 ? Math.ceil(cycleVolume / purchaseAmount) : 0;
+    // How many users needed per leg to complete 1 cycle at current tier price
+    const usersPerLegForCycle = purchaseAmount > 0 ? Math.ceil(cycleVolume / purchaseAmount) : 0;
     
     // Overpay threshold - when payout exceeds affiliate pool
     const overpayThreshold = affiliatePool;
@@ -734,9 +732,9 @@ export default function BinarySystemManagement() {
                     </div>
                   </div>
                   
-                  {/* Tier-Linked Settings - Auto-calculated */}
+                  {/* Tier-Linked Settings - FIXED Cycle Volume */}
                   <div className="p-4 rounded-lg bg-muted/50 border">
-                    <p className="text-sm font-medium mb-3">Cycle Settings for this Tier (Auto-calculated):</p>
+                    <p className="text-sm font-medium mb-3">Cycle Settings (Fixed Volume System):</p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>Tier Price (₱)</Label>
@@ -747,28 +745,29 @@ export default function BinarySystemManagement() {
                       </div>
                       <div className="space-y-2">
                         <Label>Cycle Volume per Leg (₱)</Label>
-                        <div className="h-10 px-3 py-2 rounded-md border bg-muted flex items-center">
-                          <span className="font-medium">₱{(selectedTier.price * 4).toLocaleString()}</span>
+                        <div className="h-10 px-3 py-2 rounded-md border bg-green-500/10 flex items-center">
+                          <span className="font-medium text-green-700 dark:text-green-400">₱11,960</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">= Price × 4 ({Math.ceil(4)} users per leg)</p>
+                        <p className="text-xs text-muted-foreground">Fixed: ₱11,960 per leg to cycle</p>
                       </div>
                       <div className="space-y-2">
                         <Label>Cycle Commission (10%)</Label>
                         <div className="h-10 px-3 py-2 rounded-md border bg-muted flex items-center">
                           <span className="font-medium">₱{profitCalc.cycleCommission.toLocaleString()}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">= 10% of matched volume</p>
+                        <p className="text-xs text-muted-foreground">= 10% of ₱23,920 matched</p>
                       </div>
                     </div>
                     
                     {/* Cycle Explanation */}
                     <div className="mt-4 p-3 rounded bg-blue-500/10 border border-blue-500/20 text-xs">
-                      <p className="font-medium text-blue-700 dark:text-blue-400 mb-1">📊 How Cycles Work:</p>
+                      <p className="font-medium text-blue-700 dark:text-blue-400 mb-1">📊 How Cycles Work (Fixed ₱11,960 per leg):</p>
                       <p className="text-muted-foreground">
-                        • Volume per leg = ₱{selectedTier.price.toLocaleString()} × 4 = <strong>₱{(selectedTier.price * 4).toLocaleString()}</strong><br/>
-                        • Users needed per leg = <strong>{profitCalc.usersPerLegForCycle}</strong> (at ₱{selectedTier.price.toLocaleString()} each)<br/>
-                        • When both legs have ₱{(selectedTier.price * 4).toLocaleString()}, a cycle completes<br/>
-                        • Commission = 10% of (₱{(selectedTier.price * 4).toLocaleString()} × 2) = <strong>₱{profitCalc.cycleCommission.toLocaleString()}</strong>
+                        • <strong>Fixed Volume:</strong> ₱11,960 on each leg to complete a cycle<br/>
+                        • <strong>With ₱2,990 tier:</strong> 4 users per leg (4 × ₱2,990 = ₱11,960)<br/>
+                        • <strong>With ₱5,990 tier:</strong> 2 users per leg (2 × ₱5,990 = ₱11,980)<br/>
+                        • <strong>Mixed example:</strong> Left: 4×₱2,990 = ₱11,960, Right: 2×₱5,990 = ₱11,980 ✓ CYCLE!<br/>
+                        • <strong>Commission:</strong> 10% of (₱11,960 × 2) = <strong>₱{profitCalc.cycleCommission.toLocaleString()}</strong>
                       </p>
                     </div>
                   </div>

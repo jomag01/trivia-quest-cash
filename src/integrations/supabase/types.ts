@@ -6847,8 +6847,8 @@ export type Database = {
     }
     Functions: {
       binary_apply_purchase_volume: {
-        Args: { _amount: number; _buyer_user_id: string }
-        Returns: undefined
+        Args: { p_amount: number; p_user_id: string }
+        Returns: Json
       }
       binary_find_leftmost_spot: {
         Args: { _network_id: string }
