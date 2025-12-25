@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.send-supplier-verification]
 verify_jwt = false
+
+[functions.contact-assistant]
+verify_jwt = false

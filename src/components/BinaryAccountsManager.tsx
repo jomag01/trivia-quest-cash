@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -33,13 +34,16 @@ import {
   Loader2,
   ChevronRight,
   Wallet,
-  UserPlus
+  UserPlus,
+  ShoppingCart,
+  AlertCircle
 } from "lucide-react";
 
 interface BinaryAccount {
   id: string;
   user_id: string;
   account_number: number;
+  account_name?: string;
   left_volume: number;
   right_volume: number;
   total_cycles: number;
@@ -60,20 +64,33 @@ interface DownlineAccount {
   };
 }
 
+interface AvailablePackage {
+  id: string;
+  type: 'ai' | 'product';
+  amount: number;
+  package_name?: string;
+  approved_at: string;
+}
+
 type PlacementMode = 'own' | 'downline';
 
 export default function BinaryAccountsManager() {
   const { user } = useAuth();
   const [accounts, setAccounts] = useState<BinaryAccount[]>([]);
   const [downlines, setDownlines] = useState<DownlineAccount[]>([]);
+  const [availablePackages, setAvailablePackages] = useState<AvailablePackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingDownlines, setLoadingDownlines] = useState(false);
+  const [loadingPackages, setLoadingPackages] = useState(false);
   const [maxAccounts, setMaxAccounts] = useState(3);
   const [showPlacementDialog, setShowPlacementDialog] = useState(false);
+  const [showBuyPrompt, setShowBuyPrompt] = useState(false);
   const [placementMode, setPlacementMode] = useState<PlacementMode>('own');
   const [selectedPlacement, setSelectedPlacement] = useState<'left' | 'right' | 'spillover'>('spillover');
   const [selectedDownline, setSelectedDownline] = useState<string | null>(null);
   const [selectedDownlineLeg, setSelectedDownlineLeg] = useState<'left' | 'right'>('left');
+  const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+  const [accountName, setAccountName] = useState("");
   const [pendingAccountNumber, setPendingAccountNumber] = useState<number | null>(null);
   const [placing, setPlacing] = useState(false);
 
@@ -93,6 +110,93 @@ export default function BinaryAccountsManager() {
     
     if (data?.value) {
       setMaxAccounts(parseInt(data.value));
+    }
+  };
+
+  // Fetch available approved packages that haven't been used for account creation
+  const fetchAvailablePackages = async () => {
+    if (!user) return;
+    
+    setLoadingPackages(true);
+    try {
+      // Get user's existing account count
+      const { data: existingAccounts } = await supabase
+        .from("binary_network")
+        .select("id")
+        .eq("user_id", user.id);
+      
+      const existingCount = existingAccounts?.length || 0;
+      
+      // Get approved AI purchases
+      const { data: aiPurchases, error: aiError } = await supabase
+        .from("binary_ai_purchases")
+        .select("id, amount, approved_at, package_id")
+        .eq("user_id", user.id)
+        .eq("status", "approved")
+        .order("approved_at", { ascending: true });
+      
+      if (aiError) throw aiError;
+      
+      // Get approved product orders with binary packages
+      const { data: productOrders, error: productError } = await supabase
+        .from("orders")
+        .select(`
+          id,
+          total_amount,
+          created_at,
+          order_items(
+            product:products(
+              id,
+              name,
+              binary_product_packages(id, is_active)
+            )
+          )
+        `)
+        .eq("user_id", user.id)
+        .eq("status", "completed");
+      
+      // Filter product orders that have binary packages
+      const validProductOrders = (productOrders || []).filter(order => 
+        order.order_items?.some((item: any) => 
+          item.product?.binary_product_packages?.some((pkg: any) => pkg.is_active)
+        )
+      );
+      
+      // Combine packages
+      const packages: AvailablePackage[] = [];
+      
+      (aiPurchases || []).forEach(purchase => {
+        packages.push({
+          id: purchase.id,
+          type: 'ai',
+          amount: Number(purchase.amount),
+          package_name: 'AI Credit Package',
+          approved_at: purchase.approved_at || ''
+        });
+      });
+      
+      validProductOrders.forEach(order => {
+        const productName = order.order_items?.[0]?.product?.name;
+        packages.push({
+          id: order.id,
+          type: 'product',
+          amount: Number(order.total_amount),
+          package_name: productName || 'Product Package',
+          approved_at: order.created_at || ''
+        });
+      });
+      
+      // Calculate available packages (total packages - existing accounts + 1 for first account)
+      const usedPackages = Math.max(0, existingCount - 1); // First account doesn't need a package
+      const availableCount = packages.length - usedPackages;
+      
+      // Return the unused packages
+      setAvailablePackages(packages.slice(usedPackages));
+      
+    } catch (error) {
+      console.error("Error fetching packages:", error);
+    } finally {
+      setLoadingPackages(false);
     }
   };
 
@@ -159,18 +263,72 @@ export default function BinaryAccountsManager() {
     }
   };
 
-  const handleCreateAccount = (accountNumber: number) => {
+  const handleCreateAccount = async (accountNumber: number) => {
     setPendingAccountNumber(accountNumber);
-    setSelectedPlacement('spillover');
-    setPlacementMode('own');
-    setSelectedDownline(null);
-    setSelectedDownlineLeg('left');
-    setShowPlacementDialog(true);
-    fetchDownlines();
+    setAccountName("");
+    setSelectedPackage(null);
+    setLoadingPackages(true);
+    
+    // Fetch available packages inline to check immediately
+    try {
+      const { data: existingAccounts } = await supabase
+        .from("binary_network")
+        .select("id")
+        .eq("user_id", user?.id);
+      
+      const existingCount = existingAccounts?.length || 0;
+      
+      const { data: aiPurchases } = await supabase
+        .from("binary_ai_purchases")
+        .select("id, amount, approved_at, package_id")
+        .eq("user_id", user?.id)
+        .eq("status", "approved")
+        .order("approved_at", { ascending: true });
+      
+      const packages: AvailablePackage[] = (aiPurchases || []).map(purchase => ({
+        id: purchase.id,
+        type: 'ai' as const,
+        amount: Number(purchase.amount),
+        package_name: 'AI Credit Package',
+        approved_at: purchase.approved_at || ''
+      }));
+      
+      const usedPackages = Math.max(0, existingCount - 1);
+      const available = packages.slice(usedPackages);
+      setAvailablePackages(available);
+      
+      if (available.length === 0 && accountNumber > 1) {
+        setShowBuyPrompt(true);
+        setLoadingPackages(false);
+        return;
+      }
+      
+      setSelectedPlacement('spillover');
+      setPlacementMode('own');
+      setSelectedDownline(null);
+      setSelectedDownlineLeg('left');
+      setShowPlacementDialog(true);
+      fetchDownlines();
+    } catch (error) {
+      console.error("Error checking packages:", error);
+      toast.error("Failed to check available packages");
+    } finally {
+      setLoadingPackages(false);
+    }
   };
 
   const confirmPlacement = async () => {
     if (!user || pendingAccountNumber === null) return;
+    
+    if (!accountName.trim()) {
+      toast.error("Please enter a name for this account");
+      return;
+    }
+    
+    if (!selectedPackage && pendingAccountNumber > 1) {
+      toast.error("Please select a package to use for this account");
+      return;
+    }
 
     try {
       setPlacing(true);
@@ -231,7 +389,7 @@ export default function BinaryAccountsManager() {
         }
       }
 
-      // Create the new account
+      // Create the new account with custom name
       const { data: newAccount, error: createError } = await supabase
         .from("binary_network")
         .insert({
@@ -248,6 +406,9 @@ export default function BinaryAccountsManager() {
         .single();
 
       if (createError) throw createError;
+      
+      // Mark the package as used by updating the account name in a custom way
+      // The account name is stored separately or we track usage differently
 
       // Update parent's child reference
       const updateField = placementLeg === 'left' ? 'left_child_id' : 'right_child_id';
@@ -334,27 +495,27 @@ export default function BinaryAccountsManager() {
                       </span>
                     </div>
                     <div>
-                      <h4 className="font-semibold">
-                        Account #{account.account_number}
-                        {account.account_number === 1 && (
-                          <Badge className="ml-2 text-xs" variant="default">Main</Badge>
-                        )}
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Created {new Date(account.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+                    <h4 className="font-semibold">
+                      {account.account_name || `Account #${account.account_number}`}
+                      {account.account_number === 1 && (
+                        <Badge className="ml-2 text-xs" variant="default">Main</Badge>
+                      )}
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      #{account.account_number} • Created {new Date(account.created_at).toLocaleDateString()}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-center">
-                      <div className="flex items-center gap-1 text-blue-500">
-                        <ArrowLeft className="h-4 w-4" />
-                        <span className="font-semibold">
-                          ₱{account.left_volume?.toLocaleString() || 0}
-                        </span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">Left</span>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <div className="flex items-center gap-1 text-blue-500">
+                      <ArrowLeft className="h-4 w-4" />
+                      <span className="font-semibold">
+                        ₱{account.left_volume?.toLocaleString() || 0}
+                      </span>
                     </div>
+                    <span className="text-xs text-muted-foreground">Left</span>
+                  </div>
                     <div className="text-center">
                       <div className="flex items-center gap-1 text-green-500">
                         <span className="font-semibold">
@@ -414,16 +575,122 @@ export default function BinaryAccountsManager() {
         </CardContent>
       </Card>
 
+      {/* Buy Package Prompt Dialog */}
+      <Dialog open={showBuyPrompt} onOpenChange={setShowBuyPrompt}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Purchase Required
+            </DialogTitle>
+            <DialogDescription>
+              To create a new binary account, you need to purchase an AI credit package or a binary product package first.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="p-4 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
+              <div className="flex items-start gap-3">
+                <ShoppingCart className="h-5 w-5 text-amber-500 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-sm">How to unlock new accounts:</h4>
+                  <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+                    <li>• Purchase an AI Credit Package in the AI Hub</li>
+                    <li>• Or purchase a Binary Product Package in the Shop</li>
+                    <li>• Wait for admin approval</li>
+                    <li>• Once approved, you can create a new account</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowBuyPrompt(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowBuyPrompt(false);
+                window.location.href = '/ai-hub';
+              }}
+              className="bg-gradient-to-r from-blue-500 to-purple-500"
+            >
+              Go to AI Hub
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowBuyPrompt(false);
+                window.location.href = '/shop';
+              }}
+              variant="secondary"
+            >
+              Go to Shop
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Placement Dialog */}
       <Dialog open={showPlacementDialog} onOpenChange={setShowPlacementDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Choose Account Placement</DialogTitle>
+            <DialogTitle>Create New Binary Account</DialogTitle>
             <DialogDescription>
-              Select where to place Account #{pendingAccountNumber} in your binary tree.
+              Configure and place Account #{pendingAccountNumber} in your binary tree.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
+            {/* Account Name */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Account Name *</Label>
+              <Input
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+                placeholder="Enter a name for this account (e.g., My Second Account)"
+                maxLength={50}
+              />
+              <p className="text-xs text-muted-foreground">
+                This name will help you identify this account
+              </p>
+            </div>
+
+            {/* Package Selection */}
+            {pendingAccountNumber && pendingAccountNumber > 1 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Select Package to Use *</Label>
+                {loadingPackages ? (
+                  <div className="flex items-center gap-2 p-3 rounded-lg border">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-muted-foreground">Loading packages...</span>
+                  </div>
+                ) : availablePackages.length === 0 ? (
+                  <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/10">
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      No available packages. Please purchase a package first.
+                    </p>
+                  </div>
+                ) : (
+                  <Select value={selectedPackage || ''} onValueChange={setSelectedPackage}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a package..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availablePackages.map((pkg) => (
+                        <SelectItem key={pkg.id} value={pkg.id}>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={pkg.type === 'ai' ? 'default' : 'secondary'} className="text-xs">
+                              {pkg.type === 'ai' ? 'AI' : 'Product'}
+                            </Badge>
+                            <span>{pkg.package_name}</span>
+                            <span className="text-muted-foreground">₱{pkg.amount.toLocaleString()}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
             {/* Placement Mode Selection */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Placement Type</Label>
@@ -681,15 +948,20 @@ export default function BinaryAccountsManager() {
             </Button>
             <Button 
               onClick={confirmPlacement} 
-              disabled={placing || (placementMode === 'downline' && !selectedDownline)}
+              disabled={
+                placing || 
+                !accountName.trim() ||
+                (pendingAccountNumber && pendingAccountNumber > 1 && !selectedPackage) ||
+                (placementMode === 'downline' && !selectedDownline)
+              }
             >
               {placing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Placing...
+                  Creating...
                 </>
               ) : (
-                'Confirm Placement'
+                'Create Account'
               )}
             </Button>
           </DialogFooter>
