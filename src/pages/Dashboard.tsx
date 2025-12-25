@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare, Sparkles, Truck, Building2, Settings, Share2 } from "lucide-react";
@@ -45,6 +45,7 @@ import BinaryPendingPlacements from "@/components/BinaryPendingPlacements";
 import ProviderInbox from "@/components/chat/ProviderInbox";
 import { AccountSettings } from "@/components/profile/AccountSettings";
 import PromotionalAdsGallery from "@/components/PromotionalAdsGallery";
+import BinaryAccountsManager from "@/components/BinaryAccountsManager";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -794,10 +795,21 @@ const Dashboard = () => {
       </TabsContent>
 
       <TabsContent value="network" className="space-y-6">
-        <BinaryPendingPlacements userId={user?.id || ''} />
-        <GenealogyTree userId={user?.id || ''} />
-        <BinaryTreeView userId={user?.id || ''} />
-        <UplineTransferRequest />
+        <Tabs defaultValue="tree" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="tree">Network Tree</TabsTrigger>
+            <TabsTrigger value="accounts">Binary Accounts</TabsTrigger>
+          </TabsList>
+          <TabsContent value="tree" className="space-y-6">
+            <BinaryPendingPlacements userId={user?.id || ''} />
+            <GenealogyTree userId={user?.id || ''} />
+            <BinaryTreeView userId={user?.id || ''} />
+            <UplineTransferRequest />
+          </TabsContent>
+          <TabsContent value="accounts">
+            <BinaryAccountsManager />
+          </TabsContent>
+        </Tabs>
       </TabsContent>
 
       <TabsContent value="binary-earnings" className="space-y-6">
