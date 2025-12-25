@@ -274,75 +274,75 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
     return (
       <div key={node.id} className="flex flex-col items-center">
         <div 
-          className={`relative p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+          className={`relative p-2 sm:p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
             isRoot ? "bg-primary/10 border-primary" : "bg-card"
-          } ${isHighlighted ? "ring-2 ring-yellow-500 animate-pulse" : ""} min-w-[200px]`}
+          } ${isHighlighted ? "ring-2 ring-yellow-500 animate-pulse" : ""} w-[140px] sm:w-[180px] md:w-[200px]`}
           onClick={() => hasChildren && toggleNode(node.id)}
         >
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Avatar className="h-8 w-8 sm:h-10 sm:w-10 shrink-0">
               {node.avatar_url && <AvatarImage src={node.avatar_url} />}
-              <AvatarFallback className="bg-primary/20 text-primary text-sm">
+              <AvatarFallback className="bg-primary/20 text-primary text-xs sm:text-sm">
                 {getInitials(node.full_name, node.email)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">
+              <p className="font-medium text-xs sm:text-sm truncate">
                 {node.full_name || node.email.split("@")[0]}
               </p>
-              <p className="text-xs text-muted-foreground truncate">{node.email}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:block">{node.email}</p>
             </div>
             {hasChildren && (
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+              <Button variant="ghost" size="sm" className="h-5 w-5 sm:h-6 sm:w-6 p-0 shrink-0">
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
                 ) : (
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                 )}
               </Button>
             )}
           </div>
           
-          <div className="mt-2 flex items-center gap-2 text-xs">
-            <Badge variant="outline" className="text-xs py-0">
-              <ArrowDownLeft className="w-3 h-3 mr-1 text-blue-500" />
+          <div className="mt-1.5 sm:mt-2 flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs flex-wrap">
+            <Badge variant="outline" className="text-[10px] sm:text-xs py-0 px-1 sm:px-2">
+              <ArrowDownLeft className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-blue-500" />
               ₱{node.left_volume.toLocaleString()}
             </Badge>
-            <Badge variant="outline" className="text-xs py-0">
-              <ArrowDownRight className="w-3 h-3 mr-1 text-green-500" />
+            <Badge variant="outline" className="text-[10px] sm:text-xs py-0 px-1 sm:px-2">
+              <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-green-500" />
               ₱{node.right_volume.toLocaleString()}
             </Badge>
           </div>
           
-          <div className="mt-1 text-xs text-muted-foreground">
+          <div className="mt-1 text-[10px] sm:text-xs text-muted-foreground hidden sm:block">
             Joined: {formatDate(node.joined_at)}
           </div>
         </div>
 
         {hasChildren && isExpanded && (
-          <div className="mt-4">
-            <div className="flex justify-center mb-2">
-              <div className="w-px h-4 bg-border" />
+          <div className="mt-2 sm:mt-4">
+            <div className="flex justify-center mb-1 sm:mb-2">
+              <div className="w-px h-2 sm:h-4 bg-border" />
             </div>
-            <div className="flex gap-8 relative">
+            <div className="flex gap-2 sm:gap-4 md:gap-8 relative">
               {node.left_child && node.right_child && (
-                <div className="absolute top-0 left-1/4 right-1/4 h-px bg-border" style={{ transform: "translateY(-8px)" }} />
+                <div className="absolute top-0 left-1/4 right-1/4 h-px bg-border" style={{ transform: "translateY(-4px)" }} />
               )}
               
               <div className="flex flex-col items-center">
                 {node.left_child && (
                   <>
-                    <div className="flex items-center gap-1 mb-2 text-xs text-blue-500">
-                      <ArrowDownLeft className="w-3 h-3" />
+                    <div className="flex items-center gap-0.5 sm:gap-1 mb-1 sm:mb-2 text-[10px] sm:text-xs text-blue-500">
+                      <ArrowDownLeft className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                       <span>Left</span>
                     </div>
                     {renderNode(node.left_child)}
                   </>
                 )}
                 {!node.left_child && (
-                  <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground min-w-[150px]">
-                    <User className="w-6 h-6 mx-auto mb-1 opacity-50" />
-                    <p className="text-xs">Empty Left</p>
+                  <div className="p-2 sm:p-4 border border-dashed rounded-lg text-center text-muted-foreground w-[100px] sm:w-[120px] md:w-[150px]">
+                    <User className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-0.5 sm:mb-1 opacity-50" />
+                    <p className="text-[10px] sm:text-xs">Empty</p>
                   </div>
                 )}
               </div>
@@ -350,17 +350,17 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
               <div className="flex flex-col items-center">
                 {node.right_child && (
                   <>
-                    <div className="flex items-center gap-1 mb-2 text-xs text-green-500">
-                      <ArrowDownRight className="w-3 h-3" />
+                    <div className="flex items-center gap-0.5 sm:gap-1 mb-1 sm:mb-2 text-[10px] sm:text-xs text-green-500">
+                      <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                       <span>Right</span>
                     </div>
                     {renderNode(node.right_child)}
                   </>
                 )}
                 {!node.right_child && (
-                  <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground min-w-[150px]">
-                    <User className="w-6 h-6 mx-auto mb-1 opacity-50" />
-                    <p className="text-xs">Empty Right</p>
+                  <div className="p-2 sm:p-4 border border-dashed rounded-lg text-center text-muted-foreground w-[100px] sm:w-[120px] md:w-[150px]">
+                    <User className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-0.5 sm:mb-1 opacity-50" />
+                    <p className="text-[10px] sm:text-xs">Empty</p>
                   </div>
                 )}
               </div>
@@ -373,42 +373,42 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
 
   if (loading) {
     return (
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-10 w-24" />
+      <Card className="p-3 sm:p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+          <Skeleton className="h-6 sm:h-8 w-40 sm:w-48" />
+          <Skeleton className="h-8 sm:h-10 w-20 sm:w-24" />
         </div>
         <div className="flex justify-center">
-          <Skeleton className="h-32 w-64" />
+          <Skeleton className="h-24 sm:h-32 w-full max-w-[16rem]" />
         </div>
       </Card>
     );
   }
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <GitBranch className="w-6 h-6 text-primary" />
+    <Card className="p-3 sm:p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <GitBranch className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
           <div>
-            <h3 className="text-xl font-bold">Binary Network Tree</h3>
-            <p className="text-sm text-muted-foreground">Your binary placement structure</p>
+            <h3 className="text-base sm:text-lg md:text-xl font-bold">Binary Network Tree</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">Your binary placement structure</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchBinaryTree}>
+        <Button variant="outline" size="sm" onClick={fetchBinaryTree} className="w-full sm:w-auto">
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
       </div>
 
       {/* Search Bar */}
-      <div className="relative mb-4">
+      <div className="relative mb-3 sm:mb-4">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search members by name or email..."
+          placeholder="Search members..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 pr-10"
+          className="pl-10 pr-10 text-sm"
         />
         {searchQuery && (
           <Button
@@ -424,31 +424,31 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
 
       {/* Search Results */}
       {searchResults.length > 0 && (
-        <div className="mb-4 p-3 bg-accent/30 rounded-lg max-h-48 overflow-y-auto">
-          <p className="text-sm font-medium mb-2">Found {searchResults.length} member(s):</p>
-          <div className="space-y-2">
+        <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-accent/30 rounded-lg max-h-40 sm:max-h-48 overflow-y-auto">
+          <p className="text-xs sm:text-sm font-medium mb-2">Found {searchResults.length} member(s):</p>
+          <div className="space-y-1.5 sm:space-y-2">
             {searchResults.map((result) => (
               <div
                 key={result.id}
-                className="flex items-center gap-3 p-2 bg-background rounded-lg cursor-pointer hover:bg-accent transition-colors"
+                className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 bg-background rounded-lg cursor-pointer hover:bg-accent transition-colors"
                 onClick={() => {
                   expandPathToNode(result);
                   setSearchQuery("");
                 }}
               >
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-6 w-6 sm:h-8 sm:w-8 shrink-0">
                   {result.avatar_url && <AvatarImage src={result.avatar_url} />}
-                  <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                  <AvatarFallback className="bg-primary/20 text-primary text-[10px] sm:text-xs">
                     {getInitials(result.full_name, result.email)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
+                  <p className="text-xs sm:text-sm font-medium truncate">
                     {result.full_name || result.email.split("@")[0]}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">{result.email}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:block">{result.email}</p>
                 </div>
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-[10px] sm:text-xs shrink-0">
                   {result.placement_leg === "left" ? "L" : result.placement_leg === "right" ? "R" : "Root"}
                 </Badge>
               </div>
@@ -458,85 +458,85 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
       )}
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="p-3 bg-blue-500/10 rounded-lg text-center">
-          <div className="flex items-center justify-center gap-1 text-blue-500 mb-1">
-            <ArrowDownLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Left Leg</span>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
+        <div className="p-2 sm:p-3 bg-blue-500/10 rounded-lg text-center">
+          <div className="flex items-center justify-center gap-1 text-blue-500 mb-0.5 sm:mb-1">
+            <ArrowDownLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm font-medium">Left</span>
           </div>
-          <p className="text-2xl font-bold text-blue-500">{stats.totalLeft}</p>
-          <p className="text-xs text-muted-foreground">total members</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-500">{stats.totalLeft}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">members</p>
         </div>
-        <div className="p-3 bg-green-500/10 rounded-lg text-center">
-          <div className="flex items-center justify-center gap-1 text-green-500 mb-1">
-            <ArrowDownRight className="w-4 h-4" />
-            <span className="text-sm font-medium">Right Leg</span>
+        <div className="p-2 sm:p-3 bg-green-500/10 rounded-lg text-center">
+          <div className="flex items-center justify-center gap-1 text-green-500 mb-0.5 sm:mb-1">
+            <ArrowDownRight className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm font-medium">Right</span>
           </div>
-          <p className="text-2xl font-bold text-green-500">{stats.totalRight}</p>
-          <p className="text-xs text-muted-foreground">total members</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-500">{stats.totalRight}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">members</p>
         </div>
-        <div className="p-3 bg-purple-500/10 rounded-lg text-center">
-          <div className="flex items-center justify-center gap-1 text-purple-500 mb-1">
-            <Users className="w-4 h-4" />
-            <span className="text-sm font-medium">Total</span>
+        <div className="p-2 sm:p-3 bg-purple-500/10 rounded-lg text-center">
+          <div className="flex items-center justify-center gap-1 text-purple-500 mb-0.5 sm:mb-1">
+            <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm font-medium">Total</span>
           </div>
-          <p className="text-2xl font-bold text-purple-500">{stats.totalLeft + stats.totalRight}</p>
-          <p className="text-xs text-muted-foreground">binary members</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-500">{stats.totalLeft + stats.totalRight}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">members</p>
         </div>
-        <div className="p-3 bg-amber-500/10 rounded-lg text-center">
-          <div className="flex items-center justify-center gap-1 text-amber-500 mb-1">
-            <GitBranch className="w-4 h-4" />
-            <span className="text-sm font-medium">Cycles</span>
+        <div className="p-2 sm:p-3 bg-amber-500/10 rounded-lg text-center">
+          <div className="flex items-center justify-center gap-1 text-amber-500 mb-0.5 sm:mb-1">
+            <GitBranch className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-xs sm:text-sm font-medium">Cycles</span>
           </div>
-          <p className="text-2xl font-bold text-amber-500">{treeData?.total_cycles || 0}</p>
-          <p className="text-xs text-muted-foreground">completed</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-amber-500">{treeData?.total_cycles || 0}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">completed</p>
         </div>
       </div>
 
       {/* Zoom and Scroll Controls */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 0.5}>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">
+        <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2">
+          <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 0.5} className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0">
             <ZoomOut className="w-4 h-4" />
           </Button>
-          <span className="text-sm text-muted-foreground min-w-[60px] text-center">
+          <span className="text-xs sm:text-sm text-muted-foreground min-w-[45px] sm:min-w-[60px] text-center">
             {Math.round(zoom * 100)}%
           </span>
-          <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 1.5}>
+          <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 1.5} className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0">
             <ZoomIn className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={handleZoomReset}>
+          <Button variant="outline" size="sm" onClick={handleZoomReset} className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0">
             <Maximize2 className="w-4 h-4" />
           </Button>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={scrollToTop}>
-            <ChevronUp className="w-4 h-4 mr-1" />
+        <div className="flex items-center justify-center sm:justify-end gap-1 sm:gap-2">
+          <Button variant="outline" size="sm" onClick={scrollToTop} className="h-8 px-2 sm:px-3 text-xs sm:text-sm">
+            <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" />
             Top
           </Button>
-          <Button variant="outline" size="sm" onClick={scrollToBottom}>
-            <ChevronDown className="w-4 h-4 mr-1" />
+          <Button variant="outline" size="sm" onClick={scrollToBottom} className="h-8 px-2 sm:px-3 text-xs sm:text-sm">
+            <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" />
             Bottom
           </Button>
         </div>
       </div>
 
       {/* Tree View with ScrollArea */}
-      <ScrollArea ref={scrollAreaRef} className="h-[500px] border rounded-lg">
+      <ScrollArea ref={scrollAreaRef} className="h-[300px] sm:h-[400px] md:h-[500px] border rounded-lg">
         <div 
           ref={treeContainerRef}
-          className="overflow-x-auto p-4"
+          className="overflow-x-auto p-2 sm:p-4"
           style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
         >
-          <div className="flex justify-center min-w-max py-4">
+          <div className="flex justify-center min-w-max py-2 sm:py-4">
             {treeData ? (
               renderNode(treeData, true)
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <GitBranch className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium">No Binary Position</p>
-                <p className="text-sm">You haven't been placed in the binary network yet.</p>
-                <p className="text-sm mt-2">Purchase an AI package to get started!</p>
+              <div className="text-center py-8 sm:py-12 text-muted-foreground px-4">
+                <GitBranch className="w-10 h-10 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 opacity-50" />
+                <p className="text-base sm:text-lg font-medium">No Binary Position</p>
+                <p className="text-xs sm:text-sm">You haven't been placed in the binary network yet.</p>
+                <p className="text-xs sm:text-sm mt-2">Purchase an AI package to get started!</p>
               </div>
             )}
           </div>
@@ -544,15 +544,14 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
       </ScrollArea>
 
       {/* Legend */}
-      <div className="mt-6 p-4 bg-accent/30 rounded-lg">
-        <h4 className="font-medium mb-2 text-sm">How it works:</h4>
-        <ul className="text-xs text-muted-foreground space-y-1">
+      <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-accent/30 rounded-lg">
+        <h4 className="font-medium mb-1.5 sm:mb-2 text-xs sm:text-sm">How it works:</h4>
+        <ul className="text-[10px] sm:text-xs text-muted-foreground space-y-0.5 sm:space-y-1">
           <li>• Click on any node with children to expand/collapse</li>
-          <li>• Use search to find members quickly and navigate to them</li>
-          <li>• <span className="text-blue-500">Blue (Left)</span> - First referral placement</li>
-          <li>• <span className="text-green-500">Green (Right)</span> - Second referral placement</li>
-          <li>• 3rd+ referrals: You choose which leg to place them (spillover)</li>
-          <li>• Volumes show the total purchase amount in each leg</li>
+          <li>• Use search to find members quickly</li>
+          <li>• <span className="text-blue-500">Blue (Left)</span> - First placement</li>
+          <li>• <span className="text-green-500">Green (Right)</span> - Second placement</li>
+          <li>• 3rd+ referrals: Choose which leg (spillover)</li>
         </ul>
       </div>
     </Card>

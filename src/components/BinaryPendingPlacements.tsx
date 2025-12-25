@@ -109,13 +109,13 @@ export default function BinaryPendingPlacements({
   if (loading) {
     return (
       <Card className="border-amber-500/30 bg-amber-500/5">
-        <CardHeader className="pb-3">
-          <Skeleton className="h-6 w-48" />
+        <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+          <Skeleton className="h-5 sm:h-6 w-40 sm:w-48" />
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
+        <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+          <div className="space-y-2 sm:space-y-3">
+            <Skeleton className="h-14 sm:h-16 w-full" />
+            <Skeleton className="h-14 sm:h-16 w-full" />
           </div>
         </CardContent>
       </Card>
@@ -129,71 +129,73 @@ export default function BinaryPendingPlacements({
   return (
     <>
       <Card className="border-amber-500/30 bg-amber-500/5">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Bell className="w-5 h-5 text-amber-500 animate-pulse" />
-            Pending Spillover Placements
-            <Badge variant="secondary" className="ml-2 bg-amber-500/20 text-amber-600">
+        <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 animate-pulse" />
+            <span className="truncate">Pending Spillover</span>
+            <Badge variant="secondary" className="ml-1 sm:ml-2 bg-amber-500/20 text-amber-600 text-xs">
               {pendingPlacements.length}
             </Badge>
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            These referrals need to be placed in your binary network. Choose which leg for each.
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Choose which leg for each referral
           </p>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
+        <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+          <div className="space-y-2 sm:space-y-3">
             {pendingPlacements.map((placement) => (
               <div
                 key={placement.id}
-                className="flex items-center gap-4 p-4 bg-background border rounded-lg hover:border-primary/50 transition-colors"
+                className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-background border rounded-lg hover:border-primary/50 transition-colors"
               >
-                <Avatar className="h-12 w-12">
-                  {placement.pending_user?.avatar_url && (
-                    <AvatarImage src={placement.pending_user.avatar_url} />
-                  )}
-                  <AvatarFallback className="bg-primary/20 text-primary">
-                    {getInitials(
-                      placement.pending_user?.full_name || null,
-                      placement.pending_user?.email || ""
+                <div className="flex items-center gap-3 w-full sm:w-auto sm:flex-1 min-w-0">
+                  <Avatar className="h-10 w-10 sm:h-12 sm:w-12 shrink-0">
+                    {placement.pending_user?.avatar_url && (
+                      <AvatarImage src={placement.pending_user.avatar_url} />
                     )}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">
-                    {placement.pending_user?.full_name ||
-                      placement.pending_user?.email?.split("@")[0] ||
-                      "New Member"}
-                  </p>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {placement.pending_user?.email}
-                  </p>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                    <Clock className="w-3 h-3" />
-                    {formatTimeAgo(placement.created_at)}
+                    <AvatarFallback className="bg-primary/20 text-primary text-xs sm:text-sm">
+                      {getInitials(
+                        placement.pending_user?.full_name || null,
+                        placement.pending_user?.email || ""
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate text-sm sm:text-base">
+                      {placement.pending_user?.full_name ||
+                        placement.pending_user?.email?.split("@")[0] ||
+                        "New Member"}
+                    </p>
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                      {placement.pending_user?.email}
+                    </p>
+                    <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
+                      <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                      {formatTimeAgo(placement.created_at)}
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                   <Button
                     size="sm"
-                    className="bg-blue-500 hover:bg-blue-600"
+                    className="flex-1 sm:flex-initial bg-blue-500 hover:bg-blue-600 text-xs sm:text-sm h-8 sm:h-9"
                     onClick={() => {
                       setSelectedPlacement(placement);
                       setDialogOpen(true);
                     }}
                   >
-                    <ArrowDownLeft className="w-4 h-4 mr-1" />
+                    <ArrowDownLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     Left
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-green-500 hover:bg-green-600"
+                    className="flex-1 sm:flex-initial bg-green-500 hover:bg-green-600 text-xs sm:text-sm h-8 sm:h-9"
                     onClick={() => {
                       setSelectedPlacement(placement);
                       setDialogOpen(true);
                     }}
                   >
-                    <ArrowDownRight className="w-4 h-4 mr-1" />
+                    <ArrowDownRight className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     Right
                   </Button>
                 </div>
