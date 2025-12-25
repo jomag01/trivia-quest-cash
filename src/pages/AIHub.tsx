@@ -22,6 +22,7 @@ import AIHubGallery from '@/components/ai/AIHubGallery';
 import WebsiteScraper from '@/components/ai/WebsiteScraper';
 import CreatorAnalytics from '@/components/ai/CreatorAnalytics';
 import SocialMediaManager from '@/components/ai/SocialMediaManager';
+import ContactUsAssistant from '@/components/ai/ContactUsAssistant';
 import AICreditsDisplay from '@/components/ai/AICreditsDisplay';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -160,6 +161,7 @@ const AIHub = memo(() => {
     { id: 'website-builder', label: 'Website', icon: Code, gradient: 'from-emerald-400 to-teal-500', iconColor: 'text-emerald-500', premium: true },
     { id: 'creator-analytics', label: 'Analytics', icon: Crown, gradient: 'from-yellow-400 to-amber-500', iconColor: 'text-yellow-500', premium: true },
     { id: 'social-media', label: 'Social', icon: Users, gradient: 'from-indigo-400 to-violet-500', iconColor: 'text-indigo-500', premium: true },
+    { id: 'contact', label: 'Contact', icon: MessageSquare, gradient: 'from-teal-400 to-blue-500', iconColor: 'text-teal-500' },
   ];
 
   useEffect(() => {
@@ -1734,6 +1736,13 @@ const AIHub = memo(() => {
           {activeTab === 'social-media' && (
             <div className="p-4 md:p-6">
               <SocialMediaManager userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
+          )}
+
+          {/* Contact Us - AI Assistant */}
+          {activeTab === 'contact' && (
+            <div className="p-4 md:p-6 h-[calc(100vh-120px)]">
+              <ContactUsAssistant />
             </div>
           )}
         </div>

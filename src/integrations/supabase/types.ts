@@ -1032,6 +1032,57 @@ export type Database = {
           },
         ]
       }
+      contact_inquiries: {
+        Row: {
+          admin_notes: string | null
+          admin_response: string | null
+          ai_recommended_actions: Json | null
+          conversation_history: Json | null
+          created_at: string
+          id: string
+          message: string
+          responded_at: string | null
+          responded_by: string | null
+          status: string | null
+          subject: string | null
+          updated_at: string
+          visitor_email: string
+          visitor_name: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          admin_response?: string | null
+          ai_recommended_actions?: Json | null
+          conversation_history?: Json | null
+          created_at?: string
+          id?: string
+          message: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string | null
+          subject?: string | null
+          updated_at?: string
+          visitor_email: string
+          visitor_name?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          admin_response?: string | null
+          ai_recommended_actions?: Json | null
+          conversation_history?: Json | null
+          created_at?: string
+          id?: string
+          message?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string | null
+          subject?: string | null
+          updated_at?: string
+          visitor_email?: string
+          visitor_name?: string | null
+        }
+        Relationships: []
+      }
       content_creator_projects: {
         Row: {
           audio_url: string | null
