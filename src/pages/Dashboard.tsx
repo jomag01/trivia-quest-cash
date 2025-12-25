@@ -46,6 +46,8 @@ import ProviderInbox from "@/components/chat/ProviderInbox";
 import { AccountSettings } from "@/components/profile/AccountSettings";
 import PromotionalAdsGallery from "@/components/PromotionalAdsGallery";
 import BinaryAccountsManager from "@/components/BinaryAccountsManager";
+import StairStepTree from "@/components/StairStepTree";
+import LeadershipTree from "@/components/LeadershipTree";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -796,15 +798,26 @@ const Dashboard = () => {
 
       <TabsContent value="network" className="space-y-6">
         <Tabs defaultValue="tree" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="tree">Network Tree</TabsTrigger>
-            <TabsTrigger value="accounts">Binary Accounts</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5 mb-4">
+            <TabsTrigger value="tree">Network</TabsTrigger>
+            <TabsTrigger value="binary">Binary</TabsTrigger>
+            <TabsTrigger value="stairstep">Stair-Step</TabsTrigger>
+            <TabsTrigger value="leadership">Leadership</TabsTrigger>
+            <TabsTrigger value="accounts">Accounts</TabsTrigger>
           </TabsList>
           <TabsContent value="tree" className="space-y-6">
             <BinaryPendingPlacements userId={user?.id || ''} />
             <GenealogyTree userId={user?.id || ''} />
-            <BinaryTreeView userId={user?.id || ''} />
             <UplineTransferRequest />
+          </TabsContent>
+          <TabsContent value="binary" className="space-y-6">
+            <BinaryTreeView userId={user?.id || ''} />
+          </TabsContent>
+          <TabsContent value="stairstep" className="space-y-6">
+            <StairStepTree userId={user?.id || ''} />
+          </TabsContent>
+          <TabsContent value="leadership" className="space-y-6">
+            <LeadershipTree userId={user?.id || ''} />
           </TabsContent>
           <TabsContent value="accounts">
             <BinaryAccountsManager />
