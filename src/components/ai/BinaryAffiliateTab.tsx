@@ -539,560 +539,409 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
     <ScrollArea className="h-[calc(100vh-200px)]">
       <div className="space-y-6 p-1">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <GitBranch className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold">AI Affiliate System</h2>
+        <div className="text-center space-y-3">
+          <div className="flex items-center justify-center gap-3">
+            <div className="p-3 rounded-full bg-gradient-to-br from-purple-500 to-pink-500">
+              <Sparkles className="h-8 w-8 text-white" />
+            </div>
           </div>
-          <p className="text-muted-foreground text-sm">
-            Earn commissions through our cycle-based affiliate network
+          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent">
+            Select AI Credits to Join
+          </h2>
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+            Unlock powerful AI features and start earning passive income through our affiliate network
           </p>
-          <Badge variant="outline" className="text-xs">
-            Exclusive to AI Credits Purchases
-          </Badge>
         </div>
 
-        {/* System Info Banner */}
-        <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <GitBranch className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-              <div className="space-y-1 text-sm">
-                <p className="font-medium text-amber-700 dark:text-amber-400">
-                  AI Affiliate System - AI Credits Only
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  This affiliate system is <span className="font-semibold">separate</span> from unilevel, stair-step, and leadership commissions. 
-                  AI affiliate commissions are earned <span className="font-semibold">only from AI credit purchases</span>, not from shop product purchases. 
-                  Shop products earn through unilevel/stair-step/leadership systems instead.
-                </p>
+        {/* Benefits Section */}
+        <Card className="border-primary/20 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30">
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+              <Crown className="h-5 w-5 text-yellow-500" />
+              Benefits of Buying AI Credits
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
+                <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/50">
+                  <ImageIcon className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">AI Image Generation</p>
+                  <p className="text-xs text-muted-foreground">Create stunning images with AI</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
+                <div className="p-2 rounded-full bg-pink-100 dark:bg-pink-900/50">
+                  <VideoIcon className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">AI Video Creation</p>
+                  <p className="text-xs text-muted-foreground">Generate videos from text</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
+                <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                  <Music className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">AI Voice & Audio</p>
+                  <p className="text-xs text-muted-foreground">Text-to-speech voiceovers</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
+                <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/50">
+                  <TrendingUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Passive Income</p>
+                  <p className="text-xs text-muted-foreground">Earn from your affiliate network</p>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {!isEnrolled ? (
-          /* Not Enrolled View */
-          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2">
-                <Crown className="h-5 w-5 text-yellow-500" />
-                Activate Your AI Affiliate Position
-              </CardTitle>
-              <CardDescription>
-                Your referral has enrolled you in all systems. Purchase AI credits to <span className="font-semibold">activate</span> your affiliate position and start earning!
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-center">
-                <div className={`p-4 rounded-lg border transition-all ${selectedTier !== null ? 'bg-primary/10 border-primary/30' : 'bg-background/50'}`}>
-                  <p className="text-2xl font-bold text-primary">
-                    ₱{selectedTier !== null && tiers[selectedTier] ? tiers[selectedTier].price : settings.joinAmount}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedTier !== null ? `${getTierLabel(selectedTier)} Package` : 'Minimum to Activate'}
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg bg-background/50 border">
-                  <p className="text-2xl font-bold text-primary">₱{settings.cycleCommission}</p>
-                  <p className="text-xs text-muted-foreground">Per Cycle</p>
-                </div>
-              </div>
-
-              <div className="space-y-2 text-sm">
-                <p className="font-medium">How the AI Affiliate System works:</p>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>Buy AI credits worth ₱{settings.joinAmount}+ to activate</li>
-                  <li>Get placed automatically in the weakest leg</li>
-                  <li>Earn ₱{settings.cycleCommission} for every ₱{settings.cycleVolume} matched cycle</li>
-                  <li>Daily earning cap: ₱{settings.dailyCap}</li>
-                  <li>AI affiliate earnings come <span className="font-semibold">only from AI credit purchases</span> in your network</li>
-                </ul>
-              </div>
-
-              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-muted-foreground">
-                <p className="font-medium text-blue-600 dark:text-blue-400 mb-1">💡 Separate Commission Systems:</p>
-                <p>• <span className="font-medium">AI Affiliate:</span> AI Credit purchases only</p>
-                <p>• <span className="font-medium">Unilevel/Stair-Step/Leadership:</span> Shop product purchases only</p>
-              </div>
-
-              {/* Tier Selection */}
-              <div className="space-y-3">
-                <p className="font-medium text-sm">Select a Credit Package:</p>
-                <div className="grid grid-cols-1 gap-3">
-                  {tiers.map((tier, index) => (
-                    <Card
-                      key={index}
-                      className={`cursor-pointer transition-all p-3 ${selectedTier === index ? 'border-primary ring-2 ring-primary/20' : ''}`}
-                      onClick={() => setSelectedTier(index)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold">{getTierLabel(index)} - ₱{tier.price}</div>
-                          <div className="text-xs text-muted-foreground flex gap-2 mt-1">
-                            <span><ImageIcon className="h-3 w-3 inline" /> {tier.images}</span>
-                            <span><VideoIcon className="h-3 w-3 inline" /> {formatSeconds(tier.maxVideoSeconds)}</span>
-                            <span><Music className="h-3 w-3 inline" /> {formatSeconds(tier.maxAudioSeconds)}</span>
-                          </div>
-                        </div>
-                        {selectedTier === index && <Check className="h-4 w-4 text-primary" />}
+        {/* Packages Section */}
+        <Card className="border-primary/20">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-lg">Choose Your AI Credit Package</CardTitle>
+            <CardDescription className="text-xs">
+              Select a package to unlock AI features and join the affiliate network
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Tier Selection */}
+            <div className="grid grid-cols-1 gap-3">
+              {tiers.map((tier, index) => (
+                <Card
+                  key={index}
+                  className={`cursor-pointer transition-all p-4 hover:shadow-md ${
+                    selectedTier === index 
+                      ? 'border-primary ring-2 ring-primary/20 bg-primary/5' 
+                      : 'hover:border-primary/50'
+                  }`}
+                  onClick={() => setSelectedTier(index)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={index === 1 ? "default" : "secondary"} className="text-xs">
+                          {getTierLabel(index)}
+                        </Badge>
+                        <span className="font-bold text-lg">₱{tier.price.toLocaleString()}</span>
                       </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
-              {/* Service Selection */}
-              {selectedTier !== null && (
-                <div className="space-y-3 p-3 rounded-lg bg-muted/50 border">
-                  <p className="font-medium text-sm">Select AI Services You Want:</p>
-                  <p className="text-xs text-muted-foreground">
-                    Unselected services will be converted to bonus credits for your account.
-                  </p>
-                  
-                  {/* Credit Rates Info */}
-                  <div className="text-xs text-muted-foreground p-2 bg-background rounded border">
-                    <p className="font-medium mb-1">Credit Rates (set by admin):</p>
-                    <div className="flex gap-3">
-                      <span>1 image = {creditRates.creditsPerImage} cr</span>
-                      <span>1 min video = {creditRates.creditsPerVideoMinute} cr</span>
-                      <span>1 min audio = {creditRates.creditsPerAudioMinute} cr</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background/50">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedServices.images}
-                        onChange={(e) => setSelectedServices(prev => ({ ...prev, images: e.target.checked }))}
-                        className="rounded"
-                      />
-                      <ImageIcon className="h-4 w-4 text-green-500" />
-                      <span className="text-sm">Image Generation ({tiers[selectedTier].images} images)</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background/50">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedServices.video}
-                        onChange={(e) => setSelectedServices(prev => ({ ...prev, video: e.target.checked }))}
-                        className="rounded"
-                      />
-                      <VideoIcon className="h-4 w-4 text-purple-500" />
-                      <span className="text-sm">Video Generation ({formatSeconds(tiers[selectedTier].maxVideoSeconds)})</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background/50">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedServices.audio}
-                        onChange={(e) => setSelectedServices(prev => ({ ...prev, audio: e.target.checked }))}
-                        className="rounded"
-                      />
-                      <Music className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm">Audio Generation ({formatSeconds(tiers[selectedTier].maxAudioSeconds)})</span>
-                    </label>
-                  </div>
-
-                  {/* Allocation Summary */}
-                  {(() => {
-                    const allocation = calculateServiceAllocation();
-                    return (
-                      <div className="p-2 rounded bg-primary/10 border border-primary/20 text-xs">
-                        <p className="font-medium text-primary mb-1">Your Allocation:</p>
-                        <div className="space-y-1 text-muted-foreground">
-                          <p>• Base Credits: {tiers[selectedTier].credits}</p>
-                          {allocation.bonusCredits > 0 && (
-                            <p className="text-green-600">• Bonus Credits (from unused services): +{Math.floor(allocation.bonusCredits)}</p>
-                          )}
-                          <p className="font-semibold text-foreground">
-                            Total Credits: {tiers[selectedTier].credits + Math.floor(allocation.bonusCredits)}
-                          </p>
-                          {allocation.images > 0 && <p>• Images: {allocation.images}</p>}
-                          {allocation.videoSeconds > 0 && <p>• Video: {formatSeconds(allocation.videoSeconds)}</p>}
-                          {allocation.audioSeconds > 0 && <p>• Audio: {formatSeconds(allocation.audioSeconds)}</p>}
-                        </div>
+                      <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <ImageIcon className="h-3 w-3 text-purple-500" /> {tier.images} images
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <VideoIcon className="h-3 w-3 text-pink-500" /> {formatSeconds(tier.maxVideoSeconds)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Music className="h-3 w-3 text-blue-500" /> {formatSeconds(tier.maxAudioSeconds)}
+                        </span>
                       </div>
-                    );
-                  })()}
-                </div>
-              )}
-
-              {/* Payment Method Selection */}
-              {selectedTier !== null && (
-                <div className="space-y-3 p-3 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border">
-                  <p className="font-medium text-sm flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-purple-500" />
-                    Payment Method
-                  </p>
-                  
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      onClick={() => setPaymentMethod('paymongo')}
-                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 text-sm ${
-                        paymentMethod === 'paymongo'
-                          ? 'border-purple-500 bg-purple-100 dark:bg-purple-900/50'
-                          : 'border-border hover:border-purple-400/50'
-                      }`}
-                    >
-                      <Smartphone className="h-4 w-4" />
-                      <div className="text-center">
-                        <div className="font-medium text-xs">Pay Online</div>
-                        <div className="text-xs text-muted-foreground">GCash, Maya</div>
-                      </div>
-                      {paymentMethod === 'paymongo' && <Check className="h-4 w-4 text-purple-500" />}
-                    </button>
-                    
-                    <button
-                      onClick={() => setPaymentMethod('qr_bank')}
-                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 text-sm ${
-                        paymentMethod === 'qr_bank'
-                          ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/50'
-                          : 'border-border hover:border-amber-400/50'
-                      }`}
-                    >
-                      <QrCode className="h-4 w-4" />
-                      <div className="text-center">
-                        <div className="font-medium text-xs">QR / Bank</div>
-                        <div className="text-xs text-muted-foreground">Manual</div>
-                      </div>
-                      {paymentMethod === 'qr_bank' && <Check className="h-4 w-4 text-amber-500" />}
-                    </button>
-                    
-                    <button
-                      onClick={() => setPaymentMethod('balance')}
-                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 text-sm ${
-                        paymentMethod === 'balance'
-                          ? 'border-green-500 bg-green-100 dark:bg-green-900/50'
-                          : 'border-border hover:border-green-400/50'
-                      }`}
-                    >
-                      <Wallet className="h-4 w-4" />
-                      <div className="text-center">
-                        <div className="font-medium text-xs">Balance</div>
-                        <div className="text-xs text-muted-foreground">₱{userCredits}</div>
-                      </div>
-                      {paymentMethod === 'balance' && <Check className="h-4 w-4 text-green-500" />}
-                    </button>
-                  </div>
-
-                  {paymentMethod === 'paymongo' && (
-                    <RadioGroup 
-                      value={paymongoMethod} 
-                      onValueChange={(v) => setPaymongoMethod(v as any)} 
-                      className="grid grid-cols-2 sm:grid-cols-4 gap-2"
-                    >
-                      {[
-                        { value: 'gcash', label: 'GCash', color: 'bg-blue-500' },
-                        { value: 'paymaya', label: 'Maya', color: 'bg-green-500' },
-                        { value: 'card', label: 'Card', color: 'bg-purple-500' },
-                        { value: 'grab_pay', label: 'GrabPay', color: 'bg-emerald-500' }
-                      ].map(method => (
-                        <div key={method.value}>
-                          <RadioGroupItem value={method.value} id={`binary-${method.value}`} className="peer sr-only" />
-                          <Label
-                            htmlFor={`binary-${method.value}`}
-                            className={`flex flex-col items-center gap-1 rounded-lg border-2 p-2 cursor-pointer transition-all text-xs ${
-                              paymongoMethod === method.value 
-                                ? `border-transparent ${method.color} text-white` 
-                                : 'border-muted hover:border-purple-400/50'
-                            }`}
-                          >
-                            <Smartphone className="h-4 w-4" />
-                            <span className="font-medium">{method.label}</span>
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  )}
-
-                  {paymentMethod === 'qr_bank' && (
-                    <div className="space-y-3">
-                      {showQrSuccess ? (
-                        <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-center">
-                          <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto mb-2" />
-                          <p className="font-medium text-green-700 dark:text-green-300">Payment Submitted!</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Your credits will be added once admin verifies the payment.
-                          </p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="mt-3"
-                            onClick={() => setShowQrSuccess(false)}
-                          >
-                            Make Another Purchase
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          {qrCodeUrl && (
-                            <div className="flex justify-center">
-                              <img 
-                                src={qrCodeUrl} 
-                                alt="Payment QR Code" 
-                                className="w-40 h-40 object-contain rounded-lg border"
-                              />
-                            </div>
-                          )}
-                          
-                          {(bankDetails.bankName || bankDetails.accountName || bankDetails.accountNumber) && (
-                            <div className="p-3 rounded-lg bg-muted/50 border space-y-2">
-                              <p className="font-medium text-xs">Bank Transfer Details:</p>
-                              {bankDetails.bankName && (
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-muted-foreground">Bank:</span>
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium">{bankDetails.bankName}</span>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="h-6 w-6 p-0"
-                                      onClick={() => copyToClipboard(bankDetails.bankName!, 'bank')}
-                                    >
-                                      {copiedField === 'bank' ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                              {bankDetails.accountName && (
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-muted-foreground">Account Name:</span>
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium">{bankDetails.accountName}</span>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="h-6 w-6 p-0"
-                                      onClick={() => copyToClipboard(bankDetails.accountName!, 'name')}
-                                    >
-                                      {copiedField === 'name' ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                              {bankDetails.accountNumber && (
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-muted-foreground">Account Number:</span>
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium">{bankDetails.accountNumber}</span>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="h-6 w-6 p-0"
-                                      onClick={() => copyToClipboard(bankDetails.accountNumber!, 'number')}
-                                    >
-                                      {copiedField === 'number' ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          {!qrCodeUrl && !bankDetails.bankName && !bankDetails.accountName && (
-                            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-center">
-                              <p className="text-amber-600 dark:text-amber-400">
-                                QR/Bank payment not configured yet. Please contact admin.
-                              </p>
-                            </div>
-                          )}
-                          
-                          <div className="space-y-2">
-                            <Label className="text-xs">Reference Number *</Label>
-                            <Input
-                              placeholder="Enter your payment reference number"
-                              value={referenceNumber}
-                              onChange={(e) => setReferenceNumber(e.target.value)}
-                              className="text-sm"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Enter the reference number from your payment confirmation
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {paymentMethod === 'balance' && userCredits < tiers[selectedTier].price && (
-                    <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs">
-                      <p className="text-red-600 dark:text-red-400 font-medium">
-                        Insufficient balance. You need ₱{tiers[selectedTier].price - userCredits} more.
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Daily cap: ₱{tier.dailyCap.toLocaleString()}
                       </p>
                     </div>
-                  )}
-                </div>
-              )}
-
-              <Button 
-                onClick={handlePurchase} 
-                className="w-full gap-2 h-12 text-base font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-violet-500 hover:from-pink-600 hover:via-purple-600 hover:to-violet-600 text-white border-0 shadow-lg" 
-                size="lg"
-                disabled={
-                  selectedTier === null || 
-                  purchasing || 
-                  showQrSuccess ||
-                  (!selectedServices.images && !selectedServices.video && !selectedServices.audio) ||
-                  (paymentMethod === 'balance' && selectedTier !== null && userCredits < tiers[selectedTier]?.price) ||
-                  (paymentMethod === 'qr_bank' && !referenceNumber.trim())
-                }
-              >
-                {purchasing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
-                {paymentMethod === 'qr_bank' && selectedTier !== null
-                  ? `Submit Payment (₱${tiers[selectedTier]?.price})`
-                  : selectedTier !== null 
-                    ? `Buy ${tiers[selectedTier]?.credits + Math.floor(calculateServiceAllocation().bonusCredits)} Credits (₱${tiers[selectedTier]?.price})` 
-                    : 'Select a Package'}
-              </Button>
-              <p className="text-xs text-center text-muted-foreground">
-                {paymentMethod === 'paymongo' 
-                  ? `Pay securely with ${paymongoMethod === 'gcash' ? 'GCash' : paymongoMethod === 'paymaya' ? 'Maya' : paymongoMethod === 'card' ? 'Credit/Debit Card' : 'GrabPay'}` 
-                  : paymentMethod === 'qr_bank'
-                    ? 'Admin will verify your payment and add credits'
-                    : `Your balance: ₱${userCredits}`}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          /* Enrolled View */
-          <>
-            {/* Stats Overview */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <Wallet className="h-5 w-5 mx-auto text-primary mb-2" />
-                  <p className="text-xl font-bold">₱{totalEarnings.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Total Earned</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <TrendingUp className="h-5 w-5 mx-auto text-green-500 mb-2" />
-                  <p className="text-xl font-bold">{binaryPosition?.total_cycles || 0}</p>
-                  <p className="text-xs text-muted-foreground">Cycles Completed</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <Clock className="h-5 w-5 mx-auto text-amber-500 mb-2" />
-                  <p className="text-xl font-bold">₱{todayEarnings?.total_earned || 0}</p>
-                  <p className="text-xs text-muted-foreground">Today's Earnings</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <RefreshCw className="h-5 w-5 mx-auto text-blue-500 mb-2" />
-                  <p className="text-xl font-bold">{potentialCycles}</p>
-                  <p className="text-xs text-muted-foreground">Pending Cycles</p>
-                </CardContent>
-              </Card>
+                    {selectedTier === index && (
+                      <div className="p-2 rounded-full bg-primary">
+                        <Check className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ))}
             </div>
 
-            {/* Daily Cap Progress */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Daily Earning Progress
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+            {/* Service Selection */}
+            {selectedTier !== null && (
+              <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
+                <p className="font-medium text-sm">Select AI Services You Want:</p>
+                <p className="text-xs text-muted-foreground">
+                  Unselected services convert to bonus credits.
+                </p>
+
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>₱{todayEarnings?.total_earned?.toLocaleString() || 0}</span>
-                    <span className="text-muted-foreground">/ ₱{getUserDailyCap().toLocaleString()} cap</span>
-                  </div>
-                  <Progress value={getDailyCapProgress()} className="h-2" />
-                  {getDailyCapProgress() >= 100 && (
-                    <p className="text-xs text-amber-500">Daily cap reached! Earnings continue tomorrow.</p>
-                  )}
-                  {userTierIndex !== null && (
-                    <p className="text-xs text-muted-foreground">Based on your {tiers[userTierIndex]?.dailyCap ? `Tier ${userTierIndex + 1}` : 'plan'}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Affiliate Tree Visualization */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <GitBranch className="h-4 w-4" />
-                  Your Affiliate Position
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Left Leg */}
-                  <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
-                    <div className="flex items-center justify-center gap-2">
-                      <ArrowLeft className="h-4 w-4 text-primary" />
-                      <span className="font-medium">Left Leg</span>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold">₱{binaryPosition?.left_volume?.toLocaleString() || 0}</p>
-                      <p className="text-xs text-muted-foreground">Volume</p>
-                    </div>
-                    <Progress value={leftPercent} className="h-2" />
-                    <p className="text-xs text-center text-muted-foreground">
-                      {leftPercent.toFixed(1)}% to next cycle
-                    </p>
-                  </div>
-
-                  {/* Right Leg */}
-                  <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="font-medium">Right Leg</span>
-                      <ArrowRight className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold">₱{binaryPosition?.right_volume?.toLocaleString() || 0}</p>
-                      <p className="text-xs text-muted-foreground">Volume</p>
-                    </div>
-                    <Progress value={rightPercent} className="h-2" />
-                    <p className="text-xs text-center text-muted-foreground">
-                      {rightPercent.toFixed(1)}% to next cycle
-                    </p>
-                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background/50">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedServices.images}
+                      onChange={(e) => setSelectedServices(prev => ({ ...prev, images: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <ImageIcon className="h-4 w-4 text-purple-500" />
+                    <span className="text-sm">Image Generation ({tiers[selectedTier].images} images)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background/50">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedServices.video}
+                      onChange={(e) => setSelectedServices(prev => ({ ...prev, video: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <VideoIcon className="h-4 w-4 text-pink-500" />
+                    <span className="text-sm">Video Generation ({formatSeconds(tiers[selectedTier].maxVideoSeconds)})</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background/50">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedServices.audio}
+                      onChange={(e) => setSelectedServices(prev => ({ ...prev, audio: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <Music className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm">Audio Generation ({formatSeconds(tiers[selectedTier].maxAudioSeconds)})</span>
+                  </label>
                 </div>
 
-                {/* Cycle Info */}
-                <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20 text-center">
-                  <p className="text-sm">
-                    <span className="font-medium">Cycle requirement:</span> ₱{settings.cycleVolume} matched on both legs
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Earn ₱{settings.cycleCommission} per completed cycle
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Auto-Replenish Info */}
-            {settings.autoReplenishEnabled && (
-              <Card className="border-blue-500/20 bg-blue-500/5">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <RefreshCw className="h-5 w-5 text-blue-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-sm">Auto-Replenish Active</p>
-                      <p className="text-xs text-muted-foreground">
-                        {settings.autoReplenishPercent}% of your unilevel, stair-step, and leadership commissions 
-                        will automatically replenish your AI credits.
-                      </p>
+                {/* Allocation Summary */}
+                {(() => {
+                  const allocation = calculateServiceAllocation();
+                  return (
+                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-xs">
+                      <p className="font-medium text-primary mb-1">Your Allocation:</p>
+                      <div className="space-y-1 text-muted-foreground">
+                        <p>• Base Credits: {tiers[selectedTier].credits}</p>
+                        {allocation.bonusCredits > 0 && (
+                          <p className="text-green-600">• Bonus Credits: +{Math.floor(allocation.bonusCredits)}</p>
+                        )}
+                        <p className="font-semibold text-foreground">
+                          Total: {tiers[selectedTier].credits + Math.floor(allocation.bonusCredits)} credits
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  );
+                })()}
+              </div>
             )}
 
-            {/* Buy More Credits */}
-            <Button onClick={onBuyCredits} className="w-full gap-2" variant="outline">
-              <Sparkles className="h-4 w-4" />
-              Buy More AI Credits
+            {/* Payment Method Selection */}
+            {selectedTier !== null && (
+              <div className="space-y-3 p-4 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border">
+                <p className="font-medium text-sm flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-purple-500" />
+                  Payment Method
+                </p>
+                
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setPaymentMethod('paymongo')}
+                    className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 text-sm ${
+                      paymentMethod === 'paymongo'
+                        ? 'border-purple-500 bg-purple-100 dark:bg-purple-900/50'
+                        : 'border-border hover:border-purple-400/50'
+                    }`}
+                  >
+                    <Smartphone className="h-4 w-4" />
+                    <div className="text-center">
+                      <div className="font-medium text-xs">Pay Online</div>
+                      <div className="text-xs text-muted-foreground">GCash, Maya</div>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setPaymentMethod('qr_bank')}
+                    className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 text-sm ${
+                      paymentMethod === 'qr_bank'
+                        ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/50'
+                        : 'border-border hover:border-amber-400/50'
+                    }`}
+                  >
+                    <QrCode className="h-4 w-4" />
+                    <div className="text-center">
+                      <div className="font-medium text-xs">QR / Bank</div>
+                      <div className="text-xs text-muted-foreground">Manual</div>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setPaymentMethod('balance')}
+                    className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 text-sm ${
+                      paymentMethod === 'balance'
+                        ? 'border-green-500 bg-green-100 dark:bg-green-900/50'
+                        : 'border-border hover:border-green-400/50'
+                    }`}
+                  >
+                    <Wallet className="h-4 w-4" />
+                    <div className="text-center">
+                      <div className="font-medium text-xs">Balance</div>
+                      <div className="text-xs text-muted-foreground">₱{userCredits}</div>
+                    </div>
+                  </button>
+                </div>
+
+                {paymentMethod === 'paymongo' && (
+                  <RadioGroup 
+                    value={paymongoMethod} 
+                    onValueChange={(v) => setPaymongoMethod(v as any)} 
+                    className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+                  >
+                    {[
+                      { value: 'gcash', label: 'GCash', color: 'bg-blue-500' },
+                      { value: 'paymaya', label: 'Maya', color: 'bg-green-500' },
+                      { value: 'card', label: 'Card', color: 'bg-purple-500' },
+                      { value: 'grab_pay', label: 'GrabPay', color: 'bg-emerald-500' }
+                    ].map(method => (
+                      <div key={method.value}>
+                        <RadioGroupItem value={method.value} id={`binary-${method.value}`} className="peer sr-only" />
+                        <Label
+                          htmlFor={`binary-${method.value}`}
+                          className={`flex flex-col items-center gap-1 rounded-lg border-2 p-2 cursor-pointer transition-all text-xs ${
+                            paymongoMethod === method.value 
+                              ? `border-transparent ${method.color} text-white` 
+                              : 'border-muted hover:border-purple-400/50'
+                          }`}
+                        >
+                          <Smartphone className="h-4 w-4" />
+                          <span className="font-medium">{method.label}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                )}
+
+                {paymentMethod === 'qr_bank' && (
+                  <div className="space-y-3">
+                    {showQrSuccess ? (
+                      <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-center">
+                        <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto mb-2" />
+                        <p className="font-medium text-green-700 dark:text-green-300">Payment Submitted!</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Your credits will be added once admin verifies the payment.
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-3"
+                          onClick={() => setShowQrSuccess(false)}
+                        >
+                          Make Another Purchase
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        {qrCodeUrl && (
+                          <div className="flex justify-center">
+                            <img src={qrCodeUrl} alt="Payment QR Code" className="w-40 h-40 rounded-lg border" />
+                          </div>
+                        )}
+                        
+                        {(bankDetails.bankName || bankDetails.accountNumber) && (
+                          <div className="space-y-2 p-3 rounded-lg bg-background border">
+                            <p className="font-medium text-sm">Bank Transfer Details:</p>
+                            {bankDetails.bankName && (
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Bank:</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{bankDetails.bankName}</span>
+                                  <button onClick={() => copyToClipboard(bankDetails.bankName!, 'bank')}>
+                                    {copiedField === 'bank' ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                            {bankDetails.accountName && (
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Name:</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{bankDetails.accountName}</span>
+                                  <button onClick={() => copyToClipboard(bankDetails.accountName!, 'name')}>
+                                    {copiedField === 'name' ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                            {bankDetails.accountNumber && (
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Account:</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{bankDetails.accountNumber}</span>
+                                  <button onClick={() => copyToClipboard(bankDetails.accountNumber!, 'account')}>
+                                    {copiedField === 'account' ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label className="text-sm">Reference Number:</Label>
+                          <Input
+                            placeholder="Enter your payment reference number"
+                            value={referenceNumber}
+                            onChange={(e) => setReferenceNumber(e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Amount to pay: ₱{tiers[selectedTier]?.price.toLocaleString()}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {paymentMethod === 'balance' && userCredits < (tiers[selectedTier]?.price || 0) && (
+                  <p className="text-xs text-destructive text-center">
+                    Insufficient balance. You need ₱{((tiers[selectedTier]?.price || 0) - userCredits).toLocaleString()} more.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Purchase Button */}
+            <Button 
+              onClick={handlePurchase} 
+              className="w-full gap-2 h-12 text-base font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-violet-500 hover:from-pink-600 hover:via-purple-600 hover:to-violet-600 text-white border-0 shadow-lg" 
+              size="lg"
+              disabled={
+                selectedTier === null || 
+                purchasing || 
+                showQrSuccess ||
+                (!selectedServices.images && !selectedServices.video && !selectedServices.audio) ||
+                (paymentMethod === 'balance' && selectedTier !== null && userCredits < tiers[selectedTier]?.price) ||
+                (paymentMethod === 'qr_bank' && !referenceNumber.trim())
+              }
+            >
+              {purchasing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
+              {paymentMethod === 'qr_bank' && selectedTier !== null
+                ? `Submit Payment (₱${tiers[selectedTier]?.price.toLocaleString()})`
+                : selectedTier !== null 
+                  ? `Buy Credits (₱${tiers[selectedTier]?.price.toLocaleString()})` 
+                  : 'Select a Package'}
             </Button>
-          </>
-        )}
+            
+            <p className="text-xs text-center text-muted-foreground">
+              {paymentMethod === 'paymongo' 
+                ? `Pay securely with ${paymongoMethod === 'gcash' ? 'GCash' : paymongoMethod === 'paymaya' ? 'Maya' : paymongoMethod === 'card' ? 'Card' : 'GrabPay'}` 
+                : paymentMethod === 'qr_bank'
+                  ? 'Admin will verify your payment and add credits'
+                  : `Your balance: ₱${userCredits.toLocaleString()}`}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Affiliate Info */}
+        <Card className="border-amber-500/30 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/50">
+                <GitBranch className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="space-y-2">
+                <p className="font-semibold text-sm">Join Our Affiliate Network</p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>• Earn ₱{settings.cycleCommission} for every matched cycle</li>
+                  <li>• Daily earning cap up to ₱{settings.dailyCap.toLocaleString()}</li>
+                  <li>• Get placed automatically in the network</li>
+                  <li>• Track your earnings in the Dashboard</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </ScrollArea>
   );
