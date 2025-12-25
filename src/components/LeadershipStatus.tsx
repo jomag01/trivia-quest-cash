@@ -29,6 +29,8 @@ interface LeadershipStats {
   activeLeaders: number;
   currentRank: number;
   isQualified: boolean;
+  hasMinTwoLines: boolean;
+  linesWithManagers: number;
 }
 
 export default function LeadershipStatus() {
@@ -38,6 +40,8 @@ export default function LeadershipStatus() {
     activeLeaders: 0,
     currentRank: 0,
     isQualified: false,
+    hasMinTwoLines: false,
+    linesWithManagers: 0,
   });
   const [commissions, setCommissions] = useState<LeadershipCommission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,14 +88,55 @@ export default function LeadershipStatus() {
 
       const totalEarnings = commissionsData?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
       
-      // Count unique 21% level downlines across 7 levels
+      // Count unique Manager level downlines across 7 levels
       const uniqueLeaders = new Set(commissionsData?.map(c => c.downline_id) || []).size;
 
+      // Check for 2-line requirement: count distinct lines with at least one manager
+      // Get direct referrals who are at manager level
+      const { data: directReferrals } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("referred_by", user?.id);
+
+      let linesWithManagers = 0;
+      
+      if (directReferrals && directReferrals.length > 0) {
+        // Check each direct referral line for managers
+        for (const referral of directReferrals) {
+          const { data: lineRank } = await supabase
+            .from("affiliate_current_rank")
+            .select("current_step")
+            .eq("user_id", referral.id)
+            .single();
+
+          if (lineRank?.current_step === maxStep) {
+            linesWithManagers++;
+          } else {
+            // Check if any downline in this line is at manager level
+            const { data: lineCommissions } = await supabase
+              .from("leadership_commissions")
+              .select("downline_id")
+              .eq("upline_id", user?.id)
+              .limit(100);
+
+            // Check if any downline under this referral is at manager level
+            if (lineCommissions?.some(c => c.downline_id === referral.id)) {
+              linesWithManagers++;
+            }
+          }
+        }
+      }
+
+      const hasMinTwoLines = linesWithManagers >= 2;
+      const canEarnLeadershipBonus = isQualified && hasMinTwoLines;
+
       setStats({
-        totalEarnings,
+        totalEarnings: canEarnLeadershipBonus ? totalEarnings : 0,
         activeLeaders: uniqueLeaders,
         currentRank,
         isQualified,
+        hasMinTwoLines,
+        linesWithManagers,
       });
 
       setCommissions(commissionsData || []);
@@ -125,22 +170,28 @@ export default function LeadershipStatus() {
               <Trophy className="w-6 h-6 text-primary" />
               <CardTitle>Leadership Status</CardTitle>
             </div>
-            {stats.isQualified ? (
+            {stats.isQualified && stats.hasMinTwoLines ? (
               <Badge className="bg-gradient-to-r from-yellow-500 to-yellow-600">
-                21% Leader Qualified
+                Manager Level Qualified
+              </Badge>
+            ) : stats.isQualified ? (
+              <Badge variant="outline" className="border-yellow-500 text-yellow-600">
+                Manager Level (Pending 2-Line Requirement)
               </Badge>
             ) : (
               <Badge variant="secondary">Not Yet Qualified</Badge>
             )}
           </div>
           <CardDescription>
-            {stats.isQualified
-              ? "You're earning 2% leadership breakaway from all 21% leaders in your 7-level network"
-              : "Reach 21% level to unlock leadership breakaway earnings"}
+            {stats.isQualified && stats.hasMinTwoLines
+              ? "You're earning 2% leadership breakaway from all Manager Level leaders in your 7-level network"
+              : stats.isQualified
+              ? "You've reached Manager Level! Build 2 lines with managers to unlock 2% leadership bonus"
+              : "Reach Manager Level to unlock leadership breakaway earnings"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Total Leadership Earnings */}
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -153,7 +204,7 @@ export default function LeadershipStatus() {
                 ₱{stats.totalEarnings.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                2% from 21% leaders
+                2% from Manager Level leaders
               </p>
             </div>
 
@@ -162,7 +213,7 @@ export default function LeadershipStatus() {
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-5 h-5 text-blue-500" />
                 <span className="text-sm font-medium text-muted-foreground">
-                  Active 21% Leaders
+                  Active Managers
                 </span>
               </div>
               <div className="text-2xl font-bold text-blue-500">
@@ -170,6 +221,26 @@ export default function LeadershipStatus() {
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 In your 7-level network
+              </p>
+            </div>
+
+            {/* Lines with Managers */}
+            <div className={`bg-gradient-to-br rounded-lg p-4 ${
+              stats.hasMinTwoLines 
+                ? 'from-green-500/10 to-green-500/5' 
+                : 'from-orange-500/10 to-orange-500/5'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className={`w-5 h-5 ${stats.hasMinTwoLines ? 'text-green-500' : 'text-orange-500'}`} />
+                <span className="text-sm font-medium text-muted-foreground">
+                  Lines with Managers
+                </span>
+              </div>
+              <div className={`text-2xl font-bold ${stats.hasMinTwoLines ? 'text-green-500' : 'text-orange-500'}`}>
+                {stats.linesWithManagers} / 2
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats.hasMinTwoLines ? '✓ Requirement met' : 'Need 2 lines with managers'}
               </p>
             </div>
 
@@ -182,20 +253,30 @@ export default function LeadershipStatus() {
                 </span>
               </div>
               <div className="text-2xl font-bold text-purple-500">
-                {stats.currentRank}%
+                {stats.currentRank === 21 ? 'Manager' : `${stats.currentRank}%`}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Stair-step level
+                {stats.currentRank === 21 ? 'Top stair-step level' : 'Stair-step level'}
               </p>
             </div>
           </div>
 
+          {/* Qualification Requirements */}
           {!stats.isQualified && (
             <div className="mt-4 p-4 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                <strong>💡 How to qualify:</strong> Reach the 21% stair-step level by meeting sales quotas 
-                for 3 consecutive months. Once qualified, you'll automatically earn 2% from all your 
-                downlines who are also at 21% level, across 7 network levels.
+                <strong>💡 How to qualify for Manager Level:</strong> Reach the top stair-step level (21%) 
+                by meeting sales quotas for 3 consecutive months.
+              </p>
+            </div>
+          )}
+
+          {stats.isQualified && !stats.hasMinTwoLines && (
+            <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <p className="text-sm">
+                <strong>⚠️ 2-Line Requirement:</strong> To earn the 2% leadership bonus, you need at least 
+                <strong> 2 direct referral lines</strong>, each with at least one Manager Level affiliate. 
+                Currently you have <strong>{stats.linesWithManagers}</strong> qualifying line(s).
               </p>
             </div>
           )}
@@ -207,7 +288,7 @@ export default function LeadershipStatus() {
         <Card>
           <CardHeader>
             <CardTitle>Recent Leadership Commissions</CardTitle>
-            <CardDescription>Your latest royalty earnings from 21% leaders</CardDescription>
+            <CardDescription>Your latest royalty earnings from Manager Level leaders</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
