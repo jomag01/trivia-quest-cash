@@ -933,8 +933,9 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
               <div className="space-y-2">
                 <p className="font-semibold text-sm">Join Our Affiliate Network</p>
                 <ul className="text-xs text-muted-foreground space-y-1">
-                  <li>• Earn ₱{settings.cycleCommission} for every matched cycle</li>
-                  <li>• Daily earning cap up to ₱{settings.dailyCap.toLocaleString()}</li>
+                  <li>• Earn ₱{Math.round((settings.cycleVolume * 2 * 0.10)).toLocaleString()} for every matched cycle</li>
+                  <li>• Max earning up to ₱{settings.dailyCap.toLocaleString()} per account</li>
+                  <li>• Create up to 3 affiliate accounts</li>
                   <li>• Get placed automatically in the network</li>
                   <li>• Track your earnings in the Dashboard</li>
                 </ul>
