@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { 
   Package, 
@@ -28,7 +29,11 @@ import {
   TrendingUp,
   Home,
   Tag,
-  MapPin
+  MapPin,
+  BedDouble,
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -81,12 +86,34 @@ interface SellerProduct {
   promo_price: number | null;
 }
 
+// Icon mapping for dynamic categories
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Building: Building2,
+  Car: Car,
+  Package: Package,
+  Home: Home,
+  BedDouble: BedDouble,
+  Hotel: Hotel,
+  Tag: Tag,
+};
+
+interface MarketplaceCategory {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  display_order: number;
+  is_active: boolean;
+}
+
 export default function MyListingsHub() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInquiry, setSelectedInquiry] = useState<MarketplaceInquiry | null>(null);
   const [responseMessage, setResponseMessage] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch user's marketplace listings
   const { data: listings = [], isLoading: loadingListings } = useQuery({
@@ -160,6 +187,28 @@ export default function MyListingsHub() {
     enabled: !!user
   });
 
+  // Fetch marketplace categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ["marketplace-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("marketplace_categories")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order");
+      if (error) throw error;
+      return data as MarketplaceCategory[];
+    }
+  });
+
+  // Scroll handlers for category slider
+  const scrollLeft = () => {
+    scrollContainerRef.current?.scrollBy({ left: -200, behavior: "smooth" });
+  };
+  const scrollRight = () => {
+    scrollContainerRef.current?.scrollBy({ left: 200, behavior: "smooth" });
+  };
+
   // Respond to inquiry
   const handleRespondToInquiry = async () => {
     if (!selectedInquiry || !responseMessage.trim()) {
@@ -187,42 +236,62 @@ export default function MyListingsHub() {
     refetchInquiries();
   };
 
-  // Calculate stats
+  // Calculate stats - dynamically count per category
+  const getCategoryCount = (categoryId: string) => {
+    return listings.filter(l => l.category === categoryId).length;
+  };
+
   const stats = {
     totalListings: listings.length,
     activeListings: listings.filter(l => l.status === "active").length,
-    rentals: listings.filter(l => l.category.includes("rent")).length,
-    sales: listings.filter(l => l.category.includes("sale")).length,
+    rentals: listings.filter(l => l.category.includes("rent") || l.category.includes("hotel")).length,
+    sales: listings.filter(l => !l.category.includes("rent") && !l.category.includes("hotel")).length,
     totalInquiries: inquiries.length,
     pendingInquiries: inquiries.filter(i => i.status === "pending").length,
     totalProducts: sellerProducts.length,
     activeProducts: sellerProducts.filter(p => p.is_active).length
   };
 
-  // Filter listings
-  const filteredListings = listings.filter(l => 
-    l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    l.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter listings by search and selected category
+  const filteredListings = listings.filter(l => {
+    const matchesSearch = l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || l.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
-  // Group listings by category
+  // Group listings by category type for tabs
   const rentalListings = filteredListings.filter(l => l.category.includes("rent") || l.category.includes("hotel"));
-  const saleListings = filteredListings.filter(l => l.category.includes("sale") || (!l.category.includes("rent") && !l.category.includes("hotel")));
+  const saleListings = filteredListings.filter(l => !l.category.includes("rent") && !l.category.includes("hotel"));
 
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
+  const getCategoryIcon = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (category) {
+      const IconComponent = ICON_MAP[category.icon] || Tag;
+      return <IconComponent className="w-4 h-4" />;
+    }
+    // Fallback for legacy categories
+    switch (categoryId.toLowerCase()) {
+      case "vehicle_sale":
       case "vehicles":
-      case "cars":
         return <Car className="w-4 h-4" />;
-      case "real-estate":
-      case "property":
-      case "hotels":
+      case "property_sale":
+      case "property_rent":
+        return <Building2 className="w-4 h-4" />;
+      case "hotel_staycation":
         return <Hotel className="w-4 h-4" />;
+      case "room_rent":
+        return <BedDouble className="w-4 h-4" />;
       case "home":
         return <Home className="w-4 h-4" />;
       default:
         return <Tag className="w-4 h-4" />;
     }
+  };
+
+  const getCategoryLabel = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    return category?.label || categoryId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
   const getStatusBadge = (status: string) => {
@@ -323,6 +392,74 @@ export default function MyListingsHub() {
           onChange={e => setSearchQuery(e.target.value)}
           className="pl-9"
         />
+      </div>
+
+      {/* Slidable Category Filter */}
+      <div className="relative">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0 h-8 w-8 hidden sm:flex"
+            onClick={scrollLeft}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          <div 
+            ref={scrollContainerRef}
+            className="flex-1 overflow-x-auto scrollbar-hide"
+          >
+            <div className="flex gap-2 pb-2 min-w-max">
+              {/* All Categories Button */}
+              <Button
+                variant={selectedCategory === "all" ? "default" : "outline"}
+                size="sm"
+                className="shrink-0 h-9"
+                onClick={() => setSelectedCategory("all")}
+              >
+                <LayoutGrid className="w-4 h-4 mr-1.5" />
+                All ({listings.length})
+              </Button>
+              
+              {/* Dynamic Categories */}
+              {categories.map(cat => {
+                const IconComponent = ICON_MAP[cat.icon] || Tag;
+                const count = getCategoryCount(cat.id);
+                return (
+                  <Button
+                    key={cat.id}
+                    variant={selectedCategory === cat.id ? "default" : "outline"}
+                    size="sm"
+                    className={`shrink-0 h-9 ${
+                      selectedCategory === cat.id 
+                        ? `bg-gradient-to-r ${cat.color} text-white border-0` 
+                        : ""
+                    }`}
+                    onClick={() => setSelectedCategory(cat.id)}
+                  >
+                    <IconComponent className="w-4 h-4 mr-1.5" />
+                    <span className="truncate max-w-[100px]">{cat.label}</span>
+                    {count > 0 && (
+                      <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px]">
+                        {count}
+                      </Badge>
+                    )}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0 h-8 w-8 hidden sm:flex"
+            onClick={scrollRight}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
