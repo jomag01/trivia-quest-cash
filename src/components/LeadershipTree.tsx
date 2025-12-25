@@ -1,23 +1,26 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { 
   Users, 
-  ZoomIn, 
-  ZoomOut, 
-  Maximize2, 
   User, 
   Crown,
   Search,
   X,
   RefreshCw,
-  Award
+  Award,
+  ChevronDown,
+  ChevronRight,
+  Star
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface LeadershipNode {
   id: string;
@@ -28,7 +31,7 @@ interface LeadershipNode {
   current_step: number;
   created_at: string;
   level: number;
-  line_number: number; // 1 for first line, 2 for second line
+  line_number: number;
   children: LeadershipNode[];
 }
 
@@ -37,34 +40,21 @@ interface LeadershipTreeProps {
 }
 
 export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
-  const [lineOneTtree, setLineOneTree] = useState<LeadershipNode | null>(null);
+  const [lineOneTree, setLineOneTree] = useState<LeadershipNode | null>(null);
   const [lineTwoTree, setLineTwoTree] = useState<LeadershipNode | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<LeadershipNode | null>(null);
-  const [zoom, setZoom] = useState(0.6);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [maxStep, setMaxStep] = useState(0);
-  const [activeLineTab, setActiveLineTab] = useState<'line1' | 'line2'>('line1');
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [activeLineTab, setActiveLineTab] = useState<string>('line1');
   const [managerStats, setManagerStats] = useState({ line1Managers: 0, line2Managers: 0 });
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (userId) {
       fetchMaxStep();
-      fetchUserProfile();
     }
   }, [userId]);
 
@@ -73,15 +63,6 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
       fetchLeadershipTree();
     }
   }, [userId, maxStep]);
-
-  const fetchUserProfile = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    setUserProfile(data);
-  };
 
   const fetchMaxStep = async () => {
     const { data } = await supabase
@@ -106,7 +87,6 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
     try {
       setLoading(true);
       
-      // Get direct referrals (these define the lines)
       const { data: directReferrals } = await supabase
         .from("profiles")
         .select("id, full_name, email, referral_code, created_at")
@@ -122,18 +102,18 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
       let line1Managers = 0;
       let line2Managers = 0;
 
-      // Build tree for first line
       if (directReferrals[0]) {
         const line1 = await buildTree(directReferrals[0].id, 1, 1);
         setLineOneTree(line1);
         line1Managers = countManagers(line1);
+        setExpandedNodes(prev => new Set([...prev, line1.id]));
       }
 
-      // Build tree for second line
       if (directReferrals[1]) {
         const line2 = await buildTree(directReferrals[1].id, 1, 2);
         setLineTwoTree(line2);
         line2Managers = countManagers(line2);
+        setExpandedNodes(prev => new Set([...prev, line2.id]));
       }
 
       setManagerStats({ line1Managers, line2Managers });
@@ -162,7 +142,6 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
 
     if (nodeError) throw nodeError;
 
-    // Get stair-step rank
     const { data: rankData } = await supabase
       .from("affiliate_current_rank")
       .select("current_step")
@@ -185,7 +164,6 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
       children: [],
     };
 
-    // Only fetch children if we haven't reached max depth (7 manager levels - dynamic compression)
     if (level < 7) {
       const { data: children, error: childError } = await supabase
         .from("profiles")
@@ -203,26 +181,6 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
 
     return node;
   };
-
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 3));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.2, 0.5));
-  const handleReset = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging) {
-      setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-    }
-  };
-
-  const handleMouseUp = () => setIsDragging(false);
 
   const searchNodes = (node: LeadershipNode | null, query: string): Set<string> => {
     const matches = new Set<string>();
@@ -250,7 +208,7 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
       return;
     }
     
-    const matches1 = searchNodes(lineOneTtree, searchQuery);
+    const matches1 = searchNodes(lineOneTree, searchQuery);
     const matches2 = searchNodes(lineTwoTree, searchQuery);
     const allMatches = new Set([...matches1, ...matches2]);
     setHighlightedNodes(allMatches);
@@ -258,355 +216,385 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
     if (allMatches.size > 0) {
       toast.success(`Found ${allMatches.size} matching member${allMatches.size !== 1 ? 's' : ''}`);
     }
-  }, [searchQuery, lineOneTtree, lineTwoTree]);
+  }, [searchQuery, lineOneTree, lineTwoTree]);
 
-  const renderTree = (node: LeadershipNode, x: number, y: number, level: number): JSX.Element[] => {
-    const elements: JSX.Element[] = [];
-    const nodeWidth = isMobile ? 140 : 180;
-    const nodeHeight = isMobile ? 85 : 100;
-    const verticalSpacing = isMobile ? 100 : 140;
-    const horizontalSpacing = isMobile ? 160 : 200;
-
-    const childCount = node.children.length;
-    const totalWidth = childCount * horizontalSpacing;
-    const startX = x - totalWidth / 2 + horizontalSpacing / 2;
-
-    node.children.forEach((child, index) => {
-      const childX = startX + index * horizontalSpacing;
-      const childY = y + verticalSpacing;
-
-      elements.push(
-        <line
-          key={`line-${node.id}-${child.id}`}
-          x1={x}
-          y1={y + nodeHeight / 2}
-          x2={childX}
-          y2={childY - nodeHeight / 2}
-          stroke={child.is_manager ? "#eab308" : "hsl(var(--border))"}
-          strokeWidth={child.is_manager ? "3" : "2"}
-        />
-      );
-
-      elements.push(...renderTree(child, childX, childY, level + 1));
+  const toggleNode = (nodeId: string) => {
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+      } else {
+        newSet.add(nodeId);
+      }
+      return newSet;
     });
+  };
 
-    const isSelected = selectedNode?.id === node.id;
+  const getInitials = (name: string | null, email: string | null) => {
+    if (name) return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+    if (email) return email.substring(0, 2).toUpperCase();
+    return "??";
+  };
+
+  const renderNodeCard = (node: LeadershipNode, depth: number = 0) => {
+    const hasChildren = node.children.length > 0;
+    const isExpanded = expandedNodes.has(node.id);
     const isHighlighted = highlightedNodes.has(node.id);
-    const nodeColor = node.is_manager ? "#eab308" : "hsl(var(--muted-foreground))";
+    const isSelected = selectedNode?.id === node.id;
 
-    elements.push(
-      <g
-        key={`node-${node.id}`}
-        transform={`translate(${x - nodeWidth / 2}, ${y - nodeHeight / 2})`}
-        className="cursor-pointer transition-all duration-300 hover:scale-105"
-        onClick={() => setSelectedNode(node)}
-      >
-        <rect
-          width={nodeWidth}
-          height={nodeHeight}
-          rx="8"
-          fill={isSelected ? nodeColor : isHighlighted ? "#fbbf24" : "hsl(var(--card))"}
-          stroke={isHighlighted ? "#f59e0b" : nodeColor}
-          strokeWidth={isSelected || isHighlighted || node.is_manager ? "3" : "2"}
-        />
-        
-        {/* Manager Crown or Level Badge */}
-        {node.is_manager ? (
-          <g>
-            <rect x={5} y={5} width={nodeWidth - 10} height={22} rx="4" fill="#eab308" />
-            <text x={nodeWidth / 2} y={19} textAnchor="middle" fontSize="11" fill="white" fontWeight="600">
-              👑 Manager Level
-            </text>
-          </g>
-        ) : (
-          <g>
-            <rect x={5} y={5} width={45} height={18} rx="4" fill="hsl(var(--muted))" />
-            <text x={27} y={17} textAnchor="middle" fontSize="10" fill="hsl(var(--muted-foreground))" fontWeight="500">
-              Step {node.current_step}
-            </text>
-          </g>
+    const bgGradient = node.is_manager 
+      ? "from-yellow-400/20 to-amber-500/10" 
+      : "from-slate-400/10 to-slate-500/5";
+    const borderColor = node.is_manager 
+      ? "border-yellow-500/50" 
+      : "border-slate-400/30";
+    const avatarColor = node.is_manager 
+      ? "bg-gradient-to-br from-yellow-500 to-amber-500" 
+      : "bg-gradient-to-br from-slate-500 to-slate-600";
+
+    return (
+      <div key={node.id} className="w-full">
+        <div
+          className={`
+            relative p-3 sm:p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer
+            bg-gradient-to-br ${bgGradient} ${borderColor}
+            ${isHighlighted ? 'ring-2 ring-yellow-500 ring-offset-2' : ''}
+            ${isSelected ? 'ring-2 ring-primary ring-offset-2 shadow-lg' : ''}
+            ${node.is_manager ? 'shadow-md' : ''}
+            hover:shadow-md hover:scale-[1.01]
+          `}
+          style={{ marginLeft: `${Math.min(depth * 16, 64)}px` }}
+          onClick={() => setSelectedNode(node)}
+        >
+          <div className="flex items-center gap-3">
+            {hasChildren && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleNode(node.id);
+                }}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+            {!hasChildren && <div className="w-8" />}
+
+            <Avatar className={`h-10 w-10 sm:h-12 sm:w-12 shrink-0 ${avatarColor}`}>
+              <AvatarFallback className="text-white font-bold text-sm">
+                {node.is_manager ? "👑" : getInitials(node.full_name, node.email)}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold text-sm sm:text-base truncate">
+                  {node.full_name || node.email?.split("@")[0] || "Anonymous"}
+                </p>
+                {node.is_manager && (
+                  <Badge className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white text-[10px] sm:text-xs">
+                    <Crown className="w-3 h-3 mr-1" />
+                    Manager
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm text-muted-foreground">
+                <span>Step {node.current_step}</span>
+                <span>•</span>
+                <span>Level {node.level}</span>
+                {hasChildren && (
+                  <>
+                    <span>•</span>
+                    <span>{node.children.length} refs</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {hasChildren && isExpanded && (
+          <div className="mt-2 space-y-2 border-l-2 border-dashed border-muted ml-4 sm:ml-6 pl-2">
+            {node.children.map((child) => renderNodeCard(child, depth + 1))}
+          </div>
         )}
-
-        {/* User Icon */}
-        <circle cx={nodeWidth / 2} cy={45} r="12" fill={nodeColor} opacity="0.2" />
-        <text x={nodeWidth / 2} y={50} textAnchor="middle" fontSize="14" fill={isSelected ? "white" : "hsl(var(--foreground))"}>
-          {node.is_manager ? "👑" : "👤"}
-        </text>
-
-        {/* Name */}
-        <text
-          x={nodeWidth / 2}
-          y={70}
-          textAnchor="middle"
-          fontSize={isMobile ? "10" : "12"}
-          fill={isSelected ? "white" : "hsl(var(--foreground))"}
-          fontWeight="500"
-        >
-          {node.full_name || node.email?.split("@")[0] || "Anonymous"}
-        </text>
-
-        {/* Level & Downlines */}
-        <text
-          x={nodeWidth / 2}
-          y={isMobile ? 82 : 88}
-          textAnchor="middle"
-          fontSize={isMobile ? "9" : "10"}
-          fill={isSelected ? "white" : "hsl(var(--muted-foreground))"}
-        >
-          Level {level} • {node.children.length} refs
-        </text>
-      </g>
+      </div>
     );
-
-    return elements;
   };
 
   if (loading) {
     return (
-      <Card className="p-6">
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-[500px] w-full" />
-        </div>
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-yellow-500/10 via-amber-500/10 to-orange-500/10 pb-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-20 w-full rounded-xl ml-8" />
+          </div>
+        </CardContent>
       </Card>
     );
   }
 
-  if (!lineOneTtree && !lineTwoTree) {
+  if (!lineOneTree && !lineTwoTree) {
     return (
-      <Card className="p-6 text-center">
-        <Crown className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-        <p className="text-muted-foreground">No leadership network data available</p>
-        <p className="text-sm text-muted-foreground mt-2">Build your referral lines to see managers here</p>
+      <Card className="overflow-hidden">
+        <CardContent className="p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-yellow-500/20 to-amber-500/20 flex items-center justify-center">
+            <Crown className="w-8 h-8 text-yellow-500" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No Leadership Data</h3>
+          <p className="text-muted-foreground">Build your referral lines to see managers here</p>
+        </CardContent>
       </Card>
     );
   }
 
-  const currentTree = activeLineTab === 'line1' ? lineOneTtree : lineTwoTree;
+  const qualifies2Line = managerStats.line1Managers > 0 && managerStats.line2Managers > 0;
 
   return (
     <div className="space-y-4">
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className={`p-4 cursor-pointer transition-all ${activeLineTab === 'line1' ? 'ring-2 ring-primary' : ''}`}
-              onClick={() => setActiveLineTab('line1')}>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/10">
-              <Users className="w-5 h-5 text-blue-500" />
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <Card className="overflow-hidden border-0 shadow-md">
+          <CardContent className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/5">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm text-muted-foreground">Line 1 Managers</p>
+                <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                  {managerStats.line1Managers}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Line 1 Managers</p>
-              <p className="text-2xl font-bold text-blue-500">{managerStats.line1Managers}</p>
-            </div>
-          </div>
-          {managerStats.line1Managers > 0 && (
-            <Badge className="mt-2 bg-blue-500/10 text-blue-500">✓ Has Managers</Badge>
-          )}
+          </CardContent>
         </Card>
 
-        <Card className={`p-4 cursor-pointer transition-all ${activeLineTab === 'line2' ? 'ring-2 ring-primary' : ''}`}
-              onClick={() => setActiveLineTab('line2')}>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-500/10">
-              <Users className="w-5 h-5 text-purple-500" />
+        <Card className="overflow-hidden border-0 shadow-md">
+          <CardContent className="p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/5">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm text-muted-foreground">Line 2 Managers</p>
+                <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                  {managerStats.line2Managers}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Line 2 Managers</p>
-              <p className="text-2xl font-bold text-purple-500">{managerStats.line2Managers}</p>
-            </div>
-          </div>
-          {managerStats.line2Managers > 0 && (
-            <Badge className="mt-2 bg-purple-500/10 text-purple-500">✓ Has Managers</Badge>
-          )}
+          </CardContent>
         </Card>
       </div>
 
-      {/* 2-Line Requirement Status */}
-      <Card className={`p-4 ${managerStats.line1Managers > 0 && managerStats.line2Managers > 0 
-        ? 'bg-green-500/10 border-green-500/30' 
-        : 'bg-amber-500/10 border-amber-500/30'}`}>
-        <div className="flex items-center gap-3">
-          <Award className={`w-6 h-6 ${managerStats.line1Managers > 0 && managerStats.line2Managers > 0 
-            ? 'text-green-500' : 'text-amber-500'}`} />
-          <div>
-            <p className="font-semibold">
-              {managerStats.line1Managers > 0 && managerStats.line2Managers > 0 
-                ? '✅ 2-Line Requirement Met!' 
-                : '⏳ 2-Line Requirement Pending'}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {managerStats.line1Managers > 0 && managerStats.line2Managers > 0 
-                ? 'You qualify for the 2% leadership bonus from your Manager downlines' 
-                : 'Build managers in both lines to earn 2% leadership bonus'}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Header Controls */}
-      <Card className="p-3 md:p-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <Crown className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-            <div>
-              <h3 className="text-base md:text-lg font-semibold">
-                Leadership Tree - {activeLineTab === 'line1' ? 'Line 1' : 'Line 2'}
-              </h3>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                View managers in your {activeLineTab === 'line1' ? 'first' : 'second'} referral line
+      {/* 2-Line Qualification Status */}
+      <Card className={`overflow-hidden border-0 shadow-md ${qualifies2Line ? 'bg-gradient-to-r from-green-500/10 to-emerald-500/5' : 'bg-gradient-to-r from-amber-500/10 to-orange-500/5'}`}>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-xl ${qualifies2Line ? 'bg-gradient-to-br from-green-500 to-emerald-500' : 'bg-gradient-to-br from-amber-500 to-orange-500'}`}>
+              <Award className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-base sm:text-lg">
+                {qualifies2Line ? '✅ 2-Line Requirement Met!' : '⏳ 2-Line Requirement Pending'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {qualifies2Line 
+                  ? 'You qualify for the 2% leadership bonus from your Manager downlines' 
+                  : 'Build managers in both lines to earn 2% leadership bonus'}
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+      {/* Header & Tabs */}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500 text-white pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-white/20 backdrop-blur">
+                <Crown className="w-6 h-6" />
+              </div>
+              <div>
+                <CardTitle className="text-lg sm:text-xl">Leadership Network</CardTitle>
+                <p className="text-white/80 text-sm">View managers in your referral lines</p>
+              </div>
+            </div>
+
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={handleRefresh} 
+              disabled={isRefreshing}
+              className="bg-white/20 hover:bg-white/30 text-white border-0"
+            >
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+          </div>
+        </CardHeader>
 
-            <div className="relative w-full md:w-48">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-9 h-9 text-sm"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <X className="w-4 h-4" />
-                </button>
+        {/* Search & Tabs */}
+        <CardContent className="p-4 bg-gradient-to-b from-yellow-500/5 to-transparent space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search managers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-10"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <Tabs value={activeLineTab} onValueChange={setActiveLineTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="line1" className="gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                Line 1
+                {managerStats.line1Managers > 0 && (
+                  <Badge variant="secondary" className="ml-1">{managerStats.line1Managers}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="line2" className="gap-2">
+                <div className="w-2 h-2 rounded-full bg-purple-500" />
+                Line 2
+                {managerStats.line2Managers > 0 && (
+                  <Badge variant="secondary" className="ml-1">{managerStats.line2Managers}</Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Tree View */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 overflow-hidden">
+          <ScrollArea className="h-[400px] sm:h-[500px] lg:h-[600px]">
+            <div className="p-4 space-y-3">
+              {activeLineTab === 'line1' && lineOneTree && renderNodeCard(lineOneTree)}
+              {activeLineTab === 'line2' && lineTwoTree && renderNodeCard(lineTwoTree)}
+              {activeLineTab === 'line1' && !lineOneTree && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No Line 1 data yet</p>
+                </div>
+              )}
+              {activeLineTab === 'line2' && !lineTwoTree && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No Line 2 data yet</p>
+                </div>
               )}
             </div>
-
-            <div className="flex items-center gap-1 border rounded-lg p-1">
-              <Button variant="ghost" size="sm" onClick={handleZoomOut} className="h-8 w-8 p-0">
-                <ZoomOut className="w-4 h-4" />
-              </Button>
-              <span className="text-xs font-medium min-w-[50px] text-center">{Math.round(zoom * 100)}%</span>
-              <Button variant="ghost" size="sm" onClick={handleZoomIn} className="h-8 w-8 p-0">
-                <ZoomIn className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 w-8 p-0">
-                <Maximize2 className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Legend */}
-      <Card className="p-3">
-        <div className="flex flex-wrap gap-3">
-          <Badge className="bg-yellow-500 text-white">👑 Manager Level (21%)</Badge>
-          <Badge variant="outline">Regular Affiliate</Badge>
-        </div>
-      </Card>
-
-      {/* Tree Visualization */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 p-2 md:p-4 overflow-hidden">
-          {currentTree ? (
-            <div
-              className="relative w-full h-[400px] md:h-[500px] overflow-hidden bg-gradient-to-br from-background to-muted/20 rounded-lg border"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-              style={{ cursor: isDragging ? "grabbing" : "grab" }}
-            >
-              <svg
-                className="w-full h-full"
-                style={{
-                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                  transformOrigin: "center",
-                  transition: isDragging ? "none" : "transform 0.3s ease-out",
-                }}
-              >
-                <g transform="translate(600, 80)">
-                  {renderTree(currentTree, 0, 0, 1)}
-                </g>
-              </svg>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-              <div className="text-center">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No members in {activeLineTab === 'line1' ? 'Line 1' : 'Line 2'} yet</p>
-              </div>
-            </div>
-          )}
+          </ScrollArea>
         </Card>
 
         {/* Selected Node Details */}
-        <Card className="p-4">
-          <h4 className="font-semibold mb-4 flex items-center gap-2">
-            <User className="w-4 h-4" />
-            Member Details
-          </h4>
-          
-          {selectedNode ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-xl ${
-                    selectedNode.is_manager ? 'bg-yellow-500' : 'bg-muted'
-                  }`}
-                >
-                  {selectedNode.is_manager ? "👑" : "👤"}
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-yellow-500/10 to-amber-500/5 pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Member Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            {selectedNode ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className={`h-16 w-16 ${selectedNode.is_manager ? 'bg-gradient-to-br from-yellow-500 to-amber-500' : 'bg-gradient-to-br from-slate-500 to-slate-600'}`}>
+                    <AvatarFallback className="text-white font-bold text-xl">
+                      {selectedNode.is_manager ? "👑" : getInitials(selectedNode.full_name, selectedNode.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-lg">
+                        {selectedNode.full_name || selectedNode.email?.split("@")[0]}
+                      </p>
+                      {selectedNode.is_manager && (
+                        <Crown className="w-5 h-5 text-yellow-500" />
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{selectedNode.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold">
-                    {selectedNode.full_name || selectedNode.email?.split("@")[0]}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{selectedNode.email}</p>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Status</span>
+                    <Badge className={selectedNode.is_manager ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white' : ''}>
+                      {selectedNode.is_manager ? (
+                        <>
+                          <Crown className="w-3 h-3 mr-1" />
+                          Manager
+                        </>
+                      ) : (
+                        <>
+                          <Star className="w-3 h-3 mr-1" />
+                          Step {selectedNode.current_step}
+                        </>
+                      )}
+                    </Badge>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Level</span>
+                    <span className="font-semibold">Level {selectedNode.level}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Line</span>
+                    <Badge variant="outline">Line {selectedNode.line_number}</Badge>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Direct Referrals</span>
+                    <span className="font-semibold">{selectedNode.children.length}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Joined</span>
+                    <span className="font-semibold text-sm">
+                      {new Date(selectedNode.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                  <span className="text-sm text-muted-foreground">Status</span>
-                  {selectedNode.is_manager ? (
-                    <Badge className="bg-yellow-500">Manager Level</Badge>
-                  ) : (
-                    <Badge variant="outline">Step {selectedNode.current_step}</Badge>
-                  )}
-                </div>
-                <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                  <span className="text-sm text-muted-foreground">Line</span>
-                  <Badge variant={selectedNode.line_number === 1 ? "default" : "secondary"}>
-                    Line {selectedNode.line_number}
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                  <span className="text-sm text-muted-foreground">Network Level</span>
-                  <span className="font-semibold">Level {selectedNode.level}</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                  <span className="text-sm text-muted-foreground">Direct Referrals</span>
-                  <span className="font-semibold">{selectedNode.children.length}</span>
-                </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <User className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Select a member to view details</p>
               </div>
-
-              {selectedNode.is_manager && (
-                <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
-                  <p className="text-sm">
-                    <Crown className="w-4 h-4 inline mr-1 text-yellow-500" />
-                    This affiliate earns 2% leadership bonus from their manager downlines
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <User className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>Click on a member to view details</p>
-            </div>
-          )}
+            )}
+          </CardContent>
         </Card>
       </div>
     </div>
   );
 };
-
-export default LeadershipTree;

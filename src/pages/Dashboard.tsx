@@ -46,8 +46,8 @@ import ProviderInbox from "@/components/chat/ProviderInbox";
 import { AccountSettings } from "@/components/profile/AccountSettings";
 import PromotionalAdsGallery from "@/components/PromotionalAdsGallery";
 import BinaryAccountsManager from "@/components/BinaryAccountsManager";
-import StairStepTree from "@/components/StairStepTree";
-import LeadershipTree from "@/components/LeadershipTree";
+import { StairStepTree } from "@/components/StairStepTree";
+import { LeadershipTree } from "@/components/LeadershipTree";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
