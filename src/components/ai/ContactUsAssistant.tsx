@@ -40,8 +40,10 @@ const ContactUsAssistant = () => {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [visitorEmail, setVisitorEmail] = useState("");
   const [visitorName, setVisitorName] = useState("");
+  const [additionalMessage, setAdditionalMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [needsAdminHelp, setNeedsAdminHelp] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,8 +89,12 @@ const ContactUsAssistant = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Show email form after a few exchanges
-      if (messages.length >= 4 && !showEmailForm) {
+      // Check if AI flagged this as needing admin help
+      if (data.needsAdmin) {
+        setNeedsAdminHelp(true);
+        setShowEmailForm(true);
+      } else if (messages.length >= 4 && !showEmailForm) {
+        // Show email form after a few exchanges
         setTimeout(() => setShowEmailForm(true), 1000);
       }
 
@@ -101,6 +107,7 @@ const ContactUsAssistant = () => {
         content: "I apologize, but I'm having trouble responding right now. Would you like to leave your email so our team can get back to you?",
         timestamp: new Date()
       }]);
+      setNeedsAdminHelp(true);
       setShowEmailForm(true);
     } finally {
       setIsLoading(false);
@@ -113,6 +120,11 @@ const ContactUsAssistant = () => {
       return;
     }
 
+    if (needsAdminHelp && !additionalMessage.trim()) {
+      toast.error("Please describe your question or concern for our team");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -121,12 +133,20 @@ const ContactUsAssistant = () => {
         content: m.content
       }));
 
+      // Include additional message in the conversation if provided
+      if (additionalMessage.trim()) {
+        conversationHistory.push({
+          role: "user",
+          content: `[Additional Message for Admin]: ${additionalMessage.trim()}`
+        });
+      }
+
       const { data, error } = await supabase.functions.invoke("contact-assistant", {
         body: {
           action: "submit",
           visitorEmail: visitorEmail.trim(),
           visitorName: visitorName.trim() || null,
-          message: messages.find(m => m.role === "user")?.content || "General inquiry",
+          message: additionalMessage.trim() || messages.find(m => m.role === "user")?.content || "General inquiry",
           conversationHistory
         }
       });
@@ -167,6 +187,8 @@ const ContactUsAssistant = () => {
               onClick={() => {
                 setIsSubmitted(false);
                 setShowEmailForm(false);
+                setNeedsAdminHelp(false);
+                setAdditionalMessage("");
                 setMessages([{
                   role: "assistant",
                   content: "👋 Hello! I'm your AI assistant. How can I help you today?",
@@ -280,17 +302,36 @@ const ContactUsAssistant = () => {
 
         {/* Email Form Sidebar */}
         {showEmailForm && (
-          <Card className="w-80 bg-gradient-to-br from-purple-500/5 to-pink-500/5 border-purple-500/20">
+          <Card className={`w-80 border-purple-500/20 ${needsAdminHelp ? 'bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/30' : 'bg-gradient-to-br from-purple-500/5 to-pink-500/5'}`}>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Mail className="w-5 h-5 text-purple-500" />
-                <CardTitle className="text-lg">Get a Response</CardTitle>
+                {needsAdminHelp ? (
+                  <MessageSquare className="w-5 h-5 text-amber-500" />
+                ) : (
+                  <Mail className="w-5 h-5 text-purple-500" />
+                )}
+                <CardTitle className="text-lg">
+                  {needsAdminHelp ? "Message Our Team" : "Get a Response"}
+                </CardTitle>
               </div>
               <CardDescription>
-                Leave your email and we'll follow up personally
+                {needsAdminHelp 
+                  ? "I couldn't fully answer your question. Please describe your concern and our team will help you."
+                  : "Leave your email and we'll follow up personally"
+                }
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {needsAdminHelp && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <div className="flex items-start gap-2">
+                    <HelpCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      The AI assistant needs human support to answer your question. Please provide details below.
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Your Name (optional)</Label>
                 <Input
@@ -309,10 +350,22 @@ const ContactUsAssistant = () => {
                   required
                 />
               </div>
+              {needsAdminHelp && (
+                <div className="space-y-2">
+                  <Label>Your Question or Concern *</Label>
+                  <Textarea
+                    value={additionalMessage}
+                    onChange={(e) => setAdditionalMessage(e.target.value)}
+                    placeholder="Please describe what you need help with..."
+                    rows={4}
+                    required
+                  />
+                </div>
+              )}
               <Button 
                 onClick={submitInquiry}
-                disabled={isSubmitting || !visitorEmail.trim()}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500"
+                disabled={isSubmitting || !visitorEmail.trim() || (needsAdminHelp && !additionalMessage.trim())}
+                className={`w-full ${needsAdminHelp ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-purple-500 to-pink-500'}`}
               >
                 {isSubmitting ? (
                   <>
@@ -322,7 +375,7 @@ const ContactUsAssistant = () => {
                 ) : (
                   <>
                     <MessageSquare className="w-4 h-4 mr-2" />
-                    Submit Inquiry
+                    {needsAdminHelp ? "Send to Admin" : "Submit Inquiry"}
                   </>
                 )}
               </Button>

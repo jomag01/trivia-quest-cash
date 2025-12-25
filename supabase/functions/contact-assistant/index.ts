@@ -37,9 +37,20 @@ Key information about our platform:
 - We offer food delivery, booking services, and marketplace features
 - Premium features include Website Builder, Analytics, and Social Media tools
 
-Be friendly, professional, and helpful. If you cannot answer a question, suggest the visitor leave a message for our team.
+Be friendly, professional, and helpful. 
 
-Always end complex inquiries by encouraging the visitor to submit their email so we can follow up.`;
+IMPORTANT: If you cannot confidently answer a question or the question is:
+- Too specific about account details, billing, or personal information
+- About technical issues you cannot troubleshoot
+- Requesting human assistance
+- Outside your knowledge scope
+- Complex inquiries requiring human review
+
+You MUST start your response with "[NEEDS_ADMIN]" followed by your response. This signals that the visitor should be connected with a human admin.
+
+Example: "[NEEDS_ADMIN] I apologize, but I don't have access to specific account information. Let me connect you with our support team who can help with this."
+
+Always be helpful even when escalating - explain what you can't help with and why human assistance is needed.`;
 
       const messages = [
         { role: "system", content: systemPrompt },
@@ -70,9 +81,18 @@ Always end complex inquiries by encouraging the visitor to submit their email so
       }
 
       const data = await response.json();
-      const aiResponse = data.choices[0]?.message?.content || "I apologize, I couldn't process your request.";
+      let aiResponse = data.choices[0]?.message?.content || "I apologize, I couldn't process your request.";
+      
+      // Check if AI flagged this as needing admin
+      const needsAdmin = aiResponse.startsWith("[NEEDS_ADMIN]");
+      if (needsAdmin) {
+        aiResponse = aiResponse.replace("[NEEDS_ADMIN]", "").trim();
+      }
 
-      return new Response(JSON.stringify({ response: aiResponse }), {
+      return new Response(JSON.stringify({ 
+        response: aiResponse,
+        needsAdmin 
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
