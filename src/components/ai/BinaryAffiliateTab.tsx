@@ -30,9 +30,19 @@ import {
   Zap,
   QrCode,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  Gift,
+  Star,
+  DollarSign
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface BinaryPosition {
   id: string;
@@ -126,12 +136,23 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
   const [referenceNumber, setReferenceNumber] = useState('');
   const [showQrSuccess, setShowQrSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showEnrollmentDialog, setShowEnrollmentDialog] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchData();
     }
   }, [user]);
+
+  // Show enrollment encouragement dialog for non-enrolled users after a delay
+  useEffect(() => {
+    if (!loading && !isEnrolled && user) {
+      const timer = setTimeout(() => {
+        setShowEnrollmentDialog(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isEnrolled, user]);
 
   const fetchData = async () => {
     if (!user) return;
@@ -536,7 +557,62 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
   const { leftPercent, rightPercent, potentialCycles } = calculateCycleProgress();
 
   return (
-    <ScrollArea className="h-[calc(100vh-200px)]">
+    <>
+      {/* Enrollment Encouragement Dialog */}
+      <Dialog open={showEnrollmentDialog} onOpenChange={setShowEnrollmentDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Gift className="h-6 w-6 text-amber-500" />
+              Start Earning Passive Income!
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              Join our affiliate network and unlock amazing earning potential!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800">
+              <DollarSign className="h-5 w-5 text-green-600 mt-0.5" />
+              <div>
+                <p className="font-semibold text-sm">Earn ₱{Math.round((settings.cycleVolume * 2 * 0.10)).toLocaleString()} per cycle</p>
+                <p className="text-xs text-muted-foreground">When both legs match volume</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800">
+              <Star className="h-5 w-5 text-purple-600 mt-0.5" />
+              <div>
+                <p className="font-semibold text-sm">Up to ₱{settings.dailyCap.toLocaleString()} per account</p>
+                <p className="text-xs text-muted-foreground">Create up to 3 accounts to maximize earnings</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800">
+              <Sparkles className="h-5 w-5 text-amber-600 mt-0.5" />
+              <div>
+                <p className="font-semibold text-sm">AI-Powered Features</p>
+                <p className="text-xs text-muted-foreground">Generate images, videos, and audio with AI</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Button 
+              onClick={() => setShowEnrollmentDialog(false)} 
+              className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+            >
+              <Zap className="h-4 w-4" />
+              Choose a Package Now
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={() => setShowEnrollmentDialog(false)}
+              className="text-muted-foreground"
+            >
+              Maybe later
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <ScrollArea className="h-[calc(100vh-200px)]">
       <div className="space-y-6 p-1">
         {/* Header */}
         <div className="text-center space-y-3">
@@ -945,5 +1021,6 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
         </Card>
       </div>
     </ScrollArea>
+    </>
   );
 }
