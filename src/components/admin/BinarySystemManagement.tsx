@@ -974,7 +974,7 @@ export default function BinarySystemManagement() {
                         the affiliate pool is <strong>₱{profitCalc.affiliatePool.toFixed(2)}</strong>.
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        This pool can fund <strong>{profitCalc.maxCyclesFromPool} cycles</strong> at ₱{settings.cycleCommission}/cycle. 
+                        This pool can fund <strong>{profitCalc.maxCyclesFromPool} cycles</strong> at ₱{profitCalc.cycleCommission.toLocaleString()}/cycle. 
                         Expected payout: ₱{profitCalc.totalPayoutForCycles.toLocaleString()} | Surplus: <strong className="text-green-600">+₱{profitCalc.poolSurplusDeficit.toFixed(2)}</strong>
                       </p>
                     </div>
