@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,11 +16,8 @@ import {
   RefreshCw,
   Users,
   Search,
-  ChevronUp,
   X,
-  ZoomIn,
-  ZoomOut,
-  Maximize2
+  Wallet
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -57,9 +54,7 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<BinaryNode[]>([]);
   const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const treeContainerRef = useRef<HTMLDivElement>(null);
+  const [selectedNode, setSelectedNode] = useState<BinaryNode | null>(null);
 
   const fetchBinaryTree = useCallback(async () => {
     try {
@@ -90,7 +85,6 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
     fetchBinaryTree();
   }, [fetchBinaryTree]);
 
-  // Search functionality
   useEffect(() => {
     if (!searchQuery.trim() || !treeData) {
       setSearchResults([]);
@@ -124,7 +118,7 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
   };
 
   const buildTree = async (nodeUserId: string, level: number): Promise<BinaryNode | null> => {
-    if (level > 10) return null; // Increased depth limit
+    if (level > 10) return null;
 
     const { data: networkData, error: networkError } = await supabase
       .from("binary_network")
@@ -163,29 +157,25 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
     };
 
     if (networkData.left_child_id) {
-      const { data: leftChild, error: leftChildError } = await supabase
+      const { data: leftChild } = await supabase
         .from("binary_network")
         .select("user_id")
         .eq("id", networkData.left_child_id)
         .maybeSingle();
 
-      if (leftChildError) {
-        console.warn("BinaryTreeView: unable to load left child", networkData.left_child_id, leftChildError);
-      } else if (leftChild) {
+      if (leftChild) {
         node.left_child = await buildTree(leftChild.user_id, level + 1);
       }
     }
 
     if (networkData.right_child_id) {
-      const { data: rightChild, error: rightChildError } = await supabase
+      const { data: rightChild } = await supabase
         .from("binary_network")
         .select("user_id")
         .eq("id", networkData.right_child_id)
         .maybeSingle();
 
-      if (rightChildError) {
-        console.warn("BinaryTreeView: unable to load right child", networkData.right_child_id, rightChildError);
-      } else if (rightChild) {
+      if (rightChild) {
         node.right_child = await buildTree(rightChild.user_id, level + 1);
       }
     }
@@ -244,126 +234,121 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
     return email.substring(0, 2).toUpperCase();
   };
 
-  const scrollToTop = () => {
-    if (scrollAreaRef.current) {
-      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (viewport) {
-        viewport.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
-  };
-
-  const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (viewport) {
-        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
-      }
-    }
-  };
-
-  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 1.5));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
-  const handleZoomReset = () => setZoom(1);
-
-  const renderNode = (node: BinaryNode, isRoot: boolean = false) => {
+  const renderNodeCard = (node: BinaryNode, isRoot: boolean = false, depth: number = 0) => {
     const hasChildren = node.left_child || node.right_child;
     const isExpanded = expandedNodes.has(node.id);
     const isHighlighted = highlightedNodeId === node.id;
+    const isSelected = selectedNode?.id === node.id;
+
+    const bgGradient = isRoot 
+      ? "from-primary/20 to-primary/5" 
+      : "from-slate-400/10 to-slate-500/5";
+    const borderColor = isRoot 
+      ? "border-primary/50" 
+      : "border-slate-400/30";
 
     return (
-      <div key={node.id} className="flex flex-col items-center">
-        <div 
-          className={`relative p-2 sm:p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-            isRoot ? "bg-primary/10 border-primary" : "bg-card"
-          } ${isHighlighted ? "ring-2 ring-yellow-500 animate-pulse" : ""} w-[140px] sm:w-[180px] md:w-[200px]`}
-          onClick={() => hasChildren && toggleNode(node.id)}
+      <div key={node.id} className="w-full">
+        <div
+          className={`
+            relative p-3 sm:p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer
+            bg-gradient-to-br ${bgGradient} ${borderColor}
+            ${isHighlighted ? 'ring-2 ring-yellow-500 ring-offset-2 animate-pulse' : ''}
+            ${isSelected ? 'ring-2 ring-primary ring-offset-2 shadow-lg' : ''}
+            hover:shadow-md hover:scale-[1.01]
+          `}
+          style={{ marginLeft: `${Math.min(depth * 16, 48)}px` }}
+          onClick={() => setSelectedNode(node)}
         >
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Avatar className="h-8 w-8 sm:h-10 sm:w-10 shrink-0">
-              {node.avatar_url && <AvatarImage src={node.avatar_url} />}
-              <AvatarFallback className="bg-primary/20 text-primary text-xs sm:text-sm">
-                {getInitials(node.full_name, node.email)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-xs sm:text-sm truncate">
-                {node.full_name || node.email.split("@")[0]}
-              </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:block">{node.email}</p>
-            </div>
+          <div className="flex items-center gap-3">
             {hasChildren && (
-              <Button variant="ghost" size="sm" className="h-5 w-5 sm:h-6 sm:w-6 p-0 shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleNode(node.id);
+                }}
+              >
                 {isExpanded ? (
-                  <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <ChevronDown className="h-4 w-4" />
                 ) : (
-                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <ChevronRight className="h-4 w-4" />
                 )}
               </Button>
             )}
-          </div>
-          
-          <div className="mt-1.5 sm:mt-2 flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs flex-wrap">
-            <Badge variant="outline" className="text-[10px] sm:text-xs py-0 px-1 sm:px-2">
-              <ArrowDownLeft className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-blue-500" />
-              ₱{node.left_volume.toLocaleString()}
-            </Badge>
-            <Badge variant="outline" className="text-[10px] sm:text-xs py-0 px-1 sm:px-2">
-              <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-green-500" />
-              ₱{node.right_volume.toLocaleString()}
-            </Badge>
-          </div>
-          
-          <div className="mt-1 text-[10px] sm:text-xs text-muted-foreground hidden sm:block">
-            Joined: {formatDate(node.joined_at)}
+            {!hasChildren && <div className="w-8" />}
+
+            <Avatar className={`h-10 w-10 sm:h-12 sm:w-12 shrink-0 ${isRoot ? 'bg-gradient-to-br from-primary to-primary/60' : 'bg-gradient-to-br from-slate-500 to-slate-600'}`}>
+              {node.avatar_url && <AvatarImage src={node.avatar_url} />}
+              <AvatarFallback className="text-white font-bold text-sm">
+                {getInitials(node.full_name, node.email)}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold text-sm sm:text-base truncate">
+                  {node.full_name || node.email.split("@")[0]}
+                </p>
+                {isRoot && (
+                  <Badge variant="default" className="text-[10px]">You</Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <Badge variant="outline" className="text-[10px] sm:text-xs bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400">
+                  <ArrowDownLeft className="w-3 h-3 mr-1" />
+                  ₱{node.left_volume.toLocaleString()}
+                </Badge>
+                <Badge variant="outline" className="text-[10px] sm:text-xs bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400">
+                  <ArrowDownRight className="w-3 h-3 mr-1" />
+                  ₱{node.right_volume.toLocaleString()}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="hidden sm:flex flex-col items-end gap-1 shrink-0">
+              <Badge variant="secondary" className="text-xs">
+                <Wallet className="w-3 h-3 mr-1" />
+                {node.total_cycles} cycles
+              </Badge>
+            </div>
           </div>
         </div>
 
         {hasChildren && isExpanded && (
-          <div className="mt-2 sm:mt-4">
-            <div className="flex justify-center mb-1 sm:mb-2">
-              <div className="w-px h-2 sm:h-4 bg-border" />
-            </div>
-            <div className="flex gap-2 sm:gap-4 md:gap-8 relative">
-              {node.left_child && node.right_child && (
-                <div className="absolute top-0 left-1/4 right-1/4 h-px bg-border" style={{ transform: "translateY(-4px)" }} />
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 ml-4 sm:ml-6">
+            {/* Left Child */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-blue-500 font-medium pl-2">
+                <ArrowDownLeft className="w-4 h-4" />
+                <span>Left Leg</span>
+              </div>
+              {node.left_child ? (
+                renderNodeCard(node.left_child, false, 0)
+              ) : (
+                <div className="p-4 border-2 border-dashed border-blue-300/30 rounded-xl text-center bg-blue-500/5">
+                  <User className="w-8 h-8 mx-auto mb-2 text-blue-400/50" />
+                  <p className="text-xs text-muted-foreground">Empty Position</p>
+                </div>
               )}
-              
-              <div className="flex flex-col items-center">
-                {node.left_child && (
-                  <>
-                    <div className="flex items-center gap-0.5 sm:gap-1 mb-1 sm:mb-2 text-[10px] sm:text-xs text-blue-500">
-                      <ArrowDownLeft className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                      <span>Left</span>
-                    </div>
-                    {renderNode(node.left_child)}
-                  </>
-                )}
-                {!node.left_child && (
-                  <div className="p-2 sm:p-4 border border-dashed rounded-lg text-center text-muted-foreground w-[100px] sm:w-[120px] md:w-[150px]">
-                    <User className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-0.5 sm:mb-1 opacity-50" />
-                    <p className="text-[10px] sm:text-xs">Empty</p>
-                  </div>
-                )}
+            </div>
+
+            {/* Right Child */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-green-500 font-medium pl-2">
+                <ArrowDownRight className="w-4 h-4" />
+                <span>Right Leg</span>
               </div>
-              
-              <div className="flex flex-col items-center">
-                {node.right_child && (
-                  <>
-                    <div className="flex items-center gap-0.5 sm:gap-1 mb-1 sm:mb-2 text-[10px] sm:text-xs text-green-500">
-                      <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                      <span>Right</span>
-                    </div>
-                    {renderNode(node.right_child)}
-                  </>
-                )}
-                {!node.right_child && (
-                  <div className="p-2 sm:p-4 border border-dashed rounded-lg text-center text-muted-foreground w-[100px] sm:w-[120px] md:w-[150px]">
-                    <User className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-0.5 sm:mb-1 opacity-50" />
-                    <p className="text-[10px] sm:text-xs">Empty</p>
-                  </div>
-                )}
-              </div>
+              {node.right_child ? (
+                renderNodeCard(node.right_child, false, 0)
+              ) : (
+                <div className="p-4 border-2 border-dashed border-green-300/30 rounded-xl text-center bg-green-500/5">
+                  <User className="w-8 h-8 mx-auto mb-2 text-green-400/50" />
+                  <p className="text-xs text-muted-foreground">Empty Position</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -373,187 +358,260 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
 
   if (loading) {
     return (
-      <Card className="p-3 sm:p-4 md:p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6">
-          <Skeleton className="h-6 sm:h-8 w-40 sm:w-48" />
-          <Skeleton className="h-8 sm:h-10 w-20 sm:w-24" />
-        </div>
-        <div className="flex justify-center">
-          <Skeleton className="h-24 sm:h-32 w-full max-w-[16rem]" />
-        </div>
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 pb-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <div className="grid grid-cols-2 gap-3">
+              <Skeleton className="h-20 w-full rounded-xl" />
+              <Skeleton className="h-20 w-full rounded-xl" />
+            </div>
+          </div>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="p-3 sm:p-4 md:p-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <GitBranch className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
-          <div>
-            <h3 className="text-base sm:text-lg md:text-xl font-bold">Binary Network Tree</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground">Your binary placement structure</p>
-          </div>
-        </div>
-        <Button variant="outline" size="sm" onClick={fetchBinaryTree} className="w-full sm:w-auto">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative mb-3 sm:mb-4">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search members..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 pr-10 text-sm"
-        />
-        {searchQuery && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
-            onClick={() => setSearchQuery("")}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-
-      {/* Search Results */}
-      {searchResults.length > 0 && (
-        <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-accent/30 rounded-lg max-h-40 sm:max-h-48 overflow-y-auto">
-          <p className="text-xs sm:text-sm font-medium mb-2">Found {searchResults.length} member(s):</p>
-          <div className="space-y-1.5 sm:space-y-2">
-            {searchResults.map((result) => (
-              <div
-                key={result.id}
-                className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 bg-background rounded-lg cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => {
-                  expandPathToNode(result);
-                  setSearchQuery("");
-                }}
-              >
-                <Avatar className="h-6 w-6 sm:h-8 sm:w-8 shrink-0">
-                  {result.avatar_url && <AvatarImage src={result.avatar_url} />}
-                  <AvatarFallback className="bg-primary/20 text-primary text-[10px] sm:text-xs">
-                    {getInitials(result.full_name, result.email)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium truncate">
-                    {result.full_name || result.email.split("@")[0]}
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate hidden sm:block">{result.email}</p>
-                </div>
-                <Badge variant="outline" className="text-[10px] sm:text-xs shrink-0">
-                  {result.placement_leg === "left" ? "L" : result.placement_leg === "right" ? "R" : "Root"}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
+    <div className="space-y-4">
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
-        <div className="p-2 sm:p-3 bg-blue-500/10 rounded-lg text-center">
-          <div className="flex items-center justify-center gap-1 text-blue-500 mb-0.5 sm:mb-1">
-            <ArrowDownLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="text-xs sm:text-sm font-medium">Left</span>
-          </div>
-          <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-500">{stats.totalLeft}</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">members</p>
-        </div>
-        <div className="p-2 sm:p-3 bg-green-500/10 rounded-lg text-center">
-          <div className="flex items-center justify-center gap-1 text-green-500 mb-0.5 sm:mb-1">
-            <ArrowDownRight className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="text-xs sm:text-sm font-medium">Right</span>
-          </div>
-          <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-500">{stats.totalRight}</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">members</p>
-        </div>
-        <div className="p-2 sm:p-3 bg-purple-500/10 rounded-lg text-center">
-          <div className="flex items-center justify-center gap-1 text-purple-500 mb-0.5 sm:mb-1">
-            <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="text-xs sm:text-sm font-medium">Total</span>
-          </div>
-          <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-500">{stats.totalLeft + stats.totalRight}</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">members</p>
-        </div>
-        <div className="p-2 sm:p-3 bg-amber-500/10 rounded-lg text-center">
-          <div className="flex items-center justify-center gap-1 text-amber-500 mb-0.5 sm:mb-1">
-            <GitBranch className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="text-xs sm:text-sm font-medium">Cycles</span>
-          </div>
-          <p className="text-lg sm:text-xl md:text-2xl font-bold text-amber-500">{treeData?.total_cycles || 0}</p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">completed</p>
-        </div>
-      </div>
-
-      {/* Zoom and Scroll Controls */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">
-        <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2">
-          <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 0.5} className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0">
-            <ZoomOut className="w-4 h-4" />
-          </Button>
-          <span className="text-xs sm:text-sm text-muted-foreground min-w-[45px] sm:min-w-[60px] text-center">
-            {Math.round(zoom * 100)}%
-          </span>
-          <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 1.5} className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0">
-            <ZoomIn className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleZoomReset} className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0">
-            <Maximize2 className="w-4 h-4" />
-          </Button>
-        </div>
-        <div className="flex items-center justify-center sm:justify-end gap-1 sm:gap-2">
-          <Button variant="outline" size="sm" onClick={scrollToTop} className="h-8 px-2 sm:px-3 text-xs sm:text-sm">
-            <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" />
-            Top
-          </Button>
-          <Button variant="outline" size="sm" onClick={scrollToBottom} className="h-8 px-2 sm:px-3 text-xs sm:text-sm">
-            <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" />
-            Bottom
-          </Button>
-        </div>
-      </div>
-
-      {/* Tree View with ScrollArea */}
-      <ScrollArea ref={scrollAreaRef} className="h-[300px] sm:h-[400px] md:h-[500px] border rounded-lg">
-        <div 
-          ref={treeContainerRef}
-          className="overflow-x-auto p-2 sm:p-4"
-          style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
-        >
-          <div className="flex justify-center min-w-max py-2 sm:py-4">
-            {treeData ? (
-              renderNode(treeData, true)
-            ) : (
-              <div className="text-center py-8 sm:py-12 text-muted-foreground px-4">
-                <GitBranch className="w-10 h-10 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 opacity-50" />
-                <p className="text-base sm:text-lg font-medium">No Binary Position</p>
-                <p className="text-xs sm:text-sm">You haven't been placed in the binary network yet.</p>
-                <p className="text-xs sm:text-sm mt-2">Purchase an AI package to get started!</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="overflow-hidden border-0 shadow-md">
+          <CardContent className="p-3 sm:p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500">
+                <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Left Leg</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-500">{stats.totalLeft}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-0 shadow-md">
+          <CardContent className="p-3 sm:p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500">
+                <ArrowDownRight className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Right Leg</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-500">{stats.totalRight}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-0 shadow-md">
+          <CardContent className="p-3 sm:p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total Team</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-500">{stats.totalLeft + stats.totalRight}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-0 shadow-md">
+          <CardContent className="p-3 sm:p-4 bg-gradient-to-br from-amber-500/10 to-orange-500/5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500">
+                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">My Cycles</p>
+                <p className="text-xl sm:text-2xl font-bold text-amber-500">{treeData?.total_cycles || 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Header Card */}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-white/20 backdrop-blur">
+                <GitBranch className="w-6 h-6" />
+              </div>
+              <div>
+                <CardTitle className="text-lg sm:text-xl">Binary Network Tree</CardTitle>
+                <p className="text-white/80 text-sm">Your binary placement structure</p>
+              </div>
+            </div>
+
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={fetchBinaryTree}
+              className="bg-white/20 hover:bg-white/30 text-white border-0"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+
+        {/* Search */}
+        <CardContent className="p-4 bg-gradient-to-b from-indigo-500/5 to-transparent">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search members..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-10"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
             )}
           </div>
-        </div>
-      </ScrollArea>
 
-      {/* Legend */}
-      <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-accent/30 rounded-lg">
-        <h4 className="font-medium mb-1.5 sm:mb-2 text-xs sm:text-sm">How it works:</h4>
-        <ul className="text-[10px] sm:text-xs text-muted-foreground space-y-0.5 sm:space-y-1">
-          <li>• Click on any node with children to expand/collapse</li>
-          <li>• Use search to find members quickly</li>
-          <li>• <span className="text-blue-500">Blue (Left)</span> - First placement</li>
-          <li>• <span className="text-green-500">Green (Right)</span> - Second placement</li>
-          <li>• 3rd+ referrals: Choose which leg (spillover)</li>
-        </ul>
+          {/* Search Results */}
+          {searchResults.length > 0 && (
+            <div className="mt-3 p-3 bg-accent/30 rounded-lg max-h-40 overflow-y-auto">
+              <p className="text-xs font-medium mb-2">Found {searchResults.length} member(s):</p>
+              <div className="space-y-2">
+                {searchResults.map((result) => (
+                  <div
+                    key={result.id}
+                    className="flex items-center gap-3 p-2 bg-background rounded-lg cursor-pointer hover:bg-accent transition-colors"
+                    onClick={() => {
+                      expandPathToNode(result);
+                      setSearchQuery("");
+                    }}
+                  >
+                    <Avatar className="h-8 w-8 shrink-0 bg-gradient-to-br from-primary to-primary/60">
+                      {result.avatar_url && <AvatarImage src={result.avatar_url} />}
+                      <AvatarFallback className="text-white text-xs">
+                        {getInitials(result.full_name, result.email)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {result.full_name || result.email.split("@")[0]}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs shrink-0">
+                      {result.placement_leg === "left" ? "L" : result.placement_leg === "right" ? "R" : "Root"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Tree View */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 overflow-hidden">
+          <ScrollArea className="h-[400px] sm:h-[500px] lg:h-[600px]">
+            <div className="p-4">
+              {treeData ? (
+                renderNodeCard(treeData, true)
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <GitBranch className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No binary network data</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </Card>
+
+        {/* Selected Node Details */}
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-indigo-500/10 to-purple-500/5 pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Member Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            {selectedNode ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16 bg-gradient-to-br from-primary to-primary/60">
+                    {selectedNode.avatar_url && <AvatarImage src={selectedNode.avatar_url} />}
+                    <AvatarFallback className="text-white font-bold text-xl">
+                      {getInitials(selectedNode.full_name, selectedNode.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-bold text-lg">
+                      {selectedNode.full_name || selectedNode.email.split("@")[0]}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{selectedNode.email}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-500/10 to-blue-500/5 rounded-lg">
+                    <span className="text-sm text-muted-foreground flex items-center gap-2">
+                      <ArrowDownLeft className="w-4 h-4 text-blue-500" />
+                      Left Volume
+                    </span>
+                    <span className="font-bold text-blue-500">₱{selectedNode.left_volume.toLocaleString()}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-500/10 to-green-500/5 rounded-lg">
+                    <span className="text-sm text-muted-foreground flex items-center gap-2">
+                      <ArrowDownRight className="w-4 h-4 text-green-500" />
+                      Right Volume
+                    </span>
+                    <span className="font-bold text-green-500">₱{selectedNode.right_volume.toLocaleString()}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Total Cycles</span>
+                    <span className="font-bold text-lg">{selectedNode.total_cycles}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Placement</span>
+                    <Badge variant="outline">
+                      {selectedNode.placement_leg === "left" ? "Left Leg" : 
+                       selectedNode.placement_leg === "right" ? "Right Leg" : "Root"}
+                    </Badge>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Joined</span>
+                    <span className="font-semibold text-sm">{formatDate(selectedNode.joined_at)}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <User className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Select a member to view details</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-    </Card>
+    </div>
   );
 }

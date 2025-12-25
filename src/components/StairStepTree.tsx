@@ -1,23 +1,26 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { 
-  Users, 
   ZoomIn, 
   ZoomOut, 
   Maximize2, 
   User, 
-  Award,
   Search,
   X,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  ChevronDown,
+  ChevronRight,
+  Star
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface StairStepNode {
   id: string;
@@ -46,23 +49,12 @@ export const StairStepTree = ({ userId }: StairStepTreeProps) => {
   const [treeData, setTreeData] = useState<StairStepNode | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<StairStepNode | null>(null);
-  const [zoom, setZoom] = useState(0.6);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [stairStepConfig, setStairStepConfig] = useState<StairStepConfig[]>([]);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'list' | 'tree'>('list');
 
   useEffect(() => {
     if (userId) {
@@ -98,6 +90,9 @@ export const StairStepTree = ({ userId }: StairStepTreeProps) => {
       setLoading(true);
       const tree = await buildTree(userId, 1);
       setTreeData(tree);
+      if (tree) {
+        setExpandedNodes(new Set([tree.id]));
+      }
     } catch (error: any) {
       console.error("Error fetching stair-step tree:", error);
       toast.error("Failed to load stair-step tree");
@@ -120,7 +115,6 @@ export const StairStepTree = ({ userId }: StairStepTreeProps) => {
 
     if (nodeError) throw nodeError;
 
-    // Get stair-step rank
     const { data: rankData } = await supabase
       .from("affiliate_current_rank")
       .select("current_step")
@@ -143,7 +137,6 @@ export const StairStepTree = ({ userId }: StairStepTreeProps) => {
       children: [],
     };
 
-    // Only fetch children if we haven't reached max depth (7 levels)
     if (level < 7) {
       const { data: children, error: childError } = await supabase
         .from("profiles")
@@ -161,26 +154,6 @@ export const StairStepTree = ({ userId }: StairStepTreeProps) => {
 
     return node;
   };
-
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 3));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.2, 0.5));
-  const handleReset = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging) {
-      setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-    }
-  };
-
-  const handleMouseUp = () => setIsDragging(false);
 
   const searchNodes = (node: StairStepNode, query: string): Set<string> => {
     const matches = new Set<string>();
@@ -215,156 +188,175 @@ export const StairStepTree = ({ userId }: StairStepTreeProps) => {
     }
   }, [searchQuery, treeData]);
 
-  const getStepColor = (step: number): string => {
+  const getStepGradient = (step: number): { bg: string; border: string; text: string } => {
+    const gradients = [
+      { bg: "from-slate-400/20 to-slate-500/10", border: "border-slate-400/50", text: "text-slate-600 dark:text-slate-300" },
+      { bg: "from-amber-400/20 to-orange-500/10", border: "border-amber-400/50", text: "text-amber-600 dark:text-amber-300" },
+      { bg: "from-gray-300/20 to-gray-400/10", border: "border-gray-400/50", text: "text-gray-600 dark:text-gray-300" },
+      { bg: "from-yellow-400/20 to-amber-500/10", border: "border-yellow-500/50", text: "text-yellow-600 dark:text-yellow-300" },
+      { bg: "from-red-400/20 to-rose-500/10", border: "border-red-500/50", text: "text-red-600 dark:text-red-300" },
+      { bg: "from-blue-400/20 to-indigo-500/10", border: "border-blue-500/50", text: "text-blue-600 dark:text-blue-300" },
+      { bg: "from-emerald-400/20 to-green-500/10", border: "border-emerald-500/50", text: "text-emerald-600 dark:text-emerald-300" },
+      { bg: "from-purple-400/20 to-violet-500/10", border: "border-purple-500/50", text: "text-purple-600 dark:text-purple-300" },
+    ];
+    return gradients[Math.min(step, gradients.length - 1)];
+  };
+
+  const getStepBadgeColor = (step: number): string => {
     const colors = [
-      "#94a3b8", // Step 0 - Gray
-      "#f59e0b", // Step 1 - Bronze
-      "#6b7280", // Step 2 - Silver  
-      "#eab308", // Step 3 - Gold
-      "#ef4444", // Step 4 - Ruby
-      "#3b82f6", // Step 5 - Sapphire
-      "#22c55e", // Step 6 - Emerald
-      "#8b5cf6", // Step 7 - Diamond
+      "bg-slate-500",
+      "bg-gradient-to-r from-amber-500 to-orange-500",
+      "bg-gradient-to-r from-gray-400 to-gray-500",
+      "bg-gradient-to-r from-yellow-500 to-amber-500",
+      "bg-gradient-to-r from-red-500 to-rose-500",
+      "bg-gradient-to-r from-blue-500 to-indigo-500",
+      "bg-gradient-to-r from-emerald-500 to-green-500",
+      "bg-gradient-to-r from-purple-500 to-violet-500",
     ];
     return colors[Math.min(step, colors.length - 1)];
   };
 
-  const renderTree = (node: StairStepNode, x: number, y: number, level: number): JSX.Element[] => {
-    const elements: JSX.Element[] = [];
-    const nodeWidth = isMobile ? 140 : 180;
-    const nodeHeight = isMobile ? 90 : 110;
-    const verticalSpacing = isMobile ? 110 : 150;
-    const horizontalSpacing = isMobile ? 160 : 200;
-
-    const childCount = node.children.length;
-    const totalWidth = childCount * horizontalSpacing;
-    const startX = x - totalWidth / 2 + horizontalSpacing / 2;
-
-    node.children.forEach((child, index) => {
-      const childX = startX + index * horizontalSpacing;
-      const childY = y + verticalSpacing;
-
-      elements.push(
-        <line
-          key={`line-${node.id}-${child.id}`}
-          x1={x}
-          y1={y + nodeHeight / 2}
-          x2={childX}
-          y2={childY - nodeHeight / 2}
-          stroke="hsl(var(--border))"
-          strokeWidth="2"
-        />
-      );
-
-      elements.push(...renderTree(child, childX, childY, level + 1));
+  const toggleNode = (nodeId: string) => {
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+      } else {
+        newSet.add(nodeId);
+      }
+      return newSet;
     });
-
-    const isSelected = selectedNode?.id === node.id;
-    const isHighlighted = highlightedNodes.has(node.id);
-    const stepColor = getStepColor(node.current_step);
-
-    elements.push(
-      <g
-        key={`node-${node.id}`}
-        transform={`translate(${x - nodeWidth / 2}, ${y - nodeHeight / 2})`}
-        className="cursor-pointer transition-all duration-300 hover:scale-105"
-        onClick={() => setSelectedNode(node)}
-      >
-        <rect
-          width={nodeWidth}
-          height={nodeHeight}
-          rx="8"
-          fill={isSelected ? stepColor : isHighlighted ? "#fbbf24" : "hsl(var(--card))"}
-          stroke={isHighlighted ? "#f59e0b" : stepColor}
-          strokeWidth={isSelected || isHighlighted ? "3" : "2"}
-        />
-        
-        {/* Step Badge */}
-        <rect
-          x={5}
-          y={5}
-          width={nodeWidth - 10}
-          height={22}
-          rx="4"
-          fill={stepColor}
-        />
-        <text
-          x={nodeWidth / 2}
-          y={19}
-          textAnchor="middle"
-          fontSize="11"
-          fill="white"
-          fontWeight="600"
-        >
-          {node.step_name || `Step ${node.current_step}`} ({node.commission_rate}%)
-        </text>
-
-        {/* User Icon */}
-        <circle
-          cx={nodeWidth / 2}
-          cy={45}
-          r="12"
-          fill={stepColor}
-          opacity="0.2"
-        />
-        <text
-          x={nodeWidth / 2}
-          y={50}
-          textAnchor="middle"
-          fontSize="14"
-          fill={isSelected ? "white" : "hsl(var(--foreground))"}
-        >
-          👤
-        </text>
-
-        {/* Name */}
-        <text
-          x={nodeWidth / 2}
-          y={70}
-          textAnchor="middle"
-          fontSize={isMobile ? "10" : "12"}
-          fill={isSelected ? "white" : "hsl(var(--foreground))"}
-          fontWeight="500"
-        >
-          {node.full_name || node.email?.split("@")[0] || "Anonymous"}
-        </text>
-
-        {/* Level */}
-        <text
-          x={nodeWidth / 2}
-          y={isMobile ? 85 : 90}
-          textAnchor="middle"
-          fontSize={isMobile ? "9" : "10"}
-          fill={isSelected ? "white" : "hsl(var(--muted-foreground))"}
-        >
-          Level {level} • {node.children.length} downlines
-        </text>
-      </g>
-    );
-
-    return elements;
   };
 
   const countTotalMembers = (node: StairStepNode): number => {
     return 1 + node.children.reduce((sum, child) => sum + countTotalMembers(child), 0);
   };
 
+  const getInitials = (name: string | null, email: string | null) => {
+    if (name) return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+    if (email) return email.substring(0, 2).toUpperCase();
+    return "??";
+  };
+
+  const renderNodeCard = (node: StairStepNode, depth: number = 0) => {
+    const hasChildren = node.children.length > 0;
+    const isExpanded = expandedNodes.has(node.id);
+    const isHighlighted = highlightedNodes.has(node.id);
+    const isSelected = selectedNode?.id === node.id;
+    const gradient = getStepGradient(node.current_step);
+
+    return (
+      <div key={node.id} className="w-full">
+        <div
+          className={`
+            relative p-3 sm:p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer
+            bg-gradient-to-br ${gradient.bg} ${gradient.border}
+            ${isHighlighted ? 'ring-2 ring-yellow-500 ring-offset-2' : ''}
+            ${isSelected ? 'ring-2 ring-primary ring-offset-2 shadow-lg' : ''}
+            hover:shadow-md hover:scale-[1.01]
+          `}
+          style={{ marginLeft: `${Math.min(depth * 16, 64)}px` }}
+          onClick={() => setSelectedNode(node)}
+        >
+          <div className="flex items-center gap-3">
+            {hasChildren && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleNode(node.id);
+                }}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+            {!hasChildren && <div className="w-8" />}
+
+            <Avatar className={`h-10 w-10 sm:h-12 sm:w-12 shrink-0 ${getStepBadgeColor(node.current_step)}`}>
+              <AvatarFallback className="text-white font-bold text-sm">
+                {getInitials(node.full_name, node.email)}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold text-sm sm:text-base truncate">
+                  {node.full_name || node.email?.split("@")[0] || "Anonymous"}
+                </p>
+                <Badge className={`${getStepBadgeColor(node.current_step)} text-white text-[10px] sm:text-xs px-2 py-0.5`}>
+                  <Star className="w-3 h-3 mr-1" />
+                  {node.step_name}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm text-muted-foreground">
+                <span>Level {node.level}</span>
+                <span>•</span>
+                <span>{node.commission_rate}% commission</span>
+                {hasChildren && (
+                  <>
+                    <span>•</span>
+                    <span>{node.children.length} referrals</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="hidden sm:flex flex-col items-end gap-1 shrink-0">
+              <Badge variant="outline" className={`${gradient.text} text-xs`}>
+                Step {node.current_step}
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        {hasChildren && isExpanded && (
+          <div className="mt-2 space-y-2 border-l-2 border-dashed border-muted ml-4 sm:ml-6 pl-2">
+            {node.children.map((child) => renderNodeCard(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
-      <Card className="p-6">
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-[500px] w-full" />
-        </div>
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-yellow-500/10 pb-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-20 w-full rounded-xl ml-8" />
+            <Skeleton className="h-20 w-full rounded-xl ml-8" />
+          </div>
+        </CardContent>
       </Card>
     );
   }
 
   if (!treeData) {
     return (
-      <Card className="p-6 text-center">
-        <TrendingUp className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-        <p className="text-muted-foreground">No stair-step data available</p>
+      <Card className="overflow-hidden">
+        <CardContent className="p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-orange-500/20 to-amber-500/20 flex items-center justify-center">
+            <TrendingUp className="w-8 h-8 text-orange-500" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No Stair-Step Data</h3>
+          <p className="text-muted-foreground">Build your network to see your stair-step tree</p>
+        </CardContent>
       </Card>
     );
   }
@@ -373,32 +365,45 @@ export const StairStepTree = ({ userId }: StairStepTreeProps) => {
 
   return (
     <div className="space-y-4">
-      {/* Header Controls */}
-      <Card className="p-3 md:p-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="w-5 h-5 text-primary flex-shrink-0" />
-            <div>
-              <h3 className="text-base md:text-lg font-semibold">Stair-Step Network Tree</h3>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                {totalMembers} members • View commission levels
-              </p>
+      {/* Header Card */}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-white/20 backdrop-blur">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div>
+                <CardTitle className="text-lg sm:text-xl">Stair-Step Network</CardTitle>
+                <p className="text-white/80 text-sm">{totalMembers} members in network</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={handleRefresh} 
+                disabled={isRefreshing}
+                className="bg-white/20 hover:bg-white/30 text-white border-0"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </div>
           </div>
+        </CardHeader>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-
-            <div className="relative w-full md:w-48">
+        {/* Search & Legend */}
+        <CardContent className="p-4 bg-gradient-to-b from-orange-500/5 to-transparent">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search by name, email, or step..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-9 h-9 text-sm"
+                className="pl-10 pr-10"
               />
               {searchQuery && (
                 <button
@@ -409,119 +414,99 @@ export const StairStepTree = ({ userId }: StairStepTreeProps) => {
                 </button>
               )}
             </div>
-
-            <div className="flex items-center gap-1 border rounded-lg p-1">
-              <Button variant="ghost" size="sm" onClick={handleZoomOut} className="h-8 w-8 p-0">
-                <ZoomOut className="w-4 h-4" />
-              </Button>
-              <span className="text-xs font-medium min-w-[50px] text-center">{Math.round(zoom * 100)}%</span>
-              <Button variant="ghost" size="sm" onClick={handleZoomIn} className="h-8 w-8 p-0">
-                <ZoomIn className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 w-8 p-0">
-                <Maximize2 className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
-        </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {stairStepConfig.map((step) => (
+              <Badge
+                key={step.step_number}
+                className={`${getStepBadgeColor(step.step_number)} text-white text-xs`}
+              >
+                <Star className="w-3 h-3 mr-1" />
+                {step.step_name} ({step.commission_percentage}%)
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
       </Card>
 
-      {/* Legend */}
-      <Card className="p-3">
-        <div className="flex flex-wrap gap-2">
-          {stairStepConfig.map((step) => (
-            <Badge
-              key={step.step_number}
-              style={{ backgroundColor: getStepColor(step.step_number), color: 'white' }}
-            >
-              {step.step_name} ({step.commission_percentage}%)
-            </Badge>
-          ))}
-        </div>
-      </Card>
-
-      {/* Tree Visualization */}
+      {/* Tree View */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 p-2 md:p-4 overflow-hidden">
-          <div
-            className="relative w-full h-[400px] md:h-[500px] overflow-hidden bg-gradient-to-br from-background to-muted/20 rounded-lg border"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            style={{ cursor: isDragging ? "grabbing" : "grab" }}
-          >
-            <svg
-              ref={svgRef}
-              className="w-full h-full"
-              style={{
-                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                transformOrigin: "center",
-                transition: isDragging ? "none" : "transform 0.3s ease-out",
-              }}
-            >
-              <g transform="translate(600, 80)">
-                {renderTree(treeData, 0, 0, 1)}
-              </g>
-            </svg>
-          </div>
+        <Card className="lg:col-span-2 overflow-hidden">
+          <ScrollArea className="h-[400px] sm:h-[500px] lg:h-[600px]">
+            <div className="p-4 space-y-3">
+              {renderNodeCard(treeData)}
+            </div>
+          </ScrollArea>
         </Card>
 
         {/* Selected Node Details */}
-        <Card className="p-4">
-          <h4 className="font-semibold mb-4 flex items-center gap-2">
-            <User className="w-4 h-4" />
-            Member Details
-          </h4>
-          
-          {selectedNode ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl"
-                  style={{ backgroundColor: getStepColor(selectedNode.current_step) }}
-                >
-                  👤
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Member Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            {selectedNode ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className={`h-16 w-16 ${getStepBadgeColor(selectedNode.current_step)}`}>
+                    <AvatarFallback className="text-white font-bold text-xl">
+                      {getInitials(selectedNode.full_name, selectedNode.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-bold text-lg">
+                      {selectedNode.full_name || selectedNode.email?.split("@")[0]}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{selectedNode.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold">
-                    {selectedNode.full_name || selectedNode.email?.split("@")[0]}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{selectedNode.email}</p>
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                  <span className="text-sm text-muted-foreground">Rank</span>
-                  <Badge style={{ backgroundColor: getStepColor(selectedNode.current_step), color: 'white' }}>
-                    {selectedNode.step_name}
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                  <span className="text-sm text-muted-foreground">Commission Rate</span>
-                  <span className="font-semibold">{selectedNode.commission_rate}%</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                  <span className="text-sm text-muted-foreground">Network Level</span>
-                  <span className="font-semibold">Level {selectedNode.level}</span>
-                </div>
-                <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                  <span className="text-sm text-muted-foreground">Direct Downlines</span>
-                  <span className="font-semibold">{selectedNode.children.length}</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Rank</span>
+                    <Badge className={`${getStepBadgeColor(selectedNode.current_step)} text-white`}>
+                      <Star className="w-3 h-3 mr-1" />
+                      {selectedNode.step_name}
+                    </Badge>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Commission Rate</span>
+                    <span className="font-bold text-lg">{selectedNode.commission_rate}%</span>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Level</span>
+                    <span className="font-semibold">Level {selectedNode.level}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Direct Referrals</span>
+                    <span className="font-semibold">{selectedNode.children.length}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Joined</span>
+                    <span className="font-semibold text-sm">
+                      {new Date(selectedNode.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <User className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>Click on a member to view details</p>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <User className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Select a member to view details</p>
+              </div>
+            )}
+          </CardContent>
         </Card>
       </div>
     </div>
   );
 };
-
-export default StairStepTree;
