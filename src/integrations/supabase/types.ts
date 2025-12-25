@@ -714,6 +714,8 @@ export type Database = {
       }
       binary_network: {
         Row: {
+          account_number: number | null
+          account_slot: number | null
           created_at: string | null
           id: string
           joined_at: string | null
@@ -729,6 +731,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_number?: number | null
+          account_slot?: number | null
           created_at?: string | null
           id?: string
           joined_at?: string | null
@@ -744,6 +748,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_number?: number | null
+          account_slot?: number | null
           created_at?: string | null
           id?: string
           joined_at?: string | null
@@ -826,6 +832,41 @@ export type Database = {
             columns: ["purchase_id"]
             isOneToOne: false
             referencedRelation: "binary_ai_purchases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      binary_product_packages: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          min_quantity: number | null
+          product_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_quantity?: number | null
+          product_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_quantity?: number | null
+          product_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "binary_product_packages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]

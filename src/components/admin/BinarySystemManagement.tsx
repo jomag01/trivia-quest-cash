@@ -23,7 +23,11 @@ import {
   Wallet,
   AlertTriangle,
   CheckCircle,
-  Sparkles
+  Sparkles,
+  Package,
+  Plus,
+  Trash2,
+  UserPlus
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -78,11 +82,30 @@ interface CreditTier {
   cycleCommission: number;
 }
 
+interface BinaryProductPackage {
+  id: string;
+  product_id: string;
+  is_active: boolean;
+  min_quantity: number;
+  product_name?: string;
+  product_price?: number;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+}
+
 export default function BinarySystemManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [members, setMembers] = useState<BinaryMember[]>([]);
   const [creditTiers, setCreditTiers] = useState<CreditTier[]>([]);
+  const [binaryProducts, setBinaryProducts] = useState<BinaryProductPackage[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [maxAccountsPerUser, setMaxAccountsPerUser] = useState(3);
   const [stats, setStats] = useState({
     totalMembers: 0,
     totalVolume: 0,
@@ -265,6 +288,46 @@ export default function BinarySystemManagement() {
       if (commissionsData) {
         const totalPaid = commissionsData.reduce((sum, c) => sum + Number(c.amount), 0);
         setStats(prev => ({ ...prev, totalPaid }));
+      }
+
+      // Fetch binary product packages
+      const { data: binaryProductsData } = await supabase
+        .from('binary_product_packages')
+        .select('*');
+      
+      if (binaryProductsData) {
+        // Fetch product details for each package
+        const productIds = binaryProductsData.map(bp => bp.product_id);
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('id, name, final_price')
+          .in('id', productIds);
+        
+        const productMap = new Map((productsData as any[])?.map(p => [p.id, p]) || []);
+        const packagesWithProducts = binaryProductsData.map(bp => ({
+          ...bp,
+          product_name: productMap.get(bp.product_id)?.name || 'Unknown',
+          product_price: productMap.get(bp.product_id)?.final_price || 0
+        }));
+        setBinaryProducts(packagesWithProducts);
+      }
+
+      // Fetch available products for selection
+      const { data: allProducts } = await supabase
+        .from('products')
+        .select('id, name, final_price')
+        .eq('is_active', true)
+        .order('name');
+      setAvailableProducts((allProducts as any[])?.map(p => ({ id: p.id, name: p.name, price: p.final_price })) || []);
+
+      // Fetch max accounts setting
+      const { data: maxAccountsSetting } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'binary_max_accounts_per_user')
+        .maybeSingle();
+      if (maxAccountsSetting?.value) {
+        setMaxAccountsPerUser(parseInt(maxAccountsSetting.value));
       }
 
     } catch (error) {
@@ -1124,6 +1187,113 @@ export default function BinarySystemManagement() {
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(member.joined_at).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Binary Product Packages */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Binary Product Packages
+            </CardTitle>
+            <CardDescription>
+              Products that qualify for binary network entry (₱11,960 cycle volume)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Label>Max Accounts Per User</Label>
+              <Input
+                type="number"
+                min="1"
+                max="10"
+                value={maxAccountsPerUser}
+                onChange={(e) => setMaxAccountsPerUser(parseInt(e.target.value) || 3)}
+                className="w-20"
+              />
+              <Button
+                size="sm"
+                onClick={() => handleSaveSection('MaxAccounts', [
+                  { key: 'binary_max_accounts_per_user', value: maxAccountsPerUser.toString() }
+                ])}
+                disabled={saving === 'MaxAccounts'}
+              >
+                {saving === 'MaxAccounts' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              </Button>
+            </div>
+            
+            <Separator />
+            
+            <div className="flex items-center gap-2">
+              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select a product to add" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableProducts
+                    .filter(p => !binaryProducts.some(bp => bp.product_id === p.id))
+                    .map(product => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name} - ₱{product.price?.toLocaleString()}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={async () => {
+                  if (!selectedProductId) return;
+                  await supabase.from('binary_product_packages').insert({ product_id: selectedProductId });
+                  setSelectedProductId('');
+                  fetchData();
+                  toast.success('Product added to binary packages');
+                }}
+                disabled={!selectedProductId}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add
+              </Button>
+            </div>
+
+            {binaryProducts.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">No binary product packages configured</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-center">Active</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {binaryProducts.map((bp) => (
+                    <TableRow key={bp.id}>
+                      <TableCell className="font-medium">{bp.product_name}</TableCell>
+                      <TableCell className="text-right">₱{bp.product_price?.toLocaleString()}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={bp.is_active ? "default" : "secondary"}>
+                          {bp.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            await supabase.from('binary_product_packages').delete().eq('id', bp.id);
+                            fetchData();
+                            toast.success('Product removed');
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
