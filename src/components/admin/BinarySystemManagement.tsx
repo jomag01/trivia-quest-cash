@@ -56,6 +56,10 @@ interface BinaryMember {
   sponsor_id: string | null;
   parent_id: string | null;
   placement_leg: string | null;
+  has_deferred_payment?: boolean;
+  deferred_amount?: number;
+  deferred_paid_amount?: number;
+  admin_activated?: boolean;
   profiles?: {
     full_name: string;
     email: string;
@@ -1145,6 +1149,7 @@ export default function BinarySystemManagement() {
                     <TableHead className="text-right">Left Volume</TableHead>
                     <TableHead className="text-right">Right Volume</TableHead>
                     <TableHead className="text-right">Cycles</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Joined</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1184,6 +1189,24 @@ export default function BinarySystemManagement() {
                       <TableCell className="text-right">₱{Number(member.right_volume || 0).toLocaleString()}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant="secondary">{member.total_cycles || 0}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {member.admin_activated && (
+                            <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600">Admin Added</Badge>
+                          )}
+                          {member.has_deferred_payment && (
+                            <div>
+                              <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600">Deferred</Badge>
+                              <p className="text-xs text-amber-600 mt-1">
+                                Owes: ₱{(Number(member.deferred_amount || 0) - Number(member.deferred_paid_amount || 0)).toLocaleString()}
+                              </p>
+                            </div>
+                          )}
+                          {!member.admin_activated && !member.has_deferred_payment && (
+                            <Badge variant="default" className="text-xs">Paid</Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(member.joined_at).toLocaleDateString()}

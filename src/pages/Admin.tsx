@@ -61,7 +61,7 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent, Settings, Megaphone, Network } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent, Settings, Megaphone, Network, UserCheck } from "lucide-react";
 import { POSSystem } from "@/components/admin/POSSystem";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
 import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
@@ -78,6 +78,7 @@ import MarketplaceCategoryManagement from "@/components/admin/MarketplaceCategor
 import SupplierManagement from "@/components/admin/SupplierManagement";
 import RetailerCommissionSettings from "@/components/admin/RetailerCommissionSettings";
 import PromotionalAdsManagement from "@/components/admin/PromotionalAdsManagement";
+import MemberActivationManagement from "@/components/admin/MemberActivationManagement";
 import { cn } from "@/lib/utils";
 import { BarChart3 } from "lucide-react";
 
@@ -154,6 +155,7 @@ const Admin = () => {
       label: "MLM & Network",
       icon: Network,
       items: [
+        { id: "member-activation", label: "Member Activation", icon: UserCheck },
         { id: "binary-system", label: "Binary MLM System", icon: GitBranch },
         { id: "binary-accounting", label: "Binary Accounting", icon: BarChart3 },
         { id: "binary-calculator", label: "Binary Calculator", icon: Calculator },
@@ -794,6 +796,7 @@ const Admin = () => {
           {activeTab === "ai-settings" && <AISettingsManagement />}
           {activeTab === "ai-pricing" && <AIProviderPricing />}
           {activeTab === "qr-payment" && <QRPaymentSettings />}
+          {activeTab === "member-activation" && <MemberActivationManagement />}
           {activeTab === "binary-system" && <BinarySystemManagement />}
           {activeTab === "binary-accounting" && <BinaryAccountingDashboard />}
           {activeTab === "binary-calculator" && <BinaryCalculator />}
