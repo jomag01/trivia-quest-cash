@@ -139,6 +139,19 @@ export default function MemberActivationManagement() {
     
     setActivating(userId);
     try {
+      // First, update profile is_paid_affiliate - this is critical
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ is_paid_affiliate: true })
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        toast.error('Failed to update profile. Please try again.');
+        setActivating(null);
+        return;
+      }
+
       // Check if affiliate_current_rank exists
       const { data: existing } = await supabase
         .from('affiliate_current_rank')
@@ -175,12 +188,6 @@ export default function MemberActivationManagement() {
 
         if (error) throw error;
       }
-
-      // Also update profile is_paid_affiliate
-      await supabase
-        .from('profiles')
-        .update({ is_paid_affiliate: true })
-        .eq('id', userId);
 
       toast.success('User activated as verified affiliate!');
       handleSearch(); // Refresh results

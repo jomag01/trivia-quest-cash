@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Target, Calendar, Award, Copy, Check, Facebook, Twitter, MessageCircle, Send, Music, Youtube } from "lucide-react";
+import { TrendingUp, Target, Calendar, Award, Copy, Check, Facebook, Twitter, MessageCircle, Send, Music, Youtube, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 interface StairStepConfig {
@@ -19,6 +19,7 @@ interface CurrentRank {
   qualification_count: number;
   is_fixed: boolean;
   last_qualified_at: string | null;
+  admin_activated?: boolean;
 }
 interface MonthlySales {
   total_sales: number;
@@ -136,7 +137,7 @@ export default function AffiliateRankCard() {
   };
   return <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <CardTitle className="flex items-center gap-2 text-sm">
               <TrendingUp className="w-5 h-5 text-primary" />
@@ -144,10 +145,16 @@ export default function AffiliateRankCard() {
             </CardTitle>
             <CardDescription>Your current position in the stair-step plan</CardDescription>
           </div>
-          {currentRank?.is_fixed && <Badge variant="default" className="flex items-center gap-1">
-              <Award className="w-3 h-3" />
-              Fixed Position
-            </Badge>}
+          <div className="flex flex-wrap gap-2">
+            {currentRank?.admin_activated && <Badge variant="secondary" className="flex items-center gap-1 bg-blue-500/20 text-blue-600 border-blue-500/30">
+                <Shield className="w-3 h-3" />
+                Admin Activated
+              </Badge>}
+            {currentRank?.is_fixed && <Badge variant="default" className="flex items-center gap-1">
+                <Award className="w-3 h-3" />
+                Fixed Position
+              </Badge>}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
