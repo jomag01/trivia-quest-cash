@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import { 
   GitBranch, 
   ChevronDown, 
@@ -17,10 +18,15 @@ import {
   Users,
   Search,
   X,
-  Wallet
+  Wallet,
+  CreditCard,
+  Shield,
+  Sparkles,
+  TrendingUp
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface BinaryNode {
   id: string;
@@ -35,6 +41,10 @@ interface BinaryNode {
   joined_at: string;
   left_child?: BinaryNode | null;
   right_child?: BinaryNode | null;
+  has_deferred_payment?: boolean;
+  deferred_amount?: number;
+  deferred_paid_amount?: number;
+  admin_activated?: boolean;
 }
 
 interface BinaryTreeViewProps {
@@ -42,8 +52,16 @@ interface BinaryTreeViewProps {
 }
 
 export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [treeData, setTreeData] = useState<BinaryNode | null>(null);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [userNetworkData, setUserNetworkData] = useState<{
+    has_deferred_payment?: boolean;
+    deferred_amount?: number;
+    deferred_paid_amount?: number;
+    admin_activated?: boolean;
+  } | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [stats, setStats] = useState({
     totalLeft: 0,
@@ -59,6 +77,30 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
   const fetchBinaryTree = useCallback(async () => {
     try {
       setLoading(true);
+      
+      // First check if user is in binary network
+      const { data: networkCheck, error: networkCheckError } = await supabase
+        .from("binary_network")
+        .select("id, has_deferred_payment, deferred_amount, deferred_paid_amount, admin_activated")
+        .eq("user_id", userId)
+        .maybeSingle();
+      
+      if (networkCheckError) throw networkCheckError;
+      
+      if (!networkCheck) {
+        setIsEnrolled(false);
+        setTreeData(null);
+        return;
+      }
+      
+      setIsEnrolled(true);
+      setUserNetworkData({
+        has_deferred_payment: networkCheck.has_deferred_payment,
+        deferred_amount: networkCheck.deferred_amount,
+        deferred_paid_amount: networkCheck.deferred_paid_amount,
+        admin_activated: networkCheck.admin_activated
+      });
+      
       const tree = await buildTree(userId, 1);
       setTreeData(tree);
 
@@ -381,8 +423,114 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
     );
   }
 
+  // Calculate deferred payment progress
+  const deferredOwed = userNetworkData?.has_deferred_payment 
+    ? (Number(userNetworkData.deferred_amount || 0) - Number(userNetworkData.deferred_paid_amount || 0)) 
+    : 0;
+  const deferredProgress = userNetworkData?.has_deferred_payment && userNetworkData.deferred_amount
+    ? (Number(userNetworkData.deferred_paid_amount || 0) / Number(userNetworkData.deferred_amount)) * 100
+    : 0;
+
+  // Show enrollment CTA if user is not in binary network
+  if (!isEnrolled) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-6 sm:p-8 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 border-purple-500/30">
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+              <GitBranch className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">Join the Binary Network</h2>
+              <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto">
+                You're not yet enrolled in the Binary Affiliate Program. Purchase an AI Package to activate your position and start building your network!
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 max-w-2xl mx-auto">
+              <div className="p-4 bg-background/50 rounded-lg border">
+                <Users className="w-6 h-6 text-blue-500 mx-auto mb-2" />
+                <h4 className="font-semibold text-sm">Build Your Team</h4>
+                <p className="text-xs text-muted-foreground">Place members in your binary tree</p>
+              </div>
+              <div className="p-4 bg-background/50 rounded-lg border">
+                <TrendingUp className="w-6 h-6 text-green-500 mx-auto mb-2" />
+                <h4 className="font-semibold text-sm">Earn Commissions</h4>
+                <p className="text-xs text-muted-foreground">Get paid for matching cycles</p>
+              </div>
+              <div className="p-4 bg-background/50 rounded-lg border">
+                <Sparkles className="w-6 h-6 text-amber-500 mx-auto mb-2" />
+                <h4 className="font-semibold text-sm">AI Credits</h4>
+                <p className="text-xs text-muted-foreground">Access powerful AI tools</p>
+              </div>
+            </div>
+            
+            <Button 
+              size="lg" 
+              className="mt-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600"
+              onClick={() => navigate('/ai-hub')}
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Get AI Package
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      {/* Deferred Payment Banner */}
+      {userNetworkData?.has_deferred_payment && deferredOwed > 0 && (
+        <Card className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-500/20 rounded-full flex items-center justify-center shrink-0">
+                <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold text-sm sm:text-base">Deferred Payment Active</h3>
+                  {userNetworkData.admin_activated && (
+                    <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600 border-blue-500/30">
+                      <Shield className="w-3 h-3 mr-1" />
+                      Admin Activated
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Your AI package cost is being deducted from your commissions
+                </p>
+                <div className="mt-2 space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span>Payment Progress</span>
+                    <span className="font-medium">₱{Number(userNetworkData.deferred_paid_amount || 0).toLocaleString()} / ₱{Number(userNetworkData.deferred_amount || 0).toLocaleString()}</span>
+                  </div>
+                  <Progress value={deferredProgress} className="h-2" />
+                </div>
+              </div>
+            </div>
+            <div className="text-left sm:text-right w-full sm:w-auto">
+              <p className="text-xs text-muted-foreground">Remaining Balance</p>
+              <p className="text-lg sm:text-xl font-bold text-amber-600">₱{deferredOwed.toLocaleString()}</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Admin Activated Badge (if no deferred payment) */}
+      {userNetworkData?.admin_activated && !userNetworkData.has_deferred_payment && (
+        <Card className="p-3 sm:p-4 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-blue-500/30">
+          <div className="flex items-center gap-3">
+            <Shield className="w-5 h-5 text-blue-500" />
+            <div>
+              <p className="font-medium text-sm">Admin Activated Account</p>
+              <p className="text-xs text-muted-foreground">Your binary account was activated by an administrator</p>
+            </div>
+          </div>
+        </Card>
+      )}
       {/* Stats Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="overflow-hidden border-0 shadow-md">
