@@ -77,6 +77,7 @@ export default function SellerDashboard() {
   }, [profile]);
   const checkSellerEligibility = async () => {
     try {
+      setLoading(true);
       const {
         data,
         error
@@ -84,9 +85,10 @@ export default function SellerDashboard() {
         p_user_id: user?.id
       });
       if (error) throw error;
-      setCanBecomeSeller(data);
+      setCanBecomeSeller(!!data);
     } catch (error: any) {
       console.error("Error:", error);
+      setCanBecomeSeller(false);
     } finally {
       setLoading(false);
     }
