@@ -84,6 +84,9 @@ export type Database = {
       }
       affiliate_current_rank: {
         Row: {
+          admin_activated: boolean | null
+          admin_activated_at: string | null
+          admin_activated_by: string | null
           created_at: string
           current_step: number
           is_fixed: boolean | null
@@ -93,6 +96,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_activated?: boolean | null
+          admin_activated_at?: string | null
+          admin_activated_by?: string | null
           created_at?: string
           current_step?: number
           is_fixed?: boolean | null
@@ -102,6 +108,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_activated?: boolean | null
+          admin_activated_at?: string | null
+          admin_activated_by?: string | null
           created_at?: string
           current_step?: number
           is_fixed?: boolean | null
@@ -716,7 +725,13 @@ export type Database = {
         Row: {
           account_number: number | null
           account_slot: number | null
+          admin_activated: boolean | null
+          admin_activated_at: string | null
+          admin_activated_by: string | null
           created_at: string | null
+          deferred_amount: number | null
+          deferred_paid_amount: number | null
+          has_deferred_payment: boolean | null
           id: string
           joined_at: string | null
           left_child_id: string | null
@@ -733,7 +748,13 @@ export type Database = {
         Insert: {
           account_number?: number | null
           account_slot?: number | null
+          admin_activated?: boolean | null
+          admin_activated_at?: string | null
+          admin_activated_by?: string | null
           created_at?: string | null
+          deferred_amount?: number | null
+          deferred_paid_amount?: number | null
+          has_deferred_payment?: boolean | null
           id?: string
           joined_at?: string | null
           left_child_id?: string | null
@@ -750,7 +771,13 @@ export type Database = {
         Update: {
           account_number?: number | null
           account_slot?: number | null
+          admin_activated?: boolean | null
+          admin_activated_at?: string | null
+          admin_activated_by?: string | null
           created_at?: string | null
+          deferred_amount?: number | null
+          deferred_paid_amount?: number | null
+          has_deferred_payment?: boolean | null
           id?: string
           joined_at?: string | null
           left_child_id?: string | null
