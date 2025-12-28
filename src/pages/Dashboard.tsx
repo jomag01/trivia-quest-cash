@@ -70,8 +70,8 @@ const Dashboard = () => {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [referralLoading, setReferralLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "overview");
-  
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isBinaryEnrolled, setIsBinaryEnrolled] = useState(false);
 
   // Sync activeTab with URL params
   useEffect(() => {
@@ -94,8 +94,27 @@ const Dashboard = () => {
     if (user) {
       fetchAllData();
       checkAdminRole();
+      checkBinaryEnrollment();
     }
   }, [user]);
+  
+  const checkBinaryEnrollment = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from("binary_network")
+        .select("id, admin_activated")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      // User is enrolled if they have a record AND admin_activated is true
+      setIsBinaryEnrolled(!!data && data.admin_activated === true);
+    } catch (error) {
+      console.error('Error checking binary enrollment:', error);
+      setIsBinaryEnrolled(false);
+    }
+  };
   const checkAdminRole = async () => {
     if (!user) return;
     try {
@@ -382,6 +401,7 @@ const Dashboard = () => {
               await signOut();
               navigate('/auth');
             }}
+            isBinaryEnrolled={isBinaryEnrolled}
           />
 
           <TabsContent value="overview" className="space-y-8">
