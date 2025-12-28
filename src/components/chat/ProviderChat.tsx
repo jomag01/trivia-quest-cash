@@ -233,41 +233,45 @@ export default function ProviderChat({
           {showLabel && `Chat ${getProviderTypeLabel()}`}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md h-[80vh] flex flex-col p-0">
-        <DialogHeader className="p-4 border-b">
-          <DialogTitle className="flex items-center gap-3">
-            <Avatar className="w-10 h-10">
+      <DialogContent className="max-w-sm sm:max-w-md max-h-[60vh] sm:max-h-[500px] flex flex-col p-0 rounded-2xl overflow-hidden border-0 shadow-2xl">
+        {/* Gradient Header */}
+        <DialogHeader className="p-3 bg-gradient-to-r from-primary via-primary/90 to-primary/80 text-primary-foreground">
+          <DialogTitle className="flex items-center gap-2">
+            <Avatar className="w-8 h-8 ring-2 ring-primary-foreground/30">
               <AvatarImage src={providerAvatar || undefined} />
-              <AvatarFallback>{providerName.charAt(0).toUpperCase()}</AvatarFallback>
+              <AvatarFallback className="bg-primary-foreground/20 text-primary-foreground text-sm font-bold">
+                {providerName.charAt(0).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <p className="font-semibold">{providerName}</p>
-              <p className="text-xs text-muted-foreground capitalize">{providerType}</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm truncate">{providerName}</p>
+              <p className="text-[10px] opacity-80 capitalize">{providerType}</p>
             </div>
           </DialogTitle>
         </DialogHeader>
 
         {referenceTitle && (
-          <div className="px-4 py-2 bg-muted/50 border-b">
-            <p className="text-sm text-muted-foreground">
+          <div className="px-3 py-1.5 bg-gradient-to-r from-secondary/50 to-muted/50 border-b">
+            <p className="text-xs text-muted-foreground truncate">
               Regarding: <span className="font-medium text-foreground">{referenceTitle}</span>
             </p>
           </div>
         )}
 
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-3 bg-gradient-to-b from-background to-muted/20">
           {loadingMessages ? (
-            <div className="flex items-center justify-center h-full">
-              <Clock className="w-6 h-6 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center h-32">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <MessageSquare className="w-12 h-12 mb-3 opacity-50" />
-              <p className="text-sm font-medium">No messages yet</p>
-              <p className="text-xs">Start a conversation with {providerName}</p>
+            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-2">
+                <MessageSquare className="w-6 h-6 text-primary/60" />
+              </div>
+              <p className="text-xs font-medium">Start chatting with {providerName}</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {messages.map((msg) => {
                 const isOwnMessage = msg.sender_id === user.id;
                 return (
@@ -276,21 +280,21 @@ export default function ProviderChat({
                     className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                      className={`max-w-[75%] rounded-2xl px-3 py-1.5 shadow-sm ${
                         isOwnMessage
-                          ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "bg-muted rounded-bl-md"
+                          ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground rounded-br-sm"
+                          : "bg-card border border-border/50 rounded-bl-sm"
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                      <div className={`flex items-center gap-1 mt-1 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
-                        <span className="text-[10px] opacity-70">
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      <div className={`flex items-center gap-1 mt-0.5 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+                        <span className="text-[9px] opacity-60">
                           {format(new Date(msg.created_at), 'HH:mm')}
                         </span>
                         {isOwnMessage && (
                           msg.is_read 
-                            ? <CheckCheck className="w-3 h-3 opacity-70" />
-                            : <Check className="w-3 h-3 opacity-70" />
+                            ? <CheckCheck className="w-2.5 h-2.5 opacity-60" />
+                            : <Check className="w-2.5 h-2.5 opacity-60" />
                         )}
                       </div>
                     </div>
@@ -302,19 +306,20 @@ export default function ProviderChat({
           )}
         </ScrollArea>
 
-        <div className="p-4 border-t bg-background">
-          <div className="flex gap-2">
+        <div className="p-2 border-t bg-gradient-to-r from-background via-muted/30 to-background">
+          <div className="flex gap-2 items-center">
             <Input
               placeholder="Type your message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              className="flex-1"
+              className="flex-1 h-9 text-sm rounded-full bg-muted/50 border-muted-foreground/20 focus-visible:ring-primary/50"
             />
             <Button 
               onClick={handleSend} 
               disabled={!newMessage.trim() || sendMessageMutation.isPending}
               size="icon"
+              className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
             >
               <Send className="w-4 h-4" />
             </Button>
