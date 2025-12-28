@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Menu, Shield, LogOut, ChevronDown, Brain, MessageSquare, Sparkles, Truck, Building2, Settings, Share2 } from "lucide-react";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Shield, LogOut } from "lucide-react";
+import { DashboardNavigation } from "@/components/dashboard/DashboardNavigation";
 import { toast } from "sonner";
 import RetailerSupplierProducts from "@/components/dashboard/RetailerSupplierProducts";
 import MyListingsHub from "@/components/dashboard/MyListingsHub";
@@ -71,7 +70,7 @@ const Dashboard = () => {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [referralLoading, setReferralLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "overview");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
   const [isAdmin, setIsAdmin] = useState(false);
 
   // Sync activeTab with URL params
@@ -375,199 +374,15 @@ const Dashboard = () => {
 
         {/* Tabs - Desktop only, Hamburger for Mobile/Tablet */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-8">
-          {/* Mobile/Tablet Hamburger Menu */}
-          <div className="lg:hidden mb-4">
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="w-full justify-start gap-2">
-                  <Menu className="w-5 h-5" />
-                  <span className="capitalize">{activeTab.replace('-', ' ')}</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-64 bg-background border-primary/20">
-                <div className="flex flex-col gap-2 mt-8">
-                  <Button variant={activeTab === "overview" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("overview");
-                  setMobileMenuOpen(false);
-                }}>
-                    Overview
-                  </Button>
-                  <Button variant={activeTab === "network" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("network");
-                  setMobileMenuOpen(false);
-                }}>
-                    Network Tree
-                  </Button>
-                  <Button variant={activeTab === "calculator" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("calculator");
-                  setMobileMenuOpen(false);
-                }}>
-                    Calculator
-                  </Button>
-                  <Button variant={activeTab === "leadership" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("leadership");
-                  setMobileMenuOpen(false);
-                }}>
-                    Leadership
-                  </Button>
-                  <Button variant={activeTab === "notifications" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("notifications");
-                  setMobileMenuOpen(false);
-                }}>
-                    Notifications
-                  </Button>
-                  <Button variant={activeTab === "diamonds" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("diamonds");
-                  setMobileMenuOpen(false);
-                }}>
-                    Diamonds
-                  </Button>
-                  <Button variant={activeTab === "leaderboard" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("leaderboard");
-                  setMobileMenuOpen(false);
-                }}>
-                    Leaderboard
-                  </Button>
-                  <Button variant={activeTab === "cart" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("cart");
-                  setMobileMenuOpen(false);
-                }}>
-                    Cart
-                  </Button>
-                  <Button variant={activeTab === "wishlist" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("wishlist");
-                  setMobileMenuOpen(false);
-                }}>
-                    Wishlist
-                  </Button>
-                  <Button variant={activeTab === "orders" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("orders");
-                  setMobileMenuOpen(false);
-                }}>
-                    Orders
-                  </Button>
-                  <Button variant={activeTab === "stair-step" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("stair-step");
-                  setMobileMenuOpen(false);
-                }}>
-                    Stair Step
-                  </Button>
-                  <Button variant={activeTab === "binary-earnings" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("binary-earnings");
-                  setMobileMenuOpen(false);
-                }}>
-                    Binary Earnings
-                  </Button>
-                  <Button variant={activeTab === "advertising" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("advertising");
-                  setMobileMenuOpen(false);
-                }}>
-                    Advertising
-                  </Button>
-                  <Button variant={activeTab === "promo-ads" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("promo-ads");
-                  setMobileMenuOpen(false);
-                }}>
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Promo Content
-                  </Button>
-                  <Button variant={activeTab === "support" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("support");
-                  setMobileMenuOpen(false);
-                }}>
-                    Support
-                  </Button>
-                  <Button variant={activeTab === "transactions" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("transactions");
-                  setMobileMenuOpen(false);
-                }}>
-                    Transactions
-                  </Button>
-                  <Button variant={activeTab === "ai-research" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("ai-research");
-                  setMobileMenuOpen(false);
-                }}>
-                    <Brain className="w-4 h-4 mr-2" />
-                    AI Research
-                  </Button>
-                  <Button variant={activeTab === "ai-chat" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("ai-chat");
-                  setMobileMenuOpen(false);
-                }}>
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    GPT-5 Chat
-                  </Button>
-                  <Button variant={activeTab === "ai-credits" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("ai-credits");
-                  setMobileMenuOpen(false);
-                }}>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    AI Credits
-                  </Button>
-                  <Button variant={activeTab === "supplier-products" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("supplier-products");
-                  setMobileMenuOpen(false);
-                }}>
-                    <Truck className="w-4 h-4 mr-2" />
-                    Supplier Products
-                  </Button>
-                  <Button variant={activeTab === "my-listings" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("my-listings");
-                  setMobileMenuOpen(false);
-                }}>
-                    <Building2 className="w-4 h-4 mr-2" />
-                    My Listings
-                  </Button>
-                  <Button variant={activeTab === "account-settings" ? "default" : "ghost"} className="justify-start" onClick={() => {
-                  handleTabChange("account-settings");
-                  setMobileMenuOpen(false);
-                }}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Account Settings
-                  </Button>
-                  <div className="border-t border-border my-2" />
-                  <Button variant="ghost" className="justify-start text-destructive hover:text-destructive" onClick={async () => {
-                  await signOut();
-                  navigate('/auth');
-                }}>
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-
-          {/* Desktop Dropdown Navigation */}
-          <div className="hidden lg:block mb-6">
-            <Select value={activeTab} onValueChange={handleTabChange}>
-              <SelectTrigger className="w-64 bg-background border-border">
-                <SelectValue placeholder="Select section" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border-border z-50">
-                <SelectItem value="overview">Overview</SelectItem>
-                <SelectItem value="network">Network Tree</SelectItem>
-                <SelectItem value="calculator">Calculator</SelectItem>
-                <SelectItem value="leadership">Leadership</SelectItem>
-                <SelectItem value="notifications">Notifications</SelectItem>
-                <SelectItem value="diamonds">Diamonds</SelectItem>
-                <SelectItem value="leaderboard">Leaderboard</SelectItem>
-                <SelectItem value="cart">Cart</SelectItem>
-                <SelectItem value="wishlist">Wishlist</SelectItem>
-                <SelectItem value="orders">Orders</SelectItem>
-                <SelectItem value="stair-step">Stair Step</SelectItem>
-                <SelectItem value="promo-ads">Promo Content</SelectItem>
-                <SelectItem value="advertising">Advertising</SelectItem>
-                <SelectItem value="transactions">Transactions</SelectItem>
-                <SelectItem value="ai-research">AI Research</SelectItem>
-                <SelectItem value="ai-chat">GPT-5 Chat</SelectItem>
-                <SelectItem value="ai-credits">AI Credits</SelectItem>
-                <SelectItem value="supplier-products">Supplier Products</SelectItem>
-                <SelectItem value="my-listings">My Listings</SelectItem>
-                <SelectItem value="account-settings">Account Settings</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Navigation */}
+          <DashboardNavigation 
+            activeTab={activeTab} 
+            onTabChange={handleTabChange}
+            onSignOut={async () => {
+              await signOut();
+              navigate('/auth');
+            }}
+          />
 
           <TabsContent value="overview" className="space-y-8">
             {/* Main Stats Grid */}
