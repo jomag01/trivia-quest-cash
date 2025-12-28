@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -40,12 +40,14 @@ interface NavItem {
   icon: LucideIcon;
   color?: string;
   children?: NavItem[];
+  requiresBinary?: boolean; // Items that require binary enrollment
 }
 
 interface DashboardNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onSignOut: () => void;
+  isBinaryEnrolled?: boolean; // Whether user is enrolled in binary network
 }
 
 const navItems: NavItem[] = [
@@ -71,8 +73,9 @@ const navItems: NavItem[] = [
     label: "Binary Network",
     icon: GitBranch,
     color: "text-cyan-500",
+    requiresBinary: true, // Only show when user is in binary network
     children: [
-      { id: "binary-earnings", label: "Binary Earnings", icon: TrendingUp, color: "text-cyan-400" },
+      { id: "binary-earnings", label: "Binary Earnings", icon: TrendingUp, color: "text-cyan-400", requiresBinary: true },
     ]
   },
   { 
@@ -160,9 +163,19 @@ const navItems: NavItem[] = [
   },
 ];
 
+// Filter nav items based on binary enrollment
+const filterNavItems = (items: NavItem[], isBinaryEnrolled: boolean): NavItem[] => {
+  return items
+    .filter(item => !item.requiresBinary || isBinaryEnrolled)
+    .map(item => ({
+      ...item,
+      children: item.children?.filter(child => !child.requiresBinary || isBinaryEnrolled)
+    }));
+};
+
 // Helper to find which parent group an item belongs to
-const findParentGroup = (tabId: string): string | null => {
-  for (const item of navItems) {
+const findParentGroup = (tabId: string, items: NavItem[]): string | null => {
+  for (const item of items) {
     if (item.children?.some(child => child.id === tabId)) {
       return item.id;
     }
@@ -171,8 +184,8 @@ const findParentGroup = (tabId: string): string | null => {
 };
 
 // Helper to get current tab label
-const getTabLabel = (tabId: string): string => {
-  for (const item of navItems) {
+const getTabLabel = (tabId: string, items: NavItem[]): string => {
+  for (const item of items) {
     if (item.id === tabId) return item.label;
     if (item.children) {
       const child = item.children.find(c => c.id === tabId);
@@ -182,10 +195,13 @@ const getTabLabel = (tabId: string): string => {
   return tabId.replace('-', ' ');
 };
 
-export function DashboardNavigation({ activeTab, onTabChange, onSignOut }: DashboardNavigationProps) {
+export function DashboardNavigation({ activeTab, onTabChange, onSignOut, isBinaryEnrolled = false }: DashboardNavigationProps) {
+  // Filter nav items based on binary enrollment
+  const filteredNavItems = useMemo(() => filterNavItems(navItems, isBinaryEnrolled), [isBinaryEnrolled]);
+  
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
-    const parent = findParentGroup(activeTab);
+    const parent = findParentGroup(activeTab, filteredNavItems);
     return parent ? new Set([parent]) : new Set();
   });
 
@@ -295,7 +311,7 @@ export function DashboardNavigation({ activeTab, onTabChange, onSignOut }: Dashb
             >
               <div className="flex items-center gap-2">
                 <Menu className="w-5 h-5 text-accent" />
-                <span className="font-medium capitalize">{getTabLabel(activeTab)}</span>
+                <span className="font-medium capitalize">{getTabLabel(activeTab, filteredNavItems)}</span>
               </div>
               <ChevronDown className="w-4 h-4 text-muted-foreground" />
             </Button>
@@ -315,7 +331,7 @@ export function DashboardNavigation({ activeTab, onTabChange, onSignOut }: Dashb
 
               {/* Navigation Items */}
               <div className="flex-1 overflow-y-auto p-3 space-y-1">
-                {navItems.map((item) => (
+                {filteredNavItems.map((item) => (
                   <NavItemComponent key={item.id} item={item} />
                 ))}
               </div>
@@ -351,7 +367,7 @@ export function DashboardNavigation({ activeTab, onTabChange, onSignOut }: Dashb
             >
               <div className="flex items-center gap-2">
                 <LayoutDashboard className="w-5 h-5 text-accent" />
-                <span className="font-medium capitalize">{getTabLabel(activeTab)}</span>
+                <span className="font-medium capitalize">{getTabLabel(activeTab, filteredNavItems)}</span>
               </div>
               <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:rotate-180 transition-transform duration-200" />
             </Button>
@@ -359,7 +375,7 @@ export function DashboardNavigation({ activeTab, onTabChange, onSignOut }: Dashb
             {/* Dropdown Menu */}
             <div className="absolute top-full left-0 mt-2 w-80 max-h-[70vh] overflow-y-auto bg-popover border border-border/50 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="p-2 space-y-0.5">
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                   const Icon = item.icon;
                   const hasChildren = item.children && item.children.length > 0;
                   const isActive = isItemActive(item);
