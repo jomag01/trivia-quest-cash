@@ -3621,10 +3621,12 @@ export type Database = {
       }
       orders: {
         Row: {
+          courier: string | null
           created_at: string | null
           customer_email: string
           customer_name: string
           customer_phone: string | null
+          delivered_at: string | null
           id: string
           live_stream_id: string | null
           live_streamer_id: string | null
@@ -3632,6 +3634,8 @@ export type Database = {
           order_number: string
           payment_method: string | null
           product_referrer_id: string | null
+          seller_id: string | null
+          shipped_at: string | null
           shipping_address: string
           shipping_fee: number | null
           status: string
@@ -3642,10 +3646,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          courier?: string | null
           created_at?: string | null
           customer_email: string
           customer_name: string
           customer_phone?: string | null
+          delivered_at?: string | null
           id?: string
           live_stream_id?: string | null
           live_streamer_id?: string | null
@@ -3653,6 +3659,8 @@ export type Database = {
           order_number: string
           payment_method?: string | null
           product_referrer_id?: string | null
+          seller_id?: string | null
+          shipped_at?: string | null
           shipping_address: string
           shipping_fee?: number | null
           status?: string
@@ -3663,10 +3671,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          courier?: string | null
           created_at?: string | null
           customer_email?: string
           customer_name?: string
           customer_phone?: string | null
+          delivered_at?: string | null
           id?: string
           live_stream_id?: string | null
           live_streamer_id?: string | null
@@ -3674,6 +3684,8 @@ export type Database = {
           order_number?: string
           payment_method?: string | null
           product_referrer_id?: string | null
+          seller_id?: string | null
+          shipped_at?: string | null
           shipping_address?: string
           shipping_fee?: number | null
           status?: string
@@ -4433,6 +4445,7 @@ export type Database = {
           is_active: boolean | null
           is_featured: boolean | null
           name: string
+          preferred_courier: string | null
           promo_active: boolean | null
           promo_price: number | null
           referral_commission_diamonds: number | null
@@ -4464,6 +4477,7 @@ export type Database = {
           is_active?: boolean | null
           is_featured?: boolean | null
           name: string
+          preferred_courier?: string | null
           promo_active?: boolean | null
           promo_price?: number | null
           referral_commission_diamonds?: number | null
@@ -4495,6 +4509,7 @@ export type Database = {
           is_active?: boolean | null
           is_featured?: boolean | null
           name?: string
+          preferred_courier?: string | null
           promo_active?: boolean | null
           promo_price?: number | null
           referral_commission_diamonds?: number | null

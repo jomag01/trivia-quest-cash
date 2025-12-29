@@ -49,6 +49,7 @@ import { StairStepTree } from "@/components/StairStepTree";
 import { LeadershipTree } from "@/components/LeadershipTree";
 import { CurrencyConversionDialog } from "@/components/CurrencyConversionDialog";
 import { useHiddenTabs } from "@/hooks/useHiddenTabs";
+import SellerOrderProcessing from "@/components/dashboard/SellerOrderProcessing";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -711,6 +712,19 @@ const Dashboard = () => {
 
       <TabsContent value="orders">
         <OrderTracking />
+      </TabsContent>
+
+      <TabsContent value="seller-orders">
+        <Card className="p-6">
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            Seller Order Management
+          </h3>
+          <p className="text-muted-foreground mb-6">
+            Manage your orders, print shipping labels, add tracking numbers, and update order statuses.
+          </p>
+          <SellerOrderProcessing />
+        </Card>
       </TabsContent>
 
       <TabsContent value="stair-step" className="space-y-6">
