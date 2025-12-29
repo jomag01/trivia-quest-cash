@@ -61,7 +61,7 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent, Settings, Megaphone, Network, UserCheck } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent, Settings, Megaphone, Network, UserCheck, Bell } from "lucide-react";
 import { POSSystem } from "@/components/admin/POSSystem";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
 import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
@@ -79,6 +79,7 @@ import SupplierManagement from "@/components/admin/SupplierManagement";
 import RetailerCommissionSettings from "@/components/admin/RetailerCommissionSettings";
 import PromotionalAdsManagement from "@/components/admin/PromotionalAdsManagement";
 import MemberActivationManagement from "@/components/admin/MemberActivationManagement";
+import { PurchaseNotificationSettings } from "@/components/admin/PurchaseNotificationSettings";
 import { cn } from "@/lib/utils";
 import { BarChart3 } from "lucide-react";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
@@ -232,6 +233,7 @@ const Admin = () => {
         { id: "ad-management", label: "Ad Management", icon: Upload },
         { id: "promotional-ads", label: "Promotional Ads", icon: Sparkles },
         { id: "user-ads", label: "User Ad Campaigns", icon: TrendingUp },
+        { id: "purchase-notifications", label: "Purchase Pop-ups", icon: Bell },
       ],
     },
     {
@@ -808,6 +810,7 @@ const Admin = () => {
           {activeTab === "suppliers" && <SupplierManagement />}
           {activeTab === "retailer-commissions" && <RetailerCommissionSettings />}
           {activeTab === "system-reset" && <SystemResetManagement />}
+          {activeTab === "purchase-notifications" && <PurchaseNotificationSettings />}
         </main>
       </div>
 

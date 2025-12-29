@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ShoppingBag, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,8 +7,27 @@ interface PurchaseNotification {
   id: string;
   type: 'shop' | 'ai';
   message: string;
-  location?: string;
 }
+
+interface NotificationSettings {
+  is_enabled: boolean;
+  show_interval_seconds: number;
+  pause_duration_seconds: number;
+  notifications_per_cycle: number;
+  show_fake_notifications: boolean;
+  fake_product_names: string[];
+  fake_ai_packages: string[];
+}
+
+const defaultSettings: NotificationSettings = {
+  is_enabled: true,
+  show_interval_seconds: 15,
+  pause_duration_seconds: 60,
+  notifications_per_cycle: 5,
+  show_fake_notifications: true,
+  fake_product_names: ['Premium Headphones', 'Wireless Earbuds', 'Smart Watch', 'Phone Case', 'Bluetooth Speaker'],
+  fake_ai_packages: ['AI Starter Pack', 'AI Pro Bundle', 'AI Credits Package', 'AI Premium Tier']
+};
 
 const locations = [
   'Manila', 'Cebu', 'Davao', 'Quezon City', 'Makati', 
@@ -17,29 +36,64 @@ const locations = [
 ];
 
 const getRandomLocation = () => locations[Math.floor(Math.random() * locations.length)];
-
 const getTimeAgo = () => {
   const minutes = Math.floor(Math.random() * 10) + 1;
   return `${minutes} min ago`;
 };
 
 export const PurchaseNotification = () => {
-  const [notifications, setNotifications] = useState<PurchaseNotification[]>([]);
+  const [settings, setSettings] = useState<NotificationSettings>(defaultSettings);
   const [currentNotification, setCurrentNotification] = useState<PurchaseNotification | null>(null);
+  const [realNotifications, setRealNotifications] = useState<PurchaseNotification[]>([]);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
+  // Fetch settings
   useEffect(() => {
-    // Listen for new shop orders
+    const fetchSettings = async () => {
+      const { data } = await supabase
+        .from('purchase_notification_settings')
+        .select('*')
+        .limit(1)
+        .single();
+      
+      if (data) {
+        setSettings(data as NotificationSettings);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  // Generate fake notification
+  const generateFakeNotification = useCallback((): PurchaseNotification => {
+    const isShop = Math.random() > 0.3;
+    const location = getRandomLocation();
+    
+    if (isShop) {
+      const product = settings.fake_product_names[Math.floor(Math.random() * settings.fake_product_names.length)];
+      return {
+        id: `fake-${Date.now()}`,
+        type: 'shop',
+        message: `Someone from ${location} just bought ${product}`
+      };
+    } else {
+      const aiPackage = settings.fake_ai_packages[Math.floor(Math.random() * settings.fake_ai_packages.length)];
+      return {
+        id: `fake-${Date.now()}`,
+        type: 'ai',
+        message: `Someone from ${location} just purchased ${aiPackage}`
+      };
+    }
+  }, [settings.fake_product_names, settings.fake_ai_packages]);
+
+  // Listen for real purchases
+  useEffect(() => {
+    if (!settings.is_enabled) return;
+
     const ordersChannel = supabase
       .channel('purchase-notifications-orders')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders'
-        },
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' },
         async (payload) => {
-          // Get product info from order items
           const { data: orderItems } = await supabase
             .from('order_items')
             .select('products(name)')
@@ -47,86 +101,81 @@ export const PurchaseNotification = () => {
             .limit(1);
 
           const productName = orderItems?.[0]?.products?.name || 'a product';
-          
-          const notification: PurchaseNotification = {
+          setRealNotifications(prev => [...prev, {
             id: payload.new.id,
             type: 'shop',
-            message: `Someone from ${getRandomLocation()} just bought ${productName}`,
-            location: getRandomLocation()
-          };
-          
-          setNotifications(prev => [...prev, notification]);
+            message: `Someone from ${getRandomLocation()} just bought ${productName}`
+          }]);
         }
       )
       .subscribe();
 
-    // Listen for new AI credit purchases
-    const aiPurchasesChannel = supabase
+    const aiChannel = supabase
       .channel('purchase-notifications-ai')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'binary_ai_purchases'
-        },
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'binary_ai_purchases' },
         (payload) => {
-          const amount = payload.new.amount;
-          const notification: PurchaseNotification = {
+          setRealNotifications(prev => [...prev, {
             id: payload.new.id,
             type: 'ai',
-            message: `Someone from ${getRandomLocation()} just bought an AI Package`,
-            location: getRandomLocation()
-          };
-          
-          setNotifications(prev => [...prev, notification]);
-        }
-      )
-      .subscribe();
-
-    // Also listen for regular AI credit purchases
-    const creditPurchasesChannel = supabase
-      .channel('purchase-notifications-credits')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'ai_credit_purchases'
-        },
-        (payload) => {
-          const notification: PurchaseNotification = {
-            id: payload.new.id,
-            type: 'ai',
-            message: `Someone from ${getRandomLocation()} just purchased AI Credits`,
-            location: getRandomLocation()
-          };
-          
-          setNotifications(prev => [...prev, notification]);
+            message: `Someone from ${getRandomLocation()} just bought an AI Package`
+          }]);
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(ordersChannel);
-      supabase.removeChannel(aiPurchasesChannel);
-      supabase.removeChannel(creditPurchasesChannel);
+      supabase.removeChannel(aiChannel);
     };
-  }, []);
+  }, [settings.is_enabled]);
 
-  // Process notifications queue
+  // Main loop for showing notifications
   useEffect(() => {
-    if (notifications.length > 0 && !currentNotification) {
-      const [next, ...rest] = notifications;
-      setCurrentNotification(next);
-      setNotifications(rest);
+    if (!settings.is_enabled || isPaused) return;
 
-      // Auto-hide after 4 seconds
+    const showNotification = () => {
+      // Prioritize real notifications
+      if (realNotifications.length > 0) {
+        const [next, ...rest] = realNotifications;
+        setCurrentNotification(next);
+        setRealNotifications(rest);
+      } else if (settings.show_fake_notifications) {
+        setCurrentNotification(generateFakeNotification());
+      }
+
+      setNotificationCount(prev => prev + 1);
+
+      // Hide after 4 seconds
       setTimeout(() => {
         setCurrentNotification(null);
       }, 4000);
+    };
+
+    // Check if we need to pause
+    if (notificationCount >= settings.notifications_per_cycle) {
+      setIsPaused(true);
+      setNotificationCount(0);
+      
+      const pauseTimer = setTimeout(() => {
+        setIsPaused(false);
+      }, settings.pause_duration_seconds * 1000);
+
+      return () => clearTimeout(pauseTimer);
     }
-  }, [notifications, currentNotification]);
+
+    // Show notification at interval
+    const intervalTimer = setInterval(showNotification, settings.show_interval_seconds * 1000);
+
+    // Show first one after a short delay
+    const initialTimer = setTimeout(showNotification, 3000);
+
+    return () => {
+      clearInterval(intervalTimer);
+      clearTimeout(initialTimer);
+    };
+  }, [settings, isPaused, notificationCount, realNotifications, generateFakeNotification]);
+
+  if (!settings.is_enabled) return null;
 
   return (
     <AnimatePresence>
