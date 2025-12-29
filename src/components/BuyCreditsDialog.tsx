@@ -108,8 +108,16 @@ export const BuyCreditsDialog = ({ open, onOpenChange }: BuyCreditsDialogProps) 
 
     setSubmitting(true);
     try {
-      // Calculate credits based on amount (1 credit per peso, can be adjusted)
+      // Get credit to diamond conversion rate from settings
+      const { data: conversionSetting } = await supabase
+        .from('treasure_admin_settings')
+        .select('setting_value')
+        .eq('setting_key', 'credit_to_diamond_rate')
+        .maybeSingle();
+      
+      const creditToDiamondRate = parseFloat(conversionSetting?.setting_value || '10');
       const credits = Math.floor(amount);
+      const diamondsFromPurchase = Math.floor(credits / creditToDiamondRate);
 
       const { error } = await supabase
         .from('credit_purchases')
