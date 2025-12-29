@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Store, Package, AlertCircle, Plus, Edit2, Trash2, Images, Layers } from "lucide-react";
+import { Loader2, Store, Package, AlertCircle, Plus, Edit2, Trash2, Images, Layers, Megaphone } from "lucide-react";
 import { ProductVariantManager } from "@/components/ProductVariantManager";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploadCrop } from "@/components/ImageUploadCrop";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
+import AdsPromoPopup from "@/components/seller/AdsPromoPopup";
 export default function SellerDashboard() {
   const {
     user,
@@ -29,6 +30,7 @@ export default function SellerDashboard() {
   const [categories, setCategories] = useState<any[]>([]);
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [showVariantsDialog, setShowVariantsDialog] = useState(false);
+  const [showAdsPromo, setShowAdsPromo] = useState(false);
   const [selectedProductForVariants, setSelectedProductForVariants] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState({
@@ -268,6 +270,14 @@ export default function SellerDashboard() {
             });
             setShowProductDialog(true);
           }}><Plus className="h-4 w-4 mr-2" />Add Product</Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowAdsPromo(true)}
+            className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border-purple-300 hover:border-purple-400"
+          >
+            <Megaphone className="h-4 w-4 mr-2 text-purple-500" />
+            Promote with AI Ads
+          </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -501,5 +511,8 @@ export default function SellerDashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* AI Ads Promo Popup */}
+      <AdsPromoPopup open={showAdsPromo} onOpenChange={setShowAdsPromo} />
     </div>;
 }
