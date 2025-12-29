@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAICredits } from '@/hooks/useAICredits';
 import { 
   Sparkles, 
   FileText, 
@@ -112,6 +113,13 @@ const VIDEO_DURATIONS = [
 
 const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, externalTopic }: ContentCreatorProps) => {
   const { user } = useAuth();
+  const { 
+    credits: aiCredits, 
+    refetch: refetchAICredits,
+    deductImageCredit,
+    deductVideoMinutes,
+    deductAudioMinutes
+  } = useAICredits();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isPaidAffiliate, setIsPaidAffiliate] = useState(false);
@@ -649,8 +657,12 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
       return;
     }
 
-    if (userCredits < selectedDuration.credits) {
-      toast.error(`You need ${selectedDuration.credits} credits for this video length`);
+    // Check if user has AI video minutes first
+    const minutesNeeded = selectedDuration.seconds / 60;
+    const hasAIVideoMinutes = aiCredits && Number(aiCredits.video_minutes_available) >= minutesNeeded;
+    
+    if (!hasAIVideoMinutes && userCredits < selectedDuration.credits) {
+      toast.error(`You need AI video minutes or ${selectedDuration.credits} credits for this video length`);
       return;
     }
 
@@ -661,13 +673,24 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
     }
 
     try {
-      // Deduct credits
-      const { error: creditError } = await supabase
-        .from('profiles')
-        .update({ credits: userCredits - selectedDuration.credits })
-        .eq('id', user?.id);
+      // Try to deduct from AI video minutes first
+      let creditDeducted = false;
+      if (hasAIVideoMinutes) {
+        creditDeducted = await deductVideoMinutes(minutesNeeded);
+        if (creditDeducted) {
+          refetchAICredits();
+        }
+      }
+      
+      // Fall back to legacy credits
+      if (!creditDeducted) {
+        const { error: creditError } = await supabase
+          .from('profiles')
+          .update({ credits: userCredits - selectedDuration.credits })
+          .eq('id', user?.id);
 
-      if (creditError) throw creditError;
+        if (creditError) throw creditError;
+      }
 
       // Generate video using text-to-video edge function
       const videoPrompt = script 
@@ -705,20 +728,35 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
     }
 
     const regenerateCost = 5;
-    if (userCredits < regenerateCost) {
-      toast.error(`You need ${regenerateCost} credits to regenerate images`);
+    
+    // Check if user has AI image credits first
+    const hasAIImageCredits = aiCredits && aiCredits.images_available >= regenerateCost;
+    
+    if (!hasAIImageCredits && userCredits < regenerateCost) {
+      toast.error(`You need AI image credits or ${regenerateCost} credits to regenerate images`);
       return;
     }
 
     setIsRegeneratingImages(true);
     try {
-      // Deduct credits
-      const { error: creditError } = await supabase
-        .from('profiles')
-        .update({ credits: userCredits - regenerateCost })
-        .eq('id', user?.id);
+      // Try to deduct from AI image credits first
+      let creditDeducted = false;
+      if (hasAIImageCredits) {
+        creditDeducted = await deductImageCredit(regenerateCost);
+        if (creditDeducted) {
+          refetchAICredits();
+        }
+      }
+      
+      // Fall back to legacy credits
+      if (!creditDeducted) {
+        const { error: creditError } = await supabase
+          .from('profiles')
+          .update({ credits: userCredits - regenerateCost })
+          .eq('id', user?.id);
 
-      if (creditError) throw creditError;
+        if (creditError) throw creditError;
+      }
 
       // Generate new images for ALL scenes
       const images: string[] = [];
