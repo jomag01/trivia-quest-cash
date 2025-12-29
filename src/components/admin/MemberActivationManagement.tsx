@@ -15,7 +15,9 @@ import {
   Star,
   Gem,
   Users,
-  GitBranch
+  GitBranch,
+  EyeOff,
+  Settings2
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -27,6 +29,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TabVisibilityManager } from './TabVisibilityManager';
 
 interface SearchResult {
   id: string;
@@ -57,6 +61,7 @@ export default function MemberActivationManagement() {
   const [loading, setLoading] = useState(false);
   const [activating, setActivating] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [tabVisibilityUser, setTabVisibilityUser] = useState<{ id: string; name: string } | null>(null);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -409,6 +414,17 @@ export default function MemberActivationManagement() {
                                 Add to Binary (Deferred)
                               </Button>
                             )}
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setTabVisibilityUser({
+                                id: result.id,
+                                name: result.full_name || result.email
+                              })}
+                            >
+                              <EyeOff className="h-3 w-3 mr-1" />
+                              Manage Tabs
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -427,6 +443,28 @@ export default function MemberActivationManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Tab Visibility Dialog */}
+      <Dialog 
+        open={!!tabVisibilityUser} 
+        onOpenChange={(open) => !open && setTabVisibilityUser(null)}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5" />
+              Manage Tab Visibility
+            </DialogTitle>
+          </DialogHeader>
+          {tabVisibilityUser && (
+            <TabVisibilityManager
+              userId={tabVisibilityUser.id}
+              userName={tabVisibilityUser.name}
+              onSaved={() => setTabVisibilityUser(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
