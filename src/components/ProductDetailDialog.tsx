@@ -271,7 +271,11 @@ export const ProductDetailDialog = ({
                     e.currentTarget.style.display = 'none';
                     const parent = e.currentTarget.parentElement;
                     if (parent) {
-                      parent.innerHTML = '<div class="text-muted-foreground">Failed to load image</div>';
+                      // Safe DOM manipulation - use textContent to prevent XSS
+                      const errorDiv = document.createElement('div');
+                      errorDiv.className = 'text-muted-foreground';
+                      errorDiv.textContent = 'Failed to load image';
+                      parent.appendChild(errorDiv);
                     }
                   }}
                 />
