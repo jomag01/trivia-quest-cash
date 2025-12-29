@@ -43,7 +43,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             url: formattedUrl,
-            formats: ['markdown', 'html', 'links', 'branding'],
+            formats: ['markdown', 'html', 'links'],
             onlyMainContent: false,
           }),
         });
@@ -62,40 +62,74 @@ serve(async (req) => {
             metadata: data.data?.metadata || {},
             branding: data.data?.branding || null,
           };
+          console.log('Firecrawl scrape successful');
         } else {
-          console.error('Firecrawl error:', data);
+          console.log('Firecrawl returned error, will try fallback:', data?.error || 'Unknown error');
         }
       } catch (firecrawlError) {
-        console.error('Firecrawl failed, falling back to direct fetch:', firecrawlError);
+        console.log('Firecrawl request failed, falling back to direct fetch:', firecrawlError);
       }
     }
 
     // Fallback to direct fetch if Firecrawl fails or is not configured
     if (!scrapedData) {
-      const response = await fetch(formattedUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch URL: ${response.status}`);
-      }
-
-      const html = await response.text();
+      console.log('Using direct fetch fallback for:', formattedUrl);
       
-      scrapedData = {
-        url: formattedUrl,
-        title: extractTitle(html),
-        description: extractMetaDescription(html),
-        markdown: htmlToMarkdown(html),
-        html: html.substring(0, 50000),
-        links: extractLinks(html, formattedUrl),
-        images: extractImages(html),
-        metadata: extractMetadata(html),
-        branding: null,
-      };
+      try {
+        const response = await fetch(formattedUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+          },
+          redirect: 'follow',
+        });
+
+        if (!response.ok) {
+          console.log('Direct fetch failed with status:', response.status);
+          // Return basic info even if fetch fails
+          scrapedData = {
+            url: formattedUrl,
+            title: extractDomainName(formattedUrl),
+            description: `Website at ${formattedUrl}`,
+            markdown: '',
+            html: '',
+            links: [],
+            images: [],
+            metadata: {},
+            branding: null,
+          };
+        } else {
+          const html = await response.text();
+          
+          scrapedData = {
+            url: formattedUrl,
+            title: extractTitle(html) || extractDomainName(formattedUrl),
+            description: extractMetaDescription(html) || `Website at ${formattedUrl}`,
+            markdown: htmlToMarkdown(html),
+            html: html.substring(0, 50000),
+            links: extractLinks(html, formattedUrl),
+            images: extractImages(html),
+            metadata: extractMetadata(html),
+            branding: null,
+          };
+          console.log('Direct fetch successful');
+        }
+      } catch (fetchError) {
+        console.log('Direct fetch error:', fetchError);
+        // Return minimal data so the user can still proceed
+        scrapedData = {
+          url: formattedUrl,
+          title: extractDomainName(formattedUrl),
+          description: `Website at ${formattedUrl}`,
+          markdown: '',
+          html: '',
+          links: [],
+          images: [],
+          metadata: {},
+          branding: null,
+        };
+      }
     }
 
     console.log('Scrape successful');
@@ -115,6 +149,15 @@ serve(async (req) => {
     );
   }
 });
+
+function extractDomainName(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname.replace('www.', '');
+  } catch {
+    return url;
+  }
+}
 
 function extractTitle(html: string): string {
   const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
