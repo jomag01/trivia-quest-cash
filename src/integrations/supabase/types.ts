@@ -4772,6 +4772,45 @@ export type Database = {
           },
         ]
       }
+      purchase_notification_settings: {
+        Row: {
+          created_at: string | null
+          fake_ai_packages: string[] | null
+          fake_product_names: string[] | null
+          id: string
+          is_enabled: boolean | null
+          notifications_per_cycle: number | null
+          pause_duration_seconds: number | null
+          show_fake_notifications: boolean | null
+          show_interval_seconds: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fake_ai_packages?: string[] | null
+          fake_product_names?: string[] | null
+          id?: string
+          is_enabled?: boolean | null
+          notifications_per_cycle?: number | null
+          pause_duration_seconds?: number | null
+          show_fake_notifications?: boolean | null
+          show_interval_seconds?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fake_ai_packages?: string[] | null
+          fake_product_names?: string[] | null
+          id?: string
+          is_enabled?: boolean | null
+          notifications_per_cycle?: number | null
+          pause_duration_seconds?: number | null
+          show_fake_notifications?: boolean | null
+          show_interval_seconds?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
