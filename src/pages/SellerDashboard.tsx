@@ -44,8 +44,21 @@ export default function SellerDashboard() {
     free_shipping: false,
     bulk_enabled: false,
     bulk_price: "",
-    bulk_min_quantity: "10"
+    bulk_min_quantity: "10",
+    preferred_courier: ""
   });
+
+  const COURIERS = [
+    { value: "jt", label: "J&T Express" },
+    { value: "lbc", label: "LBC" },
+    { value: "ninja", label: "Ninja Van" },
+    { value: "grab", label: "GrabExpress" },
+    { value: "lalamove", label: "Lalamove" },
+    { value: "gogo", label: "GoGo Xpress" },
+    { value: "shopee", label: "Shopee Xpress" },
+    { value: "lazada", label: "Lazada Logistics" },
+    { value: "other", label: "Other" }
+  ];
   const [diamondBasePrice, setDiamondBasePrice] = useState(10);
   useEffect(() => {
     if (user) {
@@ -176,7 +189,8 @@ export default function SellerDashboard() {
         free_shipping: productForm.free_shipping,
         bulk_enabled: productForm.bulk_enabled,
         bulk_price: productForm.bulk_enabled && productForm.bulk_price ? parseFloat(productForm.bulk_price) : null,
-        bulk_min_quantity: productForm.bulk_enabled ? parseInt(productForm.bulk_min_quantity) || 10 : null
+        bulk_min_quantity: productForm.bulk_enabled ? parseInt(productForm.bulk_min_quantity) || 10 : null,
+        preferred_courier: productForm.preferred_courier || null
       };
       if (editingProduct) {
         const {
@@ -206,7 +220,8 @@ export default function SellerDashboard() {
         free_shipping: false,
         bulk_enabled: false,
         bulk_price: "",
-        bulk_min_quantity: "10"
+        bulk_min_quantity: "10",
+        preferred_courier: ""
       });
       fetchMyProducts();
     } catch (error: any) {
@@ -248,7 +263,8 @@ export default function SellerDashboard() {
               free_shipping: false,
               bulk_enabled: false,
               bulk_price: "",
-              bulk_min_quantity: "10"
+              bulk_min_quantity: "10",
+              preferred_courier: ""
             });
             setShowProductDialog(true);
           }}><Plus className="h-4 w-4 mr-2" />Add Product</Button>
@@ -276,7 +292,8 @@ export default function SellerDashboard() {
                           free_shipping: p.free_shipping || false,
                           bulk_enabled: p.bulk_enabled || false,
                           bulk_price: p.bulk_price?.toString() || "",
-                          bulk_min_quantity: p.bulk_min_quantity?.toString() || "10"
+                          bulk_min_quantity: p.bulk_min_quantity?.toString() || "10",
+                          preferred_courier: p.preferred_courier || ""
                         });
                         setShowProductDialog(true);
                       }}>
@@ -342,18 +359,39 @@ export default function SellerDashboard() {
                 dimensions_cm: e.target.value
               })} placeholder="L x W x H" /></div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Switch checked={productForm.free_shipping} onCheckedChange={checked => setProductForm({
-                ...productForm,
-                free_shipping: checked
-              })} />
-                <Label>Free Shipping</Label>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch checked={productForm.free_shipping} onCheckedChange={checked => setProductForm({
+                    ...productForm,
+                    free_shipping: checked
+                  })} />
+                  <Label>Free Shipping</Label>
+                </div>
+                {!productForm.free_shipping && <div className="flex-1"><Label>Shipping Fee</Label><Input type="number" step="0.01" value={productForm.shipping_fee} onChange={e => setProductForm({
+                  ...productForm,
+                  shipping_fee: e.target.value
+                })} /></div>}
               </div>
-              {!productForm.free_shipping && <div className="flex-1"><Label>Shipping Fee</Label><Input type="number" step="0.01" value={productForm.shipping_fee} onChange={e => setProductForm({
-                ...productForm,
-                shipping_fee: e.target.value
-              })} /></div>}
+              
+              {/* Preferred Courier Selection */}
+              <div>
+                <Label>Preferred Courier / Forwarder</Label>
+                <Select value={productForm.preferred_courier} onValueChange={v => setProductForm({
+                  ...productForm,
+                  preferred_courier: v
+                })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your preferred courier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COURIERS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Select the courier you'll use to ship this product. You can print waybills and add tracking numbers after orders are placed.
+                </p>
+              </div>
             </div>
             
             {/* Bulk Purchase Section */}

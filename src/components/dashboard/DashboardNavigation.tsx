@@ -113,7 +113,8 @@ const navItems: NavItem[] = [
     children: [
       { id: "cart", label: "Cart", icon: ShoppingCart, color: "text-rose-400" },
       { id: "wishlist", label: "Wishlist", icon: Heart, color: "text-red-500" },
-      { id: "orders", label: "Orders", icon: Package, color: "text-teal-500" },
+      { id: "orders", label: "My Orders", icon: Package, color: "text-teal-500" },
+      { id: "seller-orders", label: "Seller Orders", icon: Truck, color: "text-indigo-500" },
     ]
   },
   {
