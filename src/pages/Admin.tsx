@@ -81,6 +81,7 @@ import PromotionalAdsManagement from "@/components/admin/PromotionalAdsManagemen
 import MemberActivationManagement from "@/components/admin/MemberActivationManagement";
 import { cn } from "@/lib/utils";
 import { BarChart3 } from "lucide-react";
+import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
 
 interface MenuItem {
   id: string;
@@ -143,6 +144,7 @@ const Admin = () => {
       icon: DollarSign,
       items: [
         { id: "sales-analytics", label: "Sales Analytics", icon: TrendingUp },
+        { id: "visitor-analytics", label: "Visitor Analytics", icon: Eye },
         { id: "accounting", label: "Accounting & Payouts", icon: Calculator },
         { id: "credits", label: "Credit Purchases", icon: CreditCard },
         { id: "ai-packages", label: "AI Package Purchases", icon: Sparkles },
@@ -762,6 +764,7 @@ const Admin = () => {
           )}
 
           {activeTab === "sales-analytics" && <SalesAnalytics />}
+          {activeTab === "visitor-analytics" && <VisitorAnalytics />}
           {activeTab === "accounting" && <AdminAccountingDashboard />}
           {activeTab === "homepage" && <HomePageManagement />}
           {activeTab === "app-logo" && <AppLogoManagement />}
