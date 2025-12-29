@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.contact-assistant]
 verify_jwt = false
+
+[functions.generate-ads]
+verify_jwt = true
