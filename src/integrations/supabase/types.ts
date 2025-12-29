@@ -3737,6 +3737,48 @@ export type Database = {
           },
         ]
       }
+      page_views: {
+        Row: {
+          created_at: string
+          id: string
+          page_path: string
+          page_title: string | null
+          referral_source: string | null
+          referral_user_id: string | null
+          referrer_url: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          page_path: string
+          page_title?: string | null
+          referral_source?: string | null
+          referral_user_id?: string | null
+          referrer_url?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          page_path?: string
+          page_title?: string | null
+          referral_source?: string | null
+          referral_user_id?: string | null
+          referrer_url?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          visitor_id?: string
+        }
+        Relationships: []
+      }
       payout_accounts: {
         Row: {
           account_name: string
@@ -7078,6 +7120,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      visitor_sessions: {
+        Row: {
+          converted_to_affiliate: boolean | null
+          converted_to_user: boolean | null
+          created_at: string
+          first_visit_at: string
+          id: string
+          last_visit_at: string
+          referral_source: string | null
+          referral_user_id: string | null
+          total_page_views: number
+          user_id: string | null
+          visitor_id: string
+        }
+        Insert: {
+          converted_to_affiliate?: boolean | null
+          converted_to_user?: boolean | null
+          created_at?: string
+          first_visit_at?: string
+          id?: string
+          last_visit_at?: string
+          referral_source?: string | null
+          referral_user_id?: string | null
+          total_page_views?: number
+          user_id?: string | null
+          visitor_id: string
+        }
+        Update: {
+          converted_to_affiliate?: boolean | null
+          converted_to_user?: boolean | null
+          created_at?: string
+          first_visit_at?: string
+          id?: string
+          last_visit_at?: string
+          referral_source?: string | null
+          referral_user_id?: string | null
+          total_page_views?: number
+          user_id?: string | null
+          visitor_id?: string
+        }
+        Relationships: []
       }
       website_builder_plans: {
         Row: {

@@ -142,10 +142,13 @@ const AIHub = memo(() => {
     toast.success('Switching to Content Creator with your research!');
   };
 
+  const isPaidAffiliate = (profile as any)?.is_paid_affiliate;
+
   // Navigation items for sidebar with colorful gradients
   const navItems = [
     { id: 'home', label: 'Home', icon: Sparkles, gradient: 'from-yellow-400 to-orange-500', iconColor: 'text-yellow-500' },
-    { id: 'affiliate', label: 'Affiliate', icon: GitBranch, gradient: 'from-green-400 to-emerald-500', iconColor: 'text-green-500' },
+    // Only show affiliate tab for affiliates or users looking to buy credits
+    ...(isPaidAffiliate || user ? [{ id: 'affiliate', label: 'Affiliate', icon: GitBranch, gradient: 'from-green-400 to-emerald-500', iconColor: 'text-green-500' }] : []),
     { id: 'research', label: 'Research', icon: Brain, gradient: 'from-purple-400 to-indigo-500', iconColor: 'text-purple-500' },
     { id: 'chat', label: 'GPT-5', icon: MessageSquare, gradient: 'from-blue-400 to-cyan-500', iconColor: 'text-blue-500' },
     { id: 'business', label: 'Business', icon: Briefcase, gradient: 'from-slate-400 to-gray-600', iconColor: 'text-slate-500' },
