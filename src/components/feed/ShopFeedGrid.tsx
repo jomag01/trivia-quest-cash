@@ -209,7 +209,15 @@ export default function ShopFeedGrid({ limit = 8 }: ShopFeedGridProps) {
               
               <div className="flex items-center gap-1 mb-2">
                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                <span className="text-xs text-muted-foreground">4.8 (123 sold)</span>
+                <span className="text-xs text-muted-foreground">
+                  {(product.boosted_rating && product.boosted_rating > 0) 
+                    ? product.boosted_rating.toFixed(1) 
+                    : (product.rating || 4.8).toFixed(1)} 
+                  {" "}
+                  ({(product.boosted_sales_count && product.boosted_sales_count > 0) 
+                    ? product.boosted_sales_count.toLocaleString() 
+                    : (product.sold_count || 0)} sold)
+                </span>
               </div>
 
               <div className="flex items-center justify-between">
