@@ -4539,6 +4539,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_features_unlocked: boolean | null
           avatar_url: string | null
           bio: string | null
           birthday: string | null
@@ -4572,6 +4573,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          ai_features_unlocked?: boolean | null
           avatar_url?: string | null
           bio?: string | null
           birthday?: string | null
@@ -4605,6 +4607,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          ai_features_unlocked?: boolean | null
           avatar_url?: string | null
           bio?: string | null
           birthday?: string | null

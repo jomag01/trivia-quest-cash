@@ -143,7 +143,7 @@ const AIHub = memo(() => {
     toast.success('Switching to Content Creator with your research!');
   };
 
-  const isPaidAffiliate = (profile as any)?.is_paid_affiliate;
+  const isPaidAffiliate = (profile as any)?.is_paid_affiliate || (profile as any)?.ai_features_unlocked;
 
   // Navigation items for sidebar with colorful gradients
   const navItems = [

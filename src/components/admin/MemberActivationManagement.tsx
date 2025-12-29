@@ -17,7 +17,10 @@ import {
   Users,
   GitBranch,
   EyeOff,
-  Settings2
+  Settings2,
+  Sparkles,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -38,6 +41,7 @@ interface SearchResult {
   full_name: string;
   is_verified: boolean;
   is_paid_affiliate: boolean;
+  ai_features_unlocked: boolean;
   diamonds: number;
   referral_code: string;
   referral_count: number;
@@ -74,7 +78,7 @@ export default function MemberActivationManagement() {
       // Search profiles by email or name
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, is_verified, is_paid_affiliate, diamonds, referral_code, created_at')
+        .select('id, email, full_name, is_verified, is_paid_affiliate, ai_features_unlocked, diamonds, referral_code, created_at')
         .or(`email.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%,referral_code.ilike.%${searchQuery}%`)
         .limit(20);
 
@@ -120,6 +124,7 @@ export default function MemberActivationManagement() {
 
       const resultsWithDetails: SearchResult[] = profiles.map(p => ({
         ...p,
+        ai_features_unlocked: (p as any).ai_features_unlocked || false,
         referral_count: referralCountMap.get(p.id) || 0,
         affiliate_status: affiliateMap.get(p.id) || null,
         binary_status: binaryMap.get(p.id) ? {
@@ -263,6 +268,26 @@ export default function MemberActivationManagement() {
     }
   };
 
+  const handleToggleAIFeatures = async (userId: string, currentStatus: boolean) => {
+    setActivating(userId);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ ai_features_unlocked: !currentStatus })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast.success(currentStatus ? 'AI features locked for user' : 'AI features unlocked for user');
+      handleSearch(); // Refresh results
+    } catch (error) {
+      console.error('AI features toggle error:', error);
+      toast.error('Failed to toggle AI features');
+    } finally {
+      setActivating(null);
+    }
+  };
+
   const getAffiliateRequirements = (result: SearchResult) => {
     const hasDiamonds = result.diamonds >= 150;
     const hasReferrals = result.referral_count >= 2;
@@ -308,6 +333,7 @@ export default function MemberActivationManagement() {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Requirements</TableHead>
+                    <TableHead>AI Features</TableHead>
                     <TableHead>Affiliate Status</TableHead>
                     <TableHead>Binary Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -345,6 +371,21 @@ export default function MemberActivationManagement() {
                                 <XCircle className="h-3 w-3 text-destructive" />
                               )}
                             </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {result.ai_features_unlocked || result.is_paid_affiliate ? (
+                              <Badge className="bg-gradient-to-r from-purple-500 to-pink-500">
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                Unlocked
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground">
+                                <Lock className="h-3 w-3 mr-1" />
+                                Locked
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -414,6 +455,22 @@ export default function MemberActivationManagement() {
                                 Add to Binary (Deferred)
                               </Button>
                             )}
+                            <Button
+                              size="sm"
+                              variant={result.ai_features_unlocked ? "destructive" : "default"}
+                              onClick={() => handleToggleAIFeatures(result.id, result.ai_features_unlocked)}
+                              disabled={activating === result.id}
+                              className={!result.ai_features_unlocked ? "bg-gradient-to-r from-purple-500 to-pink-500" : ""}
+                            >
+                              {activating === result.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              ) : result.ai_features_unlocked ? (
+                                <Lock className="h-3 w-3 mr-1" />
+                              ) : (
+                                <Unlock className="h-3 w-3 mr-1" />
+                              )}
+                              {result.ai_features_unlocked ? 'Lock AI' : 'Unlock AI'}
+                            </Button>
                             <Button
                               size="sm"
                               variant="secondary"
