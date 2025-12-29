@@ -273,6 +273,16 @@ const GuessSong = () => {
     return false;
   };
 
+  // Check if user has enough credits to play a level (auto-unlock)
+  const isLevelUnlocked = (level: Level): boolean => {
+    // Level 5 special lock still applies
+    if (level.level_number === 5 && checkLevel5Lock()) {
+      return false;
+    }
+    // All other levels are unlocked if user has enough credits
+    return wallet.credits >= level.credits_to_play;
+  };
+
   const startLevel = async (level: Level) => {
     if (!user) return;
 
@@ -282,18 +292,10 @@ const GuessSong = () => {
       return;
     }
 
-    // Check if level is locked (must complete previous levels)
-    if (level.level_number > 1 && !completedLevels.has(level.level_number - 1)) {
-      toast.error("Level Locked 🔒", {
-        description: "Complete previous levels to unlock this challenge."
-      });
-      return;
-    }
-
-    // Check credits
+    // Check credits - this is the only requirement now
     if (wallet.credits < level.credits_to_play) {
       toast.error("Oops! Not Enough Credits 😕", {
-        description: "Earn more credits or try again later."
+        description: `You need ${level.credits_to_play} credits to play this level.`
       });
       return;
     }
@@ -625,8 +627,9 @@ const GuessSong = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 max-w-6xl mx-auto">
             {levels.map((level) => {
               const isCompleted = completedLevels.has(level.level_number);
-              const isLocked = level.level_number > 1 && !completedLevels.has(level.level_number - 1);
+              const hasEnoughCredits = wallet.credits >= level.credits_to_play;
               const isLevel5Locked = level.level_number === 5 && checkLevel5Lock();
+              const isLocked = isLevel5Locked || !hasEnoughCredits;
               const colors = LEVEL_COLORS[level.difficulty] || { from: "from-primary", to: "to-primary", text: "text-primary" };
 
               return (
@@ -634,8 +637,8 @@ const GuessSong = () => {
                   key={level.id}
                   className={`relative overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
                     isCompleted ? "ring-2 ring-green-500" : ""
-                  } ${isLocked || isLevel5Locked ? "opacity-75" : ""}`}
-                  onClick={() => !isLocked && startLevel(level)}
+                  } ${isLocked ? "opacity-75" : ""}`}
+                  onClick={() => startLevel(level)}
                 >
                   <div className={`h-20 bg-gradient-to-r ${colors.from} ${colors.to} flex items-center justify-center relative`}>
                     <span className="text-4xl font-bold text-white">{level.level_number}</span>
@@ -644,9 +647,14 @@ const GuessSong = () => {
                         <Trophy className="h-4 w-4" />
                       </div>
                     )}
-                    {(isLocked || isLevel5Locked) && (
+                    {isLocked && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <Lock className="h-8 w-8 text-white" />
+                      </div>
+                    )}
+                    {!isLocked && !isCompleted && (
+                      <div className="absolute top-2 right-2 bg-green-500/80 text-white px-2 py-0.5 rounded-full text-xs">
+                        Unlocked
                       </div>
                     )}
                   </div>
@@ -655,9 +663,9 @@ const GuessSong = () => {
                       {level.difficulty}
                     </Badge>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-1 text-muted-foreground">
+                      <span className={`flex items-center gap-1 ${hasEnoughCredits ? 'text-green-600' : 'text-red-500'}`}>
                         <Sparkles className="h-3 w-3" />
-                        {level.credits_to_play}
+                        {level.credits_to_play} {!hasEnoughCredits && '(need more)'}
                       </span>
                       <span className="flex items-center gap-1 text-cyan-600 font-medium">
                         <Diamond className="h-3 w-3" />
