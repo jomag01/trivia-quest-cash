@@ -62,7 +62,7 @@ const PLATFORMS = [
 ];
 
 const AD_CREDIT_COST = 3;
-const VIDEO_CREDIT_COST = 5;
+const VIDEO_SECONDS_COST = 10; // 10 seconds per video ad
 
 const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => {
   const { user } = useAuth();
@@ -70,7 +70,8 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
     credits: aiCredits, 
     loading: aiCreditsLoading, 
     refetch: refetchAICredits,
-    deductImageCredit
+    deductImageCredit,
+    deductVideoMinutes
   } = useAICredits();
   
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -300,8 +301,12 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
   };
 
   const handleGenerateVideo = async (ad: GeneratedAd) => {
-    if (videoMinutesAvailable < 0.1 && totalAvailableCredits < VIDEO_CREDIT_COST) {
-      toast.error('Insufficient credits for video generation');
+    // Check if user has enough video minutes (10 seconds = ~0.17 minutes)
+    const videoMinutesNeeded = VIDEO_SECONDS_COST / 60; // Convert seconds to minutes
+    const hasVideoCredits = videoMinutesAvailable >= videoMinutesNeeded;
+    
+    if (!hasVideoCredits) {
+      toast.error(`Insufficient video credits. Need ${VIDEO_SECONDS_COST} seconds (${videoMinutesNeeded.toFixed(2)} minutes). You have ${(videoMinutesAvailable * 60).toFixed(0)} seconds available.`);
       return;
     }
 
@@ -309,6 +314,9 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
     
     setIsGeneratingVideo(ad.id);
     try {
+      // Deduct video minutes first
+      await deductVideoMinutes(videoMinutesNeeded);
+      
       const videoPrompt = `Create a dynamic ${ad.platform} video advertisement: ${ad.headline}. ${ad.primaryText}. Style: Professional marketing video, engaging motion graphics, bold text overlays. ${imageToUse ? 'Incorporate product imagery.' : ''}`;
       
       const { data, error } = await supabase.functions.invoke('text-to-video', {
@@ -433,17 +441,34 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
           Create stunning image & video ads for all social media platforms. 
           Upload your products or let AI suggest visuals for you!
         </p>
+        
+        {/* Credits Display */}
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-          <Badge className="bg-white/20 text-white border-white/30 px-4 py-2">
+          <Badge className="bg-white/30 text-white border-white/40 px-4 py-2 font-semibold">
             <Image className="h-4 w-4 mr-2" />
+            {aiCredits?.images_available || 0} Images
+          </Badge>
+          <Badge className="bg-white/30 text-white border-white/40 px-4 py-2 font-semibold">
+            <Video className="h-4 w-4 mr-2" />
+            {Math.floor((videoMinutesAvailable || 0) * 60)}s Video
+          </Badge>
+          <Badge className="bg-white/30 text-white border-white/40 px-4 py-2 font-semibold">
+            <Sparkles className="h-4 w-4 mr-2" />
+            {totalAvailableCredits} Credits
+          </Badge>
+        </div>
+        
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+          <Badge className="bg-white/20 text-white border-white/30 px-3 py-1">
+            <Image className="h-3 w-3 mr-1" />
             Image Ads
           </Badge>
-          <Badge className="bg-white/20 text-white border-white/30 px-4 py-2">
-            <Video className="h-4 w-4 mr-2" />
+          <Badge className="bg-white/20 text-white border-white/30 px-3 py-1">
+            <Video className="h-3 w-3 mr-1" />
             Video Ads
           </Badge>
-          <Badge className="bg-white/20 text-white border-white/30 px-4 py-2">
-            <Share2 className="h-4 w-4 mr-2" />
+          <Badge className="bg-white/20 text-white border-white/30 px-3 py-1">
+            <Share2 className="h-3 w-3 mr-1" />
             Direct Publish
           </Badge>
         </div>
@@ -572,7 +597,7 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
                   </div>
                   <div>
                     <p className="font-bold text-lg">Video Ads</p>
-                    <p className="text-xs text-muted-foreground">{VIDEO_CREDIT_COST} credits/video</p>
+                    <p className="text-xs text-muted-foreground">{VIDEO_SECONDS_COST}s video credits</p>
                   </div>
                 </div>
               </button>
