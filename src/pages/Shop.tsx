@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building, Truck } from "lucide-react";
+import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building, Truck, Star } from "lucide-react";
 import SupplierApplication from "@/components/shop/SupplierApplication";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -543,7 +543,25 @@ const Shop = () => {
                   
                   <div className="p-2 flex-1 flex flex-col">
                     <h3 className="text-xs font-medium mb-1 line-clamp-2 leading-tight text-black">{product.name}</h3>
-                    
+
+                    {/* Sales boosting display (if set) */}
+                    {(Number(product.boosted_sales_count || 0) > 0 || Number(product.boosted_rating || 0) > 0) && (
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                        {Number(product.boosted_sales_count || 0) > 0 && (
+                          <span className="flex items-center gap-1">
+                            <span aria-hidden>📊</span>
+                            <span className="font-medium">{Number(product.boosted_sales_count).toLocaleString()} sold</span>
+                          </span>
+                        )}
+                        {Number(product.boosted_rating || 0) > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-primary text-primary" />
+                            <span className="font-medium">{Number(product.boosted_rating).toFixed(1)}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-1 mb-1.5">
                       <span className="text-sm font-bold text-red-500">
                         ₱{getEffectivePrice(product).toFixed(2)}
