@@ -47,6 +47,7 @@ import PromotionalAdsGallery from "@/components/PromotionalAdsGallery";
 import BinaryAccountsManager from "@/components/BinaryAccountsManager";
 import { StairStepTree } from "@/components/StairStepTree";
 import { LeadershipTree } from "@/components/LeadershipTree";
+import { CurrencyConversionDialog } from "@/components/CurrencyConversionDialog";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -59,6 +60,7 @@ const Dashboard = () => {
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [showCashOut, setShowCashOut] = useState(false);
   const [showGenealogy, setShowGenealogy] = useState(false);
+  const [showConversion, setShowConversion] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState(1);
   const [wallet, setWallet] = useState<any>(null);
   const [categories, setCategories] = useState<any[]>([]);
@@ -446,6 +448,9 @@ const Dashboard = () => {
                 <p className="text-[10px] text-amber-600 mt-0.5">
                   Total Earned: 💎 {wallet?.diamond_earned || 0}
                 </p>
+                <Button variant="outline" size="sm" className="mt-2 w-full h-7 text-xs border-amber-500/50 text-amber-600 hover:bg-amber-500/10" onClick={() => setShowConversion(true)}>
+                  Convert Currency
+                </Button>
               </>}
           </Card>
 
@@ -608,6 +613,14 @@ const Dashboard = () => {
                     <div className="text-xs opacity-80">Top up your gaming credits</div>
                   </div>
                 </Button>
+
+                <Button variant="outline" className="w-full justify-start h-auto py-4" onClick={() => setShowConversion(true)}>
+                  <TrendingUp className="w-5 h-5 mr-3" />
+                  <div className="text-left">
+                    <div className="font-bold">Convert Currency</div>
+                    <div className="text-xs opacity-80">Credits ↔ Diamonds ↔ AI Credits</div>
+                  </div>
+                </Button>
               </div>
             </Card>
 
@@ -629,6 +642,7 @@ const Dashboard = () => {
         <BuyCreditsDialog open={showBuyCredits} onOpenChange={setShowBuyCredits} />
         <CashOutDialog open={showCashOut} onOpenChange={setShowCashOut} initialBalance={wallet?.balance || 0} />
         <GenealogyDialog open={showGenealogy} onOpenChange={setShowGenealogy} level={selectedLevel} userId={user?.id || ''} />
+        <CurrencyConversionDialog open={showConversion} onOpenChange={setShowConversion} />
       </TabsContent>
 
       <TabsContent value="network" className="space-y-6">
