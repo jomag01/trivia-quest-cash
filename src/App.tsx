@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import Navigation from "./components/Navigation";
 import { parseAndTrackFromUrl } from "@/lib/cookieTracking";
 import { AffiliateSignupPopup } from "./components/AffiliateSignupPopup";
+import { PurchaseNotification } from "./components/PurchaseNotification";
 
 // Lazy load all pages for code splitting
 const AIHub = lazy(() => import("./pages/AIHub"));
@@ -110,6 +111,7 @@ const App = () => (
           <PageTracker />
           <Navigation />
           <AffiliateSignupPopup />
+          <PurchaseNotification />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<AIHub />} />
