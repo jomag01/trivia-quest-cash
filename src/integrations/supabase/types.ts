@@ -4428,6 +4428,8 @@ export type Database = {
           admin_markup_percentage: number | null
           approval_status: string | null
           base_price: number
+          boosted_rating: number | null
+          boosted_sales_count: number | null
           bulk_enabled: boolean | null
           bulk_min_quantity: number | null
           bulk_price: number | null
@@ -4460,6 +4462,8 @@ export type Database = {
           admin_markup_percentage?: number | null
           approval_status?: string | null
           base_price: number
+          boosted_rating?: number | null
+          boosted_sales_count?: number | null
           bulk_enabled?: boolean | null
           bulk_min_quantity?: number | null
           bulk_price?: number | null
@@ -4492,6 +4496,8 @@ export type Database = {
           admin_markup_percentage?: number | null
           approval_status?: string | null
           base_price?: number
+          boosted_rating?: number | null
+          boosted_sales_count?: number | null
           bulk_enabled?: boolean | null
           bulk_min_quantity?: number | null
           bulk_price?: number | null

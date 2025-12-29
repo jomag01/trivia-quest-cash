@@ -38,6 +38,8 @@ interface Product {
   dimensions_cm?: string;
   free_shipping?: boolean;
   referral_commission_diamonds?: number;
+  boosted_sales_count?: number;
+  boosted_rating?: number;
 }
 
 interface ProductCategory {
@@ -110,7 +112,9 @@ export const ProductManagement = () => {
     shipping_fee: "0",
     weight_kg: "",
     dimensions_cm: "",
-    free_shipping: false
+    free_shipping: false,
+    boosted_sales_count: "0",
+    boosted_rating: "0"
   });
 
   // Image form state
@@ -212,7 +216,9 @@ export const ProductManagement = () => {
       shipping_fee: formData.free_shipping ? 0 : parseFloat(formData.shipping_fee) || 0,
       weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
       dimensions_cm: formData.dimensions_cm || null,
-      free_shipping: formData.free_shipping
+      free_shipping: formData.free_shipping,
+      boosted_sales_count: parseInt(formData.boosted_sales_count) || 0,
+      boosted_rating: parseFloat(formData.boosted_rating) || 0
     };
 
     if (editingProduct) {
@@ -397,7 +403,9 @@ export const ProductManagement = () => {
       shipping_fee: "0",
       weight_kg: "",
       dimensions_cm: "",
-      free_shipping: false
+      free_shipping: false,
+      boosted_sales_count: "0",
+      boosted_rating: "0"
     });
     setEditingProduct(null);
   };
@@ -422,7 +430,9 @@ export const ProductManagement = () => {
       shipping_fee: product.shipping_fee?.toString() || "0",
       weight_kg: product.weight_kg?.toString() || "",
       dimensions_cm: product.dimensions_cm || "",
-      free_shipping: product.free_shipping || false
+      free_shipping: product.free_shipping || false,
+      boosted_sales_count: product.boosted_sales_count?.toString() || "0",
+      boosted_rating: product.boosted_rating?.toString() || "0"
     });
     setIsDialogOpen(true);
   };
@@ -750,6 +760,65 @@ export const ProductManagement = () => {
                 )}
               </div>
               
+              {/* Sales Boosting Section - Admin Only */}
+              <div className="border-t pt-3 space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🚀</span>
+                  <Label className="text-sm font-semibold text-orange-600">Sales Boosting (Marketing)</Label>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Add dummy sales numbers and ratings to boost buyer confidence for new products
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="boosted_sales_count">📊 Boosted Sales Count</Label>
+                    <Input
+                      id="boosted_sales_count"
+                      type="number"
+                      min="0"
+                      value={formData.boosted_sales_count}
+                      onChange={(e) => setFormData({ ...formData, boosted_sales_count: e.target.value })}
+                      placeholder="e.g. 150"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Number of "sold" items to display</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="boosted_rating">⭐ Boosted Star Rating</Label>
+                    <Input
+                      id="boosted_rating"
+                      type="number"
+                      min="0"
+                      max="5"
+                      step="0.1"
+                      value={formData.boosted_rating}
+                      onChange={(e) => {
+                        const value = Math.min(5, Math.max(0, parseFloat(e.target.value) || 0));
+                        setFormData({ ...formData, boosted_rating: value.toString() });
+                      }}
+                      placeholder="e.g. 4.5"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Rating from 0 to 5 stars</p>
+                  </div>
+                </div>
+                {(parseInt(formData.boosted_sales_count) > 0 || parseFloat(formData.boosted_rating) > 0) && (
+                  <div className="p-3 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-lg border border-orange-200 dark:border-orange-700">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-1">
+                        <span>📊</span>
+                        <span className="font-medium">{formData.boosted_sales_count || 0} sold</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        {[1,2,3,4,5].map((star) => (
+                          <span key={star} className={star <= parseFloat(formData.boosted_rating || "0") ? "text-yellow-500" : "text-gray-300"}>★</span>
+                        ))}
+                        <span className="font-medium ml-1">{parseFloat(formData.boosted_rating || "0").toFixed(1)}</span>
+                      </span>
+                    </div>
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">Preview: This is how it will appear to buyers</p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-between border-t pt-3">
                 <Label htmlFor="is_active">Product Active</Label>
                 <Switch

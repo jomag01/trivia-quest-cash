@@ -47,7 +47,9 @@ export default function SellerDashboard() {
     bulk_enabled: false,
     bulk_price: "",
     bulk_min_quantity: "10",
-    preferred_courier: ""
+    preferred_courier: "",
+    boosted_sales_count: "0",
+    boosted_rating: "0"
   });
 
   const COURIERS = [
@@ -192,7 +194,9 @@ export default function SellerDashboard() {
         bulk_enabled: productForm.bulk_enabled,
         bulk_price: productForm.bulk_enabled && productForm.bulk_price ? parseFloat(productForm.bulk_price) : null,
         bulk_min_quantity: productForm.bulk_enabled ? parseInt(productForm.bulk_min_quantity) || 10 : null,
-        preferred_courier: productForm.preferred_courier || null
+        preferred_courier: productForm.preferred_courier || null,
+        boosted_sales_count: parseInt(productForm.boosted_sales_count) || 0,
+        boosted_rating: parseFloat(productForm.boosted_rating) || 0
       };
       if (editingProduct) {
         const {
@@ -223,7 +227,9 @@ export default function SellerDashboard() {
         bulk_enabled: false,
         bulk_price: "",
         bulk_min_quantity: "10",
-        preferred_courier: ""
+        preferred_courier: "",
+        boosted_sales_count: "0",
+        boosted_rating: "0"
       });
       fetchMyProducts();
     } catch (error: any) {
@@ -266,7 +272,9 @@ export default function SellerDashboard() {
               bulk_enabled: false,
               bulk_price: "",
               bulk_min_quantity: "10",
-              preferred_courier: ""
+              preferred_courier: "",
+              boosted_sales_count: "0",
+              boosted_rating: "0"
             });
             setShowProductDialog(true);
           }}><Plus className="h-4 w-4 mr-2" />Add Product</Button>
@@ -303,7 +311,9 @@ export default function SellerDashboard() {
                           bulk_enabled: p.bulk_enabled || false,
                           bulk_price: p.bulk_price?.toString() || "",
                           bulk_min_quantity: p.bulk_min_quantity?.toString() || "10",
-                          preferred_courier: p.preferred_courier || ""
+                          preferred_courier: p.preferred_courier || "",
+                          boosted_sales_count: p.boosted_sales_count?.toString() || "0",
+                          boosted_rating: p.boosted_rating?.toString() || "0"
                         });
                         setShowProductDialog(true);
                       }}>
@@ -449,6 +459,69 @@ export default function SellerDashboard() {
               <p className="text-xs text-muted-foreground">
                 Enable bulk pricing to offer discounts when customers order large quantities.
               </p>
+            </div>
+
+            {/* Sales Boosting Section - Sellers can set this */}
+            <div className="border rounded-lg p-4 space-y-4 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/10 dark:to-yellow-900/10">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">🚀</span>
+                <Label className="font-medium text-orange-700 dark:text-orange-400">Sales Boosting (Marketing)</Label>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Add display sales count and ratings to boost buyer confidence for new products
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>📊 Sales Count Display</Label>
+                  <Input 
+                    type="number" 
+                    min="0"
+                    value={productForm.boosted_sales_count} 
+                    onChange={e => setProductForm({
+                      ...productForm,
+                      boosted_sales_count: e.target.value
+                    })} 
+                    placeholder="e.g. 150"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Number of "sold" to display</p>
+                </div>
+                <div>
+                  <Label>⭐ Star Rating Display</Label>
+                  <Input 
+                    type="number" 
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    value={productForm.boosted_rating} 
+                    onChange={e => {
+                      const value = Math.min(5, Math.max(0, parseFloat(e.target.value) || 0));
+                      setProductForm({
+                        ...productForm,
+                        boosted_rating: value.toString()
+                      });
+                    }} 
+                    placeholder="e.g. 4.5"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Rating 0-5 stars</p>
+                </div>
+              </div>
+              {(parseInt(productForm.boosted_sales_count) > 0 || parseFloat(productForm.boosted_rating) > 0) && (
+                <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-orange-200 dark:border-orange-700">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1">
+                      <span>📊</span>
+                      <span className="font-medium">{productForm.boosted_sales_count || 0} sold</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      {[1,2,3,4,5].map((star) => (
+                        <span key={star} className={star <= parseFloat(productForm.boosted_rating || "0") ? "text-yellow-500" : "text-gray-300"}>★</span>
+                      ))}
+                      <span className="font-medium ml-1">{parseFloat(productForm.boosted_rating || "0").toFixed(1)}</span>
+                    </span>
+                  </div>
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">Preview: This is how it will appear to buyers</p>
+                </div>
+              )}
             </div>
             
             <div><Label>Primary Image</Label><ImageUploadCrop currentImage={productForm.image_url} onImageUploaded={url => setProductForm({

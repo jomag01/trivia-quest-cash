@@ -18,6 +18,8 @@ interface Product {
   diamond_reward?: number;
   rating?: number;
   sold_count?: number;
+  boosted_sales_count?: number;
+  boosted_rating?: number;
 }
 
 interface ShopFeedGridProps {
@@ -55,7 +57,7 @@ export default function ShopFeedGrid({ limit = 8 }: ShopFeedGridProps) {
   const fetchProducts = async () => {
     const { data } = await supabase
       .from("products")
-      .select("*")
+      .select("*, boosted_sales_count, boosted_rating")
       .eq("is_active", true)
       .order("created_at", { ascending: false })
       .limit(limit);
