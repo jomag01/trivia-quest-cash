@@ -43,17 +43,32 @@ serve(async (req) => {
       );
     }
 
-    // Deduct credits
+    // Check credits - first AI credits, then legacy profile credits
     const creditCost = platforms.length * 3;
+    
+    // Get AI credits from user_ai_credits table
+    const { data: aiCredits } = await supabase
+      .from('user_ai_credits')
+      .select('total_credits')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    // Get legacy profile credits
     const { data: profile } = await supabase
       .from('profiles')
       .select('credits')
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.credits < creditCost) {
+    const totalAICredits = aiCredits?.total_credits || 0;
+    const legacyCredits = profile?.credits || 0;
+    const totalAvailableCredits = totalAICredits + legacyCredits;
+
+    console.log('Credit check:', { totalAICredits, legacyCredits, totalAvailableCredits, creditCost });
+
+    if (totalAvailableCredits < creditCost) {
       return new Response(
-        JSON.stringify({ error: 'Insufficient credits' }),
+        JSON.stringify({ error: `Insufficient credits. Need ${creditCost} credits, you have ${totalAvailableCredits} available.` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -183,11 +198,26 @@ Example format:
       id: `${Date.now()}-${index}`,
     }));
 
-    // Deduct credits
-    await supabase
-      .from('profiles')
-      .update({ credits: profile.credits - creditCost })
-      .eq('id', user.id);
+    // Deduct credits - prioritize AI credits, then legacy credits
+    let remainingCost = creditCost;
+    
+    if (totalAICredits > 0) {
+      const deductFromAI = Math.min(totalAICredits, remainingCost);
+      await supabase
+        .from('user_ai_credits')
+        .update({ total_credits: totalAICredits - deductFromAI })
+        .eq('user_id', user.id);
+      remainingCost -= deductFromAI;
+      console.log('Deducted from AI credits:', deductFromAI);
+    }
+    
+    if (remainingCost > 0 && legacyCredits > 0) {
+      await supabase
+        .from('profiles')
+        .update({ credits: legacyCredits - remainingCost })
+        .eq('id', user.id);
+      console.log('Deducted from legacy credits:', remainingCost);
+    }
 
     // Log the generation
     await supabase.from('ai_generations').insert({
