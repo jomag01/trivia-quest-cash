@@ -20,6 +20,8 @@ interface FeaturedProduct {
   image_url: string | null;
   stock_quantity: number;
   diamond_reward: number;
+  boosted_sales_count?: number;
+  boosted_rating?: number;
   [key: string]: any;
 }
 
@@ -42,7 +44,7 @@ export const FeaturedProducts = () => {
       const supabaseClient: any = supabase;
       const response = await supabaseClient
         .from("products")
-        .select("id, name, description, base_price, promo_price, promo_active, image_url, stock_quantity, diamond_reward")
+        .select("id, name, description, base_price, promo_price, promo_active, image_url, stock_quantity, diamond_reward, boosted_sales_count, boosted_rating")
         .eq("is_featured", true)
         .eq("is_active", true)
         .limit(10)
@@ -207,6 +209,24 @@ export const FeaturedProducts = () => {
               <div className="p-2 space-y-1.5">
                 <h3 className="font-semibold text-xs md:text-sm line-clamp-2 leading-tight text-black">{product.name}</h3>
                 
+                {/* Boosted Sales & Rating Display */}
+                {((product.boosted_sales_count && product.boosted_sales_count > 0) || (product.boosted_rating && product.boosted_rating > 0)) && (
+                  <div className="flex items-center justify-between text-[10px] md:text-xs text-muted-foreground">
+                    {product.boosted_sales_count && product.boosted_sales_count > 0 && (
+                      <span className="flex items-center gap-0.5">
+                        <span className="text-orange-500">📊</span>
+                        <span className="font-medium">{product.boosted_sales_count} sold</span>
+                      </span>
+                    )}
+                    {product.boosted_rating && product.boosted_rating > 0 && (
+                      <span className="flex items-center gap-0.5">
+                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                        <span className="font-medium">{product.boosted_rating.toFixed(1)}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm md:text-base font-bold text-black">
                     ₱{effectivePrice.toFixed(2)}
