@@ -57,7 +57,7 @@ export default function ShopFeedGrid({ limit = 8 }: ShopFeedGridProps) {
   const fetchProducts = async () => {
     const { data } = await supabase
       .from("products")
-      .select("*, boosted_sales_count, boosted_rating")
+      .select("id, name, base_price, promo_price, promo_active, image_url, diamond_reward, boosted_sales_count, boosted_rating")
       .eq("is_active", true)
       .order("created_at", { ascending: false })
       .limit(limit);
