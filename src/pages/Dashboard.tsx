@@ -48,6 +48,7 @@ import BinaryAccountsManager from "@/components/BinaryAccountsManager";
 import { StairStepTree } from "@/components/StairStepTree";
 import { LeadershipTree } from "@/components/LeadershipTree";
 import { CurrencyConversionDialog } from "@/components/CurrencyConversionDialog";
+import { useHiddenTabs } from "@/hooks/useHiddenTabs";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -57,6 +58,7 @@ const Dashboard = () => {
     loading,
     signOut
   } = useAuth();
+  const { hiddenTabs } = useHiddenTabs();
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [showCashOut, setShowCashOut] = useState(false);
   const [showGenealogy, setShowGenealogy] = useState(false);
@@ -404,6 +406,7 @@ const Dashboard = () => {
               navigate('/auth');
             }}
             isBinaryEnrolled={isBinaryEnrolled}
+            hiddenTabs={hiddenTabs}
           />
 
           <TabsContent value="overview" className="space-y-8">

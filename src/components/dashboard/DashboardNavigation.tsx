@@ -48,6 +48,7 @@ interface DashboardNavigationProps {
   onTabChange: (tab: string) => void;
   onSignOut: () => void;
   isBinaryEnrolled?: boolean; // Whether user is enrolled in binary network
+  hiddenTabs?: string[]; // Admin-controlled hidden tabs
 }
 
 const navItems: NavItem[] = [
@@ -163,14 +164,30 @@ const navItems: NavItem[] = [
   },
 ];
 
-// Filter nav items based on binary enrollment
-const filterNavItems = (items: NavItem[], isBinaryEnrolled: boolean): NavItem[] => {
+// Map dashboard tab IDs to hidden tab IDs
+const mapToHiddenTabId = (tabId: string): string => {
+  return `dashboard-${tabId}`;
+};
+
+// Filter nav items based on binary enrollment and hidden tabs
+const filterNavItems = (items: NavItem[], isBinaryEnrolled: boolean, hiddenTabs: string[] = []): NavItem[] => {
   return items
-    .filter(item => !item.requiresBinary || isBinaryEnrolled)
+    .filter(item => {
+      const hiddenId = mapToHiddenTabId(item.id);
+      const isHidden = hiddenTabs.includes(hiddenId);
+      const requiresBinaryButNotEnrolled = item.requiresBinary && !isBinaryEnrolled;
+      return !isHidden && !requiresBinaryButNotEnrolled;
+    })
     .map(item => ({
       ...item,
-      children: item.children?.filter(child => !child.requiresBinary || isBinaryEnrolled)
-    }));
+      children: item.children?.filter(child => {
+        const hiddenId = mapToHiddenTabId(child.id);
+        const isHidden = hiddenTabs.includes(hiddenId);
+        const requiresBinaryButNotEnrolled = child.requiresBinary && !isBinaryEnrolled;
+        return !isHidden && !requiresBinaryButNotEnrolled;
+      })
+    }))
+    .filter(item => !item.children || item.children.length > 0); // Remove empty parent groups
 };
 
 // Helper to find which parent group an item belongs to
@@ -195,9 +212,12 @@ const getTabLabel = (tabId: string, items: NavItem[]): string => {
   return tabId.replace('-', ' ');
 };
 
-export function DashboardNavigation({ activeTab, onTabChange, onSignOut, isBinaryEnrolled = false }: DashboardNavigationProps) {
-  // Filter nav items based on binary enrollment
-  const filteredNavItems = useMemo(() => filterNavItems(navItems, isBinaryEnrolled), [isBinaryEnrolled]);
+export function DashboardNavigation({ activeTab, onTabChange, onSignOut, isBinaryEnrolled = false, hiddenTabs = [] }: DashboardNavigationProps) {
+  // Filter nav items based on binary enrollment and hidden tabs
+  const filteredNavItems = useMemo(
+    () => filterNavItems(navItems, isBinaryEnrolled, hiddenTabs), 
+    [isBinaryEnrolled, hiddenTabs]
+  );
   
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
