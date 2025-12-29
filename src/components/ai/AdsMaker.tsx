@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAICredits } from '@/hooks/useAICredits';
 import { 
   Globe, Loader2, Sparkles, Copy, Download, Edit, Send, 
   Facebook, Instagram, Twitter, Linkedin, Youtube, Music2,
@@ -62,6 +63,12 @@ const AD_CREDIT_COST = 3;
 
 const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => {
   const { user } = useAuth();
+  const { 
+    credits: aiCredits, 
+    loading: aiCreditsLoading, 
+    refetch: refetchAICredits,
+    deductImageCredit
+  } = useAICredits();
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
   const [brandData, setBrandData] = useState<BrandData | null>(null);
@@ -71,6 +78,10 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
   const [editingAd, setEditingAd] = useState<GeneratedAd | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState<string | null>(null);
+  
+  // Calculate total available credits (AI credits + legacy credits)
+  const totalAvailableCredits = (aiCredits?.total_credits || 0) + userCredits;
+  const hasAICredits = aiCredits && aiCredits.total_credits > 0;
 
   const handleScrapeWebsite = async () => {
     if (!websiteUrl.trim()) {
@@ -120,8 +131,10 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
     }
 
     const totalCost = selectedPlatforms.length * AD_CREDIT_COST;
-    if (userCredits < totalCost) {
-      toast.error(`Insufficient credits. Need ${totalCost} credits for ${selectedPlatforms.length} platforms.`);
+    
+    // Check AI credits first, then fall back to legacy credits
+    if (totalAvailableCredits < totalCost) {
+      toast.error(`Insufficient credits. Need ${totalCost} credits for ${selectedPlatforms.length} platforms. You have ${totalAvailableCredits} credits available.`);
       return;
     }
 
@@ -158,13 +171,21 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
   };
 
   const handleGenerateImage = async (ad: GeneratedAd) => {
-    if (userCredits < 1) {
+    // Check AI image credits first, then fall back to legacy credits
+    const hasImageCredits = aiCredits && aiCredits.images_available > 0;
+    if (!hasImageCredits && userCredits < 1) {
       toast.error('Insufficient credits for image generation');
       return;
     }
 
     setIsGeneratingImage(ad.id);
     try {
+      // Deduct from AI image credits if available
+      if (hasImageCredits) {
+        await deductImageCredit(1);
+        refetchAICredits();
+      }
+      
       const { data, error } = await supabase.functions.invoke('ai-generate', {
         body: {
           type: 'text-to-image',

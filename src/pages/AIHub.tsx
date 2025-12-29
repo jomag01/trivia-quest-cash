@@ -899,10 +899,71 @@ const AIHub = memo(() => {
           </Button>
           {appLogo && <img src={appLogo} alt="Logo" className="h-6 w-6 object-contain rounded" />}
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="gap-1">
-              <Crown className="h-3 w-3 text-yellow-500" />
-              {userCredits}
-            </Badge>
+            {/* Show AI Credits if available */}
+            {aiCredits && (aiCredits.total_credits > 0 || aiCredits.images_available > 0) ? (
+              <div className="flex items-center gap-1.5">
+                <Badge variant="outline" className="gap-1 text-xs">
+                  <ImageIcon className="h-3 w-3 text-blue-500" />
+                  {aiCredits.images_available}
+                </Badge>
+                <Badge variant="outline" className="gap-1 text-xs">
+                  <VideoIcon className="h-3 w-3 text-purple-500" />
+                  {Number(aiCredits.video_minutes_available).toFixed(1)}m
+                </Badge>
+                <Badge variant="outline" className="gap-1 text-xs">
+                  <Music className="h-3 w-3 text-green-500" />
+                  {Number(aiCredits.audio_minutes_available).toFixed(1)}m
+                </Badge>
+              </div>
+            ) : (
+              <Badge variant="outline" className="gap-1">
+                <Crown className="h-3 w-3 text-yellow-500" />
+                {userCredits}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop Credits Bar - Shows when sidebar is collapsed */}
+        <div className={cn(
+          "hidden md:flex items-center justify-between p-3 bg-background/80 backdrop-blur-sm border-b border-border/50",
+          sidebarOpen && "md:hidden"
+        )}>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-yellow-500" />
+            <span className="font-semibold">AI Hub</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {aiCredits && (aiCredits.total_credits > 0 || aiCredits.images_available > 0) ? (
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="gap-1.5 text-sm py-1">
+                  <ImageIcon className="h-3.5 w-3.5 text-blue-500" />
+                  <span>{aiCredits.images_available} images</span>
+                </Badge>
+                <Badge variant="outline" className="gap-1.5 text-sm py-1">
+                  <VideoIcon className="h-3.5 w-3.5 text-purple-500" />
+                  <span>{Number(aiCredits.video_minutes_available).toFixed(1)} min</span>
+                </Badge>
+                <Badge variant="outline" className="gap-1.5 text-sm py-1">
+                  <Music className="h-3.5 w-3.5 text-green-500" />
+                  <span>{Number(aiCredits.audio_minutes_available).toFixed(1)} min</span>
+                </Badge>
+              </div>
+            ) : (
+              <Badge variant="outline" className="gap-1.5 text-sm py-1">
+                <Crown className="h-3.5 w-3.5 text-yellow-500" />
+                <span>{userCredits} credits</span>
+              </Badge>
+            )}
+            <Button
+              onClick={() => setShowBuyCredits(true)}
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              Buy Credits
+            </Button>
           </div>
         </div>
 
@@ -1824,7 +1885,7 @@ const AIHub = memo(() => {
           {/* AI Ads Maker - Premium (Paid Affiliates Only) */}
           {activeTab === 'ads-maker' && (
             <div className="p-4 md:p-6">
-              <AdsMaker userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+              <AdsMaker userCredits={userCredits} onCreditsChange={() => { fetchUserCredits(); refetchAICredits(); }} />
             </div>
           )}
 
@@ -1843,6 +1904,7 @@ const AIHub = memo(() => {
         onOpenChange={setShowBuyCredits}
         onPurchaseComplete={() => {
           fetchUserCredits();
+          refetchAICredits();
         }}
       />
 
