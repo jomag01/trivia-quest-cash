@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAICredits } from '@/hooks/useAICredits';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
@@ -32,6 +33,17 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 const AIHub = memo(() => {
   const { user, profile } = useAuth();
+  const { 
+    credits: aiCredits, 
+    loading: aiCreditsLoading, 
+    refetch: refetchAICredits,
+    canGenerateImage: canUseImageCredits,
+    canGenerateVideo: canUseVideoCredits,
+    canGenerateAudio: canUseAudioCredits,
+    deductImageCredit,
+    deductVideoMinutes,
+    deductAudioMinutes
+  } = useAICredits();
   const [activeTab, setActiveTab] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
@@ -228,11 +240,17 @@ const AIHub = memo(() => {
 
   const canGenerateImage = () => {
     if (!user) return false;
+    // Check AI credits first (from purchased packages)
+    if (aiCredits && aiCredits.images_available > 0) return true;
+    // Fall back to free tier
     return imageGenerationCount < freeImageLimit || userCredits > 0;
   };
 
   const canGenerateVideo = () => {
     if (!user) return false;
+    // Check AI video minutes first (from purchased packages)
+    if (aiCredits && Number(aiCredits.video_minutes_available) >= 0.5) return true;
+    // Fall back to legacy credits
     return userCredits >= videoCreditCost;
   };
 
@@ -250,8 +268,44 @@ const AIHub = memo(() => {
     }
   };
 
-  const deductCredits = async (amount: number) => {
+  // Deduct from AI credits first, then fall back to legacy credits
+  const deductCredits = async (amount: number, type: 'image' | 'video' | 'audio' | 'general' = 'general') => {
     if (!user) return false;
+    
+    // For image generation, try to use AI image credits first
+    if (type === 'image' && aiCredits && aiCredits.images_available >= amount) {
+      const success = await deductImageCredit(amount);
+      if (success) {
+        refetchAICredits();
+        return true;
+      }
+    }
+    
+    // For video generation, try to use AI video minutes first (convert credits to minutes)
+    if (type === 'video' && aiCredits) {
+      const minutesNeeded = amount / videoCreditCost * 0.5; // Convert credits to approximate minutes
+      if (Number(aiCredits.video_minutes_available) >= minutesNeeded) {
+        const success = await deductVideoMinutes(minutesNeeded);
+        if (success) {
+          refetchAICredits();
+          return true;
+        }
+      }
+    }
+    
+    // For audio generation, try to use AI audio minutes first
+    if (type === 'audio' && aiCredits) {
+      const minutesNeeded = amount / 5; // Assuming 5 credits per minute of audio
+      if (Number(aiCredits.audio_minutes_available) >= minutesNeeded) {
+        const success = await deductAudioMinutes(minutesNeeded);
+        if (success) {
+          refetchAICredits();
+          return true;
+        }
+      }
+    }
+    
+    // Fall back to legacy credits from profiles table
     try {
       const { error } = await supabase.from('profiles').update({
         credits: userCredits - amount
@@ -275,12 +329,16 @@ const AIHub = memo(() => {
       return;
     }
 
+    // Check if user has AI image credits first
+    const hasAIImageCredits = aiCredits && aiCredits.images_available > 0;
+    
     if (imageGenerationCount >= freeImageLimit) {
-      if (userCredits <= 0) {
-        toast.error('You have reached your free image limit. Please buy credits to continue.');
+      if (!hasAIImageCredits && userCredits <= 0) {
+        toast.error('You have reached your free image limit. Please buy AI credits to continue.');
+        setShowBuyCredits(true);
         return;
       }
-      const deducted = await deductCredits(1);
+      const deducted = await deductCredits(1, 'image');
       if (!deducted) {
         toast.error('Failed to deduct credits');
         return;
@@ -407,15 +465,21 @@ const AIHub = memo(() => {
       toast.error('Please login to generate videos');
       return;
     }
+    
+    // Check if user has AI video minutes first
+    const hasAIVideoMinutes = aiCredits && Number(aiCredits.video_minutes_available) >= 0.5;
+    
     if (!canGenerateVideo()) {
-      toast.error(`You need at least ${videoCreditCost} credits to generate a video`);
+      toast.error(hasAIVideoMinutes 
+        ? 'Failed to verify video credits' 
+        : `You need AI video minutes or at least ${videoCreditCost} credits to generate a video`);
       setShowBuyCredits(true);
       return;
     }
     setIsGenerating(true);
     setGeneratedVideo(null);
     try {
-      const deducted = await deductCredits(videoCreditCost);
+      const deducted = await deductCredits(videoCreditCost, 'video');
       if (!deducted) {
         toast.error('Failed to deduct credits');
         return;
@@ -460,8 +524,12 @@ const AIHub = memo(() => {
       toast.error('Please login to generate music');
       return;
     }
-    if (userCredits < musicCreditCost) {
-      toast.error(`You need at least ${musicCreditCost} credits to generate music`);
+    
+    // Check if user has AI audio minutes first
+    const hasAIAudioMinutes = aiCredits && Number(aiCredits.audio_minutes_available) >= 0.5;
+    
+    if (!hasAIAudioMinutes && userCredits < musicCreditCost) {
+      toast.error(`You need AI audio minutes or at least ${musicCreditCost} credits to generate music`);
       setShowBuyCredits(true);
       return;
     }
@@ -469,7 +537,7 @@ const AIHub = memo(() => {
     setGeneratedMusic(null);
     setMusicTitle(null);
     try {
-      const deducted = await deductCredits(musicCreditCost);
+      const deducted = await deductCredits(musicCreditCost, 'audio');
       if (!deducted) {
         toast.error('Failed to deduct credits');
         return;
@@ -519,8 +587,12 @@ const AIHub = memo(() => {
       toast.error('Please login to enhance images');
       return;
     }
-    if (userCredits < enhanceCreditCost) {
-      toast.error(`You need at least ${enhanceCreditCost} credits to enhance images`);
+    
+    // Check if user has AI image credits first for enhancement
+    const hasAIImageCredits = aiCredits && aiCredits.images_available >= enhanceCreditCost;
+    
+    if (!hasAIImageCredits && userCredits < enhanceCreditCost) {
+      toast.error(`You need AI image credits or at least ${enhanceCreditCost} credits to enhance images`);
       setShowBuyCredits(true);
       return;
     }
@@ -529,7 +601,7 @@ const AIHub = memo(() => {
     setEnhancedResult(null);
 
     try {
-      const deducted = await deductCredits(enhanceCreditCost);
+      const deducted = await deductCredits(enhanceCreditCost, 'image');
       if (!deducted) {
         toast.error('Failed to deduct credits');
         return;
@@ -580,8 +652,13 @@ const AIHub = memo(() => {
     }
 
     const creditCost = Math.ceil(animationDuration / 2) * 5;
-    if (userCredits < creditCost) {
-      toast.error(`You need at least ${creditCost} credits to animate this image`);
+    
+    // Check if user has AI video minutes for animation
+    const minutesNeeded = animationDuration / 60;
+    const hasAIVideoMinutes = aiCredits && Number(aiCredits.video_minutes_available) >= minutesNeeded;
+    
+    if (!hasAIVideoMinutes && userCredits < creditCost) {
+      toast.error(`You need AI video minutes or at least ${creditCost} credits to animate this image`);
       setShowBuyCredits(true);
       return;
     }
@@ -590,7 +667,7 @@ const AIHub = memo(() => {
     setAnimatedVideoUrl(null);
 
     try {
-      const deducted = await deductCredits(creditCost);
+      const deducted = await deductCredits(creditCost, 'video');
       if (!deducted) {
         toast.error('Failed to deduct credits');
         return;
