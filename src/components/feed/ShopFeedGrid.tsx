@@ -20,6 +20,8 @@ interface Product {
   sold_count?: number;
   boosted_sales_count?: number;
   boosted_rating?: number;
+  review_count?: number;
+  real_sales?: number;
 }
 
 interface ShopFeedGridProps {
@@ -63,7 +65,64 @@ export default function ShopFeedGrid({ limit = 8 }: ShopFeedGridProps) {
       .limit(limit);
 
     if (data) {
-      setProducts(data);
+      // Fetch real sales count and ratings for each product
+      const productIds = data.map(p => p.id);
+      
+      // Get real sales from delivered orders
+      const { data: salesData } = await supabase
+        .from("order_items")
+        .select("product_id, quantity, orders!inner(status)")
+        .in("product_id", productIds)
+        .eq("orders.status", "delivered");
+      
+      // Get real reviews/ratings
+      const { data: reviewsData } = await supabase
+        .from("product_reviews")
+        .select("product_id, product_rating")
+        .in("product_id", productIds);
+      
+      // Aggregate sales per product
+      const salesMap: Record<string, number> = {};
+      salesData?.forEach(item => {
+        salesMap[item.product_id] = (salesMap[item.product_id] || 0) + item.quantity;
+      });
+      
+      // Aggregate ratings per product
+      const ratingsMap: Record<string, { sum: number; count: number }> = {};
+      reviewsData?.forEach(review => {
+        if (!ratingsMap[review.product_id]) {
+          ratingsMap[review.product_id] = { sum: 0, count: 0 };
+        }
+        ratingsMap[review.product_id].sum += review.product_rating;
+        ratingsMap[review.product_id].count += 1;
+      });
+      
+      // Combine boosted + real data
+      const enrichedProducts = data.map(product => {
+        const realSales = salesMap[product.id] || 0;
+        const boostedSales = Number(product.boosted_sales_count) || 0;
+        const totalSales = boostedSales + realSales;
+        
+        const ratingData = ratingsMap[product.id];
+        const realAvgRating = ratingData ? ratingData.sum / ratingData.count : 0;
+        const realReviewCount = ratingData?.count || 0;
+        const boostedRating = Number(product.boosted_rating) || 0;
+        
+        // Use boosted rating if no real reviews, otherwise blend or use real
+        const displayRating = realReviewCount > 0 
+          ? (boostedRating > 0 ? (boostedRating + realAvgRating) / 2 : realAvgRating)
+          : (boostedRating > 0 ? boostedRating : 4.8);
+        
+        return {
+          ...product,
+          sold_count: totalSales,
+          rating: displayRating,
+          review_count: realReviewCount,
+          real_sales: realSales
+        };
+      });
+      
+      setProducts(enrichedProducts);
     }
     setLoading(false);
   };
@@ -210,13 +269,12 @@ export default function ShopFeedGrid({ limit = 8 }: ShopFeedGridProps) {
               <div className="flex items-center gap-1 mb-2">
                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                 <span className="text-xs text-muted-foreground">
-                  {(product.boosted_rating && product.boosted_rating > 0) 
-                    ? product.boosted_rating.toFixed(1) 
-                    : (product.rating || 4.8).toFixed(1)} 
-                  {" "}
-                  ({(product.boosted_sales_count && product.boosted_sales_count > 0) 
-                    ? product.boosted_sales_count.toLocaleString() 
-                    : (product.sold_count || 0)} sold)
+                  {(product.rating || 4.8).toFixed(1)}
+                  {product.review_count && product.review_count > 0 && (
+                    <span className="ml-0.5">({product.review_count})</span>
+                  )}
+                  {" · "}
+                  {(product.sold_count || 0).toLocaleString()} sold
                 </span>
               </div>
 
