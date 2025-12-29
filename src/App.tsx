@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Navigation from "./components/Navigation";
 import { parseAndTrackFromUrl } from "@/lib/cookieTracking";
+import { AffiliateSignupPopup } from "./components/AffiliateSignupPopup";
 
 // Lazy load all pages for code splitting
 const AIHub = lazy(() => import("./pages/AIHub"));
@@ -63,6 +64,41 @@ const CookieTracker = () => {
   return null;
 };
 
+// Page view tracking component
+const PageTracker = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    const trackPage = async () => {
+      try {
+        const visitorId = localStorage.getItem('aff_visitor_id') || `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 15)}`;
+        if (!localStorage.getItem('aff_visitor_id')) {
+          localStorage.setItem('aff_visitor_id', visitorId);
+        }
+        
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        await supabase.from("page_views").insert({
+          visitor_id: visitorId,
+          user_id: user?.id || null,
+          page_path: location.pathname,
+          page_title: document.title,
+          referrer_url: document.referrer || null,
+          user_agent: navigator.userAgent,
+          referral_source: document.referrer ? 'organic' : 'direct'
+        });
+      } catch (error) {
+        console.error("Error tracking page:", error);
+      }
+    };
+    
+    trackPage();
+  }, [location.pathname]);
+  
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -71,7 +107,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <CookieTracker />
+          <PageTracker />
           <Navigation />
+          <AffiliateSignupPopup />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<AIHub />} />
