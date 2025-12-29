@@ -100,16 +100,68 @@ const Shop = () => {
         ascending: false
       });
       if (error) throw error;
+      
+      const productIds = (data || []).map(p => p.id);
+      
+      // Fetch real sales from delivered orders
+      const { data: salesData } = await supabase
+        .from("order_items")
+        .select("product_id, quantity, orders!inner(status)")
+        .in("product_id", productIds)
+        .eq("orders.status", "delivered");
+      
+      // Fetch real reviews/ratings
+      const { data: reviewsData } = await supabase
+        .from("product_reviews")
+        .select("product_id, product_rating")
+        .in("product_id", productIds);
+      
+      // Aggregate sales per product
+      const salesMap: Record<string, number> = {};
+      salesData?.forEach(item => {
+        salesMap[item.product_id] = (salesMap[item.product_id] || 0) + item.quantity;
+      });
+      
+      // Aggregate ratings per product
+      const ratingsMap: Record<string, { sum: number; count: number }> = {};
+      reviewsData?.forEach(review => {
+        if (!ratingsMap[review.product_id]) {
+          ratingsMap[review.product_id] = { sum: 0, count: 0 };
+        }
+        ratingsMap[review.product_id].sum += review.product_rating;
+        ratingsMap[review.product_id].count += 1;
+      });
+      
       const productsWithImages = await Promise.all((data || []).map(async product => {
         const {
           data: images
         } = await supabase.from("product_images").select("image_url, image_type").eq("product_id", product.id).in("image_type", ["static", "hover"]);
         const staticImage = images?.find(img => img.image_type === "static")?.image_url || product.image_url;
         const hoverImage = images?.find(img => img.image_type === "hover")?.image_url;
+        
+        // Combine boosted + real sales
+        const realSales = salesMap[product.id] || 0;
+        const boostedSales = Number(product.boosted_sales_count) || 0;
+        const totalSales = boostedSales + realSales;
+        
+        // Combine boosted + real ratings
+        const ratingData = ratingsMap[product.id];
+        const realAvgRating = ratingData ? ratingData.sum / ratingData.count : 0;
+        const realReviewCount = ratingData?.count || 0;
+        const boostedRating = Number(product.boosted_rating) || 0;
+        
+        const displayRating = realReviewCount > 0 
+          ? (boostedRating > 0 ? (boostedRating + realAvgRating) / 2 : realAvgRating)
+          : (boostedRating > 0 ? boostedRating : 0);
+        
         return {
           ...product,
           image_url: staticImage,
-          hover_image_url: hoverImage
+          hover_image_url: hoverImage,
+          combined_sales: totalSales,
+          combined_rating: displayRating,
+          review_count: realReviewCount,
+          real_sales: realSales
         };
       }));
       setProducts(productsWithImages);
@@ -544,19 +596,22 @@ const Shop = () => {
                   <div className="p-2 flex-1 flex flex-col">
                     <h3 className="text-xs font-medium mb-1 line-clamp-2 leading-tight text-black">{product.name}</h3>
 
-                    {/* Sales boosting display (if set) */}
-                    {(Number(product.boosted_sales_count || 0) > 0 || Number(product.boosted_rating || 0) > 0) && (
+                    {/* Combined sales & ratings display (boosted + real) */}
+                    {(product.combined_sales > 0 || product.combined_rating > 0) && (
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                        {Number(product.boosted_sales_count || 0) > 0 && (
+                        {product.combined_sales > 0 && (
                           <span className="flex items-center gap-1">
                             <span aria-hidden>📊</span>
-                            <span className="font-medium">{Number(product.boosted_sales_count).toLocaleString()} sold</span>
+                            <span className="font-medium">{product.combined_sales.toLocaleString()} sold</span>
                           </span>
                         )}
-                        {Number(product.boosted_rating || 0) > 0 && (
+                        {product.combined_rating > 0 && (
                           <span className="flex items-center gap-1">
                             <Star className="w-3 h-3 fill-primary text-primary" />
-                            <span className="font-medium">{Number(product.boosted_rating).toFixed(1)}</span>
+                            <span className="font-medium">
+                              {product.combined_rating.toFixed(1)}
+                              {product.review_count > 0 && ` (${product.review_count})`}
+                            </span>
                           </span>
                         )}
                       </div>
