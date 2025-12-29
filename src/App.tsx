@@ -28,6 +28,7 @@ const SellerDashboard = lazy(() => import("./pages/SellerDashboard"));
 const Booking = lazy(() => import("./pages/Booking"));
 const Food = lazy(() => import("./pages/Food"));
 const Chess = lazy(() => import("./pages/Chess"));
+const GuessSong = lazy(() => import("./pages/GuessSong"));
 const Notifications = lazy(() => import("./components/notifications/NotificationsPage"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -88,6 +89,7 @@ const App = () => (
               <Route path="/booking" element={<Booking />} />
               <Route path="/food" element={<Food />} />
               <Route path="/chess" element={<Chess />} />
+              <Route path="/guess-song" element={<GuessSong />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/seller" element={<SellerDashboard />} />

@@ -183,9 +183,11 @@ const Games = memo(() => {
       setShowAuthDialog(true);
       return;
     }
-    // Route chess to its dedicated multiplayer page
+    // Route special games to their dedicated pages
     if (category.slug === 'chess') {
       navigate('/chess');
+    } else if (category.slug === 'guess-song') {
+      navigate('/guess-song');
     } else {
       navigate(`/game/${category.slug}`);
     }

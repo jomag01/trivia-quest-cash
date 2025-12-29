@@ -2281,6 +2281,108 @@ export type Database = {
         }
         Relationships: []
       }
+      guess_song_levels: {
+        Row: {
+          created_at: string | null
+          credits_to_play: number
+          diamonds_reward: number
+          difficulty: string
+          id: string
+          is_active: boolean | null
+          level_number: number
+          notes: string | null
+          sample_length_seconds: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_to_play?: number
+          diamonds_reward?: number
+          difficulty: string
+          id?: string
+          is_active?: boolean | null
+          level_number: number
+          notes?: string | null
+          sample_length_seconds?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_to_play?: number
+          diamonds_reward?: number
+          difficulty?: string
+          id?: string
+          is_active?: boolean | null
+          level_number?: number
+          notes?: string | null
+          sample_length_seconds?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      guess_song_progress: {
+        Row: {
+          completed_at: string | null
+          credits_spent: number | null
+          diamonds_earned: number | null
+          id: string
+          level_number: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          credits_spent?: number | null
+          diamonds_earned?: number | null
+          id?: string
+          level_number: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          credits_spent?: number | null
+          diamonds_earned?: number | null
+          id?: string
+          level_number?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      guess_song_tracks: {
+        Row: {
+          artist: string
+          audio_url: string
+          created_at: string | null
+          difficulty: number
+          id: string
+          is_active: boolean | null
+          sample_start_seconds: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          artist: string
+          audio_url: string
+          created_at?: string | null
+          difficulty: number
+          id?: string
+          is_active?: boolean | null
+          sample_start_seconds?: number | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          artist?: string
+          audio_url?: string
+          created_at?: string | null
+          difficulty?: number
+          id?: string
+          is_active?: boolean | null
+          sample_start_seconds?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           barcode: string | null
