@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Music, Clock, Diamond, Lock, Users, Play, Pause, 
-  RotateCcw, Trophy, Share2, Sparkles, Volume2 
+  RotateCcw, Trophy, Share2, Sparkles, Volume2, Youtube, Search, Loader2 
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,19 +25,52 @@ interface Level {
   notes: string | null;
 }
 
-interface Track {
-  id: string;
+interface YouTubeVideo {
+  videoId: string;
   title: string;
-  artist: string;
-  audio_url: string;
-  difficulty: number;
-  sample_start_seconds: number;
+  channelTitle: string;
+  thumbnail: string;
+  originalSongTitle: string;
 }
 
 interface WalletData {
   credits: number;
   diamonds: number;
 }
+
+// Predefined popular songs to search for instrumentals
+const SONG_LIBRARY = [
+  { title: "Shape of You", artist: "Ed Sheeran" },
+  { title: "Blinding Lights", artist: "The Weeknd" },
+  { title: "Dance Monkey", artist: "Tones and I" },
+  { title: "Uptown Funk", artist: "Bruno Mars" },
+  { title: "Happy", artist: "Pharrell Williams" },
+  { title: "Despacito", artist: "Luis Fonsi" },
+  { title: "Thinking Out Loud", artist: "Ed Sheeran" },
+  { title: "Someone Like You", artist: "Adele" },
+  { title: "Perfect", artist: "Ed Sheeran" },
+  { title: "Havana", artist: "Camila Cabello" },
+  { title: "Bad Guy", artist: "Billie Eilish" },
+  { title: "Old Town Road", artist: "Lil Nas X" },
+  { title: "Shallow", artist: "Lady Gaga" },
+  { title: "Señorita", artist: "Shawn Mendes" },
+  { title: "Sunflower", artist: "Post Malone" },
+  { title: "Believer", artist: "Imagine Dragons" },
+  { title: "Thunder", artist: "Imagine Dragons" },
+  { title: "Faded", artist: "Alan Walker" },
+  { title: "Closer", artist: "The Chainsmokers" },
+  { title: "Stay", artist: "The Kid LAROI" },
+  { title: "Peaches", artist: "Justin Bieber" },
+  { title: "Levitating", artist: "Dua Lipa" },
+  { title: "drivers license", artist: "Olivia Rodrigo" },
+  { title: "Watermelon Sugar", artist: "Harry Styles" },
+  { title: "Dynamite", artist: "BTS" },
+  { title: "Butter", artist: "BTS" },
+  { title: "Good 4 U", artist: "Olivia Rodrigo" },
+  { title: "Montero", artist: "Lil Nas X" },
+  { title: "Save Your Tears", artist: "The Weeknd" },
+  { title: "Kiss Me More", artist: "Doja Cat" },
+];
 
 const LEVEL_COLORS: Record<string, { from: string; to: string; text: string }> = {
   "Very Easy": { from: "from-green-400", to: "to-emerald-500", text: "text-emerald-600" },
@@ -53,12 +86,13 @@ const GuessSong = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { playCorrectSound, playWrongSound, playTickSound } = useGameSounds();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<HTMLIFrameElement | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Game state
   const [levels, setLevels] = useState<Level[]>([]);
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const [currentVideo, setCurrentVideo] = useState<YouTubeVideo | null>(null);
   const [completedLevels, setCompletedLevels] = useState<Set<number>>(new Set());
   const [wallet, setWallet] = useState<WalletData>({ credits: 0, diamonds: 0 });
   const [referralCount, setReferralCount] = useState(0);
@@ -66,6 +100,7 @@ const GuessSong = () => {
   // UI state
   const [gameStarted, setGameStarted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [userGuess, setUserGuess] = useState("");
   const [timeLeft, setTimeLeft] = useState(30);
   const [showWinDialog, setShowWinDialog] = useState(false);
@@ -73,6 +108,7 @@ const GuessSong = () => {
   const [showLockedDialog, setShowLockedDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [earnedDiamonds, setEarnedDiamonds] = useState(0);
+  const [samplePlayed, setSamplePlayed] = useState(false);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -94,16 +130,16 @@ const GuessSong = () => {
 
   // Timer effect
   useEffect(() => {
-    if (!gameStarted || timeLeft <= 0) return;
+    if (!gameStarted || timeLeft <= 0 || !samplePlayed) return;
 
     if (timeLeft <= 5) {
       playTickSound();
     }
 
-    const timer = setInterval(() => {
+    timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          clearInterval(timer);
+          if (timerRef.current) clearInterval(timerRef.current);
           handleTimeUp();
           return 0;
         }
@@ -111,8 +147,17 @@ const GuessSong = () => {
       });
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [gameStarted, timeLeft]);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [gameStarted, samplePlayed]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const fetchLevels = async () => {
     try {
@@ -184,33 +229,41 @@ const GuessSong = () => {
     }
   };
 
-  const fetchRandomTrack = async (difficulty: number) => {
+  const searchYouTubeInstrumental = async (songTitle: string): Promise<YouTubeVideo | null> => {
     try {
-      const { data, error } = await supabase
-        .from("guess_song_tracks")
-        .select("*")
-        .eq("difficulty", difficulty)
-        .eq("is_active", true);
+      setIsSearching(true);
+      const { data, error } = await supabase.functions.invoke('youtube-search', {
+        body: { query: songTitle, maxResults: 5 }
+      });
 
       if (error) throw error;
-      if (!data || data.length === 0) {
-        // Fallback: use demo track for testing
-        return {
-          id: "demo",
-          title: "Happy",
-          artist: "Pharrell Williams",
-          audio_url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-          difficulty,
-          sample_start_seconds: 30
-        };
+      if (!data.success || !data.videos?.length) {
+        throw new Error("No instrumental found");
       }
 
-      const randomIndex = Math.floor(Math.random() * data.length);
-      return data[randomIndex];
+      // Pick a random video from the results
+      const randomIndex = Math.floor(Math.random() * data.videos.length);
+      const video = data.videos[randomIndex];
+      
+      return {
+        ...video,
+        originalSongTitle: songTitle
+      };
     } catch (error) {
-      console.error("Error fetching track:", error);
+      console.error("Error searching YouTube:", error);
       return null;
+    } finally {
+      setIsSearching(false);
     }
+  };
+
+  const getRandomSong = (difficulty: number) => {
+    // Higher difficulty = pick from less popular songs (later in array)
+    const startIndex = Math.min((difficulty - 1) * 2, SONG_LIBRARY.length - 5);
+    const endIndex = Math.min(startIndex + 10, SONG_LIBRARY.length);
+    const availableSongs = SONG_LIBRARY.slice(startIndex, endIndex);
+    const randomIndex = Math.floor(Math.random() * availableSongs.length);
+    return availableSongs[randomIndex];
   };
 
   const checkLevel5Lock = (): boolean => {
@@ -260,11 +313,27 @@ const GuessSong = () => {
       setUserGuess("");
       setGameStarted(true);
       setIsPlaying(false);
+      setSamplePlayed(false);
+      setCurrentVideo(null);
 
-      // Fetch a random track for this level
-      const track = await fetchRandomTrack(level.level_number);
-      if (track) {
-        setCurrentTrack(track);
+      // Search for a random song instrumental on YouTube
+      const song = getRandomSong(level.level_number);
+      const video = await searchYouTubeInstrumental(`${song.title} ${song.artist}`);
+      
+      if (video) {
+        setCurrentVideo({
+          ...video,
+          originalSongTitle: song.title
+        });
+      } else {
+        toast.error("Failed to find instrumental. Try again.");
+        setGameStarted(false);
+        // Refund credits
+        await supabase
+          .from("profiles")
+          .update({ credits: wallet.credits })
+          .eq("id", user.id);
+        setWallet(prev => ({ ...prev, credits: prev.credits + level.credits_to_play }));
       }
     } catch (error) {
       console.error("Error starting level:", error);
@@ -272,33 +341,31 @@ const GuessSong = () => {
     }
   };
 
-  const playAudioSample = useCallback(() => {
-    if (!currentTrack || !currentLevel) return;
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-
-    const audio = new Audio(currentTrack.audio_url);
-    audio.currentTime = currentTrack.sample_start_seconds;
-    audioRef.current = audio;
-
-    audio.play();
+  const playYouTubeVideo = useCallback(() => {
+    if (!currentVideo || !currentLevel) return;
+    
     setIsPlaying(true);
+    setSamplePlayed(true);
 
     // Stop after sample length
     setTimeout(() => {
-      audio.pause();
       setIsPlaying(false);
     }, currentLevel.sample_length_seconds * 1000);
-  }, [currentTrack, currentLevel]);
+  }, [currentVideo, currentLevel]);
 
   const handleSubmitGuess = async () => {
-    if (!currentTrack || !currentLevel || !user) return;
+    if (!currentVideo || !currentLevel || !user) return;
 
-    const isCorrect = userGuess.toLowerCase().trim().includes(
-      currentTrack.title.toLowerCase().trim()
-    );
+    // Compare guess with the original song title
+    const normalizedGuess = userGuess.toLowerCase().trim();
+    const normalizedTitle = currentVideo.originalSongTitle.toLowerCase().trim();
+    
+    // Check if the guess contains the main words of the title
+    const isCorrect = normalizedGuess.includes(normalizedTitle) || 
+                     normalizedTitle.includes(normalizedGuess) ||
+                     normalizedTitle.split(' ').some(word => 
+                       word.length > 2 && normalizedGuess.includes(word)
+                     );
 
     if (isCorrect) {
       playCorrectSound();
@@ -335,16 +402,11 @@ const GuessSong = () => {
       setGameStarted(false);
     }
 
-    // Stop audio
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
+    if (timerRef.current) clearInterval(timerRef.current);
   };
 
   const handleTimeUp = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
+    if (timerRef.current) clearInterval(timerRef.current);
     toast.error("Time's Up!", {
       description: "The song slipped away—try again!"
     });
@@ -372,6 +434,12 @@ const GuessSong = () => {
     }
   };
 
+  // YouTube embed URL with autoplay based on isPlaying state
+  const getYouTubeEmbedUrl = (videoId: string) => {
+    const startTime = Math.floor(Math.random() * 30) + 15; // Random start between 15-45 seconds
+    return `https://www.youtube.com/embed/${videoId}?autoplay=${isPlaying ? 1 : 0}&start=${startTime}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-500/10 via-purple-500/10 to-violet-500/10">
@@ -391,14 +459,14 @@ const GuessSong = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center space-y-4">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm">
-              <Music className="h-5 w-5 text-white" />
+              <Youtube className="h-5 w-5 text-white" />
               <span className="text-white font-medium">🎵 Guess Me the Song!</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-white">
               Can You Name That Tune?
             </h1>
             <p className="text-white/80 max-w-md mx-auto">
-              Listen to song clips and guess the title. Progress through 15 levels and earn diamonds!
+              Listen to instrumental versions from YouTube and guess the original song title!
             </p>
             
             {/* Wallet Display */}
@@ -417,7 +485,7 @@ const GuessSong = () => {
       </section>
 
       {/* Game Content */}
-      {gameStarted && currentLevel && currentTrack ? (
+      {gameStarted && currentLevel ? (
         <section className="container mx-auto px-4 py-8">
           <Card className="max-w-2xl mx-auto overflow-hidden shadow-2xl border-0">
             {/* Level Header */}
@@ -440,75 +508,109 @@ const GuessSong = () => {
             </div>
 
             {/* Timer */}
-            <div className="p-4 bg-muted/50 border-b">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Clock className={`h-5 w-5 ${timeLeft <= 10 ? "text-destructive animate-pulse" : "text-muted-foreground"}`} />
-                  <span className={`text-xl font-bold ${timeLeft <= 10 ? "text-destructive" : ""}`}>
-                    {timeLeft}s
-                  </span>
+            {samplePlayed && (
+              <div className="p-4 bg-muted/50 border-b">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className={`h-5 w-5 ${timeLeft <= 10 ? "text-destructive animate-pulse" : "text-muted-foreground"}`} />
+                    <span className={`text-xl font-bold ${timeLeft <= 10 ? "text-destructive" : ""}`}>
+                      {timeLeft}s
+                    </span>
+                  </div>
+                  <Badge variant={timeLeft <= 10 ? "destructive" : "secondary"}>
+                    {timeLeft <= 10 ? "Hurry!" : "Take your time"}
+                  </Badge>
                 </div>
-                <Badge variant={timeLeft <= 10 ? "destructive" : "secondary"}>
-                  {timeLeft <= 10 ? "Hurry!" : "Take your time"}
-                </Badge>
+                <Progress value={(timeLeft / 30) * 100} className="h-2" />
               </div>
-              <Progress value={(timeLeft / 30) * 100} className="h-2" />
-            </div>
+            )}
 
-            {/* Audio Player */}
+            {/* YouTube Player Area */}
             <div className="p-8 space-y-6">
-              <div className="text-center space-y-4">
-                <div className={`w-24 h-24 mx-auto rounded-full bg-gradient-to-br ${LEVEL_COLORS[currentLevel.difficulty]?.from || "from-primary"} ${LEVEL_COLORS[currentLevel.difficulty]?.to || "to-primary"} flex items-center justify-center shadow-lg ${isPlaying ? "animate-pulse" : ""}`}>
-                  {isPlaying ? (
-                    <Volume2 className="w-12 h-12 text-white animate-bounce" />
-                  ) : (
-                    <Music className="w-12 h-12 text-white" />
+              {isSearching ? (
+                <div className="text-center space-y-4">
+                  <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center shadow-lg animate-pulse">
+                    <Search className="w-12 h-12 text-white animate-spin" />
+                  </div>
+                  <p className="text-muted-foreground">Searching for instrumental...</p>
+                </div>
+              ) : currentVideo ? (
+                <div className="text-center space-y-4">
+                  {/* Hidden YouTube iframe for audio */}
+                  <div className={`relative w-full aspect-video rounded-lg overflow-hidden ${isPlaying ? '' : 'hidden'}`}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/90 to-pink-500/90 z-10 flex items-center justify-center">
+                      <div className="text-center text-white space-y-2">
+                        <Volume2 className="w-16 h-16 mx-auto animate-bounce" />
+                        <p className="text-lg font-medium">🎵 Listen carefully...</p>
+                        <p className="text-sm opacity-80">Guess the song title!</p>
+                      </div>
+                    </div>
+                    <iframe
+                      ref={playerRef}
+                      src={getYouTubeEmbedUrl(currentVideo.videoId)}
+                      className="absolute inset-0 w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+
+                  {!isPlaying && (
+                    <>
+                      <div className={`w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center shadow-lg`}>
+                        <Youtube className="w-12 h-12 text-white" />
+                      </div>
+                      
+                      <Button
+                        size="lg"
+                        onClick={playYouTubeVideo}
+                        disabled={isPlaying}
+                        className={`gap-2 px-8 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700`}
+                      >
+                        <Play className="h-5 w-5" />
+                        Play Instrumental ({currentLevel.sample_length_seconds}s)
+                      </Button>
+
+                      {!samplePlayed && (
+                        <p className="text-sm text-muted-foreground">
+                          Click to play the instrumental version. Timer starts after playback.
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
-                
-                <Button
-                  size="lg"
-                  onClick={playAudioSample}
-                  disabled={isPlaying}
-                  className={`gap-2 px-8 bg-gradient-to-r ${LEVEL_COLORS[currentLevel.difficulty]?.from || "from-primary"} ${LEVEL_COLORS[currentLevel.difficulty]?.to || "to-primary"} hover:opacity-90`}
-                >
-                  {isPlaying ? (
-                    <>
-                      <Pause className="h-5 w-5" />
-                      Playing...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-5 w-5" />
-                      Play Sample
-                    </>
-                  )}
-                </Button>
-              </div>
+              ) : (
+                <div className="text-center space-y-4">
+                  <Loader2 className="w-12 h-12 mx-auto animate-spin text-primary" />
+                  <p className="text-muted-foreground">Preparing your challenge...</p>
+                </div>
+              )}
 
-              {/* Answer Input */}
-              <div className="space-y-4">
-                <Input
-                  type="text"
-                  placeholder="Type the song title..."
-                  value={userGuess}
-                  onChange={(e) => setUserGuess(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && userGuess.trim()) {
-                      handleSubmitGuess();
-                    }
-                  }}
-                  className="text-lg py-6 text-center"
-                />
-                <Button
-                  className="w-full py-6 text-lg bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                  onClick={handleSubmitGuess}
-                  disabled={!userGuess.trim()}
-                >
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Submit Answer
-                </Button>
-              </div>
+              {/* Answer Input - Show after first play */}
+              {samplePlayed && currentVideo && (
+                <div className="space-y-4 pt-4 border-t">
+                  <Input
+                    type="text"
+                    placeholder="Type the original song title..."
+                    value={userGuess}
+                    onChange={(e) => setUserGuess(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && userGuess.trim()) {
+                        handleSubmitGuess();
+                      }
+                    }}
+                    className="text-lg py-6 text-center"
+                    autoFocus
+                  />
+                  <Button
+                    className="w-full py-6 text-lg bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                    onClick={handleSubmitGuess}
+                    disabled={!userGuess.trim()}
+                  >
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Submit Answer
+                  </Button>
+                </div>
+              )}
             </div>
           </Card>
         </section>
@@ -517,7 +619,7 @@ const GuessSong = () => {
         <section className="container mx-auto px-4 py-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold mb-2">Select a Level</h2>
-            <p className="text-muted-foreground">Complete levels to earn diamonds and unlock new challenges</p>
+            <p className="text-muted-foreground">Listen to instrumental versions and guess the original song!</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 max-w-6xl mx-auto">
@@ -590,6 +692,12 @@ const GuessSong = () => {
                 You guessed the song right!
               </DialogDescription>
             </DialogHeader>
+            {currentVideo && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">The song was:</p>
+                <p className="font-bold">{currentVideo.originalSongTitle}</p>
+              </div>
+            )}
             <div className="space-y-2">
               <div className="flex items-center justify-center gap-2 text-xl">
                 <Diamond className="h-6 w-6 text-cyan-500" />
@@ -637,10 +745,10 @@ const GuessSong = () => {
             <p className="text-muted-foreground">
               Don't worry—every try makes you better!
             </p>
-            {currentTrack && (
+            {currentVideo && (
               <div className="p-3 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">The correct answer was:</p>
-                <p className="font-bold">{currentTrack.title} - {currentTrack.artist}</p>
+                <p className="font-bold">{currentVideo.originalSongTitle}</p>
               </div>
             )}
             <div className="flex gap-3">
