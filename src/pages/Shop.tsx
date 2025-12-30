@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building, Truck, Star } from "lucide-react";
+import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building, Truck, Star, Gavel } from "lucide-react";
 import SupplierApplication from "@/components/shop/SupplierApplication";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ import AIProductRecommendations from "@/components/shop/AIProductRecommendations
 import ServicesList from "@/components/booking/ServicesList";
 import AIHealthConsultant from "@/components/shop/AIHealthConsultant";
 import MarketplaceListings from "@/components/marketplace/MarketplaceListings";
+import AuctionProducts from "@/components/shop/AuctionProducts";
 
 const Shop = () => {
   const {
@@ -397,7 +398,7 @@ const Shop = () => {
   }
   // Determine active tab from URL params
   const tabParam = searchParams.get('tab');
-  const activeTab = tabParam === 'cart' ? 'cart' : tabParam === 'wishlist' ? 'wishlist' : tabParam === 'seller' ? 'seller' : tabParam === 'food' ? 'food' : tabParam === 'marketplace' ? 'marketplace' : tabParam === 'supplier' ? 'supplier' : 'shop';
+  const activeTab = tabParam === 'cart' ? 'cart' : tabParam === 'wishlist' ? 'wishlist' : tabParam === 'seller' ? 'seller' : tabParam === 'food' ? 'food' : tabParam === 'marketplace' ? 'marketplace' : tabParam === 'supplier' ? 'supplier' : tabParam === 'auction' ? 'auction' : 'shop';
 
   const handleTabChange = (value: string) => {
     if (value === 'food') {
@@ -491,7 +492,7 @@ const Shop = () => {
           <ShopAccountOverview />
 
           {/* Navigation Tabs */}
-          <TabsList className="w-full grid grid-cols-6 mb-3 mt-2">
+          <TabsList className="w-full grid grid-cols-7 mb-3 mt-2">
             <TabsTrigger value="shop" className="text-xs gap-1">
               <Package className="w-3.5 h-3.5" />
               Shop
@@ -499,6 +500,10 @@ const Shop = () => {
             <TabsTrigger value="marketplace" className="text-xs gap-1">
               <Building className="w-3.5 h-3.5" />
               Market
+            </TabsTrigger>
+            <TabsTrigger value="auction" className="text-xs gap-1">
+              <Gavel className="w-3.5 h-3.5" />
+              Auction
             </TabsTrigger>
             <TabsTrigger value="food" className="text-xs gap-1">
               <UtensilsCrossed className="w-3.5 h-3.5" />
@@ -567,6 +572,9 @@ const Shop = () => {
                 setDetailDialog(true);
               }}
             />
+
+            {/* Auction Products */}
+            <AuctionProducts />
 
             {/* Products Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -756,6 +764,22 @@ const Shop = () => {
 
           <TabsContent value="marketplace" className="space-y-3 mt-0">
             <MarketplaceListings />
+          </TabsContent>
+
+          <TabsContent value="auction" className="space-y-3 mt-0">
+            <div className="py-4">
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-xl font-bold flex items-center gap-2">
+                  <Gavel className="w-6 h-6 text-primary" />
+                  Live Auctions
+                </h1>
+                <Button onClick={() => navigate("/auction")} className="gap-2">
+                  <Gavel className="w-4 h-4" />
+                  Go to Auction Hub
+                </Button>
+              </div>
+              <AuctionProducts />
+            </div>
           </TabsContent>
 
           <TabsContent value="seller">
