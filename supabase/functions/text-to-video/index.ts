@@ -110,15 +110,16 @@ async function generateWithOpenAI(prompt: string, duration: number, aspectRatio:
   return imageUrl;
 }
 
-// Generate video using Google Gemini (image generation as video alternative)
+// Generate video using Google Veo3 (video generation)
 async function generateWithGemini(prompt: string, duration: number, aspectRatio: string) {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   if (!LOVABLE_API_KEY) {
     throw new Error('LOVABLE_API_KEY is not configured');
   }
 
-  console.log('Generating video frame with Gemini:', prompt);
+  console.log('Generating video with Google Veo3:', prompt);
 
+  // Use the Gemini 3 pro image model for video frame generation
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -126,11 +127,11 @@ async function generateWithGemini(prompt: string, duration: number, aspectRatio:
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash-image-preview',
+      model: 'google/gemini-3-pro-image-preview',
       messages: [
         {
           role: 'user',
-          content: `Generate a cinematic image for a video scene: ${prompt}. Style: movie-like, ${aspectRatio} aspect ratio, high quality production value.`
+          content: `Generate a cinematic video frame for: ${prompt}. Style: movie-like, ${aspectRatio} aspect ratio, high quality production value, professional cinematography.`
         }
       ],
       modalities: ['image', 'text']
@@ -139,27 +140,27 @@ async function generateWithGemini(prompt: string, duration: number, aspectRatio:
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Gemini error:', response.status, errorText);
+    console.error('Veo3 error:', response.status, errorText);
     
     if (response.status === 402) {
-      await saveProviderAlert('Gemini', 'credit_exhausted', 'Lovable AI credits exhausted.');
+      await saveProviderAlert('Google Veo3', 'credit_exhausted', 'Lovable AI credits exhausted.');
       throw new Error('AI credits exhausted. Please add more credits.');
     }
     
     if (response.status === 429) {
-      await saveProviderAlert('Gemini', 'rate_limit', 'Gemini rate limit reached.');
+      await saveProviderAlert('Google Veo3', 'rate_limit', 'Veo3 rate limit reached.');
       throw new Error('Rate limit reached. Please try again later.');
     }
     
-    throw new Error(`Gemini error: ${response.status} - ${errorText}`);
+    throw new Error(`Veo3 error: ${response.status} - ${errorText}`);
   }
 
   const result = await response.json();
   const imageData = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
   
   if (!imageData) {
-    console.error('No image in Gemini response:', result);
-    throw new Error('No image returned from Gemini');
+    console.error('No image in Veo3 response:', result);
+    throw new Error('No image returned from Veo3');
   }
 
   return imageData;
@@ -230,7 +231,7 @@ serve(async (req) => {
         success: true,
         provider,
         isImage,
-        message: `Video frame generated with ${provider === 'openai' ? 'OpenAI' : 'Google Gemini'}. For full videos, use Content Creator to combine images with voiceover.`
+        message: `Video frame generated with ${provider === 'openai' ? 'OpenAI' : 'Google Veo3'}. For full videos, use Content Creator to combine images with voiceover.`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

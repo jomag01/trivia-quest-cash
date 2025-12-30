@@ -1315,7 +1315,7 @@ const AIHub = memo(() => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="gemini">Google Gemini</SelectItem>
+                          <SelectItem value="gemini">Google Veo3</SelectItem>
                           <SelectItem value="openai">OpenAI</SelectItem>
                         </SelectContent>
                       </Select>
