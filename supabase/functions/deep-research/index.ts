@@ -56,17 +56,26 @@ Be thorough, accurate, and provide expert-level analysis. If the topic requires 
       { role: "user", content: query }
     ];
 
+    // GPT-5 models require max_completion_tokens instead of max_tokens
+    const isGpt5 = selectedModel.includes('gpt-5');
+    const requestBody: any = {
+      model: selectedModel,
+      messages,
+    };
+    
+    if (isGpt5) {
+      requestBody.max_completion_tokens = 4000;
+    } else {
+      requestBody.max_tokens = 4000;
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages,
-        max_tokens: 4000,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
