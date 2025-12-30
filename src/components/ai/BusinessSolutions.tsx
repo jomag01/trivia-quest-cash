@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import pptxgen from 'pptxgenjs';
+import { CreditSourceDialog } from './CreditSourceDialog';
 import { 
   FileText, 
   Upload, 
@@ -73,12 +74,29 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('powerpoint');
   
+  // AI Credits state
+  const [userAICredits, setUserAICredits] = useState({
+    images: 0,
+    videoMinutes: 0,
+    audioMinutes: 0,
+    totalCredits: 0
+  });
+  
+  // Credit source dialog state
+  const [showCreditDialog, setShowCreditDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'ppt' | 'excel' | 'document';
+    cost: number;
+    execute: () => Promise<void>;
+  } | null>(null);
+  
   // PowerPoint states
   const [pptMode, setPptMode] = useState<'document' | 'topic'>('topic');
   const [uploadedDocument, setUploadedDocument] = useState<string | null>(null);
   const [documentName, setDocumentName] = useState<string>('');
   const [presentationTopic, setPresentationTopic] = useState('');
   const [slideCount, setSlideCount] = useState('10');
+  const [customSlideCount, setCustomSlideCount] = useState('');
   const [selectedDesign, setSelectedDesign] = useState('professional');
   const [isGeneratingPPT, setIsGeneratingPPT] = useState(false);
   const [generatedPPT, setGeneratedPPT] = useState<any>(null);
@@ -102,6 +120,36 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
   const PPT_CREDIT_COST = 5;
   const EXCEL_CREDIT_COST = 3;
   const DOC_CREDIT_COST = 4;
+
+  // Fetch AI credits
+  useEffect(() => {
+    const fetchAICredits = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('user_ai_credits')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data) {
+        setUserAICredits({
+          images: data.images_available || 0,
+          videoMinutes: Number(data.video_minutes_available) || 0,
+          audioMinutes: Number(data.audio_minutes_available) || 0,
+          totalCredits: data.total_credits || 0
+        });
+      }
+    };
+    fetchAICredits();
+  }, [user]);
+
+  const getEffectiveSlideCount = () => {
+    if (slideCount === 'custom' && customSlideCount) {
+      const count = parseInt(customSlideCount);
+      return Math.min(Math.max(count, 1), 100); // Limit between 1-100
+    }
+    return parseInt(slideCount);
+  };
 
   const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -150,7 +198,33 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
     reader.readAsDataURL(file);
   };
 
-  const deductCredits = async (amount: number) => {
+  const deductFromAICredits = async (amount: number) => {
+    if (!user) return false;
+    try {
+      // Deduct from total_credits in user_ai_credits
+      const { data: current } = await supabase
+        .from('user_ai_credits')
+        .select('total_credits')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (!current || current.total_credits < amount) return false;
+      
+      const { error } = await supabase
+        .from('user_ai_credits')
+        .update({ total_credits: current.total_credits - amount })
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      setUserAICredits(prev => ({ ...prev, totalCredits: prev.totalCredits - amount }));
+      return true;
+    } catch (error) {
+      console.error('Error deducting AI credits:', error);
+      return false;
+    }
+  };
+
+  const deductFromLegacyCredits = async (amount: number) => {
     if (!user) return false;
     try {
       const { error } = await supabase
@@ -166,42 +240,67 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
     }
   };
 
-  const handleGeneratePPT = async () => {
-    if (!user) {
-      toast.error('Please login to generate presentations');
+  const promptCreditSource = (
+    type: 'ppt' | 'excel' | 'document',
+    cost: number,
+    executeAction: () => Promise<void>
+  ) => {
+    const hasAICredits = userAICredits.totalCredits >= cost;
+    const hasLegacyCredits = userCredits >= cost;
+    
+    if (!hasAICredits && !hasLegacyCredits) {
+      toast.error(`You need at least ${cost} credits to continue`);
       return;
     }
     
-    if (pptMode === 'document' && !uploadedDocument) {
-      toast.error('Please upload a document first');
-      return;
+    if (hasAICredits && hasLegacyCredits) {
+      // Show dialog to choose
+      setPendingAction({ type, cost, execute: executeAction });
+      setShowCreditDialog(true);
+    } else if (hasAICredits) {
+      // Auto-deduct from AI credits
+      handleCreditSourceConfirm('ai_credits', cost, executeAction);
+    } else {
+      // Auto-deduct from legacy credits
+      handleCreditSourceConfirm('legacy_credits', cost, executeAction);
     }
-    
-    if (pptMode === 'topic' && !presentationTopic.trim()) {
-      toast.error('Please enter a topic for your presentation');
-      return;
-    }
-    
-    if (userCredits < PPT_CREDIT_COST) {
-      toast.error(`You need at least ${PPT_CREDIT_COST} credits to generate a presentation`);
-      return;
-    }
+  };
 
+  const handleCreditSourceConfirm = async (
+    source: 'ai_credits' | 'legacy_credits',
+    cost: number,
+    executeAction: () => Promise<void>
+  ) => {
+    const deducted = source === 'ai_credits' 
+      ? await deductFromAICredits(cost)
+      : await deductFromLegacyCredits(cost);
+    
+    if (!deducted) {
+      toast.error('Failed to deduct credits');
+      return;
+    }
+    
+    await executeAction();
+  };
+
+  const handleCreditDialogConfirm = async (source: 'ai_credits' | 'legacy_credits') => {
+    if (!pendingAction) return;
+    await handleCreditSourceConfirm(source, pendingAction.cost, pendingAction.execute);
+    setPendingAction(null);
+  };
+
+  const executeGeneratePPT = async () => {
     setIsGeneratingPPT(true);
     setGeneratedPPT(null);
     setGenerationProgress(0);
 
     try {
-      const deducted = await deductCredits(PPT_CREDIT_COST);
-      if (!deducted) {
-        toast.error('Failed to deduct credits');
-        return;
-      }
-
+      const effectiveSlideCount = getEffectiveSlideCount();
+      
       // Simulate progress
       const progressInterval = setInterval(() => {
-        setGenerationProgress(prev => Math.min(prev + 10, 90));
-      }, 500);
+        setGenerationProgress(prev => Math.min(prev + 5, 90));
+      }, 800);
 
       const { data, error } = await supabase.functions.invoke('business-solutions', {
         body: {
@@ -209,7 +308,7 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
           mode: pptMode,
           document: pptMode === 'document' ? uploadedDocument : null,
           topic: pptMode === 'topic' ? presentationTopic : null,
-          slideCount: parseInt(slideCount),
+          slideCount: effectiveSlideCount,
           design: selectedDesign
         }
       });
@@ -233,32 +332,30 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
     }
   };
 
-  const handleProcessExcel = async () => {
+  const handleGeneratePPT = async () => {
     if (!user) {
-      toast.error('Please login to process Excel files');
+      toast.error('Please login to generate presentations');
       return;
     }
     
-    if (!uploadedExcel) {
-      toast.error('Please upload an Excel file first');
+    if (pptMode === 'document' && !uploadedDocument) {
+      toast.error('Please upload a document first');
       return;
     }
     
-    if (userCredits < EXCEL_CREDIT_COST) {
-      toast.error(`You need at least ${EXCEL_CREDIT_COST} credits to process Excel files`);
+    if (pptMode === 'topic' && !presentationTopic.trim()) {
+      toast.error('Please enter a topic for your presentation');
       return;
     }
 
+    promptCreditSource('ppt', PPT_CREDIT_COST, executeGeneratePPT);
+  };
+
+  const executeProcessExcel = async () => {
     setIsProcessingExcel(true);
     setExcelResult(null);
 
     try {
-      const deducted = await deductCredits(EXCEL_CREDIT_COST);
-      if (!deducted) {
-        toast.error('Failed to deduct credits');
-        return;
-      }
-
       const { data, error } = await supabase.functions.invoke('business-solutions', {
         body: {
           type: 'process-excel',
@@ -284,32 +381,25 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
     }
   };
 
-  const handleGenerateDocument = async () => {
+  const handleProcessExcel = async () => {
     if (!user) {
-      toast.error('Please login to generate documents');
+      toast.error('Please login to process Excel files');
       return;
     }
     
-    if (!docContent.trim()) {
-      toast.error('Please provide the content/information for your document');
-      return;
-    }
-    
-    if (userCredits < DOC_CREDIT_COST) {
-      toast.error(`You need at least ${DOC_CREDIT_COST} credits to generate documents`);
+    if (!uploadedExcel) {
+      toast.error('Please upload an Excel file first');
       return;
     }
 
+    promptCreditSource('excel', EXCEL_CREDIT_COST, executeProcessExcel);
+  };
+
+  const executeGenerateDocument = async () => {
     setIsGeneratingDoc(true);
     setGeneratedDocument(null);
 
     try {
-      const deducted = await deductCredits(DOC_CREDIT_COST);
-      if (!deducted) {
-        toast.error('Failed to deduct credits');
-        return;
-      }
-
       const selectedService = DOCUMENT_SERVICES.find(s => s.id === selectedDocService);
       
       const { data, error } = await supabase.functions.invoke('business-solutions', {
@@ -336,6 +426,20 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
     } finally {
       setIsGeneratingDoc(false);
     }
+  };
+
+  const handleGenerateDocument = async () => {
+    if (!user) {
+      toast.error('Please login to generate documents');
+      return;
+    }
+    
+    if (!docContent.trim()) {
+      toast.error('Please provide the content/information for your document');
+      return;
+    }
+
+    promptCreditSource('document', DOC_CREDIT_COST, executeGenerateDocument);
   };
 
   const downloadDocument = () => {
@@ -635,10 +739,13 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
               )}
 
               {/* Slide Count */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="slideCount">Number of Slides</Label>
-                  <Select value={slideCount} onValueChange={setSlideCount}>
+              <div className="space-y-2">
+                <Label htmlFor="slideCount">Number of Slides</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <Select value={slideCount} onValueChange={(val) => {
+                    setSlideCount(val);
+                    if (val !== 'custom') setCustomSlideCount('');
+                  }}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -648,16 +755,37 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
                       <SelectItem value="15">15 slides</SelectItem>
                       <SelectItem value="20">20 slides</SelectItem>
                       <SelectItem value="30">30 slides</SelectItem>
+                      <SelectItem value="50">50 slides</SelectItem>
+                      <SelectItem value="custom">Custom...</SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  {slideCount === 'custom' && (
+                    <Input
+                      type="number"
+                      min="1"
+                      max="100"
+                      placeholder="Enter slide count (1-100)"
+                      value={customSlideCount}
+                      onChange={(e) => setCustomSlideCount(e.target.value)}
+                      className="w-full"
+                    />
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label>Credits Required</Label>
-                  <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted">
-                    <Badge variant="secondary">{PPT_CREDIT_COST} credits</Badge>
-                    <span className="text-sm text-muted-foreground">per presentation</span>
-                  </div>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  AI will generate images for each slide based on the content
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 p-3 rounded-md border bg-muted/50">
+                <Badge variant="secondary" className="bg-primary/10 text-primary">{PPT_CREDIT_COST} credits</Badge>
+                <span className="text-sm text-muted-foreground">per presentation</span>
+                {userAICredits.totalCredits > 0 && (
+                  <Badge variant="outline" className="ml-auto">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    {userAICredits.totalCredits} AI credits
+                  </Badge>
+                )}
               </div>
 
               {/* Design Selection */}
@@ -1085,6 +1213,22 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Credit Source Dialog */}
+      <CreditSourceDialog
+        open={showCreditDialog}
+        onOpenChange={setShowCreditDialog}
+        onConfirm={handleCreditDialogConfirm}
+        aiCreditsAvailable={userAICredits.totalCredits}
+        legacyCreditsAvailable={userCredits}
+        creditCost={pendingAction?.cost || 0}
+        serviceType="general"
+        serviceName={
+          pendingAction?.type === 'ppt' ? 'PowerPoint Generation' :
+          pendingAction?.type === 'excel' ? 'Excel Processing' :
+          pendingAction?.type === 'document' ? 'Document Generation' : 'Service'
+        }
+      />
     </div>
   );
 };

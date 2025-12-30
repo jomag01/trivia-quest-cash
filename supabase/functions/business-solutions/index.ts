@@ -47,6 +47,32 @@ async function generateImageForSlide(prompt: string, apiKey: string): Promise<st
   }
 }
 
+// Process images in batches to avoid timeout
+async function generateImagesForSlides(
+  slides: any[], 
+  apiKey: string, 
+  batchSize: number = 3
+): Promise<void> {
+  console.log(`Generating images for ${slides.length} slides in batches of ${batchSize}`);
+  
+  for (let i = 0; i < slides.length; i += batchSize) {
+    const batch = slides.slice(i, i + batchSize);
+    const promises = batch.map(async (slide, batchIndex) => {
+      const slideIndex = i + batchIndex;
+      if (slide.imagePrompt || slide.suggestedVisual || slide.title) {
+        const prompt = slide.imagePrompt || slide.suggestedVisual || slide.title;
+        const imageUrl = await generateImageForSlide(prompt, apiKey);
+        if (imageUrl) {
+          slides[slideIndex].imageUrl = imageUrl;
+        }
+      }
+    });
+    
+    await Promise.all(promises);
+    console.log(`Completed batch ${Math.floor(i / batchSize) + 1}, processed slides ${i + 1} to ${Math.min(i + batchSize, slides.length)}`);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -69,7 +95,7 @@ serve(async (req) => {
       
       if (mode === 'document' && document) {
         const base64Content = document.split(',')[1] || document;
-        contentPrompt = `Based on the following document content, create a professional presentation:\n\nDocument: ${base64Content.substring(0, 5000)}...`;
+        contentPrompt = `Based on the following document content, create a professional presentation:\n\nDocument: ${base64Content.substring(0, 8000)}...`;
       } else if (mode === 'topic' && topic) {
         contentPrompt = `Create a comprehensive presentation about: ${topic}`;
       }
@@ -83,11 +109,13 @@ serve(async (req) => {
         gradient: 'Use beautiful gradient backgrounds, modern color transitions, visually striking design.',
       };
 
-      const systemPrompt = `You are a professional presentation designer. Create detailed slide content for a ${slideCount}-slide presentation.
+      const systemPrompt = `You are a professional presentation designer. Create detailed slide content for EXACTLY ${slideCount} slides. This is very important - you MUST create exactly ${slideCount} slides, no more, no less.
       
 Design Style: ${designInstructions[design as keyof typeof designInstructions] || designInstructions.professional}
 
-IMPORTANT: For each slide, provide a detailed "imagePrompt" that describes a relevant, professional image to accompany the slide content. This will be used to generate AI images.
+IMPORTANT: 
+- Create EXACTLY ${slideCount} slides
+- For EACH slide, provide a detailed "imagePrompt" that describes a relevant, professional image. This will be used to generate AI images for EVERY slide.
 
 Return a JSON object with this structure:
 {
@@ -104,7 +132,9 @@ Return a JSON object with this structure:
     }
   ],
   "designNotes": "Overall design recommendations"
-}`;
+}
+
+Remember: You MUST create exactly ${slideCount} slides with imagePrompt for each one.`;
 
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
@@ -145,33 +175,42 @@ Return a JSON object with this structure:
         }
       } catch (parseError) {
         console.error('Parse error:', parseError);
+        // Create fallback slides
+        const fallbackSlides = [];
+        for (let idx = 0; idx < slideCount; idx++) {
+          fallbackSlides.push({
+            slideNumber: idx + 1,
+            title: idx === 0 ? (topic || 'Presentation') : `Slide ${idx + 1}`,
+            type: idx === 0 ? 'title' : 'content',
+            content: `Content for slide ${idx + 1}`,
+            speakerNotes: '',
+            imagePrompt: `Professional business image for slide ${idx + 1} about ${topic || 'business presentation'}`
+          });
+        }
         presentation = {
           title: topic || 'Presentation',
-          slides: content.split('\n\n').slice(0, slideCount).map((text: string, idx: number) => ({
-            slideNumber: idx + 1,
-            title: `Slide ${idx + 1}`,
-            type: idx === 0 ? 'title' : 'content',
-            content: text.trim(),
-            speakerNotes: '',
-            imagePrompt: `Professional business image for: ${text.substring(0, 100)}`
-          })),
+          slides: fallbackSlides,
           designNotes: `Style: ${design}`
         };
       }
 
-      // Generate AI images for each slide (limit to first 5 slides to avoid timeout)
-      console.log('Generating images for slides...');
-      const slidesToProcess = Math.min(presentation.slides?.length || 0, 5);
-      
-      for (let i = 0; i < slidesToProcess; i++) {
-        const slide = presentation.slides[i];
-        if (slide.imagePrompt || slide.suggestedVisual) {
-          const prompt = slide.imagePrompt || slide.suggestedVisual || slide.title;
-          const imageUrl = await generateImageForSlide(prompt, LOVABLE_API_KEY);
-          if (imageUrl) {
-            presentation.slides[i].imageUrl = imageUrl;
-          }
-        }
+      // Ensure we have the requested number of slides
+      while (presentation.slides && presentation.slides.length < slideCount) {
+        const idx = presentation.slides.length;
+        presentation.slides.push({
+          slideNumber: idx + 1,
+          title: `Additional Point ${idx + 1}`,
+          type: 'content',
+          content: `Additional content for comprehensive coverage`,
+          speakerNotes: '',
+          imagePrompt: `Professional business image for additional content about ${topic || 'business presentation'}`
+        });
+      }
+
+      // Generate AI images for ALL slides (process in batches to avoid timeout)
+      console.log(`Generating images for ${presentation.slides?.length || 0} slides...`);
+      if (presentation.slides && presentation.slides.length > 0) {
+        await generateImagesForSlides(presentation.slides, LOVABLE_API_KEY, 3);
       }
 
       return new Response(
