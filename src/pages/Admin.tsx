@@ -81,6 +81,7 @@ import PromotionalAdsManagement from "@/components/admin/PromotionalAdsManagemen
 import MemberActivationManagement from "@/components/admin/MemberActivationManagement";
 import { PurchaseNotificationSettings } from "@/components/admin/PurchaseNotificationSettings";
 import AuctionManagement from "@/components/admin/AuctionManagement";
+import LegalTermsManagement from "@/components/admin/LegalTermsManagement";
 import { cn } from "@/lib/utils";
 import { BarChart3, Gavel } from "lucide-react";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
@@ -254,6 +255,7 @@ const Admin = () => {
       items: [
         { id: "homepage", label: "Homepage Settings", icon: Home },
         { id: "app-logo", label: "App Logo", icon: Image },
+        { id: "legal-terms", label: "Terms & Disclaimers", icon: Shield },
         { id: "cookie-policy", label: "Cookie Policy", icon: Cookie },
         { id: "migration", label: "Image Migration", icon: Upload },
         { id: "system-reset", label: "System Reset", icon: RotateCcw },
@@ -814,6 +816,7 @@ const Admin = () => {
           {activeTab === "system-reset" && <SystemResetManagement />}
           {activeTab === "purchase-notifications" && <PurchaseNotificationSettings />}
           {activeTab === "auctions" && <AuctionManagement />}
+          {activeTab === "legal-terms" && <LegalTermsManagement />}
         </main>
       </div>
 
