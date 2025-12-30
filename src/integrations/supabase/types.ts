@@ -430,6 +430,611 @@ export type Database = {
         }
         Relationships: []
       }
+      auction_auto_bids: {
+        Row: {
+          auction_id: string
+          bidder_id: string
+          created_at: string | null
+          id: string
+          increment_amount: number | null
+          is_active: boolean | null
+          max_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          auction_id: string
+          bidder_id: string
+          created_at?: string | null
+          id?: string
+          increment_amount?: number | null
+          is_active?: boolean | null
+          max_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          auction_id?: string
+          bidder_id?: string
+          created_at?: string | null
+          id?: string
+          increment_amount?: number | null
+          is_active?: boolean | null
+          max_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_auto_bids_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_auto_bids_bidder_id_fkey"
+            columns: ["bidder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auction_bids: {
+        Row: {
+          amount: number
+          auction_id: string
+          bid_hash: string | null
+          bidder_id: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          is_auto_bid: boolean | null
+          max_auto_bid: number | null
+        }
+        Insert: {
+          amount: number
+          auction_id: string
+          bid_hash?: string | null
+          bidder_id: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          is_auto_bid?: boolean | null
+          max_auto_bid?: number | null
+        }
+        Update: {
+          amount?: number
+          auction_id?: string
+          bid_hash?: string | null
+          bidder_id?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          is_auto_bid?: boolean | null
+          max_auto_bid?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_bids_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_bids_bidder_id_fkey"
+            columns: ["bidder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auction_blockchain_log: {
+        Row: {
+          action_type: string
+          auction_id: string | null
+          bid_id: string | null
+          data_hash: string
+          id: string
+          previous_hash: string | null
+          timestamp: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          action_type: string
+          auction_id?: string | null
+          bid_id?: string | null
+          data_hash: string
+          id?: string
+          previous_hash?: string | null
+          timestamp?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          action_type?: string
+          auction_id?: string | null
+          bid_id?: string | null
+          data_hash?: string
+          id?: string
+          previous_hash?: string | null
+          timestamp?: string | null
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_blockchain_log_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_blockchain_log_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "auction_bids"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auction_categories: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      auction_escrow: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          auction_id: string
+          buyer_id: string
+          courier: string | null
+          created_at: string | null
+          delivered_at: string | null
+          dispute_at: string | null
+          dispute_reason: string | null
+          id: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_proof_url: string | null
+          payment_reference: string | null
+          platform_fee: number | null
+          released_at: string | null
+          seller_id: string
+          shipped_at: string | null
+          shipping_fee: number | null
+          status: string | null
+          total_amount: number
+          tracking_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          auction_id: string
+          buyer_id: string
+          courier?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          dispute_at?: string | null
+          dispute_reason?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          platform_fee?: number | null
+          released_at?: string | null
+          seller_id: string
+          shipped_at?: string | null
+          shipping_fee?: number | null
+          status?: string | null
+          total_amount: number
+          tracking_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          auction_id?: string
+          buyer_id?: string
+          courier?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          dispute_at?: string | null
+          dispute_reason?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          platform_fee?: number | null
+          released_at?: string | null
+          seller_id?: string
+          shipped_at?: string | null
+          shipping_fee?: number | null
+          status?: string | null
+          total_amount?: number
+          tracking_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_escrow_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_escrow_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_escrow_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auction_feedback: {
+        Row: {
+          auction_id: string
+          comment: string | null
+          created_at: string | null
+          feedback_type: string | null
+          from_user_id: string
+          id: string
+          rating: number | null
+          to_user_id: string
+        }
+        Insert: {
+          auction_id: string
+          comment?: string | null
+          created_at?: string | null
+          feedback_type?: string | null
+          from_user_id: string
+          id?: string
+          rating?: number | null
+          to_user_id: string
+        }
+        Update: {
+          auction_id?: string
+          comment?: string | null
+          created_at?: string | null
+          feedback_type?: string | null
+          from_user_id?: string
+          id?: string
+          rating?: number | null
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_feedback_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_feedback_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_feedback_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auction_messages: {
+        Row: {
+          auction_id: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          auction_id: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          auction_id?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_messages_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auction_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          setting_key: string
+          setting_value: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      auction_watchlist: {
+        Row: {
+          auction_id: string
+          created_at: string | null
+          id: string
+          notify_ending: boolean | null
+          notify_outbid: boolean | null
+          user_id: string
+        }
+        Insert: {
+          auction_id: string
+          created_at?: string | null
+          id?: string
+          notify_ending?: boolean | null
+          notify_outbid?: boolean | null
+          user_id: string
+        }
+        Update: {
+          auction_id?: string
+          created_at?: string | null
+          id?: string
+          notify_ending?: boolean | null
+          notify_outbid?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_watchlist_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_watchlist_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auctions: {
+        Row: {
+          admin_notes: string | null
+          ai_suggested_price: number | null
+          anti_snipe_extension_minutes: number | null
+          anti_snipe_minutes: number | null
+          approved_at: string | null
+          approved_by: string | null
+          bid_count: number | null
+          blockchain_hash: string | null
+          buy_now_price: number | null
+          category_id: string | null
+          condition: string | null
+          created_at: string | null
+          current_bid: number | null
+          current_bidder_id: string | null
+          description: string | null
+          dimensions_cm: string | null
+          ends_at: string
+          featured: boolean | null
+          id: string
+          images: string[] | null
+          original_end_time: string | null
+          reserve_price: number | null
+          seller_id: string
+          shipping_fee: number | null
+          shipping_options: Json | null
+          starting_bid: number
+          starts_at: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          video_url: string | null
+          views: number | null
+          watchers: number | null
+          weight_kg: number | null
+          winner_id: string | null
+          winning_bid: number | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          ai_suggested_price?: number | null
+          anti_snipe_extension_minutes?: number | null
+          anti_snipe_minutes?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          bid_count?: number | null
+          blockchain_hash?: string | null
+          buy_now_price?: number | null
+          category_id?: string | null
+          condition?: string | null
+          created_at?: string | null
+          current_bid?: number | null
+          current_bidder_id?: string | null
+          description?: string | null
+          dimensions_cm?: string | null
+          ends_at: string
+          featured?: boolean | null
+          id?: string
+          images?: string[] | null
+          original_end_time?: string | null
+          reserve_price?: number | null
+          seller_id: string
+          shipping_fee?: number | null
+          shipping_options?: Json | null
+          starting_bid: number
+          starts_at?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          video_url?: string | null
+          views?: number | null
+          watchers?: number | null
+          weight_kg?: number | null
+          winner_id?: string | null
+          winning_bid?: number | null
+        }
+        Update: {
+          admin_notes?: string | null
+          ai_suggested_price?: number | null
+          anti_snipe_extension_minutes?: number | null
+          anti_snipe_minutes?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          bid_count?: number | null
+          blockchain_hash?: string | null
+          buy_now_price?: number | null
+          category_id?: string | null
+          condition?: string | null
+          created_at?: string | null
+          current_bid?: number | null
+          current_bidder_id?: string | null
+          description?: string | null
+          dimensions_cm?: string | null
+          ends_at?: string
+          featured?: boolean | null
+          id?: string
+          images?: string[] | null
+          original_end_time?: string | null
+          reserve_price?: number | null
+          seller_id?: string
+          shipping_fee?: number | null
+          shipping_options?: Json | null
+          starting_bid?: number
+          starts_at?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          video_url?: string | null
+          views?: number | null
+          watchers?: number | null
+          weight_kg?: number | null
+          winner_id?: string | null
+          winning_bid?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auctions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "auction_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auctions_current_bidder_id_fkey"
+            columns: ["current_bidder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auctions_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auctions_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       binary_accounting_ledger: {
         Row: {
           amount: number
