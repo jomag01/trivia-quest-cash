@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { Calculator, Video, Music, Image, Mic, Loader2, Brain, MessageSquare, Diamond, ArrowRight, Save } from 'lucide-react';
+import { Calculator, Video, Music, Image, Mic, Loader2, Brain, MessageSquare, Diamond, ArrowRight, Save, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 
@@ -23,6 +23,7 @@ interface ProviderPricing {
 const AICostCalculator = () => {
   const [pricing, setPricing] = useState<ProviderPricing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Diamond to PHP converter
   const [diamondToPhp, setDiamondToPhp] = useState('1'); // 1 diamond = X PHP
@@ -45,7 +46,8 @@ const AICostCalculator = () => {
     fetchPricing();
   }, []);
 
-  const fetchPricing = async () => {
+  const fetchPricing = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
     try {
       const { data, error } = await supabase
         .from('ai_provider_pricing')
@@ -61,14 +63,18 @@ const AICostCalculator = () => {
         const audioProvider = data.find(p => (p.audio_cost_per_minute || 0) > 0);
         const imageProvider = data.find(p => (p.image_cost || 0) > 0);
         
-        if (videoProvider) setSelectedVideoProvider(videoProvider.id);
-        if (audioProvider) setSelectedAudioProvider(audioProvider.id);
-        if (imageProvider) setSelectedImageProvider(imageProvider.id);
+        if (videoProvider && !selectedVideoProvider) setSelectedVideoProvider(videoProvider.id);
+        if (audioProvider && !selectedAudioProvider) setSelectedAudioProvider(audioProvider.id);
+        if (imageProvider && !selectedImageProvider) setSelectedImageProvider(imageProvider.id);
       }
+      
+      if (isRefresh) toast.success('Pricing updated from database');
     } catch (error) {
       console.error('Error fetching pricing:', error);
+      if (isRefresh) toast.error('Failed to refresh pricing');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -210,12 +216,24 @@ const AICostCalculator = () => {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <Calculator className="h-5 w-5 text-primary" />
-          AI Cost Calculator
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-primary" />
+            AI Cost Calculator
+          </CardTitle>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => fetchPricing(true)}
+            disabled={refreshing}
+            className="h-8"
+          >
+            <RefreshCw className={`h-3 w-3 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Updating...' : 'Refresh'}
+          </Button>
+        </div>
         <CardDescription>
-          Calculate AI costs and convert to diamonds for user pricing
+          Auto-synced with AI provider pricing • Convert to diamonds for user pricing
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
