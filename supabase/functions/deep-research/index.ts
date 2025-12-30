@@ -66,12 +66,17 @@ Be thorough, accurate, and provide expert-level analysis. If the topic requires 
       { role: "user", content: query }
     ];
 
-    // GPT-5 models require max_completion_tokens instead of max_tokens
+    // GPT-5 currently only supports the default temperature (1). Sending any other value causes a 400.
+    // So we only set temperature for non-GPT-5 models.
     const requestBody: any = {
       model: selectedModel,
       messages,
-      temperature: isGpt5 ? 0.2 : 0.4,
     };
+
+    if (!isGpt5) {
+      requestBody.temperature = 0.4;
+    }
+
 
     if (isGpt5) {
       // Keep this lower to reduce the chance GPT-5 uses the entire budget on hidden reasoning.
