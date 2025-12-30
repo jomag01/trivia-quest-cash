@@ -161,6 +161,20 @@ export const CartView = () => {
       return;
     }
 
+    // COD Balance Protection - require sufficient balance to cover shipping in case of cancellation/RTS
+    const subtotalForCod = calculateTotal();
+    const totalForCod = subtotalForCod + shippingFee;
+    const userBalance = userCredits + (userDiamonds * 10); // Convert diamonds to peso value
+    
+    if (paymentMethod === "cod" && userBalance < totalForCod) {
+      toast.error(
+        `COD Protection: You need at least ₱${totalForCod.toFixed(2)} in credits or diamonds to use COD. ` +
+        `This protects sellers from shipping costs if orders are cancelled. ` +
+        `Your current balance: ₱${userBalance.toFixed(2)}`
+      );
+      return;
+    }
+
     const subtotal = calculateTotal();
     const totalAmount = subtotal + shippingFee;
     const diamondsRequired = Math.ceil(totalAmount / 10);
@@ -312,8 +326,19 @@ export const CartView = () => {
   const getAvailablePaymentMethods = () => {
     const methods = [];
     
-    if (isVerified) {
-      methods.push({ value: "cod", label: "Cash on Delivery" });
+    const subtotal = calculateTotal();
+    const totalAmount = subtotal + shippingFee;
+    const userBalance = userCredits + (userDiamonds * 10);
+    const hasSufficientBalance = userBalance >= totalAmount;
+    
+    if (isVerified && hasSufficientBalance) {
+      methods.push({ value: "cod", label: `Cash on Delivery (Requires ₱${totalAmount.toFixed(0)} balance)` });
+    } else if (isVerified && !hasSufficientBalance) {
+      methods.push({ 
+        value: "cod_disabled", 
+        label: `COD unavailable (Need ₱${totalAmount.toFixed(0)} balance, have ₱${userBalance.toFixed(0)})`,
+        disabled: true 
+      });
     }
     
     methods.push(
@@ -321,8 +346,6 @@ export const CartView = () => {
       { value: "bank_transfer", label: "Bank Transfer" }
     );
 
-    const subtotal = calculateTotal();
-    const totalAmount = subtotal + shippingFee;
     const diamondsRequired = Math.ceil(totalAmount / 10);
 
     if (userCredits >= totalAmount) {
