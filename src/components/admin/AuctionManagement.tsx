@@ -220,20 +220,95 @@ const AuctionManagement = () => {
   };
 
   const handleResolveDispute = async (escrowId: string, resolution: "refund" | "release") => {
-    const { error } = await supabase
-      .from("auction_escrow")
-      .update({
-        status: resolution === "refund" ? "refunded" : "released",
-        released_at: new Date().toISOString(),
-      })
-      .eq("id", escrowId);
+    try {
+      // First get escrow details to process commissions on release
+      if (resolution === "release") {
+        const { data: escrow, error: escrowFetchError } = await supabase
+          .from("auction_escrow")
+          .select(`
+            *,
+            auction:auctions(id, seller_id, winning_bid)
+          `)
+          .eq("id", escrowId)
+          .single();
 
-    if (error) {
-      toast.error("Failed to resolve dispute");
-    } else {
-      toast.success(`Dispute resolved - ${resolution === "refund" ? "Buyer refunded" : "Funds released to seller"}`);
+        if (escrowFetchError) throw escrowFetchError;
+
+        // Get seller's referrer
+        const { data: sellerProfile } = await supabase
+          .from("profiles")
+          .select("referred_by")
+          .eq("id", escrow.seller_id)
+          .single();
+
+        // Calculate commissions based on settings
+        const platformFeePercent = parseFloat(settings.platform_success_fee_percent || "5");
+        const directReferrerPercent = parseFloat(settings.direct_referrer_commission_percent || "3");
+        const unilevelPercent = parseFloat(settings.unilevel_commission_percent || "40");
+        const stairstepPercent = parseFloat(settings.stairstep_commission_percent || "35");
+        const leadershipPercent = parseFloat(settings.leadership_commission_percent || "25");
+
+        const winningBid = escrow.amount;
+        const platformFee = winningBid * (platformFeePercent / 100);
+        const referrerCommission = platformFee * (directReferrerPercent / 100);
+        const remainingPool = platformFee - referrerCommission;
+        
+        const unilevelPool = remainingPool * (unilevelPercent / 100);
+        const stairstepPool = remainingPool * (stairstepPercent / 100);
+        const leadershipPool = remainingPool * (leadershipPercent / 100);
+
+        // Create auction commission record
+        await supabase
+          .from("auction_commissions")
+          .insert({
+            auction_id: escrow.auction?.id,
+            escrow_id: escrowId,
+            seller_id: escrow.seller_id,
+            referrer_id: sellerProfile?.referred_by || null,
+            winning_bid_amount: winningBid,
+            platform_fee: platformFee,
+            referrer_commission: referrerCommission,
+            unilevel_pool: unilevelPool,
+            stairstep_pool: stairstepPool,
+            leadership_pool: leadershipPool,
+            status: "processed",
+            processed_at: new Date().toISOString(),
+          });
+
+        // Credit direct referrer if exists
+        if (sellerProfile?.referred_by && referrerCommission > 0) {
+          await supabase
+            .from("profiles")
+            .select("credits")
+            .eq("id", sellerProfile.referred_by)
+            .single()
+            .then(({ data: referrerProfile }) => {
+              if (referrerProfile) {
+                return supabase
+                  .from("profiles")
+                  .update({ credits: (referrerProfile.credits || 0) + referrerCommission })
+                  .eq("id", sellerProfile.referred_by);
+              }
+            });
+        }
+      }
+
+      const { error } = await supabase
+        .from("auction_escrow")
+        .update({
+          status: resolution === "refund" ? "refunded" : "released",
+          released_at: new Date().toISOString(),
+        })
+        .eq("id", escrowId);
+
+      if (error) throw error;
+      
+      toast.success(`Dispute resolved - ${resolution === "refund" ? "Buyer refunded" : "Funds released to seller with commissions processed"}`);
       fetchData();
       fetchStats();
+    } catch (error: any) {
+      console.error("Error resolving dispute:", error);
+      toast.error("Failed to resolve dispute");
     }
   };
 
@@ -350,25 +425,105 @@ const AuctionManagement = () => {
           {activeTab === "settings" ? (
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Auction Settings</h3>
-              <div className="grid gap-4">
-                {Object.entries(settings).map(([key, value]) => (
-                  <div key={key} className="flex items-center gap-4">
-                    <label className="w-48 text-sm capitalize">
-                      {key.replace(/_/g, " ")}
-                    </label>
-                    <Input
-                      value={value}
-                      onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
-                      className="flex-1"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={() => handleSaveSettings(key, settings[key])}
-                    >
-                      Save
-                    </Button>
-                  </div>
-                ))}
+              <div className="grid gap-6">
+                {/* Platform Fee Settings */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Platform Fees</h4>
+                  {["platform_success_fee_percent"].filter(k => k in settings).map(key => (
+                    <div key={key} className="flex items-center gap-4">
+                      <label className="w-64 text-sm capitalize">
+                        {key.replace(/_/g, " ")}
+                      </label>
+                      <Input
+                        value={settings[key] || ""}
+                        onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
+                        className="w-24"
+                        type="number"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                      <Button size="sm" onClick={() => handleSaveSettings(key, settings[key])}>
+                        Save
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Referrer Commission */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Direct Referrer Commission</h4>
+                  <p className="text-xs text-muted-foreground">Percentage of platform fee given to the person who referred the seller</p>
+                  {["direct_referrer_commission_percent"].filter(k => k in settings).map(key => (
+                    <div key={key} className="flex items-center gap-4">
+                      <label className="w-64 text-sm capitalize">
+                        {key.replace(/_/g, " ")}
+                      </label>
+                      <Input
+                        value={settings[key] || ""}
+                        onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
+                        className="w-24"
+                        type="number"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                      <Button size="sm" onClick={() => handleSaveSettings(key, settings[key])}>
+                        Save
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Affiliate Commission Distribution */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Affiliate Commission Distribution</h4>
+                  <p className="text-xs text-muted-foreground">How remaining commission pool is split (should total 100%)</p>
+                  {["unilevel_commission_percent", "stairstep_commission_percent", "leadership_commission_percent"]
+                    .filter(k => k in settings)
+                    .map(key => (
+                    <div key={key} className="flex items-center gap-4">
+                      <label className="w-64 text-sm capitalize">
+                        {key.replace(/_/g, " ")}
+                      </label>
+                      <Input
+                        value={settings[key] || ""}
+                        onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
+                        className="w-24"
+                        type="number"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                      <Button size="sm" onClick={() => handleSaveSettings(key, settings[key])}>
+                        Save
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Other Settings */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Other Settings</h4>
+                  {Object.entries(settings)
+                    .filter(([key]) => !["platform_success_fee_percent", "direct_referrer_commission_percent", 
+                      "unilevel_commission_percent", "stairstep_commission_percent", "leadership_commission_percent"].includes(key))
+                    .map(([key, value]) => (
+                    <div key={key} className="flex items-center gap-4">
+                      <label className="w-64 text-sm capitalize">
+                        {key.replace(/_/g, " ")}
+                      </label>
+                      <Input
+                        value={value}
+                        onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
+                        className="flex-1"
+                      />
+                      <Button size="sm" onClick={() => handleSaveSettings(key, settings[key])}>
+                        Save
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </Card>
           ) : activeTab === "escrow" || activeTab === "disputes" ? (

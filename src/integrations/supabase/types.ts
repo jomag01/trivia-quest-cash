@@ -616,6 +616,75 @@ export type Database = {
         }
         Relationships: []
       }
+      auction_commissions: {
+        Row: {
+          auction_id: string
+          created_at: string
+          escrow_id: string | null
+          id: string
+          leadership_pool: number | null
+          platform_fee: number
+          processed_at: string | null
+          referrer_commission: number | null
+          referrer_id: string | null
+          seller_id: string
+          stairstep_pool: number | null
+          status: string
+          unilevel_pool: number | null
+          updated_at: string
+          winning_bid_amount: number
+        }
+        Insert: {
+          auction_id: string
+          created_at?: string
+          escrow_id?: string | null
+          id?: string
+          leadership_pool?: number | null
+          platform_fee?: number
+          processed_at?: string | null
+          referrer_commission?: number | null
+          referrer_id?: string | null
+          seller_id: string
+          stairstep_pool?: number | null
+          status?: string
+          unilevel_pool?: number | null
+          updated_at?: string
+          winning_bid_amount: number
+        }
+        Update: {
+          auction_id?: string
+          created_at?: string
+          escrow_id?: string | null
+          id?: string
+          leadership_pool?: number | null
+          platform_fee?: number
+          processed_at?: string | null
+          referrer_commission?: number | null
+          referrer_id?: string | null
+          seller_id?: string
+          stairstep_pool?: number | null
+          status?: string
+          unilevel_pool?: number | null
+          updated_at?: string
+          winning_bid_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_commissions_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_commissions_escrow_id_fkey"
+            columns: ["escrow_id"]
+            isOneToOne: false
+            referencedRelation: "auction_escrow"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auction_escrow: {
         Row: {
           admin_notes: string | null
