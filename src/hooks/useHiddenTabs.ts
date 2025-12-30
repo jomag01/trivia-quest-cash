@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -82,49 +82,60 @@ export function useHiddenTabs() {
   const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user?.id) {
+  const fetchHiddenTabs = useCallback(async (userId: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('user_hidden_tabs')
+        .select('hidden_tabs')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      // Only set hidden tabs if data exists for this specific user
+      // If no entry exists, user has no hidden tabs (all visible)
+      setHiddenTabs(data?.hidden_tabs || []);
+    } catch (error) {
+      console.error('Error fetching hidden tabs:', error);
+      // On error, default to empty (all tabs visible)
       setHiddenTabs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Reset state when user changes
+    setHiddenTabs([]);
+    
+    if (!user?.id) {
       setLoading(false);
       return;
     }
 
-    fetchHiddenTabs();
-  }, [user?.id]);
+    fetchHiddenTabs(user.id);
+  }, [user?.id, fetchHiddenTabs]);
 
-  const fetchHiddenTabs = async () => {
-    if (!user?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('user_hidden_tabs')
-        .select('hidden_tabs')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      setHiddenTabs(data?.hidden_tabs || []);
-    } catch (error) {
-      console.error('Error fetching hidden tabs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isTabHidden = (tabId: string): boolean => {
+  const isTabHidden = useCallback((tabId: string): boolean => {
     return hiddenTabs.includes(tabId);
-  };
+  }, [hiddenTabs]);
 
-  const isTabVisible = (tabId: string): boolean => {
+  const isTabVisible = useCallback((tabId: string): boolean => {
     return !hiddenTabs.includes(tabId);
-  };
+  }, [hiddenTabs]);
+
+  const refetch = useCallback(() => {
+    if (user?.id) {
+      fetchHiddenTabs(user.id);
+    }
+  }, [user?.id, fetchHiddenTabs]);
 
   return {
     hiddenTabs,
     loading,
     isTabHidden,
     isTabVisible,
-    refetch: fetchHiddenTabs
+    refetch
   };
 }
 

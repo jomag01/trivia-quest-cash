@@ -32,6 +32,7 @@ import ServicesList from "@/components/booking/ServicesList";
 import AIHealthConsultant from "@/components/shop/AIHealthConsultant";
 import MarketplaceListings from "@/components/marketplace/MarketplaceListings";
 import AuctionProducts from "@/components/shop/AuctionProducts";
+import SellerAdsSlider from "@/components/shop/SellerAdsSlider";
 
 const Shop = () => {
   const {
@@ -562,6 +563,9 @@ const Shop = () => {
             
             {/* Category Slider */}
             <CategorySlider categories={categories} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
+
+            {/* Seller Ads Slider */}
+            <SellerAdsSlider />
 
             {/* AI Product Recommendations */}
             <AIProductRecommendations 
