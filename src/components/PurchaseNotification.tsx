@@ -215,9 +215,11 @@ export const PurchaseNotification = () => {
                 ×
               </button>
             </div>
-            <p className="text-[9px] text-muted-foreground/70 mt-2 leading-tight border-t border-border/30 pt-2">
-              This is a sales-based referral rewards program. Earnings are not guaranteed and depend on individual effort, team performance, and compliance with company rules.
-            </p>
+            <div className="mt-2 pt-2 border-t border-border/50 bg-muted/30 rounded px-2 py-1.5">
+              <p className="text-[10px] text-muted-foreground leading-tight">
+                <span className="font-semibold text-foreground/80">SEC Disclaimer:</span> This is a sales-based referral rewards program. Earnings are not guaranteed and depend on individual effort, team performance, and compliance with company rules.
+              </p>
+            </div>
           </div>
         </motion.div>
       )}
