@@ -625,39 +625,40 @@ const Admin = () => {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-64">
-        {/* Header */}
-        <header className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-          <div className="flex items-center gap-3 p-4">
+      <div className="flex-1 lg:ml-64 min-h-screen flex flex-col">
+        {/* Header - Compact for app building */}
+        <header className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b shrink-0">
+          <div className="flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-3">
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden"
+              className="lg:hidden h-8 w-8 p-0"
               onClick={() => setSidebarOpen(true)}
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4 h-4" />
             </Button>
-            <Shield className="w-6 h-6 text-primary hidden lg:block" />
-            <h1 className="text-2xl font-bold text-gradient-gold flex-1">
+            <Shield className="w-5 h-5 text-primary hidden lg:block" />
+            <h1 className="text-lg lg:text-xl font-bold text-gradient-gold flex-1 truncate">
               {allMenuItems.find(item => item.id === activeTab)?.label || "Admin Panel"}
             </h1>
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 text-destructive hover:text-destructive hidden lg:flex"
+              className="gap-1.5 text-destructive hover:text-destructive hidden lg:flex h-8 text-xs"
               onClick={async () => {
                 await signOut();
                 navigate('/auth');
               }}
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
               Logout
             </Button>
           </div>
         </header>
 
-        {/* Content */}
-        <main className="p-4 md:p-6">
+        {/* Content - Optimized for zoom and screen fit */}
+        <main className="flex-1 p-2 md:p-4 lg:p-5 overflow-auto">
+          <div className="max-w-[100vw] lg:max-w-none mx-auto">
           {activeTab === "credits" && (
             <div className="space-y-4">
               {creditPurchases.map((purchase) => (
@@ -817,6 +818,7 @@ const Admin = () => {
           {activeTab === "purchase-notifications" && <PurchaseNotificationSettings />}
           {activeTab === "auctions" && <AuctionManagement />}
           {activeTab === "legal-terms" && <LegalTermsManagement />}
+          </div>
         </main>
       </div>
 

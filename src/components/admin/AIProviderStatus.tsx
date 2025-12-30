@@ -66,6 +66,15 @@ const AIProviderStatus = () => {
       lastChecked: null,
       icon: <Mic className="h-5 w-5" />,
       usedFor: ['Voice Generation', 'Voiceovers', 'Text-to-Speech']
+    },
+    {
+      name: 'kie_ai',
+      displayName: 'Kie.ai',
+      status: 'unknown',
+      message: 'Not checked yet',
+      lastChecked: null,
+      icon: <Sparkles className="h-5 w-5" />,
+      usedFor: ['Music Generation', 'Audio Creation']
     }
   ]);
 
@@ -156,6 +165,9 @@ const AIProviderStatus = () => {
     // Check ElevenLabs
     await checkElevenLabs();
     
+    // Check Kie.ai
+    await checkKieAI();
+    
     setIsChecking(false);
     toast.success('Provider status check complete');
   };
@@ -234,6 +246,28 @@ const AIProviderStatus = () => {
       }
     } catch (error) {
       updateProviderStatus('elevenlabs', 'warning', 'Unable to verify - check manually');
+    }
+  };
+
+  const checkKieAI = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-music', {
+        body: { type: 'test-connection' }
+      });
+
+      if (data?.status === 'ok') {
+        updateProviderStatus('kie_ai', 'ok', 'Connected and operational');
+      } else if (data?.status === 'error' || error?.message?.includes('not configured')) {
+        updateProviderStatus('kie_ai', 'error', 'API key not configured');
+        await addAlert('Kie.ai', 'api_error', 'Kie.ai API key is not configured. Music generation will fail.');
+      } else if (error?.message?.includes('quota') || error?.message?.includes('credit')) {
+        updateProviderStatus('kie_ai', 'error', 'Credits exhausted');
+        await addAlert('Kie.ai', 'credit_exhausted', 'Kie.ai credits exhausted. Music generation will fail.');
+      } else {
+        updateProviderStatus('kie_ai', 'ok', 'Connected and operational');
+      }
+    } catch (error) {
+      updateProviderStatus('kie_ai', 'warning', 'Unable to verify - check manually');
     }
   };
 

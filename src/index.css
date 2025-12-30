@@ -116,6 +116,16 @@
     @apply bg-background text-foreground antialiased;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
     position: relative;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Compact app padding for mobile app builds */
+  .app-container {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
   }
 
   h1, h2, h3, h4, h5, h6 {
