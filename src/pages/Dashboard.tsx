@@ -351,49 +351,49 @@ const Dashboard = () => {
     setSelectedLevel(level);
     setShowGenealogy(true);
   };
-  return <div className="min-h-screen py-8 px-4 pb-20">
+  return <div className="min-h-screen py-4 sm:py-8 px-2 sm:px-4 pb-20">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <ProfileImageUpload size="md" />
-              <div>
-                <h2 className="font-bold text-foreground text-base">
+        {/* Header - Compact for mobile */}
+        <div className="mb-4 sm:mb-8">
+          <div className="flex items-center justify-between mb-2 sm:mb-4 gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <ProfileImageUpload size="sm" />
+              <div className="min-w-0 flex-1">
+                <h2 className="font-bold text-foreground text-xs sm:text-base truncate">
                   {profile.full_name || profile.email}
                 </h2>
-                <div className="flex items-center gap-3">
-                  <p className="text-sm text-muted-foreground">Player ID: {userStats.referralCode}</p>
+                <div className="flex items-center gap-1 sm:gap-3 flex-wrap">
+                  <p className="text-[10px] sm:text-sm text-muted-foreground truncate">ID: {userStats.referralCode}</p>
                   {referrerName && <>
-                      <span className="text-sm text-muted-foreground">•</span>
-                      <p className="text-sm text-muted-foreground">
-                        Referred by: <span className="text-primary font-semibold">{referrerName}</span>
+                      <span className="text-[10px] sm:text-sm text-muted-foreground hidden sm:inline">•</span>
+                      <p className="text-[10px] sm:text-sm text-muted-foreground hidden sm:block">
+                        Ref: <span className="text-primary font-semibold">{referrerName}</span>
                       </p>
                     </>}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <ProviderInbox buttonVariant="outline" />
               {isAdmin && <Link to="/admin">
-                  <Button variant="outline" className="gap-2">
-                    <Shield className="w-4 h-4" />
-                    <span className="hidden sm:inline">Admin Panel</span>
+                  <Button variant="outline" size="sm" className="gap-1 sm:gap-2 h-7 sm:h-9 px-2 sm:px-3">
+                    <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline text-xs">Admin</span>
                   </Button>
                 </Link>}
-              <Button variant="outline" className="gap-2 text-destructive hover:text-destructive" onClick={async () => {
+              <Button variant="outline" size="sm" className="gap-1 sm:gap-2 h-7 sm:h-9 px-2 sm:px-3 text-destructive hover:text-destructive" onClick={async () => {
               await signOut();
               navigate('/auth');
             }}>
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
+                <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline text-xs">Logout</span>
               </Button>
             </div>
           </div>
-          <h1 className="font-bold mb-2 text-foreground text-lg">
+          <h1 className="font-bold mb-1 sm:mb-2 text-foreground text-sm sm:text-lg">
             Player Dashboard
           </h1>
-          <p className="text-muted-foreground text-sm">Track your progress and earnings</p>
+          <p className="text-muted-foreground text-xs sm:text-sm">Track your progress and earnings</p>
         </div>
 
         {/* Tabs - Desktop only, Hamburger for Mobile/Tablet */}

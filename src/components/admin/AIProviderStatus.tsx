@@ -51,12 +51,12 @@ const AIProviderStatus = () => {
     },
     {
       name: 'google_gemini',
-      displayName: 'Google Gemini',
+      displayName: 'Google Veo3',
       status: 'unknown',
       message: 'Not checked yet',
       lastChecked: null,
       icon: <Sparkles className="h-5 w-5" />,
-      usedFor: ['Deep Research', 'Image Generation', 'Text Analysis', 'Business Solutions']
+      usedFor: ['Deep Research', 'Image Generation', 'Video Generation', 'Text Analysis', 'Business Solutions']
     },
     {
       name: 'elevenlabs',

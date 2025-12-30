@@ -285,17 +285,17 @@ export default function BinaryAccountingDashboard() {
   }
 
   return (
-    <ScrollArea className="h-[calc(100vh-120px)]">
-      <div className="space-y-6 p-1">
+    <ScrollArea className="h-[calc(100vh-100px)]">
+      <div className="space-y-3 sm:space-y-6 p-0.5 sm:p-1">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-2xl font-bold">Binary Accounting</h2>
-            <p className="text-muted-foreground text-sm">Complete financial overview of the binary system</p>
+            <h2 className="text-lg sm:text-2xl font-bold">Binary Accounting</h2>
+            <p className="text-muted-foreground text-xs sm:text-sm">Complete financial overview of the binary system</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Select value={dateRange} onValueChange={(v) => setDateRange(v as typeof dateRange)}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[120px] sm:w-[150px] h-8 sm:h-10 text-xs sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -305,61 +305,61 @@ export default function BinaryAccountingDashboard() {
                 <SelectItem value="all">All Time</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon" onClick={fetchData}>
-              <RefreshCw className="h-4 w-4" />
+            <Button variant="outline" size="icon" onClick={fetchData} className="h-8 w-8 sm:h-10 sm:w-10">
+              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={exportToCSV}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
+            <Button variant="outline" size="sm" onClick={exportToCSV} className="h-8 sm:h-10 px-2 sm:px-3 text-xs sm:text-sm">
+              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Export</span>
             </Button>
           </div>
         </div>
 
         {/* Money Flow Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <Card className="border-green-500/20 bg-green-500/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <ArrowUpRight className="h-8 w-8 text-green-500" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <ArrowUpRight className="h-5 w-5 sm:h-8 sm:w-8 text-green-500" />
                 <div>
-                  <p className="text-2xl font-bold text-green-700">₱{totals.totalInflow.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Total Inflow (Purchases)</p>
+                  <p className="text-sm sm:text-2xl font-bold text-green-700">₱{totals.totalInflow.toLocaleString()}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Total Inflow (Purchases)</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-blue-500/20 bg-blue-500/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <ArrowDownRight className="h-8 w-8 text-blue-500" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <ArrowDownRight className="h-5 w-5 sm:h-8 sm:w-8 text-blue-500" />
                 <div>
-                  <p className="text-2xl font-bold text-blue-700">₱{totals.totalCommissionsPaid.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Commissions Paid</p>
+                  <p className="text-sm sm:text-2xl font-bold text-blue-700">₱{totals.totalCommissionsPaid.toLocaleString()}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Commissions Paid</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-purple-500/20 bg-purple-500/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <TrendingDown className="h-8 w-8 text-purple-500" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <TrendingDown className="h-5 w-5 sm:h-8 sm:w-8 text-purple-500" />
                 <div>
-                  <p className="text-2xl font-bold text-purple-700">₱{totals.totalAiCost.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">AI Cost Deducted</p>
+                  <p className="text-sm sm:text-2xl font-bold text-purple-700">₱{totals.totalAiCost.toLocaleString()}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">AI Cost Deducted</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-amber-500/20 bg-amber-500/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <PiggyBank className="h-8 w-8 text-amber-500" />
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <PiggyBank className="h-5 w-5 sm:h-8 sm:w-8 text-amber-500" />
                 <div>
-                  <p className="text-2xl font-bold text-amber-700">₱{totals.netAdminEarnings.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Net Admin Earnings</p>
+                  <p className="text-sm sm:text-2xl font-bold text-amber-700">₱{totals.netAdminEarnings.toLocaleString()}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Net Admin Earnings</p>
                 </div>
               </div>
             </CardContent>
@@ -367,51 +367,51 @@ export default function BinaryAccountingDashboard() {
         </div>
 
         {/* Secondary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-2 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg font-semibold">₱{totals.totalDirectReferral.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Direct Referral (5%)</p>
+                  <p className="text-xs sm:text-lg font-semibold">₱{totals.totalDirectReferral.toLocaleString()}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Direct Referral (5%)</p>
                 </div>
-                <Wallet className="h-5 w-5 text-cyan-500" />
+                <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-500" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-2 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg font-semibold">₱{totals.totalAdminProfit.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Admin Profit (10%)</p>
+                  <p className="text-xs sm:text-lg font-semibold">₱{totals.totalAdminProfit.toLocaleString()}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Admin Profit (10%)</p>
                 </div>
-                <DollarSign className="h-5 w-5 text-amber-500" />
+                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-red-500/20">
-            <CardContent className="p-4">
+            <CardContent className="p-2 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg font-semibold text-red-600">₱{totals.totalFlushed.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Commission Flushed (Cap)</p>
+                  <p className="text-xs sm:text-lg font-semibold text-red-600">₱{totals.totalFlushed.toLocaleString()}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Commission Flushed (Cap)</p>
                 </div>
-                <AlertTriangle className="h-5 w-5 text-red-500" />
+                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-2 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg font-semibold">{totals.totalCycles}</p>
-                  <p className="text-xs text-muted-foreground">Total Cycles</p>
+                  <p className="text-xs sm:text-lg font-semibold">{totals.totalCycles}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Total Cycles</p>
                 </div>
-                <RefreshCw className="h-5 w-5 text-blue-500" />
+                <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
               </div>
             </CardContent>
           </Card>
