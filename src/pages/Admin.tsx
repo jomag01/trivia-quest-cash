@@ -80,8 +80,9 @@ import RetailerCommissionSettings from "@/components/admin/RetailerCommissionSet
 import PromotionalAdsManagement from "@/components/admin/PromotionalAdsManagement";
 import MemberActivationManagement from "@/components/admin/MemberActivationManagement";
 import { PurchaseNotificationSettings } from "@/components/admin/PurchaseNotificationSettings";
+import AuctionManagement from "@/components/admin/AuctionManagement";
 import { cn } from "@/lib/utils";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Gavel } from "lucide-react";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
 
 interface MenuItem {
@@ -181,6 +182,7 @@ const Admin = () => {
         { id: "multivendor-products", label: "User Products", icon: Package },
         { id: "seller-verification", label: "Seller Verification", icon: CheckCircle },
         { id: "suppliers", label: "Supplier Management", icon: Building2 },
+        { id: "auctions", label: "Auctions", icon: Gavel },
       ],
     },
     {
@@ -811,6 +813,7 @@ const Admin = () => {
           {activeTab === "retailer-commissions" && <RetailerCommissionSettings />}
           {activeTab === "system-reset" && <SystemResetManagement />}
           {activeTab === "purchase-notifications" && <PurchaseNotificationSettings />}
+          {activeTab === "auctions" && <AuctionManagement />}
         </main>
       </div>
 
