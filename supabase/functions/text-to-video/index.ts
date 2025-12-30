@@ -52,124 +52,117 @@ async function saveProviderAlert(provider: string, alertType: string, message: s
   }
 }
 
-// Generate video using fal.ai
-async function generateWithFalAI(prompt: string, duration: number, aspectRatio: string) {
-  const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
-  if (!FAL_API_KEY) {
-    throw new Error('FAL_API_KEY is not configured');
+// Generate video using OpenAI (gpt-image-1 for now, video generation via image sequence)
+async function generateWithOpenAI(prompt: string, duration: number, aspectRatio: string) {
+  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+  if (!OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not configured. Please add your OpenAI API key.');
   }
 
-  console.log('Generating video with fal.ai:', prompt);
+  console.log('Generating video with OpenAI:', prompt);
 
-  const submitResponse = await fetch('https://queue.fal.run/fal-ai/vidu/q1/text-to-video', {
+  // OpenAI doesn't have native video generation yet, so we'll use image generation
+  // and inform the user. For full video, they should use Content Creator with images + voiceover
+  const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: {
-      'Authorization': `Key ${FAL_API_KEY}`,
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      prompt: prompt,
-      aspect_ratio: aspectRatio,
-      duration: duration <= 4 ? "4s" : "8s",
+      model: 'gpt-image-1',
+      prompt: `${prompt}. Cinematic scene, high quality, ${aspectRatio} aspect ratio`,
+      n: 1,
+      size: aspectRatio === '9:16' ? '1024x1536' : aspectRatio === '1:1' ? '1024x1024' : '1536x1024',
     }),
   });
 
-  if (!submitResponse.ok) {
-    const errorText = await submitResponse.text();
-    console.error('Fal.ai submit error:', submitResponse.status, errorText);
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('OpenAI error:', response.status, errorText);
     
-    if (errorText.toLowerCase().includes('credit') || 
+    if (response.status === 402 || response.status === 429 ||
         errorText.toLowerCase().includes('quota') || 
-        errorText.toLowerCase().includes('billing') ||
-        submitResponse.status === 402 ||
-        submitResponse.status === 403) {
-      await saveProviderAlert('fal.ai', 'credit_exhausted', 'fal.ai credits exhausted or billing issue. Video generation failed.');
-      throw new Error('Video generation credits exhausted. Please check fal.ai account.');
+        errorText.toLowerCase().includes('billing')) {
+      await saveProviderAlert('OpenAI', 'credit_exhausted', 'OpenAI credits exhausted. Please check your account.');
+      throw new Error('OpenAI credits exhausted. Please check your account.');
     }
     
-    if (submitResponse.status === 401) {
-      await saveProviderAlert('fal.ai', 'subscription_expired', 'fal.ai API key invalid or expired.');
-      throw new Error('fal.ai API key invalid');
+    if (response.status === 401) {
+      await saveProviderAlert('OpenAI', 'subscription_expired', 'OpenAI API key invalid or expired.');
+      throw new Error('OpenAI API key invalid');
     }
     
-    throw new Error(`Fal.ai error: ${submitResponse.status} - ${errorText}`);
+    throw new Error(`OpenAI error: ${response.status} - ${errorText}`);
   }
 
-  const result = await submitResponse.json();
-  console.log('Fal.ai response:', JSON.stringify(result));
+  const result = await response.json();
+  console.log('OpenAI response received');
 
-  const videoUrl = result.video?.url || result.output?.video?.url || result.video_url;
+  const imageUrl = result.data?.[0]?.url;
   
-  if (!videoUrl) {
-    console.error('No video URL in response:', result);
-    throw new Error('No video URL returned from fal.ai');
+  if (!imageUrl) {
+    console.error('No image URL in response:', result);
+    throw new Error('No image returned from OpenAI');
   }
 
-  return videoUrl;
+  // Return the image URL - for full video generation, recommend using Content Creator
+  return imageUrl;
 }
 
-// Generate video using Grok AI (xAI)
-async function generateWithGrokAI(prompt: string, duration: number, aspectRatio: string) {
-  const GROK_API_KEY = Deno.env.get('GROK_API_KEY');
-  if (!GROK_API_KEY) {
-    throw new Error('GROK_API_KEY is not configured');
+// Generate video using Google Gemini (image generation as video alternative)
+async function generateWithGemini(prompt: string, duration: number, aspectRatio: string) {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  if (!LOVABLE_API_KEY) {
+    throw new Error('LOVABLE_API_KEY is not configured');
   }
 
-  console.log('Generating video with Grok AI:', prompt);
+  console.log('Generating video frame with Gemini:', prompt);
 
-  // Grok uses the xAI API endpoint for video generation
-  const submitResponse = await fetch('https://api.x.ai/v1/video/generations', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${GROK_API_KEY}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      prompt: prompt,
-      model: 'grok-video-1',
-      aspect_ratio: aspectRatio,
-      duration: duration <= 5 ? 5 : duration <= 10 ? 10 : 15,
+      model: 'google/gemini-2.5-flash-image-preview',
+      messages: [
+        {
+          role: 'user',
+          content: `Generate a cinematic image for a video scene: ${prompt}. Style: movie-like, ${aspectRatio} aspect ratio, high quality production value.`
+        }
+      ],
+      modalities: ['image', 'text']
     }),
   });
 
-  if (!submitResponse.ok) {
-    const errorText = await submitResponse.text();
-    console.error('Grok AI submit error:', submitResponse.status, errorText);
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Gemini error:', response.status, errorText);
     
-    if (errorText.toLowerCase().includes('credit') || 
-        errorText.toLowerCase().includes('quota') || 
-        errorText.toLowerCase().includes('billing') ||
-        errorText.toLowerCase().includes('insufficient') ||
-        submitResponse.status === 402 ||
-        submitResponse.status === 403) {
-      await saveProviderAlert('Grok AI', 'credit_exhausted', 'Grok AI credits exhausted or billing issue. Video generation failed.');
-      throw new Error('Grok AI video generation credits exhausted. Please check your xAI account.');
+    if (response.status === 402) {
+      await saveProviderAlert('Gemini', 'credit_exhausted', 'Lovable AI credits exhausted.');
+      throw new Error('AI credits exhausted. Please add more credits.');
     }
     
-    if (submitResponse.status === 401) {
-      await saveProviderAlert('Grok AI', 'subscription_expired', 'Grok AI API key invalid or expired.');
-      throw new Error('Grok AI API key invalid');
-    }
-
-    if (submitResponse.status === 429) {
-      await saveProviderAlert('Grok AI', 'rate_limit', 'Grok AI rate limit reached.');
-      throw new Error('Grok AI rate limit reached. Please try again later.');
+    if (response.status === 429) {
+      await saveProviderAlert('Gemini', 'rate_limit', 'Gemini rate limit reached.');
+      throw new Error('Rate limit reached. Please try again later.');
     }
     
-    throw new Error(`Grok AI error: ${submitResponse.status} - ${errorText}`);
+    throw new Error(`Gemini error: ${response.status} - ${errorText}`);
   }
 
-  const result = await submitResponse.json();
-  console.log('Grok AI response:', JSON.stringify(result));
-
-  const videoUrl = result.data?.[0]?.url || result.video?.url || result.url;
+  const result = await response.json();
+  const imageData = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
   
-  if (!videoUrl) {
-    console.error('No video URL in Grok response:', result);
-    throw new Error('No video URL returned from Grok AI');
+  if (!imageData) {
+    console.error('No image in Gemini response:', result);
+    throw new Error('No image returned from Gemini');
   }
 
-  return videoUrl;
+  return imageData;
 }
 
 serve(async (req) => {
@@ -182,36 +175,36 @@ serve(async (req) => {
     
     // Handle test connection request
     if (body.type === 'test-connection') {
-      const provider = body.provider || 'fal';
+      const provider = body.provider || 'gemini';
       
-      if (provider === 'grok') {
-        const GROK_API_KEY = Deno.env.get('GROK_API_KEY');
-        if (!GROK_API_KEY) {
+      if (provider === 'openai') {
+        const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+        if (!OPENAI_API_KEY) {
           return new Response(
-            JSON.stringify({ status: 'error', message: 'GROK_API_KEY not configured' }),
+            JSON.stringify({ status: 'error', message: 'OPENAI_API_KEY not configured' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
         return new Response(
-          JSON.stringify({ status: 'ok', message: 'Grok AI connected' }),
+          JSON.stringify({ status: 'ok', message: 'OpenAI connected' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
-        const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
-        if (!FAL_API_KEY) {
+        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        if (!LOVABLE_API_KEY) {
           return new Response(
-            JSON.stringify({ status: 'error', message: 'FAL_API_KEY not configured' }),
+            JSON.stringify({ status: 'error', message: 'LOVABLE_API_KEY not configured' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
         return new Response(
-          JSON.stringify({ status: 'ok', message: 'fal.ai connected' }),
+          JSON.stringify({ status: 'ok', message: 'Gemini connected' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
 
-    const { prompt, duration = 5, aspectRatio = "16:9", provider = "fal" } = body;
+    const { prompt, duration = 5, aspectRatio = "16:9", provider = "gemini" } = body;
     
     if (!prompt) {
       return new Response(
@@ -223,11 +216,12 @@ serve(async (req) => {
     console.log('Generating video with provider:', provider, 'prompt:', prompt, 'duration:', duration, 'aspectRatio:', aspectRatio);
 
     let videoUrl: string;
+    let isImage = true;
     
-    if (provider === 'grok') {
-      videoUrl = await generateWithGrokAI(prompt, duration, aspectRatio);
+    if (provider === 'openai') {
+      videoUrl = await generateWithOpenAI(prompt, duration, aspectRatio);
     } else {
-      videoUrl = await generateWithFalAI(prompt, duration, aspectRatio);
+      videoUrl = await generateWithGemini(prompt, duration, aspectRatio);
     }
 
     return new Response(
@@ -235,7 +229,8 @@ serve(async (req) => {
         videoUrl,
         success: true,
         provider,
-        message: `Video generated successfully with ${provider === 'grok' ? 'Grok AI' : 'fal.ai'}`
+        isImage,
+        message: `Video frame generated with ${provider === 'openai' ? 'OpenAI' : 'Google Gemini'}. For full videos, use Content Creator to combine images with voiceover.`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

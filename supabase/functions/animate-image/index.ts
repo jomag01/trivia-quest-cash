@@ -11,61 +11,25 @@ serve(async (req) => {
   }
 
   try {
-    const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
-    if (!FAL_API_KEY) {
-      throw new Error('FAL_API_KEY is not configured');
-    }
-
-    const { imageUrl, duration = 5, prompt = '' } = await req.json();
+    const body = await req.json();
     
-    if (!imageUrl) {
+    // Handle test connection request
+    if (body.type === 'test-connection') {
       return new Response(
-        JSON.stringify({ error: 'Image URL is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          status: 'unavailable', 
+          message: 'Image animation is currently not available. Only OpenAI, Google Gemini, and ElevenLabs are enabled.' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Animating image with duration:', duration, 'seconds');
-
-    // Use fal.ai's image-to-video model (Vidu)
-    const submitResponse = await fetch('https://queue.fal.run/fal-ai/vidu/q1/img2video', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${FAL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: prompt || 'Animate this image with subtle, natural motion',
-        image_url: imageUrl,
-        aspect_ratio: "16:9",
-        duration: duration <= 4 ? "4s" : "8s",
-      }),
-    });
-
-    if (!submitResponse.ok) {
-      const errorText = await submitResponse.text();
-      console.error('Fal.ai submit error:', submitResponse.status, errorText);
-      throw new Error(`Fal.ai error: ${submitResponse.status} - ${errorText}`);
-    }
-
-    const result = await submitResponse.json();
-    console.log('Fal.ai response:', JSON.stringify(result));
-
-    // Extract video URL from response
-    const videoUrl = result.video?.url || result.output?.video?.url || result.video_url;
-    
-    if (!videoUrl) {
-      console.error('No video URL in response:', result);
-      throw new Error('No video URL returned from fal.ai');
-    }
-
+    // Image animation is disabled - only OpenAI, Gemini, and ElevenLabs are enabled
     return new Response(
       JSON.stringify({ 
-        videoUrl,
-        success: true,
-        message: 'Image animated successfully'
+        error: 'Image animation is currently not available. The system only supports OpenAI, Google Gemini, and ElevenLabs. For video content, please use the Content Creator to combine images with voiceovers.' 
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: unknown) {

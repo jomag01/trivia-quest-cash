@@ -12,13 +12,9 @@ import {
   RefreshCw, 
   Loader2,
   Sparkles,
-  Music,
-  Video,
-  ImageIcon,
   Mic,
   Bell,
   Clock,
-  Brain,
   MessageSquare
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -45,58 +41,22 @@ interface AIAlert {
 const AIProviderStatus = () => {
   const [providers, setProviders] = useState<ProviderStatus[]>([
     {
-      name: 'lovable_ai',
-      displayName: 'Lovable AI Gateway',
-      status: 'unknown',
-      message: 'Not checked yet',
-      lastChecked: null,
-      icon: <Sparkles className="h-5 w-5" />,
-      usedFor: ['Text Generation', 'Image Generation (Gemini)', 'Business Solutions']
-    },
-    {
-      name: 'deep_research',
-      displayName: 'Deep Research (Gemini Pro)',
-      status: 'unknown',
-      message: 'Not checked yet',
-      lastChecked: null,
-      icon: <Brain className="h-5 w-5" />,
-      usedFor: ['Multi-step Research', 'Advanced Analysis', 'Topic Research']
-    },
-    {
-      name: 'gpt5_chat',
-      displayName: 'GPT-5 Chat Assistant',
+      name: 'openai',
+      displayName: 'OpenAI (ChatGPT)',
       status: 'unknown',
       message: 'Not checked yet',
       lastChecked: null,
       icon: <MessageSquare className="h-5 w-5" />,
-      usedFor: ['Advanced Chat', 'Code Generation', 'Creative Writing']
+      usedFor: ['GPT-5 Chat', 'Text Generation', 'Image Generation', 'Code Generation']
     },
     {
-      name: 'fal_ai',
-      displayName: 'fal.ai',
+      name: 'google_gemini',
+      displayName: 'Google Gemini',
       status: 'unknown',
       message: 'Not checked yet',
       lastChecked: null,
-      icon: <Video className="h-5 w-5" />,
-      usedFor: ['Text-to-Video', 'Image Enhancement', 'Image Animation', 'Avatar Videos']
-    },
-    {
-      name: 'grok_ai',
-      displayName: 'Grok AI (xAI)',
-      status: 'unknown',
-      message: 'Not checked yet',
-      lastChecked: null,
-      icon: <Video className="h-5 w-5" />,
-      usedFor: ['Text-to-Video (Alternative)', 'High Quality Video Generation']
-    },
-    {
-      name: 'kie_ai',
-      displayName: 'Kie.ai',
-      status: 'unknown',
-      message: 'Not checked yet',
-      lastChecked: null,
-      icon: <Music className="h-5 w-5" />,
-      usedFor: ['Music Generation']
+      icon: <Sparkles className="h-5 w-5" />,
+      usedFor: ['Deep Research', 'Image Generation', 'Text Analysis', 'Business Solutions']
     },
     {
       name: 'elevenlabs',
@@ -105,16 +65,7 @@ const AIProviderStatus = () => {
       message: 'Not checked yet',
       lastChecked: null,
       icon: <Mic className="h-5 w-5" />,
-      usedFor: ['Voice Generation', 'Voiceovers']
-    },
-    {
-      name: 'google_cloud',
-      displayName: 'Google Cloud',
-      status: 'unknown',
-      message: 'Not checked yet',
-      lastChecked: null,
-      icon: <Mic className="h-5 w-5" />,
-      usedFor: ['Text-to-Speech (TTS)', 'Content Creator Voiceovers']
+      usedFor: ['Voice Generation', 'Voiceovers', 'Text-to-Speech']
     }
   ]);
 
@@ -196,29 +147,14 @@ const AIProviderStatus = () => {
   const checkAllProviders = async () => {
     setIsChecking(true);
     
-    // Check Lovable AI Gateway
-    await checkLovableAI();
+    // Check OpenAI
+    await checkOpenAI();
     
-    // Check Deep Research
-    await checkDeepResearch();
-    
-    // Check GPT-5 Chat
-    await checkGPT5Chat();
-    
-    // Check fal.ai
-    await checkFalAI();
-    
-    // Check Grok AI
-    await checkGrokAI();
-    
-    // Check Kie.ai
-    await checkKieAI();
+    // Check Google Gemini
+    await checkGoogleGemini();
     
     // Check ElevenLabs
     await checkElevenLabs();
-    
-    // Check Google Cloud
-    await checkGoogleCloud();
     
     setIsChecking(false);
     toast.success('Provider status check complete');
@@ -232,140 +168,52 @@ const AIProviderStatus = () => {
     ));
   };
 
-  const checkLovableAI = async () => {
+  const checkOpenAI = async () => {
     try {
-      // Make a minimal test request
-      const { data, error } = await supabase.functions.invoke('ai-generate', {
-        body: { type: 'test-connection' }
-      });
-
-      if (error) {
-        if (error.message?.includes('402') || error.message?.includes('Payment')) {
-          updateProviderStatus('lovable_ai', 'error', 'Credits exhausted - payment required');
-          await addAlert('Lovable AI', 'credit_exhausted', 'Lovable AI credits are exhausted. Please add credits to continue AI services.');
-        } else if (error.message?.includes('429')) {
-          updateProviderStatus('lovable_ai', 'warning', 'Rate limited - too many requests');
-          await addAlert('Lovable AI', 'rate_limit', 'Lovable AI rate limit reached. Please wait before making more requests.');
-        } else {
-          updateProviderStatus('lovable_ai', 'ok', 'Connected and operational');
-        }
-      } else {
-        updateProviderStatus('lovable_ai', 'ok', 'Connected and operational');
-      }
-    } catch (error: any) {
-      updateProviderStatus('lovable_ai', 'warning', 'Unable to verify - check manually');
-    }
-  };
-
-  const checkDeepResearch = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('deep-research', {
-        body: { query: 'test-connection', model: 'gemini-pro' }
-      });
-
-      if (error) {
-        if (error.message?.includes('402') || error.message?.includes('Payment')) {
-          updateProviderStatus('deep_research', 'error', 'Credits exhausted - payment required');
-          await addAlert('Deep Research', 'credit_exhausted', 'Deep Research credits exhausted. Please add credits.');
-        } else if (error.message?.includes('429')) {
-          updateProviderStatus('deep_research', 'warning', 'Rate limited');
-          await addAlert('Deep Research', 'rate_limit', 'Deep Research rate limit reached.');
-        } else {
-          updateProviderStatus('deep_research', 'ok', 'Connected and operational');
-        }
-      } else {
-        updateProviderStatus('deep_research', 'ok', 'Connected and operational');
-      }
-    } catch (error: any) {
-      updateProviderStatus('deep_research', 'warning', 'Unable to verify - check manually');
-    }
-  };
-
-  const checkGPT5Chat = async () => {
-    try {
+      // Check via deep-research which uses GPT-5
       const { data, error } = await supabase.functions.invoke('deep-research', {
         body: { query: 'test-connection', model: 'gpt-5' }
       });
 
       if (error) {
         if (error.message?.includes('402') || error.message?.includes('Payment')) {
-          updateProviderStatus('gpt5_chat', 'error', 'Credits exhausted - payment required');
-          await addAlert('GPT-5 Chat', 'credit_exhausted', 'GPT-5 credits exhausted. Please add credits.');
+          updateProviderStatus('openai', 'error', 'Credits exhausted - payment required');
+          await addAlert('OpenAI', 'credit_exhausted', 'OpenAI credits are exhausted. Please add credits to continue AI services.');
         } else if (error.message?.includes('429')) {
-          updateProviderStatus('gpt5_chat', 'warning', 'Rate limited');
-          await addAlert('GPT-5 Chat', 'rate_limit', 'GPT-5 rate limit reached.');
+          updateProviderStatus('openai', 'warning', 'Rate limited - too many requests');
+          await addAlert('OpenAI', 'rate_limit', 'OpenAI rate limit reached. Please wait before making more requests.');
         } else {
-          updateProviderStatus('gpt5_chat', 'ok', 'Connected and operational');
+          updateProviderStatus('openai', 'ok', 'Connected and operational');
         }
       } else {
-        updateProviderStatus('gpt5_chat', 'ok', 'Connected and operational');
+        updateProviderStatus('openai', 'ok', 'Connected and operational');
       }
     } catch (error: any) {
-      updateProviderStatus('gpt5_chat', 'warning', 'Unable to verify - check manually');
+      updateProviderStatus('openai', 'warning', 'Unable to verify - check manually');
     }
   };
 
-  const checkGrokAI = async () => {
+  const checkGoogleGemini = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('text-to-video', {
-        body: { type: 'test-connection', provider: 'grok' }
-      });
-
-      if (error?.message?.includes('credit') || error?.message?.includes('quota') || error?.message?.includes('insufficient')) {
-        updateProviderStatus('grok_ai', 'error', 'Insufficient credits');
-        await addAlert('Grok AI', 'credit_exhausted', 'Grok AI credits are low or exhausted. Video generation may fail.');
-      } else if (error?.message?.includes('401') || error?.message?.includes('unauthorized') || error?.message?.includes('not configured')) {
-        updateProviderStatus('grok_ai', 'warning', 'API key not configured');
-      } else if (error?.message?.includes('429')) {
-        updateProviderStatus('grok_ai', 'warning', 'Rate limited');
-        await addAlert('Grok AI', 'rate_limit', 'Grok AI rate limit reached.');
-      } else if (data?.status === 'ok') {
-        updateProviderStatus('grok_ai', 'ok', 'Connected and operational');
-      } else {
-        updateProviderStatus('grok_ai', 'warning', 'Unable to verify - check manually');
-      }
-    } catch (error) {
-      updateProviderStatus('grok_ai', 'warning', 'Unable to verify - check manually');
-    }
-  };
-
-  const checkFalAI = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('text-to-video', {
+      const { data, error } = await supabase.functions.invoke('ai-generate', {
         body: { type: 'test-connection' }
       });
 
-      if (error?.message?.includes('credit') || error?.message?.includes('quota')) {
-        updateProviderStatus('fal_ai', 'error', 'Insufficient credits');
-        await addAlert('fal.ai', 'credit_exhausted', 'fal.ai credits are low or exhausted. Video generation may fail.');
-      } else if (error?.message?.includes('401') || error?.message?.includes('unauthorized')) {
-        updateProviderStatus('fal_ai', 'error', 'API key invalid or expired');
-        await addAlert('fal.ai', 'subscription_expired', 'fal.ai API key is invalid or subscription expired.');
+      if (error) {
+        if (error.message?.includes('402') || error.message?.includes('Payment')) {
+          updateProviderStatus('google_gemini', 'error', 'Credits exhausted - payment required');
+          await addAlert('Google Gemini', 'credit_exhausted', 'Gemini credits are exhausted. Please add credits.');
+        } else if (error.message?.includes('429')) {
+          updateProviderStatus('google_gemini', 'warning', 'Rate limited');
+          await addAlert('Google Gemini', 'rate_limit', 'Gemini rate limit reached.');
+        } else {
+          updateProviderStatus('google_gemini', 'ok', 'Connected and operational');
+        }
       } else {
-        updateProviderStatus('fal_ai', 'ok', 'Connected and operational');
+        updateProviderStatus('google_gemini', 'ok', 'Connected and operational');
       }
-    } catch (error) {
-      updateProviderStatus('fal_ai', 'warning', 'Unable to verify - check manually');
-    }
-  };
-
-  const checkKieAI = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-music', {
-        body: { type: 'test-connection' }
-      });
-
-      if (error?.message?.includes('credit') || error?.message?.includes('quota')) {
-        updateProviderStatus('kie_ai', 'error', 'Insufficient credits');
-        await addAlert('Kie.ai', 'credit_exhausted', 'Kie.ai credits are exhausted. Music generation will fail.');
-      } else if (error?.message?.includes('401')) {
-        updateProviderStatus('kie_ai', 'error', 'API key invalid');
-        await addAlert('Kie.ai', 'subscription_expired', 'Kie.ai API key is invalid or expired.');
-      } else {
-        updateProviderStatus('kie_ai', 'ok', 'Connected and operational');
-      }
-    } catch (error) {
-      updateProviderStatus('kie_ai', 'warning', 'Unable to verify - check manually');
+    } catch (error: any) {
+      updateProviderStatus('google_gemini', 'warning', 'Unable to verify - check manually');
     }
   };
 
@@ -386,26 +234,6 @@ const AIProviderStatus = () => {
       }
     } catch (error) {
       updateProviderStatus('elevenlabs', 'warning', 'Unable to verify - check manually');
-    }
-  };
-
-  const checkGoogleCloud = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('google-tts', {
-        body: { type: 'test-connection' }
-      });
-
-      if (error?.message?.includes('quota') || error?.message?.includes('billing')) {
-        updateProviderStatus('google_cloud', 'error', 'Quota exceeded or billing issue');
-        await addAlert('Google Cloud', 'credit_exhausted', 'Google Cloud quota exceeded or billing issue. TTS will fail.');
-      } else if (error?.message?.includes('401') || error?.message?.includes('403')) {
-        updateProviderStatus('google_cloud', 'error', 'API key invalid or permissions issue');
-        await addAlert('Google Cloud', 'api_error', 'Google Cloud API key invalid or missing permissions.');
-      } else {
-        updateProviderStatus('google_cloud', 'ok', 'Connected and operational');
-      }
-    } catch (error) {
-      updateProviderStatus('google_cloud', 'warning', 'Unable to verify - check manually');
     }
   };
 
