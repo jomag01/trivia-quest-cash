@@ -3111,6 +3111,39 @@ export type Database = {
           },
         ]
       }
+      legal_terms: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          term_type: string
+          title: string
+          updated_at: string
+          version: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          term_type: string
+          title: string
+          updated_at?: string
+          version?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          term_type?: string
+          title?: string
+          updated_at?: string
+          version?: number | null
+        }
+        Relationships: []
+      }
       link_tracking: {
         Row: {
           conversion_type: string | null
