@@ -1,0 +1,20 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAM_ID.app.lovable.c512181307b84e4689a38c4951e10c56",
+        "paths": [
+          "/game/*",
+          "/shop/*",
+          "/ai-hub/*",
+          "/profile/*",
+          "/auth/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAM_ID.app.lovable.c512181307b84e4689a38c4951e10c56"]
+  }
+}

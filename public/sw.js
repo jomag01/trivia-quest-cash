@@ -16,7 +16,9 @@ const MAX_IMAGE_CACHE_SIZE = 500;
 const STATIC_ASSETS = [
   '/',
   '/fallback.html',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/manifest.json',
+  '/install'
 ];
 
 // Request coalescing - prevent duplicate concurrent requests
