@@ -187,32 +187,37 @@ export const PurchaseNotification = () => {
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           className="fixed bottom-20 left-1/2 z-50 max-w-[90vw] sm:max-w-md"
         >
-          <div className="bg-card/95 backdrop-blur-lg border border-border/50 rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
-            <div className={`p-2 rounded-full ${
-              currentNotification.type === 'shop' 
-                ? 'bg-primary/10 text-primary' 
-                : 'bg-purple-500/10 text-purple-500'
-            }`}>
-              {currentNotification.type === 'shop' ? (
-                <ShoppingBag className="w-4 h-4" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
+          <div className="bg-card/95 backdrop-blur-lg border border-border/50 rounded-xl shadow-lg px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${
+                currentNotification.type === 'shop' 
+                  ? 'bg-primary/10 text-primary' 
+                  : 'bg-purple-500/10 text-purple-500'
+              }`}>
+                {currentNotification.type === 'shop' ? (
+                  <ShoppingBag className="w-4 h-4" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-foreground truncate">
+                  {currentNotification.message}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {getTimeAgo()}
+                </p>
+              </div>
+              <button
+                onClick={() => setCurrentNotification(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+              >
+                ×
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-foreground truncate">
-                {currentNotification.message}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {getTimeAgo()}
-              </p>
-            </div>
-            <button
-              onClick={() => setCurrentNotification(null)}
-              className="text-muted-foreground hover:text-foreground transition-colors p-1"
-            >
-              ×
-            </button>
+            <p className="text-[9px] text-muted-foreground/70 mt-2 leading-tight border-t border-border/30 pt-2">
+              This is a sales-based referral rewards program. Earnings are not guaranteed and depend on individual effort, team performance, and compliance with company rules.
+            </p>
           </div>
         </motion.div>
       )}
