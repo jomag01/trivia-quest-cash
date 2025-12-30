@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -22,8 +22,9 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Camera, Upload, CalendarIcon, Sparkles, Loader2, X, Plus
+  Camera, Upload, CalendarIcon, Sparkles, Loader2, X, Plus, FileText, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
@@ -55,6 +56,9 @@ const CreateAuctionDialog = ({ open, onOpenChange, categories }: CreateAuctionDi
   const [aiLoading, setAiLoading] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [auctionTerms, setAuctionTerms] = useState<string>("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -71,6 +75,29 @@ const CreateAuctionDialog = ({ open, onOpenChange, categories }: CreateAuctionDi
   });
 
   const [aiSuggestedPrice, setAiSuggestedPrice] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      fetchAuctionTerms();
+    }
+  }, [open]);
+
+  const fetchAuctionTerms = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("legal_terms")
+        .select("content")
+        .eq("term_type", "auction_terms")
+        .eq("is_active", true)
+        .single();
+
+      if (!error && data) {
+        setAuctionTerms(data.content);
+      }
+    } catch (error) {
+      console.error("Failed to fetch auction terms");
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -162,6 +189,11 @@ Consider Philippine market prices. Respond with just the number.`,
       return;
     }
 
+    if (!agreedToTerms) {
+      toast.error("Please agree to the auction terms and conditions");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -216,6 +248,7 @@ Consider Philippine market prices. Respond with just the number.`,
     });
     setImages([]);
     setAiSuggestedPrice(null);
+    setAgreedToTerms(false);
   };
 
   return (
@@ -461,6 +494,59 @@ Consider Philippine market prices. Respond with just the number.`,
                 />
               </div>
             </div>
+
+            {/* Terms Agreement */}
+            <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <h4 className="font-semibold text-sm">Auction Seller Agreement</h4>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>• Success fee: 5% of final selling price (minimum ₱50)</p>
+                    <p>• Ship within 3 business days of payment</p>
+                    <p>• Funds held in escrow until delivery confirmed</p>
+                  </div>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="p-0 h-auto text-xs"
+                    onClick={() => setShowTerms(!showTerms)}
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    {showTerms ? "Hide full terms" : "View full terms"}
+                  </Button>
+                  {showTerms && auctionTerms && (
+                    <div className="mt-2 p-3 bg-background rounded border max-h-40 overflow-y-auto">
+                      <div className="text-xs whitespace-pre-wrap">
+                        {auctionTerms.split('\n').map((line, i) => {
+                          if (line.startsWith('# ')) {
+                            return <p key={i} className="font-bold mb-1">{line.slice(2)}</p>;
+                          }
+                          if (line.startsWith('## ')) {
+                            return <p key={i} className="font-semibold mt-2 mb-1">{line.slice(3)}</p>;
+                          }
+                          if (line.startsWith('- ')) {
+                            return <p key={i} className="ml-2">• {line.slice(2)}</p>;
+                          }
+                          if (line.trim() === '') return <br key={i} />;
+                          return <p key={i}>{line}</p>;
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="agree-terms"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                />
+                <Label htmlFor="agree-terms" className="text-xs cursor-pointer">
+                  I agree to the auction terms, fees, and seller policies
+                </Label>
+              </div>
+            </div>
           </div>
         </ScrollArea>
 
@@ -471,7 +557,7 @@ Consider Philippine market prices. Respond with just the number.`,
           <Button
             className="flex-1 bg-amber-500 hover:bg-amber-600"
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || !agreedToTerms}
           >
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />

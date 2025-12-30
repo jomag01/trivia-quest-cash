@@ -112,6 +112,13 @@ export const AffiliateSignupPopup = () => {
           </p>
         </div>
 
+        {/* Income Disclaimer */}
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+          <p className="text-[10px] text-amber-700 dark:text-amber-300 leading-relaxed">
+            <span className="font-semibold">SEC Disclaimer:</span> This is a sales-based referral rewards program. Earnings are not guaranteed and depend on individual effort, team performance, and compliance with company rules.
+          </p>
+        </div>
+
         <div className="flex flex-col gap-2">
           <Button 
             onClick={handleJoinAffiliate}
