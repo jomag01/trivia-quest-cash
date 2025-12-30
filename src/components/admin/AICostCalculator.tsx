@@ -3,8 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { Calculator, Video, Music, Image, Mic, Loader2, Brain, MessageSquare } from 'lucide-react';
+import { Calculator, Video, Music, Image, Mic, Loader2, Brain, MessageSquare, Diamond, ArrowRight, Save } from 'lucide-react';
+import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
 
 interface ProviderPricing {
   id: string;
@@ -21,6 +24,10 @@ const AICostCalculator = () => {
   const [pricing, setPricing] = useState<ProviderPricing[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Diamond to PHP converter
+  const [diamondToPhp, setDiamondToPhp] = useState('1'); // 1 diamond = X PHP
+  const [markupPercent, setMarkupPercent] = useState('50'); // Markup percentage
+
   // Calculator inputs
   const [videoMinutes, setVideoMinutes] = useState('15');
   const [audioMinutes, setAudioMinutes] = useState('15');
@@ -30,6 +37,9 @@ const AICostCalculator = () => {
   const [selectedVideoProvider, setSelectedVideoProvider] = useState('');
   const [selectedAudioProvider, setSelectedAudioProvider] = useState('');
   const [selectedImageProvider, setSelectedImageProvider] = useState('');
+
+  // USD to PHP rate (approximate)
+  const usdToPhp = 56;
 
   useEffect(() => {
     fetchPricing();
@@ -102,6 +112,27 @@ const AICostCalculator = () => {
 
   const totalCost = calculateVideoCost() + calculateAudioCost() + calculateImageCost() + calculateResearchCost() + calculateChatCost();
 
+  // Convert USD to PHP
+  const totalCostPhp = totalCost * usdToPhp;
+  
+  // Apply markup
+  const markup = parseFloat(markupPercent) || 0;
+  const totalWithMarkup = totalCostPhp * (1 + markup / 100);
+  
+  // Convert to diamonds
+  const phpPerDiamond = parseFloat(diamondToPhp) || 1;
+  const totalDiamonds = Math.ceil(totalWithMarkup / phpPerDiamond);
+
+  // Calculate per-minute pricing for user-friendly display
+  const videoMinutesNum = parseFloat(videoMinutes) || 1;
+  const audioMinutesNum = parseFloat(audioMinutes) || 1;
+  
+  const videoCostPerMinutePhp = (calculateVideoCost() * usdToPhp * (1 + markup / 100)) / videoMinutesNum;
+  const audioCostPerMinutePhp = (calculateAudioCost() * usdToPhp * (1 + markup / 100)) / audioMinutesNum;
+  
+  const diamondsPerVideoMinute = Math.ceil(videoCostPerMinutePhp / phpPerDiamond);
+  const diamondsPerAudioMinute = Math.ceil(audioCostPerMinutePhp / phpPerDiamond);
+
   const videoProviders = pricing.filter(p => (p.video_cost_per_second || 0) > 0);
   const audioProviders = pricing.filter(p => (p.audio_cost_per_minute || 0) > 0);
   const imageProviders = pricing.filter(p => (p.image_cost || 0) > 0);
@@ -112,6 +143,59 @@ const AICostCalculator = () => {
     if (cost < 1) return `$${cost.toFixed(4)}`;
     return `$${cost.toFixed(2)}`;
   };
+
+  const formatPhp = (cost: number) => {
+    return `₱${cost.toFixed(2)}`;
+  };
+
+  const savePricingSettings = async () => {
+    try {
+      // Save diamond rate and markup to app_settings
+      const settings = [
+        { key: 'diamond_to_php_rate', value: diamondToPhp },
+        { key: 'ai_markup_percent', value: markupPercent },
+        { key: 'diamonds_per_video_minute', value: diamondsPerVideoMinute.toString() },
+        { key: 'diamonds_per_audio_minute', value: diamondsPerAudioMinute.toString() },
+      ];
+
+      for (const setting of settings) {
+        await supabase
+          .from('app_settings')
+          .upsert({ key: setting.key, value: setting.value }, { onConflict: 'key' });
+      }
+
+      toast.success('Pricing settings saved!');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Failed to save settings');
+    }
+  };
+
+  // Load saved settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const { data } = await supabase
+          .from('app_settings')
+          .select('key, value')
+          .in('key', ['diamond_to_php_rate', 'ai_markup_percent']);
+
+        if (data) {
+          data.forEach(setting => {
+            if (setting.key === 'diamond_to_php_rate' && setting.value) {
+              setDiamondToPhp(setting.value);
+            }
+            if (setting.key === 'ai_markup_percent' && setting.value) {
+              setMarkupPercent(setting.value);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
 
   if (loading) {
     return (
@@ -125,43 +209,103 @@ const AICostCalculator = () => {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2">
           <Calculator className="h-5 w-5 text-primary" />
           AI Cost Calculator
         </CardTitle>
         <CardDescription>
-          Enter duration/quantity to calculate estimated AI provider costs
+          Calculate AI costs and convert to diamonds for user pricing
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
+        {/* Diamond to PHP Converter */}
+        <div className="p-3 rounded-lg border-2 border-primary/30 bg-primary/5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Diamond className="h-4 w-4 text-yellow-500" />
+            <Label className="font-semibold text-sm">Diamond to PHP Rate & Markup</Label>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">1 Diamond = ₱</Label>
+              <Input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={diamondToPhp}
+                onChange={(e) => setDiamondToPhp(e.target.value)}
+                placeholder="1.00"
+                className="h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Markup %</Label>
+              <Input
+                type="number"
+                min="0"
+                step="5"
+                value={markupPercent}
+                onChange={(e) => setMarkupPercent(e.target.value)}
+                placeholder="50"
+                className="h-8"
+              />
+            </div>
+          </div>
+          <Button onClick={savePricingSettings} size="sm" className="w-full h-8">
+            <Save className="h-3 w-3 mr-1" />
+            Save Rate Settings
+          </Button>
+        </div>
+
+        {/* Quick Price Reference */}
+        <div className="p-3 rounded-lg bg-muted/50 border space-y-2">
+          <Label className="font-semibold text-sm flex items-center gap-1">
+            <ArrowRight className="h-3 w-3" />
+            Suggested User Pricing (with {markupPercent}% markup)
+          </Label>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="p-2 bg-purple-500/10 rounded border border-purple-500/20">
+              <div className="text-purple-400 font-medium">Video/min</div>
+              <div className="text-lg font-bold">{diamondsPerVideoMinute} 💎</div>
+              <div className="text-muted-foreground">{formatPhp(videoCostPerMinutePhp)}</div>
+            </div>
+            <div className="p-2 bg-orange-500/10 rounded border border-orange-500/20">
+              <div className="text-orange-400 font-medium">Audio/min</div>
+              <div className="text-lg font-bold">{diamondsPerAudioMinute} 💎</div>
+              <div className="text-muted-foreground">{formatPhp(audioCostPerMinutePhp)}</div>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
         {/* Video Cost */}
-        <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+        <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
           <div className="flex items-center gap-2">
             <Video className="h-4 w-4 text-purple-500" />
-            <Label className="font-medium">Video Generation</Label>
+            <Label className="font-medium text-sm">Video Generation</Label>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Duration (minutes)</Label>
+              <Label className="text-xs text-muted-foreground">Minutes</Label>
               <Input
                 type="number"
                 min="0"
                 step="0.5"
                 value={videoMinutes}
                 onChange={(e) => setVideoMinutes(e.target.value)}
-                placeholder="e.g., 15"
+                className="h-8"
               />
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Provider</Label>
               <Select value={selectedVideoProvider} onValueChange={setSelectedVideoProvider}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select provider" />
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
                   {videoProviders.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
+                    <SelectItem key={p.id} value={p.id} className="text-xs">
                       {p.provider_name} - {p.model_name}
                     </SelectItem>
                   ))}
@@ -169,43 +313,39 @@ const AICostCalculator = () => {
               </Select>
             </div>
           </div>
-          <div className="text-sm">
-            Cost: <strong className="text-purple-500">{formatCost(calculateVideoCost())}</strong>
-            {selectedVideoProvider && (
-              <span className="text-xs text-muted-foreground ml-2">
-                ({pricing.find(p => p.id === selectedVideoProvider)?.video_cost_per_second?.toFixed(4) || 0}/sec)
-              </span>
-            )}
+          <div className="text-xs flex justify-between">
+            <span>Cost: <strong className="text-purple-500">{formatCost(calculateVideoCost())}</strong></span>
+            <span className="text-muted-foreground">{formatPhp(calculateVideoCost() * usdToPhp)}</span>
           </div>
         </div>
 
         {/* Audio Cost */}
-        <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+        <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
           <div className="flex items-center gap-2">
             <Mic className="h-4 w-4 text-orange-500" />
-            <Label className="font-medium">Audio/Voice Generation</Label>
+            <Label className="font-medium text-sm">Audio/Voice</Label>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Duration (minutes)</Label>
+              <Label className="text-xs text-muted-foreground">Minutes</Label>
               <Input
                 type="number"
                 min="0"
                 step="0.5"
                 value={audioMinutes}
                 onChange={(e) => setAudioMinutes(e.target.value)}
-                placeholder="e.g., 15"
+                className="h-8"
               />
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Provider</Label>
               <Select value={selectedAudioProvider} onValueChange={setSelectedAudioProvider}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select provider" />
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
                   {audioProviders.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
+                    <SelectItem key={p.id} value={p.id} className="text-xs">
                       {p.provider_name} - {p.model_name}
                     </SelectItem>
                   ))}
@@ -213,42 +353,38 @@ const AICostCalculator = () => {
               </Select>
             </div>
           </div>
-          <div className="text-sm">
-            Cost: <strong className="text-orange-500">{formatCost(calculateAudioCost())}</strong>
-            {selectedAudioProvider && (
-              <span className="text-xs text-muted-foreground ml-2">
-                ({pricing.find(p => p.id === selectedAudioProvider)?.audio_cost_per_minute?.toFixed(4) || 0}/min)
-              </span>
-            )}
+          <div className="text-xs flex justify-between">
+            <span>Cost: <strong className="text-orange-500">{formatCost(calculateAudioCost())}</strong></span>
+            <span className="text-muted-foreground">{formatPhp(calculateAudioCost() * usdToPhp)}</span>
           </div>
         </div>
 
         {/* Image Cost */}
-        <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+        <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
           <div className="flex items-center gap-2">
             <Image className="h-4 w-4 text-green-500" />
-            <Label className="font-medium">Image Generation</Label>
+            <Label className="font-medium text-sm">Images</Label>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Number of Images</Label>
+              <Label className="text-xs text-muted-foreground">Count</Label>
               <Input
                 type="number"
                 min="0"
                 value={imageCount}
                 onChange={(e) => setImageCount(e.target.value)}
-                placeholder="e.g., 10"
+                className="h-8"
               />
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Provider</Label>
               <Select value={selectedImageProvider} onValueChange={setSelectedImageProvider}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select provider" />
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
                   {imageProviders.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
+                    <SelectItem key={p.id} value={p.id} className="text-xs">
                       {p.provider_name} - {p.model_name}
                     </SelectItem>
                   ))}
@@ -256,73 +392,74 @@ const AICostCalculator = () => {
               </Select>
             </div>
           </div>
-          <div className="text-sm">
-            Cost: <strong className="text-green-500">{formatCost(calculateImageCost())}</strong>
-            {selectedImageProvider && (
-              <span className="text-xs text-muted-foreground ml-2">
-                ({pricing.find(p => p.id === selectedImageProvider)?.image_cost?.toFixed(4) || 0}/image)
-              </span>
-            )}
+          <div className="text-xs flex justify-between">
+            <span>Cost: <strong className="text-green-500">{formatCost(calculateImageCost())}</strong></span>
+            <span className="text-muted-foreground">{formatPhp(calculateImageCost() * usdToPhp)}</span>
           </div>
         </div>
 
-        {/* Deep Research Cost */}
-        <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+        {/* Research Cost */}
+        <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
           <div className="flex items-center gap-2">
             <Brain className="h-4 w-4 text-blue-500" />
-            <Label className="font-medium">Deep Research (Gemini Pro)</Label>
+            <Label className="font-medium text-sm">Research Queries</Label>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Number of Research Queries</Label>
             <Input
               type="number"
               min="0"
               value={researchQueries}
               onChange={(e) => setResearchQueries(e.target.value)}
-              placeholder="e.g., 20"
+              className="h-8"
             />
           </div>
-          <div className="text-sm">
-            Cost: <strong className="text-blue-500">{formatCost(calculateResearchCost())}</strong>
-            <span className="text-xs text-muted-foreground ml-2">
-              (~$0.0125/query avg)
-            </span>
+          <div className="text-xs flex justify-between">
+            <span>Cost: <strong className="text-blue-500">{formatCost(calculateResearchCost())}</strong></span>
+            <span className="text-muted-foreground">{formatPhp(calculateResearchCost() * usdToPhp)}</span>
           </div>
         </div>
 
-        {/* GPT-5 Chat Cost */}
-        <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+        {/* Chat Cost */}
+        <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4 text-indigo-500" />
-            <Label className="font-medium">GPT-5 Chat Assistant</Label>
+            <Label className="font-medium text-sm">Chat Messages</Label>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Number of Chat Messages</Label>
             <Input
               type="number"
               min="0"
               value={chatMessages}
               onChange={(e) => setChatMessages(e.target.value)}
-              placeholder="e.g., 50"
+              className="h-8"
             />
           </div>
-          <div className="text-sm">
-            Cost: <strong className="text-indigo-500">{formatCost(calculateChatCost())}</strong>
-            <span className="text-xs text-muted-foreground ml-2">
-              (~$0.005/message avg)
-            </span>
+          <div className="text-xs flex justify-between">
+            <span>Cost: <strong className="text-indigo-500">{formatCost(calculateChatCost())}</strong></span>
+            <span className="text-muted-foreground">{formatPhp(calculateChatCost() * usdToPhp)}</span>
           </div>
         </div>
 
-        {/* Total */}
-        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-          <div className="flex items-center justify-between">
-            <span className="font-medium">Total Estimated Cost:</span>
-            <span className="text-2xl font-bold text-primary">{formatCost(totalCost)}</span>
+        {/* Total Summary */}
+        <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span>Provider Cost:</span>
+            <span className="font-medium">{formatCost(totalCost)} ({formatPhp(totalCostPhp)})</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            This is your estimated cost from AI providers. Add your markup to set user pricing.
-          </p>
+          <div className="flex items-center justify-between text-sm">
+            <span>With {markupPercent}% Markup:</span>
+            <span className="font-medium">{formatPhp(totalWithMarkup)}</span>
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <span className="font-semibold">User Price:</span>
+            <div className="text-right">
+              <div className="text-xl font-bold text-primary flex items-center gap-1">
+                {totalDiamonds} <Diamond className="h-4 w-4 text-yellow-500" />
+              </div>
+              <div className="text-xs text-muted-foreground">{formatPhp(totalWithMarkup)}</div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
