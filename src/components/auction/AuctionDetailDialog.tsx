@@ -39,6 +39,7 @@ interface Auction {
   status: string;
   images: string[];
   shipping_fee: number;
+  views: number;
   seller: {
     id: string;
     full_name: string;
