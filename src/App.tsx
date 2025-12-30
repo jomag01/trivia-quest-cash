@@ -35,6 +35,7 @@ const Notifications = lazy(() => import("./components/notifications/Notification
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const Auction = lazy(() => import("./pages/Auction"));
+const Install = lazy(() => import("./pages/Install"));
 
 // Configure QueryClient with aggressive caching
 const queryClient = new QueryClient({
@@ -141,6 +142,7 @@ const App = () => (
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/auction" element={<Auction />} />
+              <Route path="/install" element={<Install />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
