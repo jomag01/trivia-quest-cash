@@ -24,6 +24,7 @@ interface ProviderPricing {
 const AIProviderPricing = () => {
   const [pricing, setPricing] = useState<ProviderPricing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ProviderPricing>>({});
   const isMobile = useIsMobile();
@@ -32,7 +33,8 @@ const AIProviderPricing = () => {
     fetchPricing();
   }, []);
 
-  const fetchPricing = async () => {
+  const fetchPricing = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
     try {
       const { data, error } = await supabase
         .from('ai_provider_pricing')
@@ -41,11 +43,13 @@ const AIProviderPricing = () => {
 
       if (error) throw error;
       setPricing(data || []);
+      if (isRefresh) toast.success('Pricing updated successfully');
     } catch (error) {
       console.error('Error fetching pricing:', error);
       toast.error('Failed to load AI provider pricing');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -344,13 +348,27 @@ const AIProviderPricing = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-green-500" />
-            AI Provider Pricing Reference
-          </CardTitle>
-          <CardDescription>
-            Track what you're charged by AI providers to set appropriate pricing for users
-          </CardDescription>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-500" />
+                AI Provider Pricing Reference
+              </CardTitle>
+              <CardDescription>
+                Track what you're charged by AI providers to set appropriate pricing for users
+              </CardDescription>
+            </div>
+            <Button 
+              onClick={() => fetchPricing(true)} 
+              variant="outline" 
+              size="sm"
+              disabled={refreshing}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Updating...' : 'Refresh Prices'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isMobile ? (
@@ -380,10 +398,6 @@ const AIProviderPricing = () => {
         </CardContent>
       </Card>
 
-      <Button onClick={fetchPricing} variant="outline" className="gap-2">
-        <RefreshCw className="h-4 w-4" />
-        Refresh Pricing
-      </Button>
     </div>
   );
 };
