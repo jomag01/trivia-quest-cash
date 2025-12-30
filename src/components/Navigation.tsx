@@ -3,6 +3,7 @@ import { Sparkles, Gamepad2, ShoppingBag, Plus, MessageSquare, User, Rss } from 
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { CreatePost } from "@/components/social/CreatePost";
+import { AddToHomeScreenButton } from "@/components/AddToHomeScreenButton";
 
 const Navigation = () => {
   const location = useLocation();
@@ -90,6 +91,16 @@ const Navigation = () => {
           <User className="w-5 h-5" />
           <span className="text-[9px] font-medium">Profile</span>
         </Link>
+
+        {/* Add to Home Screen - Only shown on mobile when not installed */}
+        <div className="flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-2">
+          <AddToHomeScreenButton 
+            variant="ghost" 
+            size="icon" 
+            showLabel={false}
+            className="h-8 w-8 text-muted-foreground hover:text-primary"
+          />
+        </div>
       </div>
     </nav>
   );

@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAICredits } from '@/hooks/useAICredits';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
+import CreditSourceDialog from '@/components/ai/CreditSourceDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
 import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code } from 'lucide-react';
@@ -138,6 +139,15 @@ const AIHub = memo(() => {
   // Logo and dialogs
   const [appLogo, setAppLogo] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
+  
+  // Credit source dialog state
+  const [showCreditSourceDialog, setShowCreditSourceDialog] = useState(false);
+  const [pendingCreditAction, setPendingCreditAction] = useState<{
+    type: 'image' | 'video' | 'audio' | 'general';
+    cost: number;
+    serviceName: string;
+    callback: (source: 'ai_credits' | 'legacy_credits') => void;
+  } | null>(null);
 
   // Video editor state
   const [showVideoEditor, setShowVideoEditor] = useState(false);
@@ -268,6 +278,102 @@ const AIHub = memo(() => {
     }
   };
 
+  // Helper to show credit source selection dialog
+  const promptCreditSource = (
+    type: 'image' | 'video' | 'audio' | 'general',
+    cost: number,
+    serviceName: string
+  ): Promise<'ai_credits' | 'legacy_credits' | null> => {
+    return new Promise((resolve) => {
+      // Check available credits for each source
+      const aiAvailable = type === 'image' 
+        ? aiCredits?.images_available || 0
+        : type === 'video'
+        ? Number(aiCredits?.video_minutes_available || 0)
+        : type === 'audio'
+        ? Number(aiCredits?.audio_minutes_available || 0)
+        : 0;
+      
+      const hasAI = type === 'image' ? aiAvailable >= cost : aiAvailable >= 0.5;
+      const hasLegacy = userCredits >= cost;
+      
+      // If only one option is available, use it automatically
+      if (hasAI && !hasLegacy) {
+        resolve('ai_credits');
+        return;
+      }
+      if (!hasAI && hasLegacy) {
+        resolve('legacy_credits');
+        return;
+      }
+      if (!hasAI && !hasLegacy) {
+        resolve(null);
+        return;
+      }
+      
+      // Both available - show dialog
+      setPendingCreditAction({
+        type,
+        cost,
+        serviceName,
+        callback: (source) => {
+          resolve(source);
+          setPendingCreditAction(null);
+        }
+      });
+      setShowCreditSourceDialog(true);
+    });
+  };
+
+  // Deduct from specified source
+  const deductFromSource = async (amount: number, type: 'image' | 'video' | 'audio' | 'general', source: 'ai_credits' | 'legacy_credits') => {
+    if (!user) return false;
+    
+    if (source === 'ai_credits') {
+      if (type === 'image' && aiCredits && aiCredits.images_available >= amount) {
+        const success = await deductImageCredit(amount);
+        if (success) {
+          refetchAICredits();
+          return true;
+        }
+      }
+      if (type === 'video' && aiCredits) {
+        const minutesNeeded = amount / videoCreditCost * 0.5;
+        if (Number(aiCredits.video_minutes_available) >= minutesNeeded) {
+          const success = await deductVideoMinutes(minutesNeeded);
+          if (success) {
+            refetchAICredits();
+            return true;
+          }
+        }
+      }
+      if (type === 'audio' && aiCredits) {
+        const minutesNeeded = amount / 5;
+        if (Number(aiCredits.audio_minutes_available) >= minutesNeeded) {
+          const success = await deductAudioMinutes(minutesNeeded);
+          if (success) {
+            refetchAICredits();
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+    
+    // Legacy credits
+    try {
+      const { error } = await supabase.from('profiles').update({
+        credits: userCredits - amount
+      }).eq('id', user.id);
+      if (error) throw error;
+      setUserCredits(prev => prev - amount);
+      return true;
+    } catch (error) {
+      console.error('Error deducting credits:', error);
+      return false;
+    }
+  };
+
   // Deduct from AI credits first, then fall back to legacy credits
   const deductCredits = async (amount: number, type: 'image' | 'video' | 'audio' | 'general' = 'general') => {
     if (!user) return false;
@@ -331,17 +437,34 @@ const AIHub = memo(() => {
 
     // Check if user has AI image credits first
     const hasAIImageCredits = aiCredits && aiCredits.images_available > 0;
+    const hasLegacyCredits = userCredits > 0;
     
     if (imageGenerationCount >= freeImageLimit) {
-      if (!hasAIImageCredits && userCredits <= 0) {
+      if (!hasAIImageCredits && !hasLegacyCredits) {
         toast.error('You have reached your free image limit. Please buy AI credits to continue.');
         setShowBuyCredits(true);
         return;
       }
-      const deducted = await deductCredits(1, 'image');
-      if (!deducted) {
-        toast.error('Failed to deduct credits');
-        return;
+      
+      // If both credit types available, let user choose
+      if (hasAIImageCredits && hasLegacyCredits) {
+        const source = await promptCreditSource('image', 1, 'Image Generation');
+        if (!source) {
+          toast.error('No credits available');
+          setShowBuyCredits(true);
+          return;
+        }
+        const deducted = await deductFromSource(1, 'image', source);
+        if (!deducted) {
+          toast.error('Failed to deduct credits');
+          return;
+        }
+      } else {
+        const deducted = await deductCredits(1, 'image');
+        if (!deducted) {
+          toast.error('Failed to deduct credits');
+          return;
+        }
       }
     }
     setIsGenerating(true);
@@ -468,22 +591,36 @@ const AIHub = memo(() => {
     
     // Check if user has AI video minutes first
     const hasAIVideoMinutes = aiCredits && Number(aiCredits.video_minutes_available) >= 0.5;
+    const hasLegacyCredits = userCredits >= videoCreditCost;
     
-    if (!canGenerateVideo()) {
-      toast.error(hasAIVideoMinutes 
-        ? 'Failed to verify video credits' 
-        : `You need AI video minutes or at least ${videoCreditCost} credits to generate a video`);
+    if (!hasAIVideoMinutes && !hasLegacyCredits) {
+      toast.error(`You need AI video minutes or at least ${videoCreditCost} credits to generate a video`);
       setShowBuyCredits(true);
       return;
     }
+    
+    // If both credit types available, let user choose
+    let deducted = false;
+    if (hasAIVideoMinutes && hasLegacyCredits) {
+      const source = await promptCreditSource('video', videoCreditCost, 'Video Generation');
+      if (!source) {
+        toast.error('No credits available');
+        setShowBuyCredits(true);
+        return;
+      }
+      deducted = await deductFromSource(videoCreditCost, 'video', source);
+    } else {
+      deducted = await deductCredits(videoCreditCost, 'video');
+    }
+    
+    if (!deducted) {
+      toast.error('Failed to deduct credits');
+      return;
+    }
+    
     setIsGenerating(true);
     setGeneratedVideo(null);
     try {
-      const deducted = await deductCredits(videoCreditCost, 'video');
-      if (!deducted) {
-        toast.error('Failed to deduct credits');
-        return;
-      }
       toast.info('Generating video... This may take a minute.');
       const { data, error } = await supabase.functions.invoke('text-to-video', {
         body: {
@@ -527,21 +664,37 @@ const AIHub = memo(() => {
     
     // Check if user has AI audio minutes first
     const hasAIAudioMinutes = aiCredits && Number(aiCredits.audio_minutes_available) >= 0.5;
+    const hasLegacyCredits = userCredits >= musicCreditCost;
     
-    if (!hasAIAudioMinutes && userCredits < musicCreditCost) {
+    if (!hasAIAudioMinutes && !hasLegacyCredits) {
       toast.error(`You need AI audio minutes or at least ${musicCreditCost} credits to generate music`);
       setShowBuyCredits(true);
       return;
     }
+    
+    // If both credit types available, let user choose
+    let deducted = false;
+    if (hasAIAudioMinutes && hasLegacyCredits) {
+      const source = await promptCreditSource('audio', musicCreditCost, 'Music Generation');
+      if (!source) {
+        toast.error('No credits available');
+        setShowBuyCredits(true);
+        return;
+      }
+      deducted = await deductFromSource(musicCreditCost, 'audio', source);
+    } else {
+      deducted = await deductCredits(musicCreditCost, 'audio');
+    }
+    
+    if (!deducted) {
+      toast.error('Failed to deduct credits');
+      return;
+    }
+    
     setIsGenerating(true);
     setGeneratedMusic(null);
     setMusicTitle(null);
     try {
-      const deducted = await deductCredits(musicCreditCost, 'audio');
-      if (!deducted) {
-        toast.error('Failed to deduct credits');
-        return;
-      }
       toast.info('Generating music... This may take a minute.');
       const { data, error } = await supabase.functions.invoke('generate-music', {
         body: {
@@ -1918,6 +2071,38 @@ const AIHub = memo(() => {
           toast.success('Video exported successfully!');
         }}
       />
+
+      {/* Credit Source Selection Dialog */}
+      {pendingCreditAction && (
+        <CreditSourceDialog
+          open={showCreditSourceDialog}
+          onOpenChange={(open) => {
+            setShowCreditSourceDialog(open);
+            if (!open && pendingCreditAction) {
+              pendingCreditAction.callback('ai_credits');
+              setPendingCreditAction(null);
+            }
+          }}
+          onConfirm={(source) => {
+            if (pendingCreditAction) {
+              pendingCreditAction.callback(source);
+            }
+          }}
+          aiCreditsAvailable={
+            pendingCreditAction.type === 'image' 
+              ? aiCredits?.images_available || 0
+              : pendingCreditAction.type === 'video'
+              ? Number(aiCredits?.video_minutes_available || 0)
+              : pendingCreditAction.type === 'audio'
+              ? Number(aiCredits?.audio_minutes_available || 0)
+              : 0
+          }
+          legacyCreditsAvailable={userCredits}
+          creditCost={pendingCreditAction.cost}
+          serviceType={pendingCreditAction.type}
+          serviceName={pendingCreditAction.serviceName}
+        />
+      )}
     </div>
   );
 });
