@@ -79,6 +79,9 @@ Be thorough, accurate, and provide expert-level analysis. If the topic requires 
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
+      
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limits exceeded, please try again later." }), {
           status: 429,
@@ -91,16 +94,17 @@ Be thorough, accurate, and provide expert-level analysis. If the topic requires 
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      throw new Error(`AI gateway error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log("AI response structure:", JSON.stringify(data).substring(0, 500));
+    
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-      throw new Error("No response from AI");
+      console.error("Empty content. Full response:", JSON.stringify(data));
+      throw new Error("No response from AI - empty content received");
     }
 
     console.log("Deep research completed successfully");
