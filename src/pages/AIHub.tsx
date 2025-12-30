@@ -61,7 +61,7 @@ const AIHub = memo(() => {
   const [adPreset, setAdPreset] = useState<string>('none');
   const [imageStylePreset, setImageStylePreset] = useState<string>('none');
   const [videoAspectRatio, setVideoAspectRatio] = useState<string>('16:9');
-  const [videoProvider, setVideoProvider] = useState<'fal' | 'grok'>('fal');
+  const [videoProvider, setVideoProvider] = useState<'gemini' | 'openai'>('gemini');
 
   // Image style presets
   const IMAGE_STYLE_PRESETS = {
@@ -1310,13 +1310,13 @@ const AIHub = memo(() => {
 
                     <div className="space-y-1.5">
                       <Label>AI Provider</Label>
-                      <Select value={videoProvider} onValueChange={(v: 'fal' | 'grok') => setVideoProvider(v)}>
+                      <Select value={videoProvider} onValueChange={(v: 'gemini' | 'openai') => setVideoProvider(v)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="fal">fal.ai (Vidu)</SelectItem>
-                          <SelectItem value="grok">Grok AI (xAI)</SelectItem>
+                          <SelectItem value="gemini">Google Gemini</SelectItem>
+                          <SelectItem value="openai">OpenAI</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

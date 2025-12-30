@@ -11,75 +11,29 @@ serve(async (req) => {
   }
 
   try {
-    const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
-    if (!FAL_API_KEY) {
-      throw new Error('FAL_API_KEY is not configured');
-    }
-
-    const { imageUrl, audioUrl, enhancer = 'gfpgan' } = await req.json();
+    const body = await req.json();
     
-    if (!imageUrl) {
+    // Handle test connection request
+    if (body.type === 'test-connection') {
       return new Response(
-        JSON.stringify({ error: 'Image URL is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          status: 'unavailable', 
+          message: 'Avatar video generation is currently not available. Only OpenAI, Google Gemini, and ElevenLabs are enabled.' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!audioUrl) {
-      return new Response(
-        JSON.stringify({ error: 'Audio URL is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('Creating talking avatar video with SadTalker...');
-    console.log('Image URL:', imageUrl.substring(0, 100) + '...');
-    console.log('Audio URL:', audioUrl.substring(0, 100) + '...');
-
-    // Use fal.ai's SadTalker model for talking head generation
-    const submitResponse = await fetch('https://queue.fal.run/fal-ai/sadtalker', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${FAL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        source_image_url: imageUrl,
-        driven_audio_url: audioUrl,
-        face_enhancer: enhancer, // 'gfpgan' for better quality
-        still_mode: false, // Allow head movement
-        preprocess: 'crop', // Crop to face
-      }),
-    });
-
-    if (!submitResponse.ok) {
-      const errorText = await submitResponse.text();
-      console.error('Fal.ai SadTalker error:', submitResponse.status, errorText);
-      throw new Error(`Fal.ai error: ${submitResponse.status} - ${errorText}`);
-    }
-
-    const result = await submitResponse.json();
-    console.log('Fal.ai SadTalker response:', JSON.stringify(result));
-
-    // Extract video URL from response
-    const videoUrl = result.video?.url || result.output?.video?.url || result.video_url;
-    
-    if (!videoUrl) {
-      console.error('No video URL in response:', result);
-      throw new Error('No video URL returned from fal.ai');
-    }
-
+    // Avatar video is disabled - only OpenAI, Gemini, and ElevenLabs are enabled
     return new Response(
       JSON.stringify({ 
-        videoUrl,
-        success: true,
-        message: 'Avatar video created successfully'
+        error: 'Avatar video generation is currently not available. The system only supports OpenAI, Google Gemini, and ElevenLabs. For video content, please use the Content Creator to combine images with voiceovers.' 
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create avatar video';
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate avatar video';
     console.error('Avatar video error:', errorMessage);
     return new Response(
       JSON.stringify({ error: errorMessage }),
