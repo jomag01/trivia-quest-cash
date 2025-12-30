@@ -23,14 +23,24 @@ serve(async (req) => {
     }
 
     // Select model based on request
-    const selectedModel = model === 'gpt-5' 
-      ? 'openai/gpt-5' 
-      : 'google/gemini-2.5-pro';
+    const isGpt5 = model === 'gpt-5';
+    const selectedModel = isGpt5 ? 'openai/gpt-5' : 'google/gemini-2.5-pro';
 
     console.log(`Deep research using model: ${selectedModel}`);
 
     // Build system prompt for deep research
-    const systemPrompt = `You are an advanced AI research assistant with deep analytical capabilities. Your role is to:
+    // NOTE: GPT-5 can spend the entire completion budget on hidden reasoning and return empty `content`
+    // if the prompt strongly requests "show your thinking". Keep prompts concise and output-focused.
+    const systemPrompt = isGpt5
+      ? `You are a research assistant. Return your answer as visible text (do not output empty responses).
+
+Provide:
+- **Key Findings** (3–6 bullets)
+- **Answer** (structured, practical)
+- **Next Steps** (3 bullets)
+
+Keep it concise and action-oriented. Do NOT include hidden chain-of-thought; summarize reasoning briefly in the Answer.`
+      : `You are an advanced AI research assistant with deep analytical capabilities. Your role is to:
 
 1. **Analyze queries thoroughly** - Break down complex questions into components
 2. **Provide comprehensive research** - Give detailed, well-structured responses
@@ -57,14 +67,15 @@ Be thorough, accurate, and provide expert-level analysis. If the topic requires 
     ];
 
     // GPT-5 models require max_completion_tokens instead of max_tokens
-    const isGpt5 = selectedModel.includes('gpt-5');
     const requestBody: any = {
       model: selectedModel,
       messages,
+      temperature: isGpt5 ? 0.2 : 0.4,
     };
-    
+
     if (isGpt5) {
-      requestBody.max_completion_tokens = 4000;
+      // Keep this lower to reduce the chance GPT-5 uses the entire budget on hidden reasoning.
+      requestBody.max_completion_tokens = 2000;
     } else {
       requestBody.max_tokens = 4000;
     }
