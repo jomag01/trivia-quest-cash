@@ -8202,6 +8202,7 @@ export type Database = {
       generate_order_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       get_referral_count: { Args: { p_user_id: string }; Returns: number }
+      get_store_support_user_id: { Args: never; Returns: string }
       get_supplier_id: { Args: { _user_id: string }; Returns: string }
       get_unlocked_categories_count: {
         Args: { p_user_id: string }

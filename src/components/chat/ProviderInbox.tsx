@@ -10,8 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { 
-  MessageSquare, Send, Inbox, ArrowLeft, 
+import {
+  MessageSquare, Send, Inbox, ArrowLeft,
   Store, ShoppingBag, Utensils, Wrench, Calendar,
   Check, CheckCheck
 } from "lucide-react";
@@ -51,8 +51,8 @@ interface ProviderInboxProps {
   className?: string;
 }
 
-export default function ProviderInbox({ 
-  buttonVariant = "outline", 
+export default function ProviderInbox({
+  buttonVariant = "outline",
   buttonSize = "default",
   className = ""
 }: ProviderInboxProps) {
@@ -62,48 +62,70 @@ export default function ProviderInbox({
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [activeTab, setActiveTab] = useState<string>("all");
+  const [storeSupportId, setStoreSupportId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch all conversations where user is the provider (or admin for "admin" provider_id)
+  useEffect(() => {
+    if (!inboxOpen || !isAdmin) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data } = await supabase.rpc("get_store_support_user_id");
+        if (!cancelled) setStoreSupportId(data ?? null);
+      } catch (e) {
+        console.error("Failed to load store support id:", e);
+        if (!cancelled) setStoreSupportId(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [inboxOpen, isAdmin]);
+
+  // Fetch all conversations where user is the provider (admins also see Store Support conversations)
   const { data: conversations = [], isLoading: loadingConversations } = useQuery({
-    queryKey: ["provider-inbox-conversations", user?.id, isAdmin],
+    queryKey: ["provider-inbox-conversations", user?.id, isAdmin, storeSupportId],
     queryFn: async () => {
       if (!user) return [];
-      
-      // For admins, also fetch conversations where provider_id is "admin"
+
       let query = supabase
         .from('provider_conversations')
         .select('*')
         .order('last_message_at', { ascending: false });
-      
+
       if (isAdmin) {
-        // Admins can see their own conversations AND "Store Support" (admin) conversations
-        query = query.or(`provider_id.eq.${user.id},provider_id.eq.admin`);
+        const ids = [user.id, storeSupportId].filter(Boolean) as string[];
+        if (ids.length === 1) {
+          query = query.eq('provider_id', ids[0]);
+        } else {
+          // provider_id is UUID; include store support UUID if available
+          query = query.or(ids.map((id) => `provider_id.eq.${id}`).join(','));
+        }
       } else {
         query = query.eq('provider_id', user.id);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
+
       // Fetch customer profiles and unread counts
       const enrichedConversations = await Promise.all(
         (data || []).map(async (conv) => {
-          // Get customer profile
           const { data: profile } = await supabase
             .from('profiles')
             .select('full_name, avatar_url')
             .eq('id', conv.customer_id)
             .single();
-          
-          // Get unread count
+
           const { count } = await supabase
             .from('provider_messages')
             .select('*', { count: 'exact', head: true })
             .eq('conversation_id', conv.id)
             .eq('is_read', false)
             .neq('sender_id', user.id);
-          
-          // Get last message
+
           const { data: lastMsg } = await supabase
             .from('provider_messages')
             .select('content')
@@ -111,7 +133,7 @@ export default function ProviderInbox({
             .order('created_at', { ascending: false })
             .limit(1)
             .single();
-          
+
           return {
             ...conv,
             customer_profile: profile,
@@ -120,7 +142,7 @@ export default function ProviderInbox({
           } as Conversation;
         })
       );
-      
+
       return enrichedConversations;
     },
     enabled: inboxOpen && !!user,
