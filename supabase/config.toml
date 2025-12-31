@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.generate-ads]
 verify_jwt = true
+
+[functions.driver-dispatch]
+verify_jwt = false
