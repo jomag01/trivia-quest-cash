@@ -7,9 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { MessageSquare, Send, Clock, Check, CheckCheck } from "lucide-react";
+import { MessageSquare, Send, Check, CheckCheck } from "lucide-react";
 import { format } from "date-fns";
 
 export type ProviderType = 'shop' | 'marketplace' | 'restaurant' | 'service' | 'booking';
@@ -63,18 +62,34 @@ export default function ProviderChat({
   const [chatOpen, setChatOpen] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isStartingChat, setIsStartingChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Find or create conversation
   useEffect(() => {
-    if (chatOpen && user && providerId) {
-      findOrCreateConversation();
-    }
-  }, [chatOpen, user, providerId]);
-
-  const findOrCreateConversation = async () => {
+    if (!chatOpen) return;
     if (!user || !providerId) return;
-    
+
+    let cancelled = false;
+    setIsStartingChat(true);
+
+    findOrCreateConversation()
+      .catch(() => {
+        // errors are handled inside findOrCreateConversation
+      })
+      .finally(() => {
+        if (!cancelled) setIsStartingChat(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chatOpen, user, providerId, providerType, referenceId]);
+
+  const findOrCreateConversation = async (): Promise<string | null> => {
+    if (!user || !providerId) return null;
+    if (conversationId) return conversationId;
+
     try {
       // Try to find existing conversation
       let query = supabase
@@ -83,58 +98,62 @@ export default function ProviderChat({
         .eq('customer_id', user.id)
         .eq('provider_id', providerId)
         .eq('provider_type', providerType);
-      
+
       if (referenceId) {
         query = query.eq('reference_id', referenceId);
       } else {
         query = query.is('reference_id', null);
       }
-      
+
       const { data: existing, error: findError } = await query.maybeSingle();
-      
+
       if (findError) {
         console.error('Error finding conversation:', findError);
       }
-      
-      if (existing) {
+
+      if (existing?.id) {
         setConversationId(existing.id);
-      } else {
-        // Create new conversation
-        const insertData: {
-          customer_id: string;
-          provider_id: string;
-          provider_type: ProviderType;
-          reference_id?: string;
-          reference_title?: string;
-        } = {
-          customer_id: user.id,
-          provider_id: providerId,
-          provider_type: providerType
-        };
-        
-        if (referenceId) {
-          insertData.reference_id = referenceId;
-        }
-        if (referenceTitle) {
-          insertData.reference_title = referenceTitle;
-        }
-        
-        const { data: newConvo, error } = await supabase
-          .from('provider_conversations')
-          .insert(insertData)
-          .select('id')
-          .single();
-        
-        if (error) {
-          console.error('Error creating conversation:', error);
-          toast.error("Failed to start conversation");
-          return;
-        }
-        setConversationId(newConvo.id);
+        return existing.id;
       }
+
+      // Create new conversation
+      const insertData: {
+        customer_id: string;
+        provider_id: string;
+        provider_type: ProviderType;
+        reference_id?: string;
+        reference_title?: string;
+      } = {
+        customer_id: user.id,
+        provider_id: providerId,
+        provider_type: providerType
+      };
+
+      if (referenceId) {
+        insertData.reference_id = referenceId;
+      }
+      if (referenceTitle) {
+        insertData.reference_title = referenceTitle;
+      }
+
+      const { data: newConvo, error } = await supabase
+        .from('provider_conversations')
+        .insert(insertData)
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error creating conversation:', error);
+        toast.error("Failed to start conversation");
+        return null;
+      }
+
+      setConversationId(newConvo.id);
+      return newConvo.id;
     } catch (error) {
       console.error('Error finding/creating conversation:', error);
       toast.error("Failed to start chat");
+      return null;
     }
   };
 
@@ -181,25 +200,19 @@ export default function ProviderChat({
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (vars: { conversationId: string; content: string }) => {
       if (!user) {
         throw new Error("Please login to send messages");
       }
-      if (!conversationId) {
-        throw new Error("Chat not ready, please wait");
-      }
-      if (!newMessage.trim()) {
-        throw new Error("Message cannot be empty");
-      }
-      
+
       const { error } = await supabase
         .from('provider_messages')
         .insert({
-          conversation_id: conversationId,
+          conversation_id: vars.conversationId,
           sender_id: user.id,
-          content: newMessage.trim()
+          content: vars.content
         });
-      
+
       if (error) {
         console.error('Send message error:', error);
         throw new Error(error.message || "Failed to send message");
@@ -209,21 +222,34 @@ export default function ProviderChat({
       await supabase
         .from('provider_conversations')
         .update({ last_message_at: new Date().toISOString() })
-        .eq('id', conversationId);
+        .eq('id', vars.conversationId);
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       setNewMessage("");
-      queryClient.invalidateQueries({ queryKey: ["provider-chat-messages", conversationId] });
+      queryClient.invalidateQueries({ queryKey: ["provider-chat-messages", vars.conversationId] });
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to send message");
     }
   });
 
-  const handleSend = () => {
-    if (newMessage.trim()) {
-      sendMessageMutation.mutate();
+  const handleSend = async () => {
+    const content = newMessage.trim();
+    if (!content || sendMessageMutation.isPending) return;
+
+    let convoId = conversationId;
+    if (!convoId) {
+      setIsStartingChat(true);
+      convoId = await findOrCreateConversation();
+      setIsStartingChat(false);
     }
+
+    if (!convoId) {
+      toast.error("Chat is still starting. Please try again.");
+      return;
+    }
+
+    sendMessageMutation.mutate({ conversationId: convoId, content });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -342,15 +368,16 @@ export default function ProviderChat({
         <div className="p-2 border-t bg-gradient-to-r from-background via-muted/30 to-background">
           <div className="flex gap-2 items-center">
             <Input
-              placeholder="Type your message..."
+              placeholder={isStartingChat ? "Starting chat…" : "Type your message..."}
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
+              disabled={isStartingChat}
               className="flex-1 h-9 text-sm rounded-full bg-muted/50 border-muted-foreground/20 focus-visible:ring-primary/50"
             />
             <Button 
               onClick={handleSend} 
-              disabled={!newMessage.trim() || sendMessageMutation.isPending}
+              disabled={isStartingChat || !newMessage.trim() || sendMessageMutation.isPending}
               size="icon"
               className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
             >
