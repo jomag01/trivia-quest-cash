@@ -1,9 +1,17 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Navigation, Clock, MapPin, Phone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Navigation, Clock, MapPin, Loader2, Car, Home, Store } from "lucide-react";
+
+declare global {
+  interface Window {
+    google: any;
+    initLiveMap: () => void;
+  }
+}
 
 interface LiveDriverMapProps {
   orderId: string;
@@ -34,13 +42,29 @@ export const LiveDriverMap = ({
 }: LiveDriverMapProps) => {
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
   const [eta, setEta] = useState<string | null>(null);
+  const [distance, setDistance] = useState<string | null>(null);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const driverMarkerRef = useRef<any>(null);
+  const directionsRendererRef = useRef<any>(null);
+
+  // Fetch Google Maps API key
+  const { data: mapsConfig, isLoading: isLoadingKey } = useQuery({
+    queryKey: ["maps-api-key"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("get-maps-key");
+      if (error) throw error;
+      return data;
+    },
+    staleTime: Infinity,
+  });
 
   // Fetch initial driver location
   const { data: initialLocation } = useQuery({
     queryKey: ["driver-location", driverId, orderId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("driver_locations")
         .select("*")
         .eq("driver_id", driverId)
@@ -53,6 +77,167 @@ export const LiveDriverMap = ({
     },
     enabled: !!driverId && !!orderId,
   });
+
+  // Load Google Maps script
+  useEffect(() => {
+    if (!mapsConfig?.apiKey || isMapLoaded) return;
+
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript && window.google?.maps) {
+      setIsMapLoaded(true);
+      return;
+    }
+
+    window.initLiveMap = () => setIsMapLoaded(true);
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsConfig.apiKey}&callback=initLiveMap&libraries=places,geometry`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+
+    return () => {
+      delete window.initLiveMap;
+    };
+  }, [mapsConfig?.apiKey, isMapLoaded]);
+
+  // Initialize map
+  useEffect(() => {
+    if (!isMapLoaded || !mapRef.current || !window.google?.maps) return;
+
+    const defaultCenter = vendorLat && vendorLng 
+      ? { lat: vendorLat, lng: vendorLng }
+      : customerLat && customerLng 
+      ? { lat: customerLat, lng: customerLng }
+      : { lat: 14.5995, lng: 120.9842 }; // Manila default
+
+    mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
+      center: defaultCenter,
+      zoom: 14,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+      zoomControl: true,
+      styles: [
+        { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
+      ],
+    });
+
+    // Add vendor marker (green - pickup)
+    if (vendorLat && vendorLng) {
+      new window.google.maps.Marker({
+        position: { lat: vendorLat, lng: vendorLng },
+        map: mapInstanceRef.current,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: "#22c55e",
+          fillOpacity: 1,
+          strokeColor: "#fff",
+          strokeWeight: 2,
+        },
+        title: "Restaurant",
+      });
+    }
+
+    // Add customer marker (red - dropoff)
+    if (customerLat && customerLng) {
+      new window.google.maps.Marker({
+        position: { lat: customerLat, lng: customerLng },
+        map: mapInstanceRef.current,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: "#ef4444",
+          fillOpacity: 1,
+          strokeColor: "#fff",
+          strokeWeight: 2,
+        },
+        title: "Delivery Location",
+      });
+    }
+
+    // Initialize directions renderer
+    directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
+      map: mapInstanceRef.current,
+      suppressMarkers: true,
+      polylineOptions: {
+        strokeColor: "#3b82f6",
+        strokeWeight: 4,
+        strokeOpacity: 0.8,
+      },
+    });
+  }, [isMapLoaded, vendorLat, vendorLng, customerLat, customerLng]);
+
+  // Update driver marker and route
+  const updateDriverOnMap = useCallback((location: DriverLocation) => {
+    if (!mapInstanceRef.current || !window.google?.maps) return;
+
+    const driverPos = { lat: location.latitude, lng: location.longitude };
+
+    // Create or update driver marker
+    if (!driverMarkerRef.current) {
+      driverMarkerRef.current = new window.google.maps.Marker({
+        position: driverPos,
+        map: mapInstanceRef.current,
+        icon: {
+          path: "M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71L12 2z",
+          fillColor: "#f97316",
+          fillOpacity: 1,
+          strokeColor: "#fff",
+          strokeWeight: 2,
+          scale: 1.5,
+          anchor: new window.google.maps.Point(12, 12),
+          rotation: location.heading || 0,
+        },
+        title: "Driver",
+        zIndex: 999,
+      });
+    } else {
+      driverMarkerRef.current.setPosition(driverPos);
+      if (location.heading) {
+        const icon = driverMarkerRef.current.getIcon();
+        icon.rotation = location.heading;
+        driverMarkerRef.current.setIcon(icon);
+      }
+    }
+
+    // Determine destination based on order status
+    const destination = orderStatus === "assigned" 
+      ? (vendorLat && vendorLng ? { lat: vendorLat, lng: vendorLng } : null)
+      : (customerLat && customerLng ? { lat: customerLat, lng: customerLng } : null);
+
+    if (destination && directionsRendererRef.current) {
+      const directionsService = new window.google.maps.DirectionsService();
+      
+      directionsService.route(
+        {
+          origin: driverPos,
+          destination,
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        },
+        (result: any, status: string) => {
+          if (status === "OK") {
+            directionsRendererRef.current.setDirections(result);
+            
+            // Extract ETA and distance
+            const route = result.routes[0]?.legs[0];
+            if (route) {
+              setEta(route.duration?.text || null);
+              setDistance(route.distance?.text || null);
+            }
+          }
+        }
+      );
+    }
+
+    // Fit bounds to show all markers
+    const bounds = new window.google.maps.LatLngBounds();
+    bounds.extend(driverPos);
+    if (vendorLat && vendorLng) bounds.extend({ lat: vendorLat, lng: vendorLng });
+    if (customerLat && customerLng) bounds.extend({ lat: customerLat, lng: customerLng });
+    mapInstanceRef.current.fitBounds(bounds, { padding: 60 });
+  }, [orderStatus, vendorLat, vendorLng, customerLat, customerLng]);
 
   // Subscribe to realtime location updates
   useEffect(() => {
@@ -70,13 +255,15 @@ export const LiveDriverMap = ({
         },
         (payload: any) => {
           if (payload.new) {
-            setDriverLocation({
+            const newLocation: DriverLocation = {
               latitude: parseFloat(payload.new.latitude),
               longitude: parseFloat(payload.new.longitude),
               heading: payload.new.heading,
               speed: payload.new.speed,
               updated_at: payload.new.updated_at,
-            });
+            };
+            setDriverLocation(newLocation);
+            updateDriverOnMap(newLocation);
           }
         }
       )
@@ -85,59 +272,34 @@ export const LiveDriverMap = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [driverId, orderId]);
+  }, [driverId, orderId, updateDriverOnMap]);
 
   // Set initial location
   useEffect(() => {
     if (initialLocation) {
-      setDriverLocation({
+      const location: DriverLocation = {
         latitude: parseFloat(String(initialLocation.latitude)),
         longitude: parseFloat(String(initialLocation.longitude)),
         heading: initialLocation.heading,
         speed: initialLocation.speed,
         updated_at: initialLocation.updated_at,
-      });
+      };
+      setDriverLocation(location);
+      if (isMapLoaded) {
+        updateDriverOnMap(location);
+      }
     }
-  }, [initialLocation]);
-
-  // Calculate ETA based on distance and average speed
-  useEffect(() => {
-    if (!driverLocation || !customerLat || !customerLng) return;
-
-    const distance = calculateDistance(
-      driverLocation.latitude,
-      driverLocation.longitude,
-      customerLat,
-      customerLng
-    );
-
-    // Assume average speed of 25 km/h in city traffic
-    const avgSpeed = driverLocation.speed && driverLocation.speed > 5 ? driverLocation.speed : 25;
-    const timeMinutes = Math.round((distance / avgSpeed) * 60);
-    setEta(timeMinutes <= 1 ? "< 1 min" : `${timeMinutes} min`);
-  }, [driverLocation, customerLat, customerLng]);
-
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // Earth's radius in km
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
+  }, [initialLocation, isMapLoaded, updateDriverOnMap]);
 
   const getStatusMessage = () => {
     switch (orderStatus) {
       case "assigned":
-        return "Driver is heading to the restaurant";
+        return "Driver heading to restaurant";
       case "picked_up":
       case "in_transit":
-        return "Driver is on the way to you";
+        return "Driver on the way to you";
+      case "nearby":
+        return "Driver is nearby!";
       case "delivered":
         return "Order delivered!";
       default:
@@ -145,21 +307,58 @@ export const LiveDriverMap = ({
     }
   };
 
-  const openInMaps = () => {
-    if (driverLocation) {
-      window.open(
-        `https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}&origin=${driverLocation.latitude},${driverLocation.longitude}`,
-        "_blank"
-      );
+  const getStatusColor = () => {
+    switch (orderStatus) {
+      case "assigned":
+        return "bg-blue-500";
+      case "picked_up":
+      case "in_transit":
+        return "bg-orange-500";
+      case "nearby":
+        return "bg-green-500";
+      case "delivered":
+        return "bg-green-600";
+      default:
+        return "bg-muted";
     }
   };
 
-  if (!driverLocation) {
+  const openInMaps = () => {
+    const destination = orderStatus === "assigned"
+      ? `${vendorLat},${vendorLng}`
+      : `${customerLat},${customerLng}`;
+    
+    const origin = driverLocation 
+      ? `${driverLocation.latitude},${driverLocation.longitude}`
+      : "";
+    
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&destination=${destination}${origin ? `&origin=${origin}` : ""}&travelmode=driving`,
+      "_blank"
+    );
+  };
+
+  if (isLoadingKey) {
     return (
       <Card>
         <CardContent className="py-6 text-center">
-          <Navigation className="w-8 h-8 mx-auto text-muted-foreground animate-pulse mb-2" />
-          <p className="text-sm text-muted-foreground">Waiting for driver location...</p>
+          <Loader2 className="w-8 h-8 mx-auto text-muted-foreground animate-spin mb-2" />
+          <p className="text-sm text-muted-foreground">Loading map...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!mapsConfig?.apiKey) {
+    return (
+      <Card>
+        <CardContent className="py-6 text-center">
+          <MapPin className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">Map unavailable</p>
+          <Button variant="outline" size="sm" className="mt-2" onClick={openInMaps}>
+            <Navigation className="w-4 h-4 mr-1" />
+            Open in Google Maps
+          </Button>
         </CardContent>
       </Card>
     );
@@ -168,56 +367,61 @@ export const LiveDriverMap = ({
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
-        {/* Map placeholder - using static map image */}
-        <div 
-          ref={mapRef}
-          className="relative h-48 bg-muted cursor-pointer"
-          onClick={openInMaps}
-        >
-          <img
-            src={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s-car+ff6b35(${driverLocation.longitude},${driverLocation.latitude}),pin-s-home+22c55e(${customerLng},${customerLat})/${driverLocation.longitude},${driverLocation.latitude},13,0/400x200@2x?access_token=pk.eyJ1IjoibG92YWJsZS1kZXYiLCJhIjoiY2x2cWxxMHJqMDQ4ZDJsbzd5YmxkY3N5MiJ9.mock`}
-            alt="Driver location map"
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-            <Badge variant="secondary" className="bg-background/90">
-              <Navigation className="w-3 h-3 mr-1" />
+        {/* Live Google Map */}
+        <div className="relative">
+          <div ref={mapRef} className="h-56 w-full" />
+          
+          {/* Status overlay */}
+          <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-2">
+            <Badge className={`${getStatusColor()} text-white`}>
+              <Car className="w-3 h-3 mr-1" />
               {getStatusMessage()}
             </Badge>
             {eta && (
-              <Badge className="bg-primary">
+              <Badge variant="secondary" className="bg-background/95">
                 <Clock className="w-3 h-3 mr-1" />
-                ETA: {eta}
+                {eta}
               </Badge>
             )}
           </div>
+
+          {/* Legend */}
+          <div className="absolute bottom-2 left-2 flex gap-2">
+            <Badge variant="outline" className="bg-background/95 text-xs">
+              <div className="w-2 h-2 rounded-full bg-green-500 mr-1" />
+              Restaurant
+            </Badge>
+            <Badge variant="outline" className="bg-background/95 text-xs">
+              <div className="w-2 h-2 rounded-full bg-red-500 mr-1" />
+              You
+            </Badge>
+          </div>
         </div>
 
-        {/* Driver info */}
-        <div className="p-3 space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Last updated</span>
-            <span className="font-medium">
-              {new Date(driverLocation.updated_at).toLocaleTimeString()}
-            </span>
-          </div>
-          {driverLocation.speed && driverLocation.speed > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Speed</span>
-              <span className="font-medium">{Math.round(driverLocation.speed)} km/h</span>
+        {/* Driver info panel */}
+        <div className="p-3 space-y-2 bg-muted/30">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              {distance && (
+                <div className="flex items-center gap-1 text-sm">
+                  <MapPin className="w-3 h-3 text-muted-foreground" />
+                  <span className="font-medium">{distance} away</span>
+                </div>
+              )}
+              {driverLocation && (
+                <p className="text-xs text-muted-foreground">
+                  Updated {new Date(driverLocation.updated_at).toLocaleTimeString()}
+                  {driverLocation.speed && driverLocation.speed > 0 && (
+                    <span> • {Math.round(driverLocation.speed)} km/h</span>
+                  )}
+                </p>
+              )}
             </div>
-          )}
-          <button
-            onClick={openInMaps}
-            className="w-full py-2 text-sm text-primary font-medium flex items-center justify-center gap-1"
-          >
-            <MapPin className="w-4 h-4" />
-            Open in Google Maps
-          </button>
+            <Button size="sm" variant="outline" onClick={openInMaps}>
+              <Navigation className="w-4 h-4 mr-1" />
+              Navigate
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
