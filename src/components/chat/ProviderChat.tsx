@@ -199,9 +199,37 @@ export default function ProviderChat({
       if (error) throw error;
       return data as Message[];
     },
-    enabled: !!conversationId,
-    refetchInterval: chatOpen ? 3000 : false
+    enabled: !!conversationId
   });
+
+  // Real-time subscription for new messages
+  useEffect(() => {
+    if (!conversationId || !chatOpen) return;
+
+    const channel = supabase
+      .channel(`chat-${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'provider_messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          console.log('Realtime message:', payload);
+          // Refetch messages on any change
+          queryClient.invalidateQueries({ queryKey: ["provider-chat-messages", conversationId] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, chatOpen, queryClient]);
 
   const mergedMessages = [...messages, ...optimisticMessages].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
