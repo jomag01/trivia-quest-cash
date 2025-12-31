@@ -90,14 +90,39 @@ export default function ProviderChat({
     if (!user || !providerId) return null;
     if (conversationId) return conversationId;
 
+    // Ensure we actually have an authenticated session (RLS depends on this)
     try {
-      // Try to find existing conversation
+      const { data: sessionData } = await supabase.auth.getSession();
+      let session = sessionData?.session ?? null;
+
+      if (!session) {
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.error('Chat refreshSession error:', refreshError);
+        }
+        session = refreshed?.session ?? null;
+      }
+
+      if (!session) {
+        toast.error("Please login again to start chat");
+        return null;
+      }
+    } catch (e) {
+      console.error('Chat session check error:', e);
+      toast.error("Please login again to start chat");
+      return null;
+    }
+
+    try {
+      // Try to find existing conversation (limit 1 to avoid maybeSingle() errors when duplicates exist)
       let query = supabase
         .from('provider_conversations')
         .select('id')
         .eq('customer_id', user.id)
         .eq('provider_id', providerId)
-        .eq('provider_type', providerType);
+        .eq('provider_type', providerType)
+        .order('created_at', { ascending: true })
+        .limit(1);
 
       if (referenceId) {
         query = query.eq('reference_id', referenceId);
@@ -106,7 +131,6 @@ export default function ProviderChat({
       }
 
       const { data: existing, error: findError } = await query.maybeSingle();
-
       if (findError) {
         console.error('Error finding conversation:', findError);
       }
@@ -136,15 +160,15 @@ export default function ProviderChat({
         insertData.reference_title = referenceTitle;
       }
 
-      const { data: newConvo, error } = await supabase
+      const { data: newConvo, error: insertError } = await supabase
         .from('provider_conversations')
         .insert(insertData)
         .select('id')
         .single();
 
-      if (error) {
-        console.error('Error creating conversation:', error);
-        toast.error("Failed to start conversation");
+      if (insertError) {
+        console.error('Error creating conversation:', insertError);
+        toast.error(insertError.message || "Failed to start conversation");
         return null;
       }
 
