@@ -100,10 +100,19 @@ export const ProductDetailDialog = ({
   const fetchSellerInfo = async () => {
     if (!product?.id) {
       // Always show chat even without product id
-      setSellerInfo({ id: "admin", name: "Store Support" });
+      try {
+        const { data: storeSupportId } = await supabase.rpc("get_store_support_user_id");
+        if (storeSupportId) {
+          setSellerInfo({ id: storeSupportId, name: "Store Support" });
+          return;
+        }
+      } catch (e) {
+        console.error("Error fetching store support id:", e);
+      }
+      setSellerInfo(null);
       return;
     }
-    
+
     try {
       // Always fetch seller_id from products table to ensure we have it
       const { data: productData } = await supabase
@@ -111,28 +120,43 @@ export const ProductDetailDialog = ({
         .select("seller_id")
         .eq("id", product.id)
         .single();
-      
+
       const sellerId = productData?.seller_id || product?.seller_id;
-      
+
       if (sellerId) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("id, full_name")
           .eq("id", sellerId)
           .single();
-        
+
         if (profile) {
           setSellerInfo({ id: profile.id, name: profile.full_name || "Seller" });
           return;
         }
       }
-      
+
       // Fallback to Store Support for all products without seller info
-      setSellerInfo({ id: "admin", name: "Store Support" });
+      const { data: storeSupportId } = await supabase.rpc("get_store_support_user_id");
+      if (storeSupportId) {
+        setSellerInfo({ id: storeSupportId, name: "Store Support" });
+        return;
+      }
+
+      setSellerInfo(null);
     } catch (error) {
       console.error("Error fetching seller info:", error);
       // Fallback to store support on any error
-      setSellerInfo({ id: "admin", name: "Store Support" });
+      try {
+        const { data: storeSupportId } = await supabase.rpc("get_store_support_user_id");
+        if (storeSupportId) {
+          setSellerInfo({ id: storeSupportId, name: "Store Support" });
+          return;
+        }
+      } catch (e) {
+        console.error("Error fetching store support id:", e);
+      }
+      setSellerInfo(null);
     }
   };
 

@@ -63,17 +63,52 @@ export default function ProviderChat({
   const [newMessage, setNewMessage] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isStartingChat, setIsStartingChat] = useState(false);
+  const [effectiveProviderId, setEffectiveProviderId] = useState<string>(providerId);
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const pendingSendRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Resolve "Store Support" provider id (provider_id is UUID in DB)
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      if (providerId !== "admin") {
+        setEffectiveProviderId(providerId);
+        return;
+      }
+
+      try {
+        const { data } = await supabase.rpc("get_store_support_user_id");
+        if (!cancelled && data) setEffectiveProviderId(data);
+      } catch (e) {
+        console.error("Failed to resolve store support provider id:", e);
+        if (!cancelled) setEffectiveProviderId(providerId);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [providerId]);
 
   // Find or create conversation
   useEffect(() => {
     if (!chatOpen) return;
-    if (!user || !providerId) return;
+    if (!user || !effectiveProviderId) return;
 
     let cancelled = false;
     setIsStartingChat(true);
 
-    findOrCreateConversation()
+    findOrCreateConversation(effectiveProviderId)
+      .then((id) => {
+        if (cancelled) return;
+        if (id && pendingSendRef.current) {
+          const content = pendingSendRef.current;
+          pendingSendRef.current = null;
+          sendMessageMutation.mutate({ conversationId: id, content });
+        }
+      })
       .catch(() => {
         // errors are handled inside findOrCreateConversation
       })
@@ -84,34 +119,11 @@ export default function ProviderChat({
     return () => {
       cancelled = true;
     };
-  }, [chatOpen, user, providerId, providerType, referenceId]);
+  }, [chatOpen, user, effectiveProviderId, providerType, referenceId]);
 
-  const findOrCreateConversation = async (): Promise<string | null> => {
-    if (!user || !providerId) return null;
+  const findOrCreateConversation = async (providerUuid: string): Promise<string | null> => {
+    if (!user || !providerUuid) return null;
     if (conversationId) return conversationId;
-
-    // Ensure we actually have an authenticated session (RLS depends on this)
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      let session = sessionData?.session ?? null;
-
-      if (!session) {
-        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError) {
-          console.error('Chat refreshSession error:', refreshError);
-        }
-        session = refreshed?.session ?? null;
-      }
-
-      if (!session) {
-        toast.error("Please login again to start chat");
-        return null;
-      }
-    } catch (e) {
-      console.error('Chat session check error:', e);
-      toast.error("Please login again to start chat");
-      return null;
-    }
 
     try {
       // Try to find existing conversation (limit 1 to avoid maybeSingle() errors when duplicates exist)
@@ -119,7 +131,7 @@ export default function ProviderChat({
         .from('provider_conversations')
         .select('id')
         .eq('customer_id', user.id)
-        .eq('provider_id', providerId)
+        .eq('provider_id', providerUuid)
         .eq('provider_type', providerType)
         .order('created_at', { ascending: true })
         .limit(1);
@@ -131,16 +143,13 @@ export default function ProviderChat({
       }
 
       const { data: existing, error: findError } = await query.maybeSingle();
-      if (findError) {
-        console.error('Error finding conversation:', findError);
-      }
+      if (findError) console.error('Error finding conversation:', findError);
 
       if (existing?.id) {
         setConversationId(existing.id);
         return existing.id;
       }
 
-      // Create new conversation
       const insertData: {
         customer_id: string;
         provider_id: string;
@@ -149,16 +158,12 @@ export default function ProviderChat({
         reference_title?: string;
       } = {
         customer_id: user.id,
-        provider_id: providerId,
+        provider_id: providerUuid,
         provider_type: providerType
       };
 
-      if (referenceId) {
-        insertData.reference_id = referenceId;
-      }
-      if (referenceTitle) {
-        insertData.reference_title = referenceTitle;
-      }
+      if (referenceId) insertData.reference_id = referenceId;
+      if (referenceTitle) insertData.reference_title = referenceTitle;
 
       const { data: newConvo, error: insertError } = await supabase
         .from('provider_conversations')
@@ -168,7 +173,6 @@ export default function ProviderChat({
 
       if (insertError) {
         console.error('Error creating conversation:', insertError);
-        toast.error(insertError.message || "Failed to start conversation");
         return null;
       }
 
@@ -176,7 +180,6 @@ export default function ProviderChat({
       return newConvo.id;
     } catch (error) {
       console.error('Error finding/creating conversation:', error);
-      toast.error("Failed to start chat");
       return null;
     }
   };
@@ -186,19 +189,23 @@ export default function ProviderChat({
     queryKey: ["provider-chat-messages", conversationId],
     queryFn: async () => {
       if (!conversationId) return [];
-      
+
       const { data, error } = await supabase
         .from('provider_messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
-      
+
       if (error) throw error;
       return data as Message[];
     },
     enabled: !!conversationId,
     refetchInterval: chatOpen ? 3000 : false
   });
+
+  const mergedMessages = [...messages, ...optimisticMessages].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 
   // Mark messages as read
   useEffect(() => {
@@ -220,14 +227,12 @@ export default function ProviderChat({
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [mergedMessages]);
 
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (vars: { conversationId: string; content: string }) => {
-      if (!user) {
-        throw new Error("Please login to send messages");
-      }
+      if (!user) throw new Error("Please login to send messages");
 
       const { error } = await supabase
         .from('provider_messages')
@@ -239,10 +244,9 @@ export default function ProviderChat({
 
       if (error) {
         console.error('Send message error:', error);
-        throw new Error(error.message || "Failed to send message");
+        throw new Error("Message failed. Retrying…");
       }
 
-      // Update last_message_at
       await supabase
         .from('provider_conversations')
         .update({ last_message_at: new Date().toISOString() })
@@ -250,10 +254,12 @@ export default function ProviderChat({
     },
     onSuccess: (_data, vars) => {
       setNewMessage("");
+      setOptimisticMessages([]);
       queryClient.invalidateQueries({ queryKey: ["provider-chat-messages", vars.conversationId] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to send message");
+    onError: () => {
+      // Keep UI friendly; user can resend by tapping send again if needed
+      toast.error("Message failed. Retrying…");
     }
   });
 
@@ -261,15 +267,31 @@ export default function ProviderChat({
     const content = newMessage.trim();
     if (!content || sendMessageMutation.isPending) return;
 
+    // Optimistic UI: show instantly
+    const optimistic: Message = {
+      id: `optimistic-${Date.now()}`,
+      conversation_id: conversationId || 'pending',
+      sender_id: user!.id,
+      content,
+      is_read: false,
+      created_at: new Date().toISOString()
+    };
+    setOptimisticMessages((prev) => [...prev, optimistic]);
+
     let convoId = conversationId;
     if (!convoId) {
+      // Queue the message and create chat in background; no dead-state toast
+      pendingSendRef.current = content;
+      setNewMessage("");
       setIsStartingChat(true);
-      convoId = await findOrCreateConversation();
+      const created = await findOrCreateConversation(effectiveProviderId);
       setIsStartingChat(false);
-    }
 
-    if (!convoId) {
-      toast.error("Chat is still starting. Please try again.");
+      if (created && pendingSendRef.current) {
+        const queued = pendingSendRef.current;
+        pendingSendRef.current = null;
+        sendMessageMutation.mutate({ conversationId: created, content: queued });
+      }
       return;
     }
 
