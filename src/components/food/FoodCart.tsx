@@ -115,10 +115,11 @@ export const FoodCart = () => {
 
       if (orderError) throw orderError;
 
-      // Create order items
+      // Create order items - use originalItemId for the database UUID
       const orderItems = cart.map((item) => ({
         order_id: order.id,
-        item_id: item.id,
+        item_id: item.originalItemId, // Use the actual menu item UUID, not the cart's composite ID
+        item_name: item.name, // Include item name with customizations
         quantity: item.quantity,
         unit_price: item.price,
         subtotal: item.price * item.quantity,

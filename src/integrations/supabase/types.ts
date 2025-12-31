@@ -2541,6 +2541,7 @@ export type Database = {
           created_at: string | null
           id: string
           item_id: string
+          item_name: string | null
           order_id: string
           quantity: number
           special_instructions: string | null
@@ -2551,6 +2552,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           item_id: string
+          item_name?: string | null
           order_id: string
           quantity?: number
           special_instructions?: string | null
@@ -2561,6 +2563,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           item_id?: string
+          item_name?: string | null
           order_id?: string
           quantity?: number
           special_instructions?: string | null

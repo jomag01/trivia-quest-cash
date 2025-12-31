@@ -177,6 +177,7 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
     for (let i = 0; i < qty; i++) {
       addToCart({
         id: withOptions ? `${item.id}-${Date.now()}-${i}` : item.id,
+        originalItemId: item.id, // Store the actual menu item UUID
         name: itemName,
         price: finalPrice,
         image_url: item.image_url,
