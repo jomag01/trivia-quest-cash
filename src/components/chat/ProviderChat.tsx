@@ -73,7 +73,7 @@ export default function ProviderChat({
   }, [chatOpen, user, providerId]);
 
   const findOrCreateConversation = async () => {
-    if (!user) return;
+    if (!user || !providerId) return;
     
     try {
       // Try to find existing conversation
@@ -86,31 +86,55 @@ export default function ProviderChat({
       
       if (referenceId) {
         query = query.eq('reference_id', referenceId);
+      } else {
+        query = query.is('reference_id', null);
       }
       
-      const { data: existing } = await query.maybeSingle();
+      const { data: existing, error: findError } = await query.maybeSingle();
+      
+      if (findError) {
+        console.error('Error finding conversation:', findError);
+      }
       
       if (existing) {
         setConversationId(existing.id);
       } else {
         // Create new conversation
+        const insertData: {
+          customer_id: string;
+          provider_id: string;
+          provider_type: ProviderType;
+          reference_id?: string;
+          reference_title?: string;
+        } = {
+          customer_id: user.id,
+          provider_id: providerId,
+          provider_type: providerType
+        };
+        
+        if (referenceId) {
+          insertData.reference_id = referenceId;
+        }
+        if (referenceTitle) {
+          insertData.reference_title = referenceTitle;
+        }
+        
         const { data: newConvo, error } = await supabase
           .from('provider_conversations')
-          .insert({
-            customer_id: user.id,
-            provider_id: providerId,
-            provider_type: providerType,
-            reference_id: referenceId || null,
-            reference_title: referenceTitle || null
-          })
+          .insert(insertData)
           .select('id')
           .single();
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error creating conversation:', error);
+          toast.error("Failed to start conversation");
+          return;
+        }
         setConversationId(newConvo.id);
       }
     } catch (error) {
       console.error('Error finding/creating conversation:', error);
+      toast.error("Failed to start chat");
     }
   };
 
@@ -158,8 +182,14 @@ export default function ProviderChat({
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async () => {
-      if (!user || !conversationId || !newMessage.trim()) {
-        throw new Error("Invalid message");
+      if (!user) {
+        throw new Error("Please login to send messages");
+      }
+      if (!conversationId) {
+        throw new Error("Chat not ready, please wait");
+      }
+      if (!newMessage.trim()) {
+        throw new Error("Message cannot be empty");
       }
       
       const { error } = await supabase
@@ -170,7 +200,10 @@ export default function ProviderChat({
           content: newMessage.trim()
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Send message error:', error);
+        throw new Error(error.message || "Failed to send message");
+      }
 
       // Update last_message_at
       await supabase
@@ -182,8 +215,8 @@ export default function ProviderChat({
       setNewMessage("");
       queryClient.invalidateQueries({ queryKey: ["provider-chat-messages", conversationId] });
     },
-    onError: (error) => {
-      toast.error("Failed to send message: " + error.message);
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to send message");
     }
   });
 
