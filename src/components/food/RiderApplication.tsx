@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bike, Car, Upload, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Bike, Upload, CheckCircle, Clock, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import imageCompression from "browser-image-compression";
 
 export const RiderApplication = () => {
   const { user } = useAuth();
@@ -22,6 +23,7 @@ export const RiderApplication = () => {
   const [idFront, setIdFront] = useState<File | null>(null);
   const [idBack, setIdBack] = useState<File | null>(null);
   const [selfie, setSelfie] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
   const { data: riderProfile, isLoading } = useQuery({
     queryKey: ["rider-profile", user?.id],
@@ -37,51 +39,82 @@ export const RiderApplication = () => {
     enabled: !!user?.id,
   });
 
+  // Compress image before upload
+  const compressImage = async (file: File): Promise<File> => {
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1200,
+      useWebWorker: true,
+    };
+    try {
+      return await imageCompression(file, options);
+    } catch {
+      return file;
+    }
+  };
+
+  // Upload files in background after DB insert
+  const uploadFilesAsync = async (riderId: string) => {
+    const uploads: Promise<void>[] = [];
+
+    const uploadFile = async (file: File | null, fieldName: string, label: string) => {
+      if (!file) return;
+      try {
+        setUploadProgress(`Uploading ${label}...`);
+        const compressed = await compressImage(file);
+        const path = `riders/${user?.id}/${fieldName}-${Date.now()}`;
+        const { data, error } = await uploadToStorage("rider-documents", path, compressed);
+        
+        if (error) {
+          console.error(`Failed to upload ${label}:`, error);
+          return;
+        }
+
+        // Update the rider record with the file URL
+        await (supabase as any)
+          .from("delivery_riders")
+          .update({ [`${fieldName}_url`]: data?.publicUrl || "" })
+          .eq("id", riderId);
+      } catch (err) {
+        console.error(`Upload error for ${label}:`, err);
+      }
+    };
+
+    uploads.push(uploadFile(idFront, "id_front", "ID Front"));
+    uploads.push(uploadFile(idBack, "id_back", "ID Back"));
+    uploads.push(uploadFile(selfie, "selfie", "Selfie"));
+
+    await Promise.all(uploads);
+    setUploadProgress(null);
+    queryClient.invalidateQueries({ queryKey: ["rider-profile"] });
+  };
+
   const applyMutation = useMutation({
     mutationFn: async () => {
-      let id_front_url = "";
-      let id_back_url = "";
-      let selfie_url = "";
-
-      // Upload ID front
-      if (idFront) {
-        const path = `riders/${user?.id}/id-front-${Date.now()}`;
-        const { data, error } = await uploadToStorage("rider-documents", path, idFront);
-        if (error) throw error;
-        id_front_url = data?.publicUrl || "";
-      }
-
-      // Upload ID back
-      if (idBack) {
-        const path = `riders/${user?.id}/id-back-${Date.now()}`;
-        const { data, error } = await uploadToStorage("rider-documents", path, idBack);
-        if (error) throw error;
-        id_back_url = data?.publicUrl || "";
-      }
-
-      // Upload selfie
-      if (selfie) {
-        const path = `riders/${user?.id}/selfie-${Date.now()}`;
-        const { data, error } = await uploadToStorage("rider-documents", path, selfie);
-        if (error) throw error;
-        selfie_url = data?.publicUrl || "";
-      }
-
-      const { error } = await (supabase as any).from("delivery_riders").insert({
-        user_id: user?.id,
-        vehicle_type: formData.vehicle_type,
-        license_number: formData.license_number || null,
-        id_front_url,
-        id_back_url,
-        selfie_url,
-        status: "pending",
-      });
+      // Step 1: Insert record IMMEDIATELY (no file uploads blocking)
+      const { data, error } = await (supabase as any)
+        .from("delivery_riders")
+        .insert({
+          user_id: user?.id,
+          vehicle_type: formData.vehicle_type,
+          license_number: formData.license_number || null,
+          status: "pending",
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
+
+      // Step 2: Upload files in background (non-blocking)
+      if (data?.id) {
+        uploadFilesAsync(data.id);
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rider-profile"] });
-      toast.success("Application submitted! Awaiting admin approval.");
+      toast.success("Application submitted! Documents uploading in background.");
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to submit application");
@@ -109,6 +142,11 @@ export const RiderApplication = () => {
                 <div>
                   <Badge variant="secondary" className="mb-1">Pending</Badge>
                   <p className="text-xs text-muted-foreground">Your application is under review.</p>
+                  {uploadProgress && (
+                    <p className="text-xs text-primary flex items-center gap-1 mt-1">
+                      <Loader2 className="w-3 h-3 animate-spin" /> {uploadProgress}
+                    </p>
+                  )}
                 </div>
               </>
             )}
@@ -219,7 +257,13 @@ export const RiderApplication = () => {
           disabled={applyMutation.isPending || !formData.vehicle_type || !idFront || !idBack || !selfie}
           className="w-full text-sm h-9"
         >
-          {applyMutation.isPending ? "Submitting..." : "Submit Application"}
+          {applyMutation.isPending ? (
+            <>
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Submitting...
+            </>
+          ) : (
+            "Submit Application"
+          )}
         </Button>
       </CardContent>
     </Card>
