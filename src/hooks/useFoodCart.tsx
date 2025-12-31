@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 
 interface CartItem {
   id: string;
+  originalItemId: string; // The actual menu item UUID for database inserts
   name: string;
   price: number;
   image_url?: string;
