@@ -1643,6 +1643,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cities: {
+        Row: {
+          country: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          timezone: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          timezone?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          timezone?: string | null
+        }
+        Relationships: []
+      }
       comment_reactions: {
         Row: {
           comment_id: string
@@ -2054,11 +2084,56 @@ export type Database = {
           },
         ]
       }
+      delivery_pricing: {
+        Row: {
+          base_fee: number | null
+          city_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          max_fee: number | null
+          min_fee: number | null
+          peak_multiplier: number | null
+          per_km_fee: number | null
+        }
+        Insert: {
+          base_fee?: number | null
+          city_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_fee?: number | null
+          min_fee?: number | null
+          peak_multiplier?: number | null
+          per_km_fee?: number | null
+        }
+        Update: {
+          base_fee?: number | null
+          city_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_fee?: number | null
+          min_fee?: number | null
+          peak_multiplier?: number | null
+          per_km_fee?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_pricing_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_riders: {
         Row: {
           admin_notes: string | null
           approved_at: string | null
           approved_by: string | null
+          city_id: string | null
           created_at: string | null
           current_latitude: number | null
           current_longitude: number | null
@@ -2079,6 +2154,7 @@ export type Database = {
           admin_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          city_id?: string | null
           created_at?: string | null
           current_latitude?: number | null
           current_longitude?: number | null
@@ -2099,6 +2175,7 @@ export type Database = {
           admin_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          city_id?: string | null
           created_at?: string | null
           current_latitude?: number | null
           current_longitude?: number | null
@@ -2115,7 +2192,15 @@ export type Database = {
           user_id?: string
           vehicle_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "delivery_riders_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       delivery_vehicles: {
         Row: {
@@ -2158,6 +2243,47 @@ export type Database = {
           vehicle_type?: string
         }
         Relationships: []
+      }
+      delivery_zones: {
+        Row: {
+          base_delivery_fee: number | null
+          city_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          per_km_fee: number | null
+          polygon_coordinates: Json | null
+        }
+        Insert: {
+          base_delivery_fee?: number | null
+          city_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          per_km_fee?: number | null
+          polygon_coordinates?: Json | null
+        }
+        Update: {
+          base_delivery_fee?: number | null
+          city_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          per_km_fee?: number | null
+          polygon_coordinates?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_zones_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       diamond_marketplace: {
         Row: {
@@ -2232,6 +2358,63 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "diamond_marketplace"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_dispatch_scores: {
+        Row: {
+          acceptance_score: number | null
+          created_at: string | null
+          distance_score: number | null
+          driver_id: string
+          id: string
+          idle_score: number | null
+          order_id: string | null
+          rating_score: number | null
+          total_score: number | null
+          was_accepted: boolean | null
+          was_assigned: boolean | null
+        }
+        Insert: {
+          acceptance_score?: number | null
+          created_at?: string | null
+          distance_score?: number | null
+          driver_id: string
+          id?: string
+          idle_score?: number | null
+          order_id?: string | null
+          rating_score?: number | null
+          total_score?: number | null
+          was_accepted?: boolean | null
+          was_assigned?: boolean | null
+        }
+        Update: {
+          acceptance_score?: number | null
+          created_at?: string | null
+          distance_score?: number | null
+          driver_id?: string
+          id?: string
+          idle_score?: number | null
+          order_id?: string | null
+          rating_score?: number | null
+          total_score?: number | null
+          was_accepted?: boolean | null
+          was_assigned?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_dispatch_scores_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_riders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_dispatch_scores_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "food_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -2726,6 +2909,7 @@ export type Database = {
       }
       food_orders: {
         Row: {
+          city_id: string | null
           created_at: string | null
           customer_id: string
           customer_name: string | null
@@ -2735,20 +2919,28 @@ export type Database = {
           delivery_latitude: number | null
           delivery_longitude: number | null
           diamond_reward: number | null
+          distance_km: number | null
+          dropoff_lat: number | null
+          dropoff_lng: number | null
+          estimated_time_minutes: number | null
           id: string
           notes: string | null
           order_number: string
           paid_with_credits: boolean | null
           payment_method: string | null
+          pickup_lat: number | null
+          pickup_lng: number | null
           referrer_id: string | null
           rider_id: string | null
           status: string | null
           subtotal: number
+          surge_multiplier: number | null
           total_amount: number
           updated_at: string | null
           vendor_id: string
         }
         Insert: {
+          city_id?: string | null
           created_at?: string | null
           customer_id: string
           customer_name?: string | null
@@ -2758,20 +2950,28 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           diamond_reward?: number | null
+          distance_km?: number | null
+          dropoff_lat?: number | null
+          dropoff_lng?: number | null
+          estimated_time_minutes?: number | null
           id?: string
           notes?: string | null
           order_number: string
           paid_with_credits?: boolean | null
           payment_method?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
           referrer_id?: string | null
           rider_id?: string | null
           status?: string | null
           subtotal: number
+          surge_multiplier?: number | null
           total_amount: number
           updated_at?: string | null
           vendor_id: string
         }
         Update: {
+          city_id?: string | null
           created_at?: string | null
           customer_id?: string
           customer_name?: string | null
@@ -2781,20 +2981,34 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           diamond_reward?: number | null
+          distance_km?: number | null
+          dropoff_lat?: number | null
+          dropoff_lng?: number | null
+          estimated_time_minutes?: number | null
           id?: string
           notes?: string | null
           order_number?: string
           paid_with_credits?: boolean | null
           payment_method?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
           referrer_id?: string | null
           rider_id?: string | null
           status?: string | null
           subtotal?: number
+          surge_multiplier?: number | null
           total_amount?: number
           updated_at?: string | null
           vendor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "food_orders_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "food_orders_vendor_id_fkey"
             columns: ["vendor_id"]
@@ -2854,6 +3068,7 @@ export type Database = {
           admin_notes: string | null
           approval_status: string | null
           category_id: string | null
+          city_id: string | null
           cover_image_url: string | null
           created_at: string | null
           cuisine_type: string | null
@@ -2879,6 +3094,7 @@ export type Database = {
           admin_notes?: string | null
           approval_status?: string | null
           category_id?: string | null
+          city_id?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           cuisine_type?: string | null
@@ -2904,6 +3120,7 @@ export type Database = {
           admin_notes?: string | null
           approval_status?: string | null
           category_id?: string | null
+          city_id?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           cuisine_type?: string | null
@@ -2930,6 +3147,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "food_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_vendors_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
             referencedColumns: ["id"]
           },
         ]
@@ -4433,6 +4657,54 @@ export type Database = {
         }
         Relationships: []
       }
+      order_commissions: {
+        Row: {
+          commission_amount: number
+          created_at: string | null
+          gross_amount: number
+          id: string
+          net_payout: number
+          order_id: string
+          restaurant_id: string
+          vat_amount: number | null
+        }
+        Insert: {
+          commission_amount: number
+          created_at?: string | null
+          gross_amount: number
+          id?: string
+          net_payout: number
+          order_id: string
+          restaurant_id: string
+          vat_amount?: number | null
+        }
+        Update: {
+          commission_amount?: number
+          created_at?: string | null
+          gross_amount?: number
+          id?: string
+          net_payout?: number
+          order_id?: string
+          restaurant_id?: string
+          vat_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_commissions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "food_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_commissions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "food_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -5802,6 +6074,132 @@ export type Database = {
           referrer_id?: string
         }
         Relationships: []
+      }
+      restaurant_commissions: {
+        Row: {
+          commission_type: string | null
+          commission_value: number | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          restaurant_id: string
+        }
+        Insert: {
+          commission_type?: string | null
+          commission_value?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          restaurant_id: string
+        }
+        Update: {
+          commission_type?: string | null
+          commission_value?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_commissions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "food_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_payouts: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          amount: number
+          bank_name: string | null
+          created_at: string | null
+          id: string
+          payout_method: string | null
+          processed_at: string | null
+          reference_number: string | null
+          restaurant_id: string
+          scheduled_date: string | null
+          status: string | null
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          amount: number
+          bank_name?: string | null
+          created_at?: string | null
+          id?: string
+          payout_method?: string | null
+          processed_at?: string | null
+          reference_number?: string | null
+          restaurant_id: string
+          scheduled_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          amount?: number
+          bank_name?: string | null
+          created_at?: string | null
+          id?: string
+          payout_method?: string | null
+          processed_at?: string | null
+          reference_number?: string | null
+          restaurant_id?: string
+          scheduled_date?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_payouts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "food_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_wallets: {
+        Row: {
+          balance: number | null
+          id: string
+          pending_payout: number | null
+          restaurant_id: string
+          total_commission_paid: number | null
+          total_earnings: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          balance?: number | null
+          id?: string
+          pending_payout?: number | null
+          restaurant_id: string
+          total_commission_paid?: number | null
+          total_earnings?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          balance?: number | null
+          id?: string
+          pending_payout?: number | null
+          restaurant_id?: string
+          total_commission_paid?: number | null
+          total_earnings?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_wallets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "food_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       retailer_promotional_links: {
         Row: {
@@ -7406,6 +7804,80 @@ export type Database = {
           user_id?: string
           verification_code?: string | null
           verification_expires_at?: string | null
+        }
+        Relationships: []
+      }
+      surge_rules: {
+        Row: {
+          city_id: string | null
+          conditions: Json | null
+          created_at: string | null
+          end_time: string | null
+          id: string
+          is_active: boolean | null
+          multiplier: number | null
+          name: string
+          start_time: string | null
+          trigger_type: string
+        }
+        Insert: {
+          city_id?: string | null
+          conditions?: Json | null
+          created_at?: string | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean | null
+          multiplier?: number | null
+          name: string
+          start_time?: string | null
+          trigger_type: string
+        }
+        Update: {
+          city_id?: string | null
+          conditions?: Json | null
+          created_at?: string | null
+          end_time?: string | null
+          id?: string
+          is_active?: boolean | null
+          multiplier?: number | null
+          name?: string
+          start_time?: string | null
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surge_rules_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_settings: {
+        Row: {
+          description: string | null
+          environment: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: string | null
+        }
+        Insert: {
+          description?: string | null
+          environment?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: string | null
+        }
+        Update: {
+          description?: string | null
+          environment?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: string | null
         }
         Relationships: []
       }
