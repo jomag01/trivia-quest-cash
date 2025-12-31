@@ -2236,6 +2236,143 @@ export type Database = {
           },
         ]
       }
+      driver_locations: {
+        Row: {
+          created_at: string | null
+          driver_id: string
+          heading: number | null
+          id: string
+          latitude: number
+          longitude: number
+          order_id: string | null
+          speed: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          driver_id: string
+          heading?: number | null
+          id?: string
+          latitude: number
+          longitude: number
+          order_id?: string | null
+          speed?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          driver_id?: string
+          heading?: number | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          order_id?: string | null
+          speed?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_locations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_riders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_locations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "food_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_tips: {
+        Row: {
+          amount: number
+          created_at: string | null
+          customer_id: string
+          driver_id: string
+          id: string
+          order_id: string
+          status: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          customer_id: string
+          driver_id: string
+          id?: string
+          order_id: string
+          status?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          customer_id?: string
+          driver_id?: string
+          id?: string
+          order_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_tips_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_riders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_tips_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "food_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_wallets: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          driver_id: string
+          id: string
+          pending_withdrawal: number | null
+          total_earnings: number | null
+          total_tips: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          driver_id: string
+          id?: string
+          pending_withdrawal?: number | null
+          total_earnings?: number | null
+          total_tips?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          driver_id?: string
+          id?: string
+          pending_withdrawal?: number | null
+          total_earnings?: number | null
+          total_tips?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_wallets_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: true
+            referencedRelation: "delivery_riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_change_requests: {
         Row: {
           completed_at: string | null
@@ -2663,6 +2800,50 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "food_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      food_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          order_id: string
+          paid_at: string | null
+          payment_method: string
+          payment_reference: string | null
+          payment_status: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          order_id: string
+          paid_at?: string | null
+          payment_method: string
+          payment_reference?: string | null
+          payment_status?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          order_id?: string
+          paid_at?: string | null
+          payment_method?: string
+          payment_reference?: string | null
+          payment_status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "food_orders"
             referencedColumns: ["id"]
           },
         ]

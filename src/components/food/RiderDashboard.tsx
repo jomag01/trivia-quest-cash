@@ -8,10 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Phone, Package, Clock, CheckCircle, Navigation, Wallet, AlertCircle, Map } from "lucide-react";
+import { MapPin, Phone, Package, Clock, CheckCircle, Navigation, Wallet, AlertCircle, Map, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DeliveryMap } from "./DeliveryMap";
+import { DriverWallet } from "./DriverWallet";
+import { useDriverLocation } from "@/hooks/useDriverLocation";
 
 interface DeliveryAssignment {
   id: string;
@@ -234,6 +236,17 @@ export const RiderDashboard = () => {
   const activeDeliveries = myAssignments?.filter((a) => !["delivered", "cancelled"].includes(a.status)) || [];
   const completedDeliveries = myAssignments?.filter((a) => a.status === "delivered") || [];
 
+  // Get active delivery for location tracking
+  const activeDelivery = activeDeliveries[0];
+  
+  // Use driver location hook for live tracking
+  useDriverLocation({
+    riderId: riderProfile?.id || null,
+    orderId: activeDelivery?.order_id || null,
+    isActive: !!activeDelivery && ["assigned", "picked_up"].includes(activeDelivery.status),
+    updateInterval: 10000,
+  });
+
   return (
     <div className="space-y-4">
       {/* Rider Stats */}
@@ -262,12 +275,16 @@ export const RiderDashboard = () => {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="available" className="text-xs">Available</TabsTrigger>
           <TabsTrigger value="active" className="text-xs">
             Active ({activeDeliveries.length})
           </TabsTrigger>
-          <TabsTrigger value="completed" className="text-xs">Completed</TabsTrigger>
+          <TabsTrigger value="wallet" className="text-xs">
+            <Wallet className="w-3 h-3 mr-1" />
+            Wallet
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="text-xs">History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="available" className="space-y-2 mt-2">
@@ -382,6 +399,10 @@ export const RiderDashboard = () => {
               </div>
             ))
           )}
+        </TabsContent>
+
+        <TabsContent value="wallet" className="mt-2">
+          <DriverWallet riderId={riderProfile.id} />
         </TabsContent>
 
         <TabsContent value="completed" className="space-y-2 mt-2">
