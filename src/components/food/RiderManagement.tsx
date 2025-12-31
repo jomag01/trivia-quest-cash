@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, CheckCircle, XCircle, Eye, Bike, User } from "lucide-react";
+import { Search, CheckCircle, XCircle, Eye, Bike, User, RefreshCw, Bell } from "lucide-react";
 import { toast } from "sonner";
 
 interface RiderApplication {
@@ -37,7 +37,7 @@ export const RiderManagement = () => {
   const [viewRider, setViewRider] = useState<RiderApplication | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
 
-  const { data: riders, isLoading } = useQuery({
+  const { data: riders, isLoading, refetch } = useQuery({
     queryKey: ["admin-riders", activeTab],
     queryFn: async () => {
       let query = (supabase as any)
@@ -50,10 +50,42 @@ export const RiderManagement = () => {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error("Admin riders query error:", error);
+        throw error;
+      }
       return data as RiderApplication[];
     },
   });
+
+  // Realtime subscription for instant updates
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-riders-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "delivery_riders",
+        },
+        (payload) => {
+          console.log("Rider update received:", payload);
+          queryClient.invalidateQueries({ queryKey: ["admin-riders"] });
+          
+          if (payload.eventType === "INSERT") {
+            toast.info("New rider application received!", {
+              icon: <Bell className="w-4 h-4" />,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
@@ -70,8 +102,16 @@ export const RiderManagement = () => {
       // Update profile
       await supabase
         .from("profiles")
-        .update({ is_verified_rider: true })
+        .update({ is_verified_rider: true } as any)
         .eq("id", userId);
+        
+      // Create notification for rider
+      await (supabase as any).from("notifications").insert({
+        user_id: userId,
+        title: "Application Approved! 🎉",
+        message: "Your rider application has been approved. You can now start accepting deliveries!",
+        type: "rider_approved",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-riders"] });
@@ -85,7 +125,7 @@ export const RiderManagement = () => {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
       const { error } = await (supabase as any)
         .from("delivery_riders")
         .update({
@@ -94,6 +134,14 @@ export const RiderManagement = () => {
         })
         .eq("id", id);
       if (error) throw error;
+      
+      // Create notification for rider
+      await (supabase as any).from("notifications").insert({
+        user_id: userId,
+        title: "Application Update",
+        message: adminNotes || "Your rider application was not approved at this time. Please contact support for more information.",
+        type: "rider_rejected",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-riders"] });
@@ -113,7 +161,7 @@ export const RiderManagement = () => {
 
       await supabase
         .from("profiles")
-        .update({ is_verified_rider: false })
+        .update({ is_verified_rider: false } as any)
         .eq("id", userId);
     },
     onSuccess: () => {
@@ -126,7 +174,8 @@ export const RiderManagement = () => {
   const filteredRiders = riders?.filter(
     (r) =>
       r.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.profiles?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      r.profiles?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.vehicle_type?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const statusColors: Record<string, string> = {
@@ -136,18 +185,30 @@ export const RiderManagement = () => {
     suspended: "bg-gray-500",
   };
 
+  const pendingCount = riders?.filter(r => r.status === "pending").length || 0;
+
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Bike className="w-4 h-4" /> Rider Management
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Bike className="w-4 h-4" /> Rider Management
+            {pendingCount > 0 && (
+              <Badge variant="destructive" className="text-[10px]">
+                {pendingCount} pending
+              </Badge>
+            )}
+          </CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-7 px-2">
+            <RefreshCw className="w-3 h-3" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
           <Input
-            placeholder="Search riders..."
+            placeholder="Search by name, email, or vehicle..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-7 h-8 text-xs"
@@ -156,7 +217,9 @@ export const RiderManagement = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-4 h-8">
-            <TabsTrigger value="pending" className="text-[10px]">Pending</TabsTrigger>
+            <TabsTrigger value="pending" className="text-[10px]">
+              Pending {pendingCount > 0 && `(${pendingCount})`}
+            </TabsTrigger>
             <TabsTrigger value="approved" className="text-[10px]">Approved</TabsTrigger>
             <TabsTrigger value="rejected" className="text-[10px]">Rejected</TabsTrigger>
             <TabsTrigger value="all" className="text-[10px]">All</TabsTrigger>
@@ -170,10 +233,18 @@ export const RiderManagement = () => {
                 ))}
               </div>
             ) : filteredRiders?.length === 0 ? (
-              <p className="text-xs text-center text-muted-foreground py-4">No riders found</p>
+              <div className="text-center py-8">
+                <Bike className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-xs text-muted-foreground">No riders found</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {activeTab === "pending" 
+                    ? "No pending applications" 
+                    : `No ${activeTab} riders`}
+                </p>
+              </div>
             ) : (
               filteredRiders?.map((rider) => (
-                <Card key={rider.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setViewRider(rider)}>
+                <Card key={rider.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setViewRider(rider)}>
                   <CardContent className="p-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -181,7 +252,9 @@ export const RiderManagement = () => {
                       </div>
                       <div>
                         <p className="text-xs font-medium">{rider.profiles?.full_name || "Unknown"}</p>
-                        <p className="text-[10px] text-muted-foreground">{rider.vehicle_type}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {rider.vehicle_type} • {new Date(rider.created_at).toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -229,36 +302,63 @@ export const RiderManagement = () => {
                   <span className="text-muted-foreground">Rating:</span>
                   <p className="font-medium">{viewRider.rating}/5</p>
                 </div>
+                <div>
+                  <span className="text-muted-foreground">Applied:</span>
+                  <p className="font-medium">{new Date(viewRider.created_at).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Status:</span>
+                  <Badge className={`${statusColors[viewRider.status]} text-[10px]`}>{viewRider.status}</Badge>
+                </div>
               </div>
 
               {/* ID Images */}
               <div className="grid grid-cols-3 gap-2">
-                {viewRider.id_front_url && (
+                {viewRider.id_front_url ? (
                   <div>
                     <p className="text-[10px] text-muted-foreground mb-1">ID Front</p>
-                    <img src={viewRider.id_front_url} alt="ID Front" className="w-full h-20 object-cover rounded" />
+                    <img src={viewRider.id_front_url} alt="ID Front" className="w-full h-20 object-cover rounded border" />
+                  </div>
+                ) : (
+                  <div className="h-20 bg-muted rounded flex items-center justify-center">
+                    <p className="text-[10px] text-muted-foreground">Uploading...</p>
                   </div>
                 )}
-                {viewRider.id_back_url && (
+                {viewRider.id_back_url ? (
                   <div>
                     <p className="text-[10px] text-muted-foreground mb-1">ID Back</p>
-                    <img src={viewRider.id_back_url} alt="ID Back" className="w-full h-20 object-cover rounded" />
+                    <img src={viewRider.id_back_url} alt="ID Back" className="w-full h-20 object-cover rounded border" />
+                  </div>
+                ) : (
+                  <div className="h-20 bg-muted rounded flex items-center justify-center">
+                    <p className="text-[10px] text-muted-foreground">Uploading...</p>
                   </div>
                 )}
-                {viewRider.selfie_url && (
+                {viewRider.selfie_url ? (
                   <div>
                     <p className="text-[10px] text-muted-foreground mb-1">Selfie</p>
-                    <img src={viewRider.selfie_url} alt="Selfie" className="w-full h-20 object-cover rounded" />
+                    <img src={viewRider.selfie_url} alt="Selfie" className="w-full h-20 object-cover rounded border" />
+                  </div>
+                ) : (
+                  <div className="h-20 bg-muted rounded flex items-center justify-center">
+                    <p className="text-[10px] text-muted-foreground">Uploading...</p>
                   </div>
                 )}
               </div>
+
+              {viewRider.admin_notes && (
+                <div className="p-2 bg-muted rounded text-xs">
+                  <span className="text-muted-foreground">Previous Notes:</span>
+                  <p>{viewRider.admin_notes}</p>
+                </div>
+              )}
 
               <div>
                 <p className="text-[10px] text-muted-foreground mb-1">Admin Notes</p>
                 <Textarea
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Add notes..."
+                  placeholder="Add notes (optional)..."
                   className="text-xs min-h-[60px]"
                 />
               </div>
@@ -269,7 +369,7 @@ export const RiderManagement = () => {
                     variant="outline"
                     size="sm"
                     className="flex-1 text-xs h-8"
-                    onClick={() => rejectMutation.mutate(viewRider.id)}
+                    onClick={() => rejectMutation.mutate({ id: viewRider.id, userId: viewRider.user_id })}
                     disabled={rejectMutation.isPending}
                   >
                     <XCircle className="w-3 h-3 mr-1" /> Reject
@@ -294,6 +394,17 @@ export const RiderManagement = () => {
                   disabled={suspendMutation.isPending}
                 >
                   Suspend Rider
+                </Button>
+              )}
+
+              {viewRider.status === "rejected" && (
+                <Button
+                  size="sm"
+                  className="w-full text-xs h-8"
+                  onClick={() => approveMutation.mutate({ id: viewRider.id, userId: viewRider.user_id })}
+                  disabled={approveMutation.isPending}
+                >
+                  <CheckCircle className="w-3 h-3 mr-1" /> Approve Anyway
                 </Button>
               )}
             </div>

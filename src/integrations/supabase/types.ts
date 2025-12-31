@@ -5725,6 +5725,7 @@ export type Database = {
           following_count: number | null
           full_name: string | null
           id: string
+          is_admin: boolean | null
           is_creator: boolean | null
           is_paid_affiliate: boolean | null
           is_verified: boolean | null
@@ -5759,6 +5760,7 @@ export type Database = {
           following_count?: number | null
           full_name?: string | null
           id: string
+          is_admin?: boolean | null
           is_creator?: boolean | null
           is_paid_affiliate?: boolean | null
           is_verified?: boolean | null
@@ -5793,6 +5795,7 @@ export type Database = {
           following_count?: number | null
           full_name?: string | null
           id?: string
+          is_admin?: boolean | null
           is_creator?: boolean | null
           is_paid_affiliate?: boolean | null
           is_verified?: boolean | null
@@ -8873,6 +8876,7 @@ export type Database = {
         Args: { amount: number; user_id: string }
         Returns: undefined
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_group_admin: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
