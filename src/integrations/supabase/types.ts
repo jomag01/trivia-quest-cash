@@ -1886,6 +1886,129 @@ export type Database = {
           },
         ]
       }
+      cash_deposit_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          payment_method: string
+          payment_proof_url: string | null
+          payment_reference: string | null
+          processed_at: string | null
+          processed_by: string | null
+          sender_account: string | null
+          sender_name: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          payment_method: string
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          sender_account?: string | null
+          sender_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_method?: string
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          sender_account?: string | null
+          sender_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cash_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          description: string | null
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cash_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          locked_until: string | null
+          pin_attempts: number | null
+          pin_hash: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          locked_until?: string | null
+          pin_attempts?: number | null
+          pin_hash?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          locked_until?: string | null
+          pin_attempts?: number | null
+          pin_hash?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chess_rooms: {
         Row: {
           created_at: string
@@ -9537,6 +9660,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_cash_deposit: {
+        Args: { p_admin_id: string; p_request_id: string }
+        Returns: boolean
+      }
       binary_apply_purchase_volume:
         | {
             Args: { p_amount: number; p_purchase_id: string; p_user_id: string }
@@ -9590,6 +9717,16 @@ export type Database = {
       count_sponsor_direct_referrals: {
         Args: { _sponsor_user_id: string }
         Returns: number
+      }
+      deduct_cash_balance: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_reference_id: string
+          p_reference_type: string
+          p_user_id: string
+        }
+        Returns: boolean
       }
       deduct_wrong_answer_penalty: {
         Args: { p_category_id: string; p_user_id: string }
