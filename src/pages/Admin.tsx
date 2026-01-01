@@ -75,6 +75,7 @@ import BinaryCalculator from "@/components/admin/BinaryCalculator";
 import QRPaymentSettings from "@/components/admin/QRPaymentSettings";
 import BinaryAIPurchaseManagement from "@/components/admin/BinaryAIPurchaseManagement";
 import MarketplaceCategoryManagement from "@/components/admin/MarketplaceCategoryManagement";
+import MarketplaceSettingsManagement from "@/components/admin/MarketplaceSettingsManagement";
 import SupplierManagement from "@/components/admin/SupplierManagement";
 import RetailerCommissionSettings from "@/components/admin/RetailerCommissionSettings";
 import PromotionalAdsManagement from "@/components/admin/PromotionalAdsManagement";
@@ -177,6 +178,7 @@ const Admin = () => {
       items: [
         { id: "product-categories", label: "Product Categories", icon: FolderOpen },
         { id: "marketplace-categories", label: "Marketplace Categories", icon: FolderOpen },
+        { id: "marketplace-settings", label: "Marketplace Settings", icon: Settings },
         { id: "products", label: "Products", icon: ShoppingBag },
         { id: "orders", label: "Orders", icon: Package },
         { id: "pos-system", label: "POS & Inventory", icon: Barcode },
@@ -812,6 +814,7 @@ const Admin = () => {
           {activeTab === "binary-calculator" && <BinaryCalculator />}
           {activeTab === "ai-packages" && <BinaryAIPurchaseManagement />}
           {activeTab === "marketplace-categories" && <MarketplaceCategoryManagement />}
+          {activeTab === "marketplace-settings" && <MarketplaceSettingsManagement />}
           {activeTab === "suppliers" && <SupplierManagement />}
           {activeTab === "retailer-commissions" && <RetailerCommissionSettings />}
           {activeTab === "system-reset" && <SystemResetManagement />}
