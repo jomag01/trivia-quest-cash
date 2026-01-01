@@ -514,9 +514,9 @@ const Shop = () => {
               <Store className="w-3.5 h-3.5" />
               Seller
             </TabsTrigger>
-            <TabsTrigger value="affiliates" className="text-xs gap-1">
-              <Users className="w-3.5 h-3.5" />
-              Affiliates
+            <TabsTrigger value="supplier" className="text-xs gap-1">
+              <Truck className="w-3.5 h-3.5" />
+              Supplier
             </TabsTrigger>
             <TabsTrigger value="cart" className="text-xs gap-1" onClick={() => navigate('/shop?tab=cart')}>
               <ShoppingCart className="w-3.5 h-3.5" />
