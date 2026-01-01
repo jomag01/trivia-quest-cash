@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { EditListingDialog } from "@/components/marketplace/EditListingDialog";
+import { PromoteToSliderDialog } from "@/components/seller/PromoteToSliderDialog";
 import { 
   Package, 
   Building2, 
@@ -33,7 +35,9 @@ import {
   BedDouble,
   ChevronLeft,
   ChevronRight,
-  LayoutGrid
+  LayoutGrid,
+  Edit2,
+  Megaphone
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -108,11 +112,14 @@ interface MarketplaceCategory {
 
 export default function MyListingsHub() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInquiry, setSelectedInquiry] = useState<MarketplaceInquiry | null>(null);
   const [responseMessage, setResponseMessage] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [editingListing, setEditingListing] = useState<MarketplaceListing | null>(null);
+  const [promotingListing, setPromotingListing] = useState<MarketplaceListing | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch user's marketplace listings
@@ -622,12 +629,27 @@ export default function MyListingsHub() {
                     </div>
                   </div>
                   <div className="px-3 py-2 bg-muted/50 flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      Listed {format(new Date(listing.created_at), "MMM d, yyyy")}
-                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => setEditingListing(listing)}
+                      >
+                        <Edit2 className="w-3 h-3 mr-1" /> Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => setPromotingListing(listing)}
+                      >
+                        <Megaphone className="w-3 h-3 mr-1" /> Promote
+                      </Button>
+                    </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Eye className="w-3 h-3" />
-                      {listing.views_count || 0} views
+                      {listing.views_count || 0}
                     </div>
                   </div>
                 </Card>
@@ -682,12 +704,27 @@ export default function MyListingsHub() {
                     </div>
                   </div>
                   <div className="px-3 py-2 bg-muted/50 flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      Listed {format(new Date(listing.created_at), "MMM d, yyyy")}
-                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => setEditingListing(listing)}
+                      >
+                        <Edit2 className="w-3 h-3 mr-1" /> Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => setPromotingListing(listing)}
+                      >
+                        <Megaphone className="w-3 h-3 mr-1" /> Promote
+                      </Button>
+                    </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Eye className="w-3 h-3" />
-                      {listing.views_count || 0} views
+                      {listing.views_count || 0}
                     </div>
                   </div>
                 </Card>
@@ -884,6 +921,29 @@ export default function MyListingsHub() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Listing Dialog */}
+      {editingListing && (
+        <EditListingDialog
+          listing={editingListing}
+          open={!!editingListing}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingListing(null);
+              queryClient.invalidateQueries({ queryKey: ["my-marketplace-listings"] });
+            }
+          }}
+        />
+      )}
+
+      {/* Promote to Slider Dialog */}
+      <PromoteToSliderDialog
+        open={!!promotingListing}
+        onOpenChange={(open) => !open && setPromotingListing(null)}
+        linkType="listing"
+        linkEntityId={promotingListing?.id}
+        linkTitle={promotingListing?.title}
+      />
     </div>
   );
 }
