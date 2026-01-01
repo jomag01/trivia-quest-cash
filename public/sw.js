@@ -1,7 +1,7 @@
 // Ultra-optimized Service Worker for 100M+ concurrent users
 // Features: Aggressive caching, stale-while-revalidate, offline support, request coalescing
 
-const CACHE_VERSION = 'triviabees-v5';
+const CACHE_VERSION = 'triviabees-v6';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -71,9 +71,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy 3: Stale-while-revalidate for API (except auth) with coalescing
-  if (isApiRequest(url) && !url.pathname.includes('/auth/')) {
-    event.respondWith(staleWhileRevalidateCoalesced(request, API_CACHE));
+  // Strategy 3: Never cache backend/API responses (user-specific data must be fresh)
+  // This prevents admin/rider lists from being stuck on stale cached results.
+  if (isBackendRequest(url)) {
+    event.respondWith(
+      fetch(request).catch(() => new Response('Offline', { status: 503 }))
+    );
     return;
   }
 
@@ -98,10 +101,11 @@ function isImageAsset(url) {
   return /\.(png|jpg|jpeg|gif|webp|avif|svg|ico)$/i.test(url.pathname);
 }
 
-// API request detection
-function isApiRequest(url) {
-  return url.pathname.includes('/rest/') || 
+// Backend request detection (Lovable Cloud API) - never cache
+function isBackendRequest(url) {
+  return url.pathname.includes('/rest/') ||
          url.pathname.includes('/functions/') ||
+         url.pathname.includes('/auth/') ||
          url.hostname.includes('supabase');
 }
 
