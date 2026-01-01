@@ -137,11 +137,6 @@ export const RiderDashboard = () => {
 
   const acceptOrderMutation = useMutation({
     mutationFn: async (order: any) => {
-      // 0) Pre-check credits (fast fail)
-      if ((userCredits || 0) < order.total_amount) {
-        throw new Error("Insufficient credits. Please top up to accept this order.");
-      }
-
       // 1) Atomically claim the order (prevents two riders from accepting)
       const { data: claimedOrder, error: claimError } = await (supabase as any)
         .from("food_orders")
@@ -157,24 +152,7 @@ export const RiderDashboard = () => {
         throw new Error("This order was already taken by another rider.");
       }
 
-      // 2) Deduct credits from rider (rollback claim on failure)
-      const { error: creditError } = await supabase
-        .from("profiles")
-        .update({ credits: (userCredits || 0) - order.total_amount })
-        .eq("id", user?.id);
-
-      if (creditError) {
-        // best-effort rollback
-        await (supabase as any)
-          .from("food_orders")
-          .update({ rider_id: null, status: order.status || "ready" })
-          .eq("id", order.id)
-          .eq("rider_id", riderProfile?.id);
-
-        throw creditError;
-      }
-
-      // 3) Create delivery assignment (unique(order_id) blocks duplicates)
+      // 2) Create delivery assignment (unique(order_id) blocks duplicates)
       const { error: assignError } = await (supabase as any)
         .from("delivery_assignments")
         .insert({
@@ -182,7 +160,7 @@ export const RiderDashboard = () => {
           rider_id: riderProfile?.id,
           vendor_id: order.vendor_id,
           status: "assigned",
-          rider_credits_deducted: order.total_amount,
+          rider_credits_deducted: 0,
           delivery_fee: order.delivery_fee,
           customer_name: order.customer_name,
           customer_phone: order.customer_phone,
@@ -195,12 +173,7 @@ export const RiderDashboard = () => {
         });
 
       if (assignError) {
-        // best-effort rollback: refund + unclaim
-        await supabase
-          .from("profiles")
-          .update({ credits: (userCredits || 0) })
-          .eq("id", user?.id);
-
+        // best-effort rollback: unclaim
         await (supabase as any)
           .from("food_orders")
           .update({ rider_id: null, status: order.status || "ready" })
@@ -372,13 +345,9 @@ export const RiderDashboard = () => {
                     size="sm"
                     className="w-full text-xs h-8"
                     onClick={() => acceptOrderMutation.mutate(order)}
-                    disabled={acceptOrderMutation.isPending || (userCredits || 0) < order.total_amount}
+                    disabled={acceptOrderMutation.isPending}
                   >
-                    {(userCredits || 0) < order.total_amount
-                      ? "Insufficient Credits"
-                      : acceptOrderMutation.isPending
-                      ? "Accepting..."
-                      : "Accept Order"}
+                    {acceptOrderMutation.isPending ? "Accepting..." : "Accept Order"}
                   </Button>
                 </CardContent>
               </Card>

@@ -283,7 +283,9 @@ export const RiderManagement = () => {
             <TabsTrigger value="pending" className="text-[10px]">
               Pending {pendingCount > 0 && `(${pendingCount})`}
             </TabsTrigger>
-            <TabsTrigger value="approved" className="text-[10px]">Approved</TabsTrigger>
+            <TabsTrigger value="approved" className="text-[10px]">
+              Approved ({riders?.filter(r => r.status === "approved").length || 0})
+            </TabsTrigger>
             <TabsTrigger value="rejected" className="text-[10px]">Rejected</TabsTrigger>
             <TabsTrigger value="all" className="text-[10px]">All</TabsTrigger>
           </TabsList>
