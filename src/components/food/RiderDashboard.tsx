@@ -391,38 +391,66 @@ export const RiderDashboard = () => {
                       </div>
                     </div>
                     
-                    {/* Customer Contact Section */}
-                    <div className="bg-muted/50 rounded-lg p-2 space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">Customer Details</p>
-                      <div className="flex items-center gap-2">
+                    {/* Customer Contact Section - Enhanced with fallback */}
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold text-muted-foreground">Customer Details</p>
+                        <Badge variant="outline" className="text-[10px]">Save for reference</Badge>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
                         <div className="flex-1">
-                          <p className="text-sm font-medium">{delivery.customer_name}</p>
-                          <a href={`tel:${delivery.customer_phone}`} className="text-xs text-primary flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            {delivery.customer_phone}
-                          </a>
+                          <p className="text-sm font-bold">{delivery.customer_name}</p>
+                          <p className="text-sm font-medium text-primary">{delivery.customer_phone}</p>
                         </div>
                         <Button
                           size="sm"
-                          variant="outline"
-                          className="h-8 text-xs"
+                          variant="default"
+                          className="h-9 px-4 gap-1"
                           onClick={() => window.open(`tel:${delivery.customer_phone}`, '_self')}
                         >
-                          <Phone className="w-3 h-3 mr-1" /> Call
+                          <Phone className="w-4 h-4" /> Call Now
                         </Button>
                       </div>
-                      <div className="flex items-start gap-1 text-xs">
-                        <MapPin className="w-3 h-3 mt-0.5 text-muted-foreground flex-shrink-0" />
-                        <span className="text-muted-foreground">{delivery.customer_address}</span>
+                      
+                      <div className="p-2 bg-background rounded border text-xs">
+                        <p className="font-medium mb-1">Delivery Address:</p>
+                        <p className="text-muted-foreground">{delivery.customer_address}</p>
+                        {delivery.customer_latitude && delivery.customer_longitude && (
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            GPS: {delivery.customer_latitude.toFixed(6)}, {delivery.customer_longitude.toFixed(6)}
+                          </p>
+                        )}
                       </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="w-full h-8 text-xs"
-                        onClick={() => openInMaps(delivery.customer_latitude, delivery.customer_longitude, delivery.customer_address)}
-                      >
-                        <Navigation className="w-3 h-3 mr-1" /> Navigate to Customer
-                      </Button>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="flex-1 h-9 text-xs"
+                          onClick={() => openInMaps(delivery.customer_latitude, delivery.customer_longitude, delivery.customer_address)}
+                        >
+                          <Navigation className="w-3 h-3 mr-1" /> Navigate
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-9 text-xs"
+                          onClick={() => {
+                            // Copy address to clipboard
+                            navigator.clipboard.writeText(
+                              `${delivery.customer_name}\n${delivery.customer_phone}\n${delivery.customer_address}`
+                            );
+                            toast.success("Customer details copied!");
+                          }}
+                        >
+                          Copy Details
+                        </Button>
+                      </div>
+                      
+                      <p className="text-[10px] text-center text-muted-foreground">
+                        💡 If Maps doesn't work, call the customer or screenshot these details
+                      </p>
                     </div>
 
                     {/* Order Notes */}

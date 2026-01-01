@@ -34,6 +34,7 @@ export const DeliveryMap = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   const { data: mapsConfig } = useQuery({
@@ -79,6 +80,9 @@ export const DeliveryMap = ({
     script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsConfig.apiKey}&callback=initMap&libraries=places`;
     script.async = true;
     script.defer = true;
+    script.onerror = () => {
+      setMapError("Failed to load Google Maps. Please call the customer directly.");
+    };
     document.head.appendChild(script);
 
     return () => {
@@ -203,17 +207,66 @@ export const DeliveryMap = ({
     window.open(url, "_blank");
   };
 
-  if (!mapsConfig?.apiKey) {
-    return (
-      <Card>
-        <CardContent className="p-3 flex items-center justify-center h-40">
-          <div className="text-center">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">Loading map...</p>
+  // Fallback when Maps API is not available or loading
+  const renderMapFallback = (message: string, showContactOption: boolean = false) => (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+          <MapPin className="w-5 h-5 text-amber-600 flex-shrink-0" />
+          <div className="text-sm">
+            <p className="font-medium text-amber-800 dark:text-amber-200">{message}</p>
+            <p className="text-amber-700 dark:text-amber-300 text-xs mt-1">
+              You can call the customer directly or use external navigation.
+            </p>
           </div>
-        </CardContent>
-      </Card>
-    );
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex items-start gap-2 text-sm">
+            <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5" />
+            <div>
+              <p className="text-xs text-muted-foreground">Pickup</p>
+              <p className="font-medium">{pickupAddress}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2 text-sm">
+            <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5" />
+            <div>
+              <p className="text-xs text-muted-foreground">Delivery</p>
+              <p className="font-medium">{deliveryAddress}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 text-xs h-9"
+            onClick={() => {
+              const destination = deliveryLat && deliveryLng
+                ? `${deliveryLat},${deliveryLng}`
+                : encodeURIComponent(deliveryAddress);
+              window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`, "_blank");
+            }}
+          >
+            <Navigation className="w-3 h-3 mr-1" /> Open in Maps
+          </Button>
+        </div>
+        
+        <p className="text-xs text-muted-foreground text-center">
+          💡 Tip: Screenshot the customer details above for reference
+        </p>
+      </CardContent>
+    </Card>
+  );
+
+  if (!mapsConfig?.apiKey) {
+    return renderMapFallback("Map loading...", true);
+  }
+
+  if (mapError) {
+    return renderMapFallback(mapError, true);
   }
 
   return (
