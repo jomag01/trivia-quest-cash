@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Loader2, Save, Plus, Trash2, DollarSign, Clock, Target, MapPin } from 'lucide-react';
+import { Loader2, Save, Plus, Trash2, DollarSign, Clock, Target, MapPin, CreditCard } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import AdPaymentDetailsDialog from './AdPaymentDetailsDialog';
 
 interface RevenueSetting {
   id: string;
@@ -55,6 +56,7 @@ export default function AdRevenueSettings() {
   const [editingDuration, setEditingDuration] = useState<DurationTier | null>(null);
   const [editingInterest, setEditingInterest] = useState<InterestCategory | null>(null);
   const [newInterest, setNewInterest] = useState('');
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   const { data: revenueSettings = [], isLoading: loadingRevenue } = useQuery({
     queryKey: ['ad-revenue-settings'],
@@ -211,6 +213,13 @@ export default function AdRevenueSettings() {
           </div>
           <p className="text-white/80 text-sm">Configure revenue splits, pricing tiers, durations, and targeting options</p>
         </div>
+        <Button
+          onClick={() => setShowPaymentDialog(true)}
+          className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border-0"
+        >
+          <CreditCard className="w-4 h-4 mr-2" />
+          Payment Details
+        </Button>
       </div>
 
       <Tabs defaultValue="revenue">
@@ -595,6 +604,9 @@ export default function AdRevenueSettings() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Payment Details Dialog */}
+      <AdPaymentDetailsDialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog} />
     </div>
   );
 }
