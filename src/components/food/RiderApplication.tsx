@@ -91,11 +91,15 @@ export const RiderApplication = () => {
 
   const applyMutation = useMutation({
     mutationFn: async () => {
-      // Step 1: Insert record IMMEDIATELY (no file uploads blocking)
+      if (!user?.id) {
+        throw new Error("Please sign in to apply as a rider.");
+      }
+
+      // Step 1: Insert record IMMEDIATATELY (no file uploads blocking)
       const { data, error } = await (supabase as any)
         .from("delivery_riders")
         .insert({
-          user_id: user?.id,
+          user_id: user.id,
           vehicle_type: formData.vehicle_type,
           license_number: formData.license_number || null,
           status: "pending",

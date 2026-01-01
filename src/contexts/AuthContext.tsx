@@ -101,17 +101,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   const fetchUserRole = async (userId: string) => {
+    // IMPORTANT: A user may have multiple roles (e.g. admin + other roles).
+    // Using maybeSingle() can fail with "multiple rows returned" and incorrectly downgrade admins.
     const { data, error } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', userId)
-      .maybeSingle();
+      .eq('user_id', userId);
 
-    if (!error && data) {
-      setUserRole(data.role as UserRole);
-    } else {
-      setUserRole('user'); // Default to 'user' role if no role found
+    if (error || !data) {
+      setUserRole('user');
+      return;
     }
+
+    const roles = (data as Array<{ role: string }>).map((r) => r.role);
+    setUserRole(roles.includes('admin') ? 'admin' : 'user');
   };
 
   const refreshProfile = async () => {

@@ -40,24 +40,52 @@ export const RiderManagement = () => {
   const [adminNotes, setAdminNotes] = useState("");
 
   const { data: riders, isLoading, error, refetch } = useQuery({
-    queryKey: ["admin-riders", activeTab],
+    queryKey: ["admin-riders"],
     queryFn: async () => {
-      let query = (supabase as any)
+      // 1) Always fetch rider applications without joins first.
+      //    This avoids relationship issues (missing FK) and prevents joins from hiding rows.
+      const { data: ridersData, error: ridersError } = await (supabase as any)
         .from("delivery_riders")
-        .select(`*, profiles(full_name, email)`)
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (activeTab !== "all") {
-        query = query.eq("status", activeTab);
+      if (ridersError) {
+        console.error("Admin riders query error:", ridersError);
+        throw ridersError;
       }
 
-      const { data, error } = await query;
-      if (error) {
-        console.error("Admin riders query error:", error);
-        throw error;
+      const base = (ridersData ?? []) as RiderApplication[];
+
+      // 2) Best-effort fetch profiles (no FK required). If RLS blocks, we still show riders.
+      const userIds = Array.from(
+        new Set(base.map((r) => r.user_id).filter(Boolean))
+      ) as string[];
+
+      const profilesById = new Map<string, { full_name: string | null; email: string | null }>();
+      if (userIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", userIds);
+
+        if (profilesError) {
+          // Don't fail the whole list if profile access is denied.
+          console.warn("Profiles lookup blocked (continuing without profiles):", profilesError);
+        } else {
+          (profilesData ?? []).forEach((p: any) => {
+            profilesById.set(p.id, { full_name: p.full_name ?? null, email: p.email ?? null });
+          });
+        }
       }
-      console.log("Riders loaded:", data?.length, data);
-      return data as RiderApplication[];
+
+      const merged = base.map((r) => ({
+        ...r,
+        status: (r.status ?? "").toString().trim().toLowerCase(),
+        profiles: profilesById.get(r.user_id) ?? { full_name: null, email: null },
+      }));
+
+      console.log("Riders loaded:", merged.length, merged);
+      return merged;
     },
   });
 
@@ -176,21 +204,23 @@ export const RiderManagement = () => {
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  const filteredRiders = riders?.filter((r) => {
-    if (!normalizedQuery) return true;
+  const filteredRiders = riders
+    ?.filter((r) => (activeTab === "all" ? true : r.status === activeTab))
+    .filter((r) => {
+      if (!normalizedQuery) return true;
 
-    const fullName = (r.profiles?.full_name ?? "").toLowerCase();
-    const email = (r.profiles?.email ?? "").toLowerCase();
-    const vehicle = (r.vehicle_type ?? "").toLowerCase();
-    const license = (r.license_number ?? "").toLowerCase();
+      const fullName = (r.profiles?.full_name ?? "").toLowerCase();
+      const email = (r.profiles?.email ?? "").toLowerCase();
+      const vehicle = (r.vehicle_type ?? "").toLowerCase();
+      const license = (r.license_number ?? "").toLowerCase();
 
-    return (
-      fullName.includes(normalizedQuery) ||
-      email.includes(normalizedQuery) ||
-      vehicle.includes(normalizedQuery) ||
-      license.includes(normalizedQuery)
-    );
-  });
+      return (
+        fullName.includes(normalizedQuery) ||
+        email.includes(normalizedQuery) ||
+        vehicle.includes(normalizedQuery) ||
+        license.includes(normalizedQuery)
+      );
+    });
 
   const statusColors: Record<string, string> = {
     pending: "bg-yellow-500",
@@ -218,7 +248,13 @@ export const RiderManagement = () => {
           </Button>
         </div>
         {/* Debug info */}
-        {!isAdmin && (
+        {!user && (
+          <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded text-destructive text-xs mt-2">
+            <AlertTriangle className="w-4 h-4" />
+            <span>You are not signed in on this device/session.</span>
+          </div>
+        )}
+        {!!user && !isAdmin && (
           <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded text-destructive text-xs mt-2">
             <AlertTriangle className="w-4 h-4" />
             <span>Not recognized as admin. Try logging out and back in.</span>
