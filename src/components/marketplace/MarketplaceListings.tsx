@@ -214,36 +214,49 @@ const MarketplaceListings = () => {
   const [freeListingThreshold, setFreeListingThreshold] = useState(150);
 
   const checkEligibility = async () => {
-    try {
-      // Check if user is a paid affiliate or verified seller
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('is_paid_affiliate, is_verified_seller, diamonds')
-        .eq('id', user?.id)
-        .maybeSingle();
-      
-      if (error) throw error;
+    if (!user) {
+      setIsEligible(false);
+      setCheckingEligibility(false);
+      return;
+    }
 
+    try {
       // Fetch listing settings
-      const { data: settings } = await supabase
+      const { data: settings, error: settingsError } = await supabase
         .from('marketplace_settings')
         .select('setting_key, setting_value')
         .in('setting_key', ['listing_fee', 'free_listing_diamond_threshold']);
 
+      if (settingsError) throw settingsError;
+
       if (settings) {
-        const feeRow = settings.find(s => s.setting_key === 'listing_fee');
-        const thresholdRow = settings.find(s => s.setting_key === 'free_listing_diamond_threshold');
+        const feeRow = settings.find((s) => s.setting_key === 'listing_fee');
+        const thresholdRow = settings.find((s) => s.setting_key === 'free_listing_diamond_threshold');
         if (feeRow) setListingFee(parseInt(feeRow.setting_value || '50'));
         if (thresholdRow) setFreeListingThreshold(parseInt(thresholdRow.setting_value || '150'));
       }
 
-      // Check if user has purchased 150+ diamonds worth of credits/items
+      // Determine free listing access (based on diamonds)
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('diamonds')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
       const userDiamonds = profile?.diamonds || 0;
-      const hasFreeListing = userDiamonds >= freeListingThreshold;
-      setHasFreeListingAccess(hasFreeListing);
-      
-      // User is eligible if they are a paid affiliate or verified seller
-      setIsEligible(profile?.is_paid_affiliate === true || profile?.is_verified_seller === true);
+      setHasFreeListingAccess(userDiamonds >= freeListingThreshold);
+
+      // Eligibility for posting listings is enforced by backend policy.
+      // Use the same function the policy uses so UI matches backend behavior.
+      const { data: eligible, error: eligError } = await supabase.rpc('check_marketplace_eligibility', {
+        user_uuid: user.id,
+      });
+
+      if (eligError) throw eligError;
+
+      setIsEligible(eligible === true);
     } catch (error) {
       console.error('Error checking eligibility:', error);
       setIsEligible(false);
