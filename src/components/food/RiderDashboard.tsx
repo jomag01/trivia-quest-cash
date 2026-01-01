@@ -62,6 +62,10 @@ export const RiderDashboard = () => {
     enabled: !!user?.id,
   });
 
+  const riderStatus = (riderProfile?.status ?? "").toString().trim().toLowerCase();
+  const isApprovedRider = riderStatus === "approved";
+  const isRiderAvailable = !!riderProfile?.is_available;
+
   const { data: userCredits } = useQuery({
     queryKey: ["user-credits", user?.id],
     queryFn: async () => {
@@ -94,22 +98,27 @@ export const RiderDashboard = () => {
     enabled: !!riderProfile?.id,
   });
 
-  const { data: availableOrders } = useQuery({
+  const {
+    data: availableOrders,
+    isLoading: loadingAvailableOrders,
+    error: availableOrdersError,
+  } = useQuery({
     queryKey: ["available-orders"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("food_orders")
         .select(`
           *,
-          food_vendors(name, address, latitude, longitude, phone)
+          food_vendors(owner_id, name, address, latitude, longitude, phone)
         `)
-        .eq("status", "ready")
+        .in("status", ["ready", "ready_for_pickup"])
         .is("rider_id", null)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
     },
-    enabled: !!riderProfile?.id && riderProfile?.status === "approved",
+    // Only fetch when the rider is actually eligible to receive orders
+    enabled: !!riderProfile?.id && isApprovedRider && isRiderAvailable,
     refetchInterval: 10000,
   });
 
@@ -128,19 +137,44 @@ export const RiderDashboard = () => {
 
   const acceptOrderMutation = useMutation({
     mutationFn: async (order: any) => {
-      // Check if rider has enough credits
+      // 0) Pre-check credits (fast fail)
       if ((userCredits || 0) < order.total_amount) {
         throw new Error("Insufficient credits. Please top up to accept this order.");
       }
 
-      // Deduct credits from rider
+      // 1) Atomically claim the order (prevents two riders from accepting)
+      const { data: claimedOrder, error: claimError } = await (supabase as any)
+        .from("food_orders")
+        .update({ rider_id: riderProfile?.id, status: "assigned" })
+        .eq("id", order.id)
+        .in("status", ["ready", "ready_for_pickup"])
+        .is("rider_id", null)
+        .select("id")
+        .maybeSingle();
+
+      if (claimError) throw claimError;
+      if (!claimedOrder) {
+        throw new Error("This order was already taken by another rider.");
+      }
+
+      // 2) Deduct credits from rider (rollback claim on failure)
       const { error: creditError } = await supabase
         .from("profiles")
         .update({ credits: (userCredits || 0) - order.total_amount })
         .eq("id", user?.id);
-      if (creditError) throw creditError;
 
-      // Create delivery assignment
+      if (creditError) {
+        // best-effort rollback
+        await (supabase as any)
+          .from("food_orders")
+          .update({ rider_id: null, status: order.status || "ready" })
+          .eq("id", order.id)
+          .eq("rider_id", riderProfile?.id);
+
+        throw creditError;
+      }
+
+      // 3) Create delivery assignment (unique(order_id) blocks duplicates)
       const { error: assignError } = await (supabase as any)
         .from("delivery_assignments")
         .insert({
@@ -159,22 +193,37 @@ export const RiderDashboard = () => {
           pickup_latitude: order.food_vendors?.latitude,
           pickup_longitude: order.food_vendors?.longitude,
         });
-      if (assignError) throw assignError;
 
-      // Update order with rider
-      const { error: orderError } = await (supabase as any)
-        .from("food_orders")
-        .update({ rider_id: riderProfile?.id, status: "assigned" })
-        .eq("id", order.id);
-      if (orderError) throw orderError;
+      if (assignError) {
+        // best-effort rollback: refund + unclaim
+        await supabase
+          .from("profiles")
+          .update({ credits: (userCredits || 0) })
+          .eq("id", user?.id);
 
-      // Notify vendor
-      await (supabase as any).from("notifications").insert({
-        user_id: order.food_vendors?.owner_id,
-        type: "delivery_accepted",
-        title: "Rider Accepted Order",
-        message: `A rider has accepted order #${order.order_number} for delivery.`,
-      });
+        await (supabase as any)
+          .from("food_orders")
+          .update({ rider_id: null, status: order.status || "ready" })
+          .eq("id", order.id)
+          .eq("rider_id", riderProfile?.id);
+
+        throw assignError;
+      }
+
+      // 4) Notify vendor (best-effort; never block acceptance)
+      try {
+        const vendorOwnerId = order.food_vendors?.owner_id;
+        if (vendorOwnerId) {
+          await (supabase as any).from("notifications").insert({
+            user_id: vendorOwnerId,
+            type: "delivery_accepted",
+            title: "Rider Accepted Order",
+            message: `A rider has accepted order #${order.order_number} for delivery.`,
+          });
+        }
+      } catch {
+        // ignore
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["available-orders"] });
