@@ -409,7 +409,7 @@ const Shop = () => {
     navigate(`/shop?tab=${value}`);
   };
 
-  return <div className="min-h-screen bg-background pb-20">
+  return <div className="min-h-screen bg-background pb-20 beehive-bg beehive-theme">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         {/* Top Header with Search and Cart */}
         <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border shadow-sm px-3 py-2">

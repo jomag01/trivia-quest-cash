@@ -931,7 +931,7 @@ const AIHub = memo(() => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex pb-20">
+    <div className="min-h-screen beehive-bg flex pb-20">
       {/* Left Sidebar */}
       <aside className={cn(
         "fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border/50 transition-all duration-300",

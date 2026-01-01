@@ -4,38 +4,42 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Plus, Mic, ArrowUp, Sparkles, Clock, Film, ImageIcon, Crown, Search } from 'lucide-react';
+import { Play, Plus, Mic, ArrowUp, Sparkles, Clock, Film, ImageIcon, Crown, Search, ShoppingCart, DollarSign, Cpu } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Import bee-themed images
+import beeWorkingHive from '@/assets/bee-working-hive.png';
+import beeShoppingOnline from '@/assets/bee-shopping-online.png';
+import beeEarningMoney from '@/assets/bee-earning-money.png';
+import beeAiTech from '@/assets/bee-ai-tech.png';
 
 interface AIHubGalleryProps {
   onNavigate: (tab: string, prompt?: string) => void;
   userCredits: number;
 }
 
-// Sample gallery items - in production these would come from DB
+// TriviaBees themed gallery items
 const SAMPLE_GALLERY = [
-  { id: '1', type: 'image', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=600&fit=crop', category: 'Portrait', prompt: 'Beautiful portrait with golden hour lighting' },
-  { id: '2', type: 'video', url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&h=500&fit=crop', category: 'Nature', prompt: 'Ethereal forest with magical light' },
-  { id: '3', type: 'image', url: 'https://images.unsplash.com/photo-1604076913837-52ab5629fba9?w=400&h=400&fit=crop', category: 'Product', prompt: 'Elegant nail art photography' },
-  { id: '4', type: 'image', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=600&fit=crop', category: 'Fashion', prompt: 'Fashion model in vintage setting' },
-  { id: '5', type: 'video', url: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400&h=500&fit=crop', category: 'Festive', prompt: 'Christmas holiday shopping scene' },
-  { id: '6', type: 'image', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=450&fit=crop', category: 'Portrait', prompt: 'Professional headshot with studio lighting' },
-  { id: '7', type: 'image', url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&h=550&fit=crop', category: 'Nature', prompt: 'Mystical landscape with northern lights' },
-  { id: '8', type: 'video', url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=400&fit=crop', category: 'Event', prompt: 'Celebration with confetti and lights' },
-  { id: '9', type: 'image', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=600&fit=crop', category: 'Fashion', prompt: 'Editorial fashion photography' },
-  { id: '10', type: 'image', url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop', category: 'Portrait', prompt: 'Cinematic portrait with dramatic lighting' },
-  { id: '11', type: 'video', url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=450&fit=crop', category: 'Nature', prompt: 'Serene mountain landscape timelapse' },
-  { id: '12', type: 'image', url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=550&fit=crop', category: 'Fashion', prompt: 'High fashion editorial shoot' },
+  { id: '1', type: 'image', url: beeWorkingHive, category: 'Work', prompt: 'Adorable bees working together in a golden honeycomb hive, wearing hard hats and carrying honey jars' },
+  { id: '2', type: 'image', url: beeShoppingOnline, category: 'Shopping', prompt: 'Cute bee shopping online with laptop and shopping cart, surrounded by gift boxes' },
+  { id: '3', type: 'image', url: beeEarningMoney, category: 'Earning', prompt: 'Happy bee holding money and gold coins, successful entrepreneur bee with dollar bills' },
+  { id: '4', type: 'image', url: beeAiTech, category: 'AI', prompt: 'Bee scientist using AI technology with holographic brain displays in futuristic lab' },
+  { id: '5', type: 'video', url: beeWorkingHive, category: 'Work', prompt: 'Animated bees building honeycomb cells and producing sweet honey together' },
+  { id: '6', type: 'image', url: beeShoppingOnline, category: 'Shopping', prompt: 'Bee mascot browsing online marketplace on honeycomb styled e-commerce platform' },
+  { id: '7', type: 'video', url: beeEarningMoney, category: 'Earning', prompt: 'Celebration of success with coins raining on happy bee characters' },
+  { id: '8', type: 'image', url: beeAiTech, category: 'AI', prompt: 'Smart bee analyzing data and generating content with artificial intelligence' },
+  { id: '9', type: 'image', url: beeWorkingHive, category: 'Work', prompt: 'Team of worker bees collaborating in a beautiful amber-lit beehive' },
+  { id: '10', type: 'video', url: beeShoppingOnline, category: 'Shopping', prompt: 'Buzzing bee adding products to cart in online honey store' },
+  { id: '11', type: 'image', url: beeEarningMoney, category: 'Earning', prompt: 'Bee entrepreneur celebrating affiliate commissions and passive income' },
+  { id: '12', type: 'image', url: beeAiTech, category: 'AI', prompt: 'TriviaBees AI assistant helping create images and videos with magic' },
 ];
 
 const CATEGORIES = [
-  { id: 'all', label: 'All' },
-  { id: 'portrait', label: 'Portrait' },
-  { id: 'fashion', label: 'Fashion' },
-  { id: 'nature', label: 'Nature' },
-  { id: 'product', label: 'Product' },
-  { id: 'festive', label: 'Festive' },
-  { id: 'cinematic', label: 'Cinematic' },
+  { id: 'all', label: '🐝 All', icon: null },
+  { id: 'work', label: '🏗️ Work', icon: null },
+  { id: 'shopping', label: '🛒 Shopping', icon: ShoppingCart },
+  { id: 'earning', label: '💰 Earning', icon: DollarSign },
+  { id: 'ai', label: '🤖 AI Tech', icon: Cpu },
 ];
 
 const VIDEO_QUALITY_OPTIONS = [
@@ -97,31 +101,66 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
   };
 
   return (
-    <div ref={galleryRef} className="relative min-h-screen pb-32 bg-gradient-to-br from-purple-500/5 via-pink-500/5 to-orange-500/5">
+    <div ref={galleryRef} className="relative min-h-screen pb-32 beehive-bg">
+      {/* Hero Section with TriviaBees branding */}
+      <div className="relative px-4 py-6 md:py-10 overflow-hidden">
+        {/* Animated honeycomb background */}
+        <div className="absolute inset-0 honeycomb-pattern opacity-20" />
+        
+        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-4">
+          <div className="flex items-center justify-center gap-3 animate-float">
+            <span className="text-4xl md:text-5xl">🐝</span>
+            <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent">
+              TriviaBees AI Hub
+            </h1>
+            <span className="text-4xl md:text-5xl">🍯</span>
+          </div>
+          <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
+            Create stunning AI images, videos, and more. Join our hive of creators earning while they create!
+          </p>
+          
+          {/* Feature highlights */}
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3 pt-2">
+            <Badge variant="secondary" className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1.5 py-1.5 px-3">
+              <ShoppingCart className="h-3.5 w-3.5" />
+              Shop & Earn
+            </Badge>
+            <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30 gap-1.5 py-1.5 px-3">
+              <DollarSign className="h-3.5 w-3.5" />
+              Affiliate Rewards
+            </Badge>
+            <Badge variant="secondary" className="bg-purple-500/20 text-purple-700 dark:text-purple-400 border-purple-500/30 gap-1.5 py-1.5 px-3">
+              <Sparkles className="h-3.5 w-3.5" />
+              AI Powered
+            </Badge>
+          </div>
+        </div>
+      </div>
+
       {/* Header Tabs */}
-      <div className="sticky top-0 z-20 bg-gradient-to-r from-background/95 via-background/90 to-background/95 backdrop-blur-xl border-b border-primary/10">
+      <div className="sticky top-0 z-20 bg-gradient-to-r from-amber-50/95 via-orange-50/90 to-yellow-50/95 dark:from-amber-950/95 dark:via-orange-950/90 dark:to-yellow-950/95 backdrop-blur-xl border-b border-amber-500/20">
         <div className="flex items-center justify-center gap-2 py-3">
           <button
             onClick={() => setActiveMode('discover')}
             className={cn(
               "px-6 py-2 rounded-full text-sm font-medium transition-all",
               activeMode === 'discover' 
-                ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25" 
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25" 
+                : "text-muted-foreground hover:text-foreground hover:bg-amber-500/10"
             )}
           >
-            Discover
+            🐝 Discover
           </button>
           <button
             onClick={() => setActiveMode('effects')}
             className={cn(
               "px-6 py-2 rounded-full text-sm font-medium transition-all",
               activeMode === 'effects' 
-                ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/25" 
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                ? "bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-lg shadow-yellow-500/25" 
+                : "text-muted-foreground hover:text-foreground hover:bg-yellow-500/10"
             )}
           >
-            Effects
+            ✨ Effects
           </button>
         </div>
 
@@ -129,7 +168,7 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
         <ScrollArea className="w-full pb-3">
           <div className="flex items-center gap-2 px-4">
             {CATEGORIES.map((cat, index) => {
-              const colors = ['from-purple-500 to-pink-500', 'from-blue-500 to-cyan-500', 'from-green-500 to-emerald-500', 'from-orange-500 to-red-500', 'from-yellow-500 to-amber-500', 'from-indigo-500 to-purple-500', 'from-pink-500 to-rose-500'];
+              const colors = ['from-amber-500 to-orange-500', 'from-yellow-500 to-amber-500', 'from-orange-500 to-red-500', 'from-green-500 to-emerald-500', 'from-purple-500 to-indigo-500'];
               const gradientColor = colors[index % colors.length];
               return (
                 <button
@@ -139,7 +178,7 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
                     "px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all border",
                     activeCategory === cat.id 
                       ? `bg-gradient-to-r ${gradientColor} text-white border-transparent shadow-lg` 
-                      : "bg-transparent text-foreground border-border/50 hover:border-primary/50 hover:bg-muted"
+                      : "bg-amber-500/5 text-foreground border-amber-500/30 hover:border-amber-500/50 hover:bg-amber-500/10"
                   )}
                 >
                   {cat.label}
@@ -152,37 +191,46 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
       </div>
 
       {/* Masonry Gallery Grid */}
-      <div className="p-4">
-        <div className="columns-2 md:columns-3 lg:columns-4 gap-3 space-y-3">
+      <div className="p-3 md:p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
           {filteredGallery.map((item) => (
             <div 
               key={item.id}
-              className="break-inside-avoid relative group cursor-pointer rounded-xl overflow-hidden"
+              className="relative group cursor-pointer rounded-xl md:rounded-2xl overflow-hidden shadow-lg shadow-amber-500/10 hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-300 border-2 border-amber-500/20 hover:border-amber-500/40"
               onClick={() => {
                 setPromptValue(item.prompt);
                 setGenerationType(item.type === 'video' ? 'video' : 'image');
               }}
             >
-              <img 
-                src={item.url} 
-                alt={item.prompt}
-                className="w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                loading="lazy"
-              />
+              <div className="aspect-square">
+                <img 
+                  src={item.url} 
+                  alt={item.prompt}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  loading="lazy"
+                />
+              </div>
               
               {/* Video indicator */}
               {item.type === 'video' && (
-                <div className="absolute top-3 left-3">
-                  <Badge variant="secondary" className="bg-black/60 text-white border-0 gap-1">
-                    <Play className="h-3 w-3 fill-current" />
+                <div className="absolute top-2 left-2">
+                  <Badge variant="secondary" className="bg-amber-500/90 text-white border-0 gap-1 text-xs">
+                    <Play className="h-2.5 w-2.5 fill-current" />
                     Video
                   </Badge>
                 </div>
               )}
 
+              {/* Category badge */}
+              <div className="absolute top-2 right-2">
+                <Badge variant="secondary" className="bg-black/60 text-white border-0 text-xs">
+                  {item.category}
+                </Badge>
+              </div>
+
               {/* Hover overlay with prompt */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="absolute bottom-0 left-0 right-0 p-3">
+              <div className="absolute inset-0 bg-gradient-to-t from-amber-900/90 via-amber-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute bottom-0 left-0 right-0 p-2 md:p-3">
                   <p className="text-white text-xs line-clamp-2">{item.prompt}</p>
                 </div>
               </div>
@@ -193,48 +241,48 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
 
       {/* Floating Input Bar - Always visible at bottom */}
       <div className={cn(
-        "fixed bottom-20 md:bottom-6 left-0 right-0 z-50 px-4 transition-all duration-300",
+        "fixed bottom-20 md:bottom-6 left-0 right-0 z-50 px-3 md:px-4 transition-all duration-300",
         showFloatingInput ? "translate-y-0 opacity-100" : "translate-y-0 opacity-100"
       )}>
         <div className="max-w-2xl mx-auto">
-          <div className="bg-gradient-to-r from-background/95 via-background/98 to-background/95 backdrop-blur-xl border border-primary/20 rounded-2xl shadow-2xl shadow-purple-500/10 p-3">
+          <div className="bg-gradient-to-r from-amber-50/98 via-orange-50/98 to-yellow-50/98 dark:from-amber-950/98 dark:via-orange-950/98 dark:to-yellow-950/98 backdrop-blur-xl border-2 border-amber-500/30 rounded-2xl shadow-2xl shadow-amber-500/20 p-2 md:p-3">
             {/* Type Toggle */}
-            <div className="flex items-center gap-2 mb-3 overflow-x-auto">
+            <div className="flex items-center gap-1.5 md:gap-2 mb-2 md:mb-3 overflow-x-auto scrollbar-hide">
               <Button
                 variant={generationType === 'video' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setGenerationType('video')}
                 className={cn(
-                  "gap-1.5 rounded-full shrink-0",
-                  generationType === 'video' && "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
+                  "gap-1 md:gap-1.5 rounded-full shrink-0 text-xs md:text-sm h-7 md:h-8 px-2 md:px-3",
+                  generationType === 'video' && "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
                 )}
               >
-                <Sparkles className="h-3.5 w-3.5" />
-                AI Video
+                <Sparkles className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                <span className="hidden sm:inline">AI</span> Video
               </Button>
               <Button
                 variant={generationType === 'image' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setGenerationType('image')}
                 className={cn(
-                  "gap-1.5 rounded-full shrink-0",
-                  generationType === 'image' && "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0"
+                  "gap-1 md:gap-1.5 rounded-full shrink-0 text-xs md:text-sm h-7 md:h-8 px-2 md:px-3",
+                  generationType === 'image' && "bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-white border-0"
                 )}
               >
-                <ImageIcon className="h-3.5 w-3.5" />
-                AI Image
+                <ImageIcon className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                <span className="hidden sm:inline">AI</span> Image
               </Button>
               <Button
                 variant={generationType === 'research' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setGenerationType('research')}
                 className={cn(
-                  "gap-1.5 rounded-full shrink-0",
-                  generationType === 'research' && "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0"
+                  "gap-1 md:gap-1.5 rounded-full shrink-0 text-xs md:text-sm h-7 md:h-8 px-2 md:px-3",
+                  generationType === 'research' && "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0"
                 )}
               >
-                <Search className="h-3.5 w-3.5" />
-                Deep Research
+                <Search className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                Research
               </Button>
               <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground shrink-0 bg-gradient-to-r from-amber-500/20 to-orange-500/20 px-2 py-1 rounded-full">
                 <Crown className="h-3 w-3 text-amber-500" />
@@ -246,10 +294,10 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
             <div className="flex items-center gap-2">
               <Input
                 placeholder={generationType === 'video' 
-                  ? "Describe the video you want to create..."
+                  ? "Describe your bee-utiful video..."
                   : generationType === 'research'
-                  ? "Enter a topic to deep research with GPT-5..."
-                  : "Describe the image you want to create..."
+                  ? "Research any topic with GPT-5..."
+                  : "Describe your bee-utiful image..."
                 }
                 value={promptValue}
                 onChange={(e) => setPromptValue(e.target.value)}
@@ -260,23 +308,23 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
                 onClick={handleSubmit}
                 disabled={!promptValue.trim()}
                 size="icon" 
-                className="h-9 w-9 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shrink-0 shadow-lg shadow-purple-500/25"
+                className="h-8 w-8 md:h-9 md:w-9 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shrink-0 shadow-lg shadow-amber-500/25"
               >
                 <ArrowUp className="h-4 w-4" />
               </Button>
             </div>
 
             {/* Options Row */}
-            <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1">
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-full shrink-0 h-8 border-primary/30 hover:border-primary hover:bg-primary/5">
+            <div className="flex items-center gap-1.5 md:gap-2 mt-2 md:mt-3 overflow-x-auto pb-1 scrollbar-hide">
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-full shrink-0 h-7 md:h-8 border-amber-500/30 hover:border-amber-500 hover:bg-amber-500/5">
                 <Plus className="h-3.5 w-3.5" />
               </Button>
               
               {generationType === 'video' && (
                 <>
                   <Select value={videoQuality} onValueChange={setVideoQuality}>
-                    <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-purple-500/30 bg-purple-500/5 text-xs">
-                      <Film className="h-3.5 w-3.5 text-purple-500" />
+                    <SelectTrigger className="h-7 md:h-8 w-auto gap-1.5 rounded-full border-amber-500/30 bg-amber-500/5 text-xs">
+                      <Film className="h-3.5 w-3.5 text-amber-500" />
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -287,8 +335,8 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
                   </Select>
 
                   <Select value={videoDuration} onValueChange={setVideoDuration}>
-                    <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-pink-500/30 bg-pink-500/5 text-xs">
-                      <Clock className="h-3.5 w-3.5 text-pink-500" />
+                    <SelectTrigger className="h-7 md:h-8 w-auto gap-1.5 rounded-full border-orange-500/30 bg-orange-500/5 text-xs">
+                      <Clock className="h-3.5 w-3.5 text-orange-500" />
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -300,8 +348,8 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
                 </>
               )}
 
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-full shrink-0 h-8 border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/10">
-                <Mic className="h-3.5 w-3.5 text-cyan-500" />
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-full shrink-0 h-7 md:h-8 border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10">
+                <Mic className="h-3.5 w-3.5 text-yellow-600" />
               </Button>
             </div>
           </div>
