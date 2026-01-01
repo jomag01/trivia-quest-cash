@@ -48,6 +48,7 @@ import BinaryAccountsManager from "@/components/BinaryAccountsManager";
 import { StairStepTree } from "@/components/StairStepTree";
 import { LeadershipTree } from "@/components/LeadershipTree";
 import { CurrencyConversionDialog } from "@/components/CurrencyConversionDialog";
+import CashWalletCard from "@/components/CashWalletCard";
 import { useHiddenTabs } from "@/hooks/useHiddenTabs";
 import SellerOrderProcessing from "@/components/dashboard/SellerOrderProcessing";
 const Dashboard = () => {
@@ -413,6 +414,8 @@ const Dashboard = () => {
           <TabsContent value="overview" className="space-y-8">
             {/* Main Stats Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              {/* Cash Wallet */}
+              {user?.id && <CashWalletCard userId={user.id} />}
               {/* Active Users */}
               <ActiveUsersStats />
           <Card className="p-3 md:p-4 gradient-accent border-primary/20 shadow-card">
