@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, CheckCircle, XCircle, Eye, Bike, User, RefreshCw, Bell } from "lucide-react";
+import { Search, CheckCircle, XCircle, Eye, Bike, User, RefreshCw, Bell, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 interface RiderApplication {
@@ -32,12 +33,13 @@ interface RiderApplication {
 
 export const RiderManagement = () => {
   const queryClient = useQueryClient();
+  const { user, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("pending");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewRider, setViewRider] = useState<RiderApplication | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
 
-  const { data: riders, isLoading, refetch } = useQuery({
+  const { data: riders, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-riders", activeTab],
     queryFn: async () => {
       let query = (supabase as any)
@@ -54,6 +56,7 @@ export const RiderManagement = () => {
         console.error("Admin riders query error:", error);
         throw error;
       }
+      console.log("Riders loaded:", data?.length, data);
       return data as RiderApplication[];
     },
   });
@@ -214,6 +217,19 @@ export const RiderManagement = () => {
             <RefreshCw className="w-3 h-3" />
           </Button>
         </div>
+        {/* Debug info */}
+        {!isAdmin && (
+          <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded text-destructive text-xs mt-2">
+            <AlertTriangle className="w-4 h-4" />
+            <span>Not recognized as admin. Try logging out and back in.</span>
+          </div>
+        )}
+        {error && (
+          <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded text-destructive text-xs mt-2">
+            <AlertTriangle className="w-4 h-4" />
+            <span>Error: {(error as any)?.message || "Failed to load riders"}</span>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="relative">
