@@ -3691,6 +3691,86 @@ export type Database = {
           },
         ]
       }
+      listing_feature_definitions: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          entity_type: string
+          feature_label: string
+          feature_name: string
+          feature_type: string
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          options: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          entity_type: string
+          feature_label: string
+          feature_name: string
+          feature_type?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          options?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          entity_type?: string
+          feature_label?: string
+          feature_name?: string
+          feature_type?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          options?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      listing_features: {
+        Row: {
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          feature_definition_id: string
+          feature_value: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          feature_definition_id: string
+          feature_value?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          feature_definition_id?: string
+          feature_value?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_features_feature_definition_id_fkey"
+            columns: ["feature_definition_id"]
+            isOneToOne: false
+            referencedRelation: "listing_feature_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_stream_comments: {
         Row: {
           content: string
@@ -6467,6 +6547,80 @@ export type Database = {
           },
         ]
       }
+      seller_slider_ads: {
+        Row: {
+          admin_notes: string | null
+          clicks: number | null
+          created_at: string | null
+          description: string | null
+          diamonds_paid: number
+          end_date: string
+          id: string
+          image_url: string | null
+          impressions: number | null
+          link_entity_id: string | null
+          link_type: string | null
+          link_url: string | null
+          placement_id: string
+          seller_id: string
+          start_date: string
+          status: string | null
+          title: string
+          updated_at: string | null
+          video_url: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          clicks?: number | null
+          created_at?: string | null
+          description?: string | null
+          diamonds_paid?: number
+          end_date: string
+          id?: string
+          image_url?: string | null
+          impressions?: number | null
+          link_entity_id?: string | null
+          link_type?: string | null
+          link_url?: string | null
+          placement_id: string
+          seller_id: string
+          start_date: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          clicks?: number | null
+          created_at?: string | null
+          description?: string | null
+          diamonds_paid?: number
+          end_date?: string
+          id?: string
+          image_url?: string | null
+          impressions?: number | null
+          link_entity_id?: string | null
+          link_type?: string | null
+          link_url?: string | null
+          placement_id?: string
+          seller_id?: string
+          start_date?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_slider_ads_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "slider_ad_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_verification_requests: {
         Row: {
           admin_notes: string | null
@@ -6862,6 +7016,83 @@ export type Database = {
           name?: string
           per_kg_rate?: number
           regions?: string[]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      slider_ad_impressions: {
+        Row: {
+          ad_id: string
+          clicked: boolean | null
+          created_at: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          ad_id: string
+          clicked?: boolean | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          ad_id?: string
+          clicked?: boolean | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slider_ad_impressions_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "seller_slider_ads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      slider_ad_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          fee_per_day: number | null
+          id: string
+          is_active: boolean | null
+          max_ads_shown: number | null
+          max_duration_days: number | null
+          min_duration_days: number | null
+          placement_key: string
+          placement_label: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          fee_per_day?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_ads_shown?: number | null
+          max_duration_days?: number | null
+          min_duration_days?: number | null
+          placement_key: string
+          placement_label: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          fee_per_day?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_ads_shown?: number | null
+          max_duration_days?: number | null
+          min_duration_days?: number | null
+          placement_key?: string
+          placement_label?: string
           updated_at?: string | null
         }
         Relationships: []
