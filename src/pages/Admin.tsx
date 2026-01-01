@@ -86,6 +86,8 @@ import LegalTermsManagement from "@/components/admin/LegalTermsManagement";
 import { cn } from "@/lib/utils";
 import { BarChart3, Gavel } from "lucide-react";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
+import SliderAdsManagement from "@/components/admin/SliderAdsManagement";
+import ListingFeaturesManagement from "@/components/admin/ListingFeaturesManagement";
 
 interface MenuItem {
   id: string;
@@ -179,6 +181,7 @@ const Admin = () => {
         { id: "product-categories", label: "Product Categories", icon: FolderOpen },
         { id: "marketplace-categories", label: "Marketplace Categories", icon: FolderOpen },
         { id: "marketplace-settings", label: "Marketplace Settings", icon: Settings },
+        { id: "listing-features", label: "Listing Features", icon: Tags },
         { id: "products", label: "Products", icon: ShoppingBag },
         { id: "orders", label: "Orders", icon: Package },
         { id: "pos-system", label: "POS & Inventory", icon: Barcode },
@@ -238,6 +241,7 @@ const Admin = () => {
         { id: "ad-management", label: "Ad Management", icon: Upload },
         { id: "promotional-ads", label: "Promotional Ads", icon: Sparkles },
         { id: "user-ads", label: "User Ad Campaigns", icon: TrendingUp },
+        { id: "slider-ads", label: "Slider Ads", icon: Megaphone },
         { id: "purchase-notifications", label: "Purchase Pop-ups", icon: Bell },
       ],
     },
@@ -815,6 +819,8 @@ const Admin = () => {
           {activeTab === "ai-packages" && <BinaryAIPurchaseManagement />}
           {activeTab === "marketplace-categories" && <MarketplaceCategoryManagement />}
           {activeTab === "marketplace-settings" && <MarketplaceSettingsManagement />}
+          {activeTab === "listing-features" && <ListingFeaturesManagement />}
+          {activeTab === "slider-ads" && <SliderAdsManagement />}
           {activeTab === "suppliers" && <SupplierManagement />}
           {activeTab === "retailer-commissions" && <RetailerCommissionSettings />}
           {activeTab === "system-reset" && <SystemResetManagement />}

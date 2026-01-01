@@ -15,13 +15,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import ProviderChat from "@/components/chat/ProviderChat";
+import { EditListingDialog } from "@/components/marketplace/EditListingDialog";
+import { PromoteToSliderDialog } from "@/components/seller/PromoteToSliderDialog";
 import { 
   Home, Car, Package, Hotel, BedDouble, Building, 
   Plus, Search, Heart, Eye, MapPin, Calendar,
   Phone, Mail, DollarSign, Clock, Star, Filter,
   ChevronLeft, ChevronRight, Lock, AlertCircle,
   Sparkles, Image as ImageIcon, X, Loader2, Upload,
-  Grid, List, SlidersHorizontal, ArrowUpDown
+  Grid, List, SlidersHorizontal, ArrowUpDown, Edit2, Megaphone
 } from "lucide-react";
 
 type MarketplaceCategory = 'property_sale' | 'vehicle_sale' | 'secondhand_items' | 'property_rent' | 'room_rent' | 'hotel_staycation';
@@ -113,6 +115,8 @@ const MarketplaceListings = () => {
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
   const [showInquiryDialog, setShowInquiryDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showPromoteDialog, setShowPromoteDialog] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -1506,25 +1510,58 @@ const MarketplaceListings = () => {
                 </Card>
 
                 {/* Actions */}
-                <div className="flex gap-2">
-                  <Button
-                    variant={favorites.has(selectedListing.id) ? 'default' : 'outline'}
-                    className="flex-1"
-                    onClick={(e) => toggleFavorite(selectedListing.id, e)}
-                  >
-                    <Heart className={`w-4 h-4 mr-2 ${favorites.has(selectedListing.id) ? 'fill-current' : ''}`} />
-                    {favorites.has(selectedListing.id) ? 'Saved' : 'Save'}
-                  </Button>
-                  <ProviderChat
-                    providerId={selectedListing.seller_id}
-                    providerName={selectedListing.seller_profile?.username || 'Seller'}
-                    providerAvatar={selectedListing.seller_profile?.avatar_url}
-                    providerType="marketplace"
-                    referenceId={selectedListing.id}
-                    referenceTitle={selectedListing.title}
-                    buttonVariant="default"
-                    buttonClassName="flex-1"
-                  />
+                <div className="flex flex-col gap-2">
+                  {/* Owner Actions */}
+                  {user && selectedListing.seller_id === user.id && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setShowDetailDialog(false);
+                          setShowEditDialog(true);
+                        }}
+                      >
+                        <Edit2 className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setShowDetailDialog(false);
+                          setShowPromoteDialog(true);
+                        }}
+                      >
+                        <Megaphone className="w-4 h-4 mr-2" />
+                        Promote
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Buyer Actions */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant={favorites.has(selectedListing.id) ? 'default' : 'outline'}
+                      className="flex-1"
+                      onClick={(e) => toggleFavorite(selectedListing.id, e)}
+                    >
+                      <Heart className={`w-4 h-4 mr-2 ${favorites.has(selectedListing.id) ? 'fill-current' : ''}`} />
+                      {favorites.has(selectedListing.id) ? 'Saved' : 'Save'}
+                    </Button>
+                    {user && selectedListing.seller_id !== user.id && (
+                      <ProviderChat
+                        providerId={selectedListing.seller_id}
+                        providerName={selectedListing.seller_profile?.username || 'Seller'}
+                        providerAvatar={selectedListing.seller_profile?.avatar_url}
+                        providerType="marketplace"
+                        referenceId={selectedListing.id}
+                        referenceTitle={selectedListing.title}
+                        buttonVariant="default"
+                        buttonClassName="flex-1"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </>
@@ -1585,6 +1622,27 @@ const MarketplaceListings = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Listing Dialog */}
+      {selectedListing && (
+        <EditListingDialog
+          listing={selectedListing}
+          open={showEditDialog}
+          onOpenChange={(open) => {
+            setShowEditDialog(open);
+            if (!open) fetchListings(0, true);
+          }}
+        />
+      )}
+
+      {/* Promote to Slider Dialog */}
+      <PromoteToSliderDialog
+        open={showPromoteDialog}
+        onOpenChange={setShowPromoteDialog}
+        linkType="listing"
+        linkEntityId={selectedListing?.id}
+        linkTitle={selectedListing?.title}
+      />
     </div>
   );
 };

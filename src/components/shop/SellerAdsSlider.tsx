@@ -1,56 +1,89 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronLeft, ChevronRight, Megaphone } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Megaphone } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
-interface SellerAd {
+interface SliderAd {
   id: string;
   title: string;
   description: string | null;
   image_url: string | null;
   video_url: string | null;
   link_url: string | null;
-  user_id: string;
+  seller_id: string;
+  placement_id: string;
 }
 
-export const SellerAdsSlider = () => {
-  const [ads, setAds] = useState<SellerAd[]>([]);
+interface SellerAdsSliderProps {
+  placementKey?: string;
+}
+
+export const SellerAdsSlider = ({ placementKey = 'shop_featured' }: SellerAdsSliderProps) => {
+  const [ads, setAds] = useState<SliderAd[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchActiveAds();
-  }, []);
+  }, [placementKey]);
 
   const fetchActiveAds = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_ads')
-        .select('id, title, description, image_url, video_url, link_url, user_id')
-        .eq('status', 'active')
+      // Get placement ID first
+      const { data: placement } = await supabase
+        .from('slider_ad_settings')
+        .select('id, max_ads_shown')
+        .eq('placement_key', placementKey)
         .eq('is_active', true)
-        .lte('start_date', new Date().toISOString())
-        .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`)
+        .maybeSingle();
+
+      if (!placement) {
+        setAds([]);
+        setLoading(false);
+        return;
+      }
+
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('seller_slider_ads')
+        .select('id, title, description, image_url, video_url, link_url, seller_id, placement_id')
+        .eq('placement_id', placement.id)
+        .eq('status', 'active')
+        .lte('start_date', now)
+        .gte('end_date', now)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(placement.max_ads_shown || 10);
 
       if (error) throw error;
       setAds(data || []);
     } catch (error) {
-      console.error('Error fetching seller ads:', error);
+      console.error('Error fetching slider ads:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAdClick = async (ad: SellerAd) => {
+  const handleAdClick = async (ad: SliderAd) => {
     try {
       // Track impression with click
-      await supabase.from('ad_impressions').insert({
+      await supabase.from('slider_ad_impressions').insert({
         ad_id: ad.id,
         clicked: true
       });
+      
+      // Increment click count directly
+      const { data: currentAd } = await supabase
+        .from('seller_slider_ads')
+        .select('clicks')
+        .eq('id', ad.id)
+        .single();
+      
+      if (currentAd) {
+        await supabase
+          .from('seller_slider_ads')
+          .update({ clicks: (currentAd.clicks || 0) + 1 })
+          .eq('id', ad.id);
+      }
     } catch (error) {
       console.error('Error tracking ad click:', error);
     }
@@ -59,6 +92,18 @@ export const SellerAdsSlider = () => {
       window.open(ad.link_url, '_blank');
     }
   };
+
+  // Track impressions on view
+  useEffect(() => {
+    if (ads.length > 0) {
+      ads.forEach(ad => {
+        supabase.from('slider_ad_impressions').insert({
+          ad_id: ad.id,
+          clicked: false
+        }).then(() => {});
+      });
+    }
+  }, [ads]);
 
   if (loading || ads.length === 0) return null;
 
