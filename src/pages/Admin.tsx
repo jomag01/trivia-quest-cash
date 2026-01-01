@@ -88,6 +88,7 @@ import { BarChart3, Gavel } from "lucide-react";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
 import SliderAdsManagement from "@/components/admin/SliderAdsManagement";
 import ListingFeaturesManagement from "@/components/admin/ListingFeaturesManagement";
+import AdRevenueSettings from "@/components/admin/AdRevenueSettings";
 
 interface MenuItem {
   id: string;
@@ -242,6 +243,7 @@ const Admin = () => {
         { id: "promotional-ads", label: "Promotional Ads", icon: Sparkles },
         { id: "user-ads", label: "User Ad Campaigns", icon: TrendingUp },
         { id: "slider-ads", label: "Slider Ads", icon: Megaphone },
+        { id: "ad-revenue-settings", label: "Ad Revenue & Pricing", icon: DollarSign },
         { id: "purchase-notifications", label: "Purchase Pop-ups", icon: Bell },
       ],
     },
@@ -821,6 +823,7 @@ const Admin = () => {
           {activeTab === "marketplace-settings" && <MarketplaceSettingsManagement />}
           {activeTab === "listing-features" && <ListingFeaturesManagement />}
           {activeTab === "slider-ads" && <SliderAdsManagement />}
+          {activeTab === "ad-revenue-settings" && <AdRevenueSettings />}
           {activeTab === "suppliers" && <SupplierManagement />}
           {activeTab === "retailer-commissions" && <RetailerCommissionSettings />}
           {activeTab === "system-reset" && <SystemResetManagement />}

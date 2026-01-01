@@ -49,6 +49,184 @@ export type Database = {
           },
         ]
       }
+      ad_interest_categories: {
+        Row: {
+          category_name: string
+          created_at: string | null
+          display_order: number | null
+          id: string
+          interests: string[]
+          is_active: boolean | null
+        }
+        Insert: {
+          category_name: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          interests?: string[]
+          is_active?: boolean | null
+        }
+        Update: {
+          category_name?: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          interests?: string[]
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
+      ad_pricing_tiers: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          duration_days: number
+          id: string
+          impressions_included: number
+          is_active: boolean | null
+          price_diamonds: number
+          priority_level: number | null
+          tier_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          duration_days?: number
+          id?: string
+          impressions_included: number
+          is_active?: boolean | null
+          price_diamonds: number
+          priority_level?: number | null
+          tier_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          duration_days?: number
+          id?: string
+          impressions_included?: number
+          is_active?: boolean | null
+          price_diamonds?: number
+          priority_level?: number | null
+          tier_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ad_revenue_distributions: {
+        Row: {
+          ad_id: string
+          admin_profit: number
+          created_at: string | null
+          id: string
+          leadership_distributed: number
+          processed_at: string | null
+          seller_id: string
+          stairstep_distributed: number
+          total_revenue: number
+          unilevel_distributed: number
+        }
+        Insert: {
+          ad_id: string
+          admin_profit: number
+          created_at?: string | null
+          id?: string
+          leadership_distributed?: number
+          processed_at?: string | null
+          seller_id: string
+          stairstep_distributed?: number
+          total_revenue: number
+          unilevel_distributed?: number
+        }
+        Update: {
+          ad_id?: string
+          admin_profit?: number
+          created_at?: string | null
+          id?: string
+          leadership_distributed?: number
+          processed_at?: string | null
+          seller_id?: string
+          stairstep_distributed?: number
+          total_revenue?: number
+          unilevel_distributed?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_revenue_distributions_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "seller_slider_ads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_revenue_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ad_target_locations: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          location_name: string
+          location_type: string
+          parent_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_name: string
+          location_type: string
+          parent_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_name?: string
+          location_type?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_target_locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ad_target_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ads: {
         Row: {
           created_at: string | null
@@ -3691,6 +3869,42 @@ export type Database = {
           },
         ]
       }
+      listing_duration_tiers: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          duration_days: number
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          price_diamonds: number
+          tier_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          duration_days: number
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          price_diamonds: number
+          tier_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          duration_days?: number
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          price_diamonds?: number
+          tier_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       listing_feature_definitions: {
         Row: {
           created_at: string | null
@@ -4086,6 +4300,7 @@ export type Database = {
           created_at: string | null
           currency: string | null
           description: string | null
+          duration_tier_id: string | null
           expires_at: string | null
           featured_until: string | null
           fuel_type: string | null
@@ -4139,6 +4354,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           description?: string | null
+          duration_tier_id?: string | null
           expires_at?: string | null
           featured_until?: string | null
           fuel_type?: string | null
@@ -4192,6 +4408,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           description?: string | null
+          duration_tier_id?: string | null
           expires_at?: string | null
           featured_until?: string | null
           fuel_type?: string | null
@@ -4224,7 +4441,15 @@ export type Database = {
           year?: number | null
           year_built?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_listings_duration_tier_id_fkey"
+            columns: ["duration_tier_id"]
+            isOneToOne: false
+            referencedRelation: "listing_duration_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       marketplace_settings: {
         Row: {
@@ -6547,6 +6772,108 @@ export type Database = {
           },
         ]
       }
+      seller_custom_ads: {
+        Row: {
+          admin_notes: string | null
+          clicks: number | null
+          created_at: string | null
+          current_impressions: number | null
+          description: string | null
+          diamonds_paid: number
+          end_date: string | null
+          id: string
+          image_url: string | null
+          link_entity_id: string | null
+          link_type: string
+          link_url: string | null
+          max_impressions: number | null
+          placement_id: string | null
+          pricing_tier_id: string | null
+          seller_id: string
+          start_date: string | null
+          status: string | null
+          target_age_max: number | null
+          target_age_min: number | null
+          target_gender: string | null
+          target_interests: string[] | null
+          target_locations: string[] | null
+          title: string
+          updated_at: string | null
+          video_url: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          clicks?: number | null
+          created_at?: string | null
+          current_impressions?: number | null
+          description?: string | null
+          diamonds_paid?: number
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          link_entity_id?: string | null
+          link_type?: string
+          link_url?: string | null
+          max_impressions?: number | null
+          placement_id?: string | null
+          pricing_tier_id?: string | null
+          seller_id: string
+          start_date?: string | null
+          status?: string | null
+          target_age_max?: number | null
+          target_age_min?: number | null
+          target_gender?: string | null
+          target_interests?: string[] | null
+          target_locations?: string[] | null
+          title: string
+          updated_at?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          clicks?: number | null
+          created_at?: string | null
+          current_impressions?: number | null
+          description?: string | null
+          diamonds_paid?: number
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          link_entity_id?: string | null
+          link_type?: string
+          link_url?: string | null
+          max_impressions?: number | null
+          placement_id?: string | null
+          pricing_tier_id?: string | null
+          seller_id?: string
+          start_date?: string | null
+          status?: string | null
+          target_age_max?: number | null
+          target_age_min?: number | null
+          target_gender?: string | null
+          target_interests?: string[] | null
+          target_locations?: string[] | null
+          title?: string
+          updated_at?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_custom_ads_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "slider_ad_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_custom_ads_pricing_tier_id_fkey"
+            columns: ["pricing_tier_id"]
+            isOneToOne: false
+            referencedRelation: "ad_pricing_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_slider_ads: {
         Row: {
           admin_notes: string | null
@@ -6561,10 +6888,18 @@ export type Database = {
           link_entity_id: string | null
           link_type: string | null
           link_url: string | null
+          max_impressions: number | null
           placement_id: string
+          pricing_tier_id: string | null
+          revenue_distributed: boolean | null
           seller_id: string
           start_date: string
           status: string | null
+          target_age_max: number | null
+          target_age_min: number | null
+          target_gender: string | null
+          target_interests: string[] | null
+          target_locations: string[] | null
           title: string
           updated_at: string | null
           video_url: string | null
@@ -6582,10 +6917,18 @@ export type Database = {
           link_entity_id?: string | null
           link_type?: string | null
           link_url?: string | null
+          max_impressions?: number | null
           placement_id: string
+          pricing_tier_id?: string | null
+          revenue_distributed?: boolean | null
           seller_id: string
           start_date: string
           status?: string | null
+          target_age_max?: number | null
+          target_age_min?: number | null
+          target_gender?: string | null
+          target_interests?: string[] | null
+          target_locations?: string[] | null
           title: string
           updated_at?: string | null
           video_url?: string | null
@@ -6603,10 +6946,18 @@ export type Database = {
           link_entity_id?: string | null
           link_type?: string | null
           link_url?: string | null
+          max_impressions?: number | null
           placement_id?: string
+          pricing_tier_id?: string | null
+          revenue_distributed?: boolean | null
           seller_id?: string
           start_date?: string
           status?: string | null
+          target_age_max?: number | null
+          target_age_min?: number | null
+          target_gender?: string | null
+          target_interests?: string[] | null
+          target_locations?: string[] | null
           title?: string
           updated_at?: string | null
           video_url?: string | null
@@ -6617,6 +6968,13 @@ export type Database = {
             columns: ["placement_id"]
             isOneToOne: false
             referencedRelation: "slider_ad_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_slider_ads_pricing_tier_id_fkey"
+            columns: ["pricing_tier_id"]
+            isOneToOne: false
+            referencedRelation: "ad_pricing_tiers"
             referencedColumns: ["id"]
           },
         ]

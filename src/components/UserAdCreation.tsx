@@ -9,13 +9,14 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Eye, MousePointerClick, ShoppingCart, DollarSign, MapPin, Users, Target, Smartphone, Globe, ChevronRight } from "lucide-react";
+import { Plus, Eye, MousePointerClick, ShoppingCart, DollarSign, MapPin, Users, Target, Smartphone, Globe, ChevronRight, Image } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CreateCustomAdDialog } from "@/components/seller/CreateCustomAdDialog";
 
 interface UserAd {
   id: string;
