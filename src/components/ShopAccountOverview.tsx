@@ -6,7 +6,7 @@ const ShopAccountOverview = () => {
   
   const quickLinks = [
     { icon: Package, label: "Orders", href: "/dashboard?tab=orders", color: "bg-blue-600 text-white" },
-    { icon: Users, label: "Network", href: "/dashboard?tab=network", color: "bg-purple-600 text-white" },
+    { icon: Users, label: "Affiliates", href: "/dashboard?tab=network", color: "bg-purple-600 text-white" },
     { icon: Calculator, label: "Calculator", href: "/dashboard?tab=calculator", color: "bg-green-600 text-white" },
     { icon: Award, label: "Leadership", href: "/dashboard?tab=leadership", color: "bg-amber-500 text-white" },
     { icon: ShoppingCart, label: "Cart", href: "/dashboard?tab=cart", color: "bg-red-600 text-white" },
