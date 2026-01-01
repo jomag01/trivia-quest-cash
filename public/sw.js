@@ -1,7 +1,7 @@
 // Ultra-optimized Service Worker for 100M+ concurrent users
 // Features: Aggressive caching, stale-while-revalidate, offline support, request coalescing
 
-const CACHE_VERSION = 'triviabees-v4';
+const CACHE_VERSION = 'triviabees-v5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -58,9 +58,10 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET and non-http(s) requests
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) return;
 
-  // Strategy 1: Cache-first for static assets (JS, CSS, fonts)
+  // Strategy 1: Stale-while-revalidate for static assets (JS, CSS, fonts)
+  // This prevents clients from getting stuck on an old bundle after deployments.
   if (isStaticAsset(url)) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    event.respondWith(staleWhileRevalidateCoalesced(request, STATIC_CACHE));
     return;
   }
 

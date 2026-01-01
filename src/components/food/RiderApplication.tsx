@@ -95,15 +95,22 @@ export const RiderApplication = () => {
         throw new Error("Please sign in to apply as a rider.");
       }
 
-      // Step 1: Insert record IMMEDIATATELY (no file uploads blocking)
+      // Step 1: Create/refresh record IMMEDIATELY (no file uploads blocking)
+      // Use upsert to avoid failures from the unique(user_id) constraint.
       const { data, error } = await (supabase as any)
         .from("delivery_riders")
-        .insert({
-          user_id: user.id,
-          vehicle_type: formData.vehicle_type,
-          license_number: formData.license_number || null,
-          status: "pending",
-        })
+        .upsert(
+          {
+            user_id: user.id,
+            vehicle_type: formData.vehicle_type,
+            license_number: formData.license_number || null,
+            status: "pending",
+            // if re-applying, reset admin review fields
+            admin_notes: null,
+            approved_at: null,
+          },
+          { onConflict: "user_id" }
+        )
         .select("id")
         .single();
 
