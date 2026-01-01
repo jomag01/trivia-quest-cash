@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings, Music, Globe, BarChart3, Share2, TrendingUp } from 'lucide-react';
+import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings, Music, Globe, BarChart3, Share2, TrendingUp, FileText } from 'lucide-react';
 import AICostCalculator from './AICostCalculator';
 import AIProviderStatus from './AIProviderStatus';
 interface CreditTier {
@@ -37,6 +37,8 @@ const AISettingsManagement = () => {
   const [socialMediaCreditCost, setSocialMediaCreditCost] = useState('10');
   const [smmCommissionPercent, setSmmCommissionPercent] = useState('15');
   const [smmAdsCommissionPercent, setSmmAdsCommissionPercent] = useState('10');
+  const [blogContentCreditCost, setBlogContentCreditCost] = useState('15');
+  const [marketAnalysisCreditCost, setMarketAnalysisCreditCost] = useState('20');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -121,6 +123,10 @@ const AISettingsManagement = () => {
           setSmmCommissionPercent(setting.value || '15');
         } else if (setting.key === 'ai_smm_ads_commission_percent') {
           setSmmAdsCommissionPercent(setting.value || '10');
+        } else if (setting.key === 'ai_blog_content_credit_cost') {
+          setBlogContentCreditCost(setting.value || '15');
+        } else if (setting.key === 'ai_market_analysis_credit_cost') {
+          setMarketAnalysisCreditCost(setting.value || '20');
         }
 
         // Parse tier settings
@@ -179,6 +185,8 @@ const AISettingsManagement = () => {
         { key: 'ai_social_media_credit_cost', value: socialMediaCreditCost },
         { key: 'ai_smm_commission_percent', value: smmCommissionPercent },
         { key: 'ai_smm_ads_commission_percent', value: smmAdsCommissionPercent },
+        { key: 'ai_blog_content_credit_cost', value: blogContentCreditCost },
+        { key: 'ai_market_analysis_credit_cost', value: marketAnalysisCreditCost },
       ];
 
       // Add all tier settings dynamically
@@ -504,6 +512,36 @@ const AISettingsManagement = () => {
                 />
                 <p className="text-xs text-muted-foreground">
                   {socialMediaCreditCost} credits per AI-generated post/action
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <FileText className="h-3 w-3 text-indigo-500" />
+                  Blog Content Maker (per blog)
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={blogContentCreditCost}
+                  onChange={(e) => setBlogContentCreditCost(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {blogContentCreditCost} credits per blog content generation
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <TrendingUp className="h-3 w-3 text-emerald-500" />
+                  Market Analysis (per analysis)
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={marketAnalysisCreditCost}
+                  onChange={(e) => setMarketAnalysisCreditCost(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {marketAnalysisCreditCost} credits per market analysis
                 </p>
               </div>
             </div>
