@@ -149,54 +149,93 @@ export default function SliderAdsManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Header with gradient */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 p-6 text-white">
+        <div className="absolute inset-0 bg-black/10" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+              <Megaphone className="w-6 h-6" />
+            </div>
+            <h2 className="text-2xl font-bold">Slider Ads Management</h2>
+          </div>
+          <p className="text-white/80 text-sm">Configure ad placements and review seller submissions</p>
+        </div>
+      </div>
+
       <Tabs defaultValue="settings">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="settings">
+        <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 p-1 rounded-xl">
+          <TabsTrigger 
+            value="settings" 
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg transition-all"
+          >
             <Settings className="w-4 h-4 mr-2" />
             Placements
           </TabsTrigger>
-          <TabsTrigger value="ads">
+          <TabsTrigger 
+            value="ads"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-orange-500 data-[state=active]:text-white rounded-lg transition-all"
+          >
             <Megaphone className="w-4 h-4 mr-2" />
-            Seller Ads ({pendingAds.filter(a => a.status === 'pending').length} pending)
+            Seller Ads
+            {pendingAds.filter(a => a.status === 'pending').length > 0 && (
+              <Badge className="ml-2 bg-red-500 text-white animate-pulse">
+                {pendingAds.filter(a => a.status === 'pending').length}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Slider Ad Placements</CardTitle>
+        <TabsContent value="settings" className="space-y-4 mt-4">
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-white dark:from-purple-900/20 dark:to-background">
+            <CardHeader className="border-b border-purple-100 dark:border-purple-800/30">
+              <CardTitle className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                <div className="p-1.5 rounded-md bg-purple-500/10">
+                  <Settings className="w-4 h-4 text-purple-500" />
+                </div>
+                Slider Ad Placements
+              </CardTitle>
               <CardDescription>Configure where seller ads can appear and their pricing</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               {loadingSettings ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {settings.map((setting) => (
-                    <Card key={setting.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium">{setting.placement_label}</h4>
-                            <Badge variant={setting.is_active ? 'default' : 'outline'}>
-                              {setting.is_active ? 'Active' : 'Inactive'}
-                            </Badge>
+                  {settings.map((setting, index) => {
+                    const colors = [
+                      'from-purple-500/10 to-purple-500/5 border-purple-200 dark:border-purple-800/50',
+                      'from-pink-500/10 to-pink-500/5 border-pink-200 dark:border-pink-800/50',
+                      'from-orange-500/10 to-orange-500/5 border-orange-200 dark:border-orange-800/50',
+                      'from-blue-500/10 to-blue-500/5 border-blue-200 dark:border-blue-800/50',
+                    ];
+                    const colorClass = colors[index % colors.length];
+                    return (
+                      <Card key={setting.id} className={`p-4 bg-gradient-to-r ${colorClass} border shadow-sm hover:shadow-md transition-shadow`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold">{setting.placement_label}</h4>
+                              <Badge variant={setting.is_active ? 'default' : 'outline'} className={setting.is_active ? 'bg-green-500' : ''}>
+                                {setting.is_active ? '✓ Active' : 'Inactive'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{setting.description}</p>
+                            <div className="flex flex-wrap gap-3 mt-2 text-sm">
+                              <span className="px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">💎 {setting.fee_per_day}/day</span>
+                              <span className="px-2 py-1 rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300">📅 {setting.min_duration_days}-{setting.max_duration_days} days</span>
+                              <span className="px-2 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">📊 Max {setting.max_ads_shown} ads</span>
+                            </div>
                           </div>
-                          <p className="text-sm text-muted-foreground">{setting.description}</p>
-                          <div className="flex gap-4 mt-2 text-sm">
-                            <span>💎 {setting.fee_per_day}/day</span>
-                            <span>📅 {setting.min_duration_days}-{setting.max_duration_days} days</span>
-                            <span>📊 Max {setting.max_ads_shown} ads</span>
-                          </div>
+                          <Button variant="outline" size="sm" onClick={() => setEditingSetting(setting)} className="bg-white/50 hover:bg-white dark:bg-white/10 dark:hover:bg-white/20">
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => setEditingSetting(setting)}>
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
