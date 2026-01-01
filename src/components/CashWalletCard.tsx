@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Wallet, ArrowUpCircle, ArrowDownCircle, History, Shield, Loader2 } from 'lucide-react';
+import { Wallet, ArrowUpCircle, ArrowDownCircle, History, Shield, Loader2, Coins, Banknote } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import CashDepositDialog from './CashDepositDialog';
 import CashTransactionHistory from './CashTransactionHistory';
 import CashConversionDialog from './CashConversionDialog';
 import CashPinSetupDialog from './CashPinSetupDialog';
+import CashWithdrawDialog from './CashWithdrawDialog';
+import ConsolidateEarningsDialog from './ConsolidateEarningsDialog';
 
 interface CashWalletCardProps {
   userId: string;
@@ -19,6 +21,8 @@ export default function CashWalletCard({ userId }: CashWalletCardProps) {
   const [showHistory, setShowHistory] = useState(false);
   const [showConvert, setShowConvert] = useState(false);
   const [showPinSetup, setShowPinSetup] = useState(false);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [showConsolidate, setShowConsolidate] = useState(false);
 
   const { data: wallet, isLoading, refetch } = useQuery({
     queryKey: ['cash-wallet', userId],
@@ -64,6 +68,7 @@ export default function CashWalletCard({ userId }: CashWalletCardProps) {
 
   const hasPin = wallet?.pin_hash;
   const isLocked = wallet?.locked_until && new Date(wallet.locked_until) > new Date();
+  const currentBalance = Number(wallet?.balance || 0);
 
   if (isLoading) {
     return (
@@ -106,7 +111,7 @@ export default function CashWalletCard({ userId }: CashWalletCardProps) {
           <div className="text-center py-2">
             <p className="text-sm text-white/70">Available Balance</p>
             <p className="text-4xl font-bold tracking-tight">
-              ₱{Number(wallet?.balance || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+              ₱{currentBalance.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
             </p>
             {pendingDeposits.length > 0 && (
               <p className="text-xs text-yellow-200 mt-1">
@@ -115,6 +120,7 @@ export default function CashWalletCard({ userId }: CashWalletCardProps) {
             )}
           </div>
           
+          {/* Main Actions */}
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="secondary"
@@ -127,8 +133,29 @@ export default function CashWalletCard({ userId }: CashWalletCardProps) {
             <Button
               variant="secondary"
               className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm"
+              onClick={() => setShowWithdraw(true)}
+              disabled={currentBalance <= 0}
+            >
+              <Banknote className="w-4 h-4 mr-1" />
+              Withdraw
+            </Button>
+          </div>
+
+          {/* Secondary Actions */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="secondary"
+              className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm"
+              onClick={() => setShowConsolidate(true)}
+            >
+              <Coins className="w-4 h-4 mr-1" />
+              Consolidate
+            </Button>
+            <Button
+              variant="secondary"
+              className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm"
               onClick={() => setShowConvert(true)}
-              disabled={!wallet?.balance || wallet.balance <= 0}
+              disabled={currentBalance <= 0}
             >
               <ArrowDownCircle className="w-4 h-4 mr-1" />
               Convert
@@ -175,7 +202,7 @@ export default function CashWalletCard({ userId }: CashWalletCardProps) {
         open={showConvert}
         onOpenChange={setShowConvert}
         userId={userId}
-        currentBalance={Number(wallet?.balance || 0)}
+        currentBalance={currentBalance}
         hasPin={!!hasPin}
         onSuccess={() => refetch()}
       />
@@ -185,6 +212,21 @@ export default function CashWalletCard({ userId }: CashWalletCardProps) {
         onOpenChange={setShowPinSetup}
         userId={userId}
         hasExistingPin={!!hasPin}
+        onSuccess={() => refetch()}
+      />
+
+      <CashWithdrawDialog
+        open={showWithdraw}
+        onOpenChange={setShowWithdraw}
+        userId={userId}
+        currentBalance={currentBalance}
+        onSuccess={() => refetch()}
+      />
+
+      <ConsolidateEarningsDialog
+        open={showConsolidate}
+        onOpenChange={setShowConsolidate}
+        userId={userId}
         onSuccess={() => refetch()}
       />
     </>
