@@ -80,11 +80,13 @@ export const RiderManagement = () => {
 
       const merged = base.map((r) => ({
         ...r,
-        status: (r.status ?? "").toString().trim().toLowerCase(),
+        // Normalize status - handle any casing or whitespace
+        status: (r.status ?? "pending").toString().trim().toLowerCase(),
         profiles: profilesById.get(r.user_id) ?? { full_name: null, email: null },
       }));
 
-      console.log("Riders loaded:", merged.length, merged);
+      console.log("Riders loaded (raw statuses):", base.map(r => ({ id: r.id, status: r.status })));
+      console.log("Riders loaded (normalized):", merged.map(r => ({ id: r.id, status: r.status })));
       return merged;
     },
   });
