@@ -3996,6 +3996,8 @@ export type Database = {
           category: Database["public"]["Enums"]["marketplace_category"]
           city: string | null
           condition: string | null
+          contact_email: string | null
+          contact_phone: string | null
           country: string | null
           created_at: string | null
           currency: string | null
@@ -4007,6 +4009,8 @@ export type Database = {
           images: string[] | null
           inquiries_count: number | null
           is_featured: boolean | null
+          listing_fee_paid: boolean | null
+          listing_fee_paid_at: string | null
           location: string | null
           max_guests: number | null
           mileage: number | null
@@ -4015,6 +4019,7 @@ export type Database = {
           price: number
           price_type: string | null
           province: string | null
+          referrer_id: string | null
           seller_id: string
           specifications: Json | null
           status:
@@ -4039,6 +4044,8 @@ export type Database = {
           category: Database["public"]["Enums"]["marketplace_category"]
           city?: string | null
           condition?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           country?: string | null
           created_at?: string | null
           currency?: string | null
@@ -4050,6 +4057,8 @@ export type Database = {
           images?: string[] | null
           inquiries_count?: number | null
           is_featured?: boolean | null
+          listing_fee_paid?: boolean | null
+          listing_fee_paid_at?: string | null
           location?: string | null
           max_guests?: number | null
           mileage?: number | null
@@ -4058,6 +4067,7 @@ export type Database = {
           price: number
           price_type?: string | null
           province?: string | null
+          referrer_id?: string | null
           seller_id: string
           specifications?: Json | null
           status?:
@@ -4082,6 +4092,8 @@ export type Database = {
           category?: Database["public"]["Enums"]["marketplace_category"]
           city?: string | null
           condition?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           country?: string | null
           created_at?: string | null
           currency?: string | null
@@ -4093,6 +4105,8 @@ export type Database = {
           images?: string[] | null
           inquiries_count?: number | null
           is_featured?: boolean | null
+          listing_fee_paid?: boolean | null
+          listing_fee_paid_at?: string | null
           location?: string | null
           max_guests?: number | null
           mileage?: number | null
@@ -4101,6 +4115,7 @@ export type Database = {
           price?: number
           price_type?: string | null
           province?: string | null
+          referrer_id?: string | null
           seller_id?: string
           specifications?: Json | null
           status?:
@@ -4113,6 +4128,30 @@ export type Database = {
           views_count?: number | null
           year?: number | null
           year_built?: number | null
+        }
+        Relationships: []
+      }
+      marketplace_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          setting_key: string
+          setting_value: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }

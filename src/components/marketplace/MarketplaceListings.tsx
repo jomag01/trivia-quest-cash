@@ -58,6 +58,9 @@ interface MarketplaceListing {
   min_stay_nights: number | null;
   max_guests: number | null;
   created_at: string;
+  contact_email: string | null;
+  contact_phone: string | null;
+  listing_fee_paid: boolean;
   seller_profile?: {
     username: string;
     avatar_url: string | null;
@@ -141,6 +144,8 @@ const MarketplaceListings = () => {
     max_guests: '',
     amenities: [] as string[],
     images: [] as string[],
+    contact_email: '',
+    contact_phone: '',
   });
 
   // Inquiry form state
@@ -388,7 +393,10 @@ const MarketplaceListings = () => {
         images: newListing.images,
         thumbnail_url: newListing.images[0] || null,
         amenities: newListing.amenities,
-        status: 'active'
+        status: 'active',
+        contact_email: newListing.contact_email || null,
+        contact_phone: newListing.contact_phone || null,
+        listing_fee_paid: false,
       };
 
       // Add category-specific fields
@@ -494,6 +502,8 @@ const MarketplaceListings = () => {
       max_guests: '',
       amenities: [],
       images: [],
+      contact_email: '',
+      contact_phone: '',
     });
   };
 
@@ -606,6 +616,9 @@ const MarketplaceListings = () => {
         images: data.images || [],
         amenities: data.amenities || [],
         specifications: data.specifications || {},
+        contact_email: data.contact_email || null,
+        contact_phone: data.contact_phone || null,
+        listing_fee_paid: data.listing_fee_paid || false,
         seller_profile: profile || undefined
       } as MarketplaceListing;
     }
@@ -1174,7 +1187,37 @@ const MarketplaceListings = () => {
               </div>
             )}
 
-            {/* Images */}
+            {/* Contact Details */}
+            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-600" />
+                Contact Details (hidden until listing fee paid)
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Your contact info will be hidden from buyers until you pay the listing fee.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={newListing.contact_email}
+                    onChange={e => setNewListing(prev => ({ ...prev, contact_email: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Phone</Label>
+                  <Input
+                    type="tel"
+                    placeholder="+63 9XX XXX XXXX"
+                    value={newListing.contact_phone}
+                    onChange={e => setNewListing(prev => ({ ...prev, contact_phone: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
               <Label>Images</Label>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -1363,9 +1406,9 @@ const MarketplaceListings = () => {
                   </div>
                 )}
 
-                {/* Seller Info */}
-                {selectedListing.seller_profile && (
-                  <Card className="p-4">
+                {/* Seller Info & Contact */}
+                <Card className="p-4 space-y-3">
+                  {selectedListing.seller_profile && (
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
                         {selectedListing.seller_profile.avatar_url ? (
@@ -1381,8 +1424,49 @@ const MarketplaceListings = () => {
                         <p className="text-sm text-muted-foreground">Seller</p>
                       </div>
                     </div>
-                  </Card>
-                )}
+                  )}
+
+                  {/* Contact Details - Hidden until listing fee is paid */}
+                  {selectedListing.listing_fee_paid ? (
+                    <div className="pt-3 border-t space-y-2">
+                      <h4 className="font-semibold text-sm flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        Contact Information
+                      </h4>
+                      {selectedListing.contact_email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <a href={`mailto:${selectedListing.contact_email}`} className="text-primary hover:underline">
+                            {selectedListing.contact_email}
+                          </a>
+                        </div>
+                      )}
+                      {selectedListing.contact_phone && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <a href={`tel:${selectedListing.contact_phone}`} className="text-primary hover:underline">
+                            {selectedListing.contact_phone}
+                          </a>
+                        </div>
+                      )}
+                      {!selectedListing.contact_email && !selectedListing.contact_phone && (
+                        <p className="text-sm text-muted-foreground">No contact details provided</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="pt-3 border-t">
+                      <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <Lock className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm">
+                          <p className="font-medium text-amber-800 dark:text-amber-200">Contact details hidden</p>
+                          <p className="text-amber-700 dark:text-amber-300">
+                            The seller has not paid the listing fee yet. Contact details (email & phone) will be visible once the fee is paid.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </Card>
 
                 {/* Actions */}
                 <div className="flex gap-2">
