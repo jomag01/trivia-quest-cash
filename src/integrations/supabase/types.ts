@@ -192,6 +192,107 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_spend_requests: {
+        Row: {
+          ad_description: string | null
+          ad_title: string
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          budget_type: string
+          created_at: string | null
+          custom_daily_budget: number | null
+          custom_duration_days: number | null
+          id: string
+          image_url: string | null
+          link_type: string | null
+          link_url: string | null
+          payment_method: string
+          payment_proof_url: string | null
+          payment_reference: string | null
+          placement_id: string | null
+          pricing_tier_id: string | null
+          rejected_at: string | null
+          seller_id: string
+          status: string | null
+          target_age_max: number | null
+          target_age_min: number | null
+          target_gender: string | null
+          target_interests: string[] | null
+          target_locations: string[] | null
+          total_budget: number
+          updated_at: string | null
+        }
+        Insert: {
+          ad_description?: string | null
+          ad_title: string
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_type?: string
+          created_at?: string | null
+          custom_daily_budget?: number | null
+          custom_duration_days?: number | null
+          id?: string
+          image_url?: string | null
+          link_type?: string | null
+          link_url?: string | null
+          payment_method: string
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          placement_id?: string | null
+          pricing_tier_id?: string | null
+          rejected_at?: string | null
+          seller_id: string
+          status?: string | null
+          target_age_max?: number | null
+          target_age_min?: number | null
+          target_gender?: string | null
+          target_interests?: string[] | null
+          target_locations?: string[] | null
+          total_budget: number
+          updated_at?: string | null
+        }
+        Update: {
+          ad_description?: string | null
+          ad_title?: string
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_type?: string
+          created_at?: string | null
+          custom_daily_budget?: number | null
+          custom_duration_days?: number | null
+          id?: string
+          image_url?: string | null
+          link_type?: string | null
+          link_url?: string | null
+          payment_method?: string
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          placement_id?: string | null
+          pricing_tier_id?: string | null
+          rejected_at?: string | null
+          seller_id?: string
+          status?: string | null
+          target_age_max?: number | null
+          target_age_min?: number | null
+          target_gender?: string | null
+          target_interests?: string[] | null
+          target_locations?: string[] | null
+          total_budget?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_spend_requests_pricing_tier_id_fkey"
+            columns: ["pricing_tier_id"]
+            isOneToOne: false
+            referencedRelation: "ad_pricing_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_target_locations: {
         Row: {
           created_at: string | null
@@ -6775,9 +6876,12 @@ export type Database = {
       seller_custom_ads: {
         Row: {
           admin_notes: string | null
+          budget_type: string | null
           clicks: number | null
           created_at: string | null
           current_impressions: number | null
+          custom_daily_budget: number | null
+          custom_duration_days: number | null
           description: string | null
           diamonds_paid: number
           end_date: string | null
@@ -6787,8 +6891,10 @@ export type Database = {
           link_type: string
           link_url: string | null
           max_impressions: number | null
+          payment_method: string | null
           placement_id: string | null
           pricing_tier_id: string | null
+          request_id: string | null
           seller_id: string
           start_date: string | null
           status: string | null
@@ -6798,14 +6904,18 @@ export type Database = {
           target_interests: string[] | null
           target_locations: string[] | null
           title: string
+          total_budget: number | null
           updated_at: string | null
           video_url: string | null
         }
         Insert: {
           admin_notes?: string | null
+          budget_type?: string | null
           clicks?: number | null
           created_at?: string | null
           current_impressions?: number | null
+          custom_daily_budget?: number | null
+          custom_duration_days?: number | null
           description?: string | null
           diamonds_paid?: number
           end_date?: string | null
@@ -6815,8 +6925,10 @@ export type Database = {
           link_type?: string
           link_url?: string | null
           max_impressions?: number | null
+          payment_method?: string | null
           placement_id?: string | null
           pricing_tier_id?: string | null
+          request_id?: string | null
           seller_id: string
           start_date?: string | null
           status?: string | null
@@ -6826,14 +6938,18 @@ export type Database = {
           target_interests?: string[] | null
           target_locations?: string[] | null
           title: string
+          total_budget?: number | null
           updated_at?: string | null
           video_url?: string | null
         }
         Update: {
           admin_notes?: string | null
+          budget_type?: string | null
           clicks?: number | null
           created_at?: string | null
           current_impressions?: number | null
+          custom_daily_budget?: number | null
+          custom_duration_days?: number | null
           description?: string | null
           diamonds_paid?: number
           end_date?: string | null
@@ -6843,8 +6959,10 @@ export type Database = {
           link_type?: string
           link_url?: string | null
           max_impressions?: number | null
+          payment_method?: string | null
           placement_id?: string | null
           pricing_tier_id?: string | null
+          request_id?: string | null
           seller_id?: string
           start_date?: string | null
           status?: string | null
@@ -6854,6 +6972,7 @@ export type Database = {
           target_interests?: string[] | null
           target_locations?: string[] | null
           title?: string
+          total_budget?: number | null
           updated_at?: string | null
           video_url?: string | null
         }
@@ -6870,6 +6989,13 @@ export type Database = {
             columns: ["pricing_tier_id"]
             isOneToOne: false
             referencedRelation: "ad_pricing_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_custom_ads_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "ad_spend_requests"
             referencedColumns: ["id"]
           },
         ]

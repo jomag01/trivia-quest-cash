@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building, Truck, Star, Gavel } from "lucide-react";
+import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building, Truck, Star, Gavel, Users } from "lucide-react";
 import SupplierApplication from "@/components/shop/SupplierApplication";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -514,9 +514,9 @@ const Shop = () => {
               <Store className="w-3.5 h-3.5" />
               Seller
             </TabsTrigger>
-            <TabsTrigger value="supplier" className="text-xs gap-1">
-              <Truck className="w-3.5 h-3.5" />
-              Supplier
+            <TabsTrigger value="affiliates" className="text-xs gap-1">
+              <Users className="w-3.5 h-3.5" />
+              Affiliates
             </TabsTrigger>
             <TabsTrigger value="cart" className="text-xs gap-1" onClick={() => navigate('/shop?tab=cart')}>
               <ShoppingCart className="w-3.5 h-3.5" />
