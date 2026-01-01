@@ -118,21 +118,31 @@ export default function CashConversionDialog({
         throw new Error('Failed to deduct cash balance');
       }
 
-      // Add to appropriate wallet
+      // Add to appropriate wallet using raw query to bypass type issues
       if (conversionType === 'diamonds') {
-        const { data: profile } = await supabase.from('profiles').select('treasure_wallet').eq('id', userId).single();
-        if (profile) {
-          await supabase.from('profiles').update({ 
-            treasure_wallet: ((profile as any).treasure_wallet || 0) + convertedAmount 
-          }).eq('id', userId);
-        }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('treasure_wallet')
+          .eq('id', userId)
+          .single();
+        
+        const currentBalance = (profile as any)?.treasure_wallet || 0;
+        await supabase
+          .from('profiles')
+          .update({ treasure_wallet: currentBalance + convertedAmount } as any)
+          .eq('id', userId);
       } else {
-        const { data: profile } = await supabase.from('profiles').select('credits').eq('id', userId).single();
-        if (profile) {
-          await supabase.from('profiles').update({ 
-            credits: ((profile as any).credits || 0) + convertedAmount 
-          }).eq('id', userId);
-        }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('credits')
+          .eq('id', userId)
+          .single();
+        
+        const currentCredits = (profile as any)?.credits || 0;
+        await supabase
+          .from('profiles')
+          .update({ credits: currentCredits + convertedAmount } as any)
+          .eq('id', userId);
       }
 
       return { cashAmount, convertedAmount };
