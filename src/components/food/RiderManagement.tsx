@@ -171,12 +171,23 @@ export const RiderManagement = () => {
     },
   });
 
-  const filteredRiders = riders?.filter(
-    (r) =>
-      r.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.profiles?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.vehicle_type?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredRiders = riders?.filter((r) => {
+    if (!normalizedQuery) return true;
+
+    const fullName = (r.profiles?.full_name ?? "").toLowerCase();
+    const email = (r.profiles?.email ?? "").toLowerCase();
+    const vehicle = (r.vehicle_type ?? "").toLowerCase();
+    const license = (r.license_number ?? "").toLowerCase();
+
+    return (
+      fullName.includes(normalizedQuery) ||
+      email.includes(normalizedQuery) ||
+      vehicle.includes(normalizedQuery) ||
+      license.includes(normalizedQuery)
+    );
+  });
 
   const statusColors: Record<string, string> = {
     pending: "bg-yellow-500",
