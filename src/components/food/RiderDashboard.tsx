@@ -98,6 +98,11 @@ export const RiderDashboard = () => {
     enabled: !!riderProfile?.id,
   });
 
+  // Check if rider has any active (non-delivered, non-cancelled) deliveries
+  const hasActiveDelivery = (myAssignments || []).some(
+    (a: DeliveryAssignment) => !["delivered", "cancelled"].includes(a.status)
+  );
+
   const {
     data: availableOrders,
     isLoading: loadingAvailableOrders,
@@ -117,8 +122,8 @@ export const RiderDashboard = () => {
       if (error) throw error;
       return data;
     },
-    // Only fetch when the rider is actually eligible to receive orders
-    enabled: !!riderProfile?.id && isApprovedRider && isRiderAvailable,
+    // Only fetch when the rider is actually eligible to receive orders AND has no active delivery
+    enabled: !!riderProfile?.id && isApprovedRider && isRiderAvailable && !hasActiveDelivery,
     refetchInterval: 10000,
   });
 
@@ -314,6 +319,13 @@ export const RiderDashboard = () => {
             <Alert>
               <AlertDescription className="text-xs">Turn on availability to see orders.</AlertDescription>
             </Alert>
+          ) : hasActiveDelivery ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                Complete your current delivery before accepting new orders.
+              </AlertDescription>
+            </Alert>
           ) : availableOrders?.length === 0 ? (
             <Card>
               <CardContent className="py-6 text-center">
@@ -345,7 +357,7 @@ export const RiderDashboard = () => {
                     size="sm"
                     className="w-full text-xs h-8"
                     onClick={() => acceptOrderMutation.mutate(order)}
-                    disabled={acceptOrderMutation.isPending}
+                    disabled={acceptOrderMutation.isPending || hasActiveDelivery}
                   >
                     {acceptOrderMutation.isPending ? "Accepting..." : "Accept Order"}
                   </Button>
@@ -366,39 +378,88 @@ export const RiderDashboard = () => {
             activeDeliveries.map((delivery) => (
               <div key={delivery.id} className="space-y-2">
                 <Card>
-                  <CardContent className="p-3 space-y-2">
+                  <CardContent className="p-3 space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
                         <h4 className="font-medium text-sm">{delivery.food_vendors?.name}</h4>
-                        <Badge variant="outline" className="text-[10px]">{delivery.status}</Badge>
+                        <p className="text-xs text-muted-foreground">#{delivery.food_orders?.order_number}</p>
+                        <Badge variant="outline" className="text-[10px] mt-1">{delivery.status}</Badge>
                       </div>
-                      <p className="font-bold text-sm">₱{delivery.rider_credits_deducted}</p>
+                      <div className="text-right">
+                        <p className="font-bold text-sm">₱{delivery.food_orders?.total_amount || 0}</p>
+                        <p className="text-xs text-muted-foreground">+₱{delivery.delivery_fee} fee</p>
+                      </div>
                     </div>
                     
-                    <div className="flex items-center gap-1 text-xs">
-                      <Phone className="w-3 h-3 text-muted-foreground" />
-                      <a href={`tel:${delivery.customer_phone}`} className="text-primary">
-                        {delivery.customer_phone} ({delivery.customer_name})
-                      </a>
+                    {/* Customer Contact Section */}
+                    <div className="bg-muted/50 rounded-lg p-2 space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">Customer Details</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{delivery.customer_name}</p>
+                          <a href={`tel:${delivery.customer_phone}`} className="text-xs text-primary flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {delivery.customer_phone}
+                          </a>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs"
+                          onClick={() => window.open(`tel:${delivery.customer_phone}`, '_self')}
+                        >
+                          <Phone className="w-3 h-3 mr-1" /> Call
+                        </Button>
+                      </div>
+                      <div className="flex items-start gap-1 text-xs">
+                        <MapPin className="w-3 h-3 mt-0.5 text-muted-foreground flex-shrink-0" />
+                        <span className="text-muted-foreground">{delivery.customer_address}</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="w-full h-8 text-xs"
+                        onClick={() => openInMaps(delivery.customer_latitude, delivery.customer_longitude, delivery.customer_address)}
+                      >
+                        <Navigation className="w-3 h-3 mr-1" /> Navigate to Customer
+                      </Button>
                     </div>
+
+                    {/* Order Notes */}
+                    {delivery.food_orders?.notes && (
+                      <div className="text-xs bg-yellow-50 dark:bg-yellow-950 rounded p-2">
+                        <p className="font-medium">Notes:</p>
+                        <p className="text-muted-foreground">{delivery.food_orders.notes}</p>
+                      </div>
+                    )}
 
                     <div className="flex gap-2">
                       {delivery.status === "assigned" && (
-                        <Button
-                          size="sm"
-                          className="flex-1 text-xs h-8"
-                          onClick={() => updateStatusMutation.mutate({ assignmentId: delivery.id, status: "picked_up" })}
-                        >
-                          Picked Up
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-xs h-8"
+                            onClick={() => openInMaps(delivery.pickup_latitude, delivery.pickup_longitude, delivery.pickup_address)}
+                          >
+                            <Map className="w-3 h-3 mr-1" /> Pickup
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 text-xs h-8"
+                            onClick={() => updateStatusMutation.mutate({ assignmentId: delivery.id, status: "picked_up" })}
+                          >
+                            Picked Up
+                          </Button>
+                        </>
                       )}
                       {delivery.status === "picked_up" && (
                         <Button
                           size="sm"
-                          className="flex-1 text-xs h-8"
+                          className="w-full text-xs h-8"
                           onClick={() => updateStatusMutation.mutate({ assignmentId: delivery.id, status: "delivered" })}
                         >
-                          <CheckCircle className="w-3 h-3 mr-1" /> Delivered
+                          <CheckCircle className="w-3 h-3 mr-1" /> Mark as Delivered
                         </Button>
                       )}
                     </div>

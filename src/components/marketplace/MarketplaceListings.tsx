@@ -513,29 +513,25 @@ const MarketplaceListings = () => {
     const totalFiles = files.length;
     let completedFiles = 0;
 
+    // Use the uploadToStorage helper which handles edge function + fallback
+    const { uploadToStorage } = await import('@/lib/storage');
+
     for (const file of Array.from(files)) {
       try {
         // Generate unique filename
         const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+        const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
         
-        // Upload to Supabase Storage (marketplace bucket)
-        const { data, error } = await supabase.storage
-          .from('marketplace')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
+        // Use uploadToStorage helper (handles edge function + base64 fallback)
+        const { data, error } = await uploadToStorage('marketplace', filePath, file, {
+          contentType: file.type,
+          fileName: file.name,
+        });
 
         if (error) throw error;
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('marketplace')
-          .getPublicUrl(data.path);
-
-        if (urlData?.publicUrl) {
-          uploadedUrls.push(urlData.publicUrl);
+        if (data?.publicUrl) {
+          uploadedUrls.push(data.publicUrl);
           completedFiles++;
           setUploadProgress(Math.round((completedFiles / totalFiles) * 100));
         }
