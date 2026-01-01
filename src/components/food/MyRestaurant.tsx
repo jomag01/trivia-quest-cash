@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plus, Store, UtensilsCrossed, ShoppingBag, Settings, Menu, AlertTriangle, X } from "lucide-react";
+import { Plus, Store, UtensilsCrossed, ShoppingBag, Settings, Menu, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { MenuItemsList } from "./MenuItemsList";
 import { MenuManagement } from "./MenuManagement";
@@ -16,6 +16,7 @@ import { VendorOrders } from "./VendorOrders";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CreateMenuItemDialog } from "./CreateMenuItemDialog";
 import { EditRestaurantDialog } from "./EditRestaurantDialog";
+import { MarketplaceEligibilityGate } from "@/components/common/MarketplaceEligibilityGate";
 
 interface MyRestaurantProps {
   onCreateNew: () => void;
@@ -81,17 +82,19 @@ export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
 
   if (!vendor) {
     return (
-      <div className="text-center py-12">
-        <Store className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No Restaurant Yet</h3>
-        <p className="text-muted-foreground mb-4">
-          Start selling food by creating your restaurant
-        </p>
-        <Button onClick={onCreateNew}>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Restaurant
-        </Button>
-      </div>
+      <MarketplaceEligibilityGate userId={user?.id} featureLabel="restaurant creation">
+        <div className="text-center py-12">
+          <Store className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No Restaurant Yet</h3>
+          <p className="text-muted-foreground mb-4">
+            Start selling food by creating your restaurant
+          </p>
+          <Button onClick={onCreateNew}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Restaurant
+          </Button>
+        </div>
+      </MarketplaceEligibilityGate>
     );
   }
 
