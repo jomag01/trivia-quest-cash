@@ -5800,6 +5800,7 @@ export type Database = {
           is_verified_rider: boolean | null
           is_verified_seller: boolean | null
           location: string | null
+          marketplace_activated: boolean | null
           phone_number: string | null
           referral_code: string
           referred_by: string | null
@@ -5835,6 +5836,7 @@ export type Database = {
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null
           location?: string | null
+          marketplace_activated?: boolean | null
           phone_number?: string | null
           referral_code: string
           referred_by?: string | null
@@ -5870,6 +5872,7 @@ export type Database = {
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null
           location?: string | null
+          marketplace_activated?: boolean | null
           phone_number?: string | null
           referral_code?: string
           referred_by?: string | null

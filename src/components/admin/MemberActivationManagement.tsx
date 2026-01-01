@@ -20,7 +20,8 @@ import {
   Settings2,
   Sparkles,
   Lock,
-  Unlock
+  Unlock,
+  Store
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -42,6 +43,7 @@ interface SearchResult {
   is_verified: boolean;
   is_paid_affiliate: boolean;
   ai_features_unlocked: boolean;
+  marketplace_activated: boolean;
   diamonds: number;
   referral_code: string;
   referral_count: number;
@@ -78,7 +80,7 @@ export default function MemberActivationManagement() {
       // Search profiles by email or name
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, is_verified, is_paid_affiliate, ai_features_unlocked, diamonds, referral_code, created_at')
+        .select('id, email, full_name, is_verified, is_paid_affiliate, ai_features_unlocked, marketplace_activated, diamonds, referral_code, created_at')
         .or(`email.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%,referral_code.ilike.%${searchQuery}%`)
         .limit(20);
 
@@ -125,6 +127,7 @@ export default function MemberActivationManagement() {
       const resultsWithDetails: SearchResult[] = profiles.map(p => ({
         ...p,
         ai_features_unlocked: (p as any).ai_features_unlocked || false,
+        marketplace_activated: (p as any).marketplace_activated || false,
         referral_count: referralCountMap.get(p.id) || 0,
         affiliate_status: affiliateMap.get(p.id) || null,
         binary_status: binaryMap.get(p.id) ? {
@@ -288,6 +291,26 @@ export default function MemberActivationManagement() {
     }
   };
 
+  const handleToggleMarketplace = async (userId: string, currentStatus: boolean) => {
+    setActivating(userId);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ marketplace_activated: !currentStatus })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast.success(currentStatus ? 'Marketplace access revoked' : 'Marketplace access granted');
+      handleSearch(); // Refresh results
+    } catch (error) {
+      console.error('Marketplace toggle error:', error);
+      toast.error('Failed to toggle marketplace access');
+    } finally {
+      setActivating(null);
+    }
+  };
+
   const getAffiliateRequirements = (result: SearchResult) => {
     const hasDiamonds = result.diamonds >= 150;
     const hasReferrals = result.referral_count >= 2;
@@ -334,6 +357,7 @@ export default function MemberActivationManagement() {
                     <TableHead>User</TableHead>
                     <TableHead>Requirements</TableHead>
                     <TableHead>AI Features</TableHead>
+                    <TableHead>Marketplace</TableHead>
                     <TableHead>Affiliate Status</TableHead>
                     <TableHead>Binary Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -385,6 +409,24 @@ export default function MemberActivationManagement() {
                                 <Lock className="h-3 w-3 mr-1" />
                                 Locked
                               </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {result.marketplace_activated || (reqs.meetsRequirements) ? (
+                              <Badge className="bg-gradient-to-r from-amber-500 to-orange-500">
+                                <Store className="h-3 w-3 mr-1" />
+                                Active
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground">
+                                <Lock className="h-3 w-3 mr-1" />
+                                Locked
+                              </Badge>
+                            )}
+                            {result.marketplace_activated && (
+                              <Badge variant="outline" className="text-xs">Admin Override</Badge>
                             )}
                           </div>
                         </TableCell>
@@ -481,6 +523,20 @@ export default function MemberActivationManagement() {
                             >
                               <EyeOff className="h-3 w-3 mr-1" />
                               Manage Tabs
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={result.marketplace_activated ? "destructive" : "outline"}
+                              onClick={() => handleToggleMarketplace(result.id, result.marketplace_activated)}
+                              disabled={activating === result.id}
+                              className={!result.marketplace_activated ? "border-amber-500 text-amber-600 hover:bg-amber-50" : ""}
+                            >
+                              {activating === result.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              ) : (
+                                <Store className="h-3 w-3 mr-1" />
+                              )}
+                              {result.marketplace_activated ? 'Revoke Market' : 'Grant Market'}
                             </Button>
                           </div>
                         </TableCell>
