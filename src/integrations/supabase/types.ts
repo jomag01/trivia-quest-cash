@@ -3992,6 +3992,10 @@ export type Database = {
           available_until: string | null
           bathrooms: number | null
           bedrooms: number | null
+          boost_diamonds_paid: number | null
+          boost_ends_at: string | null
+          boost_level: string | null
+          boost_starts_at: string | null
           brand: string | null
           category: Database["public"]["Enums"]["marketplace_category"]
           city: string | null
@@ -4008,6 +4012,7 @@ export type Database = {
           id: string
           images: string[] | null
           inquiries_count: number | null
+          is_boosted: boolean | null
           is_featured: boolean | null
           listing_fee_paid: boolean | null
           listing_fee_paid_at: string | null
@@ -4040,6 +4045,10 @@ export type Database = {
           available_until?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
+          boost_diamonds_paid?: number | null
+          boost_ends_at?: string | null
+          boost_level?: string | null
+          boost_starts_at?: string | null
           brand?: string | null
           category: Database["public"]["Enums"]["marketplace_category"]
           city?: string | null
@@ -4056,6 +4065,7 @@ export type Database = {
           id?: string
           images?: string[] | null
           inquiries_count?: number | null
+          is_boosted?: boolean | null
           is_featured?: boolean | null
           listing_fee_paid?: boolean | null
           listing_fee_paid_at?: string | null
@@ -4088,6 +4098,10 @@ export type Database = {
           available_until?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
+          boost_diamonds_paid?: number | null
+          boost_ends_at?: string | null
+          boost_level?: string | null
+          boost_starts_at?: string | null
           brand?: string | null
           category?: Database["public"]["Enums"]["marketplace_category"]
           city?: string | null
@@ -4104,6 +4118,7 @@ export type Database = {
           id?: string
           images?: string[] | null
           inquiries_count?: number | null
+          is_boosted?: boolean | null
           is_featured?: boolean | null
           listing_fee_paid?: boolean | null
           listing_fee_paid_at?: string | null

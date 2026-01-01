@@ -208,16 +208,39 @@ const MarketplaceListings = () => {
     };
   }, [hasMore, loading, loadingMore, currentPage]);
 
+  // State for free listing eligibility (150+ diamonds purchased)
+  const [hasFreeListingAccess, setHasFreeListingAccess] = useState(false);
+  const [listingFee, setListingFee] = useState(50);
+  const [freeListingThreshold, setFreeListingThreshold] = useState(150);
+
   const checkEligibility = async () => {
     try {
       // Check if user is a paid affiliate or verified seller
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('is_paid_affiliate, is_verified_seller')
+        .select('is_paid_affiliate, is_verified_seller, diamonds')
         .eq('id', user?.id)
         .maybeSingle();
       
       if (error) throw error;
+
+      // Fetch listing settings
+      const { data: settings } = await supabase
+        .from('marketplace_settings')
+        .select('setting_key, setting_value')
+        .in('setting_key', ['listing_fee', 'free_listing_diamond_threshold']);
+
+      if (settings) {
+        const feeRow = settings.find(s => s.setting_key === 'listing_fee');
+        const thresholdRow = settings.find(s => s.setting_key === 'free_listing_diamond_threshold');
+        if (feeRow) setListingFee(parseInt(feeRow.setting_value || '50'));
+        if (thresholdRow) setFreeListingThreshold(parseInt(thresholdRow.setting_value || '150'));
+      }
+
+      // Check if user has purchased 150+ diamonds worth of credits/items
+      const userDiamonds = profile?.diamonds || 0;
+      const hasFreeListing = userDiamonds >= freeListingThreshold;
+      setHasFreeListingAccess(hasFreeListing);
       
       // User is eligible if they are a paid affiliate or verified seller
       setIsEligible(profile?.is_paid_affiliate === true || profile?.is_verified_seller === true);
@@ -396,7 +419,8 @@ const MarketplaceListings = () => {
         status: 'active',
         contact_email: newListing.contact_email || null,
         contact_phone: newListing.contact_phone || null,
-        listing_fee_paid: false,
+        listing_fee_paid: hasFreeListingAccess, // Auto-mark as paid if user has 150+ diamonds
+        referrer_id: user.id,
       };
 
       // Add category-specific fields
