@@ -261,7 +261,7 @@ const Home = () => {
   const goToAuth = useCallback(() => navigate("/auth"), [navigate]);
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 beehive-bg beehive-theme">
       {/* Ad Slider - Lazy loaded, non-blocking */}
       <div className="max-w-6xl mx-auto px-4 pt-4">
         <Suspense fallback={<div className="h-28 md:h-32 bg-muted/10 rounded-lg" />}>
