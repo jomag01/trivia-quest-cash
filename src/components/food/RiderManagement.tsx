@@ -33,14 +33,22 @@ interface RiderApplication {
 
 export const RiderManagement = () => {
   const queryClient = useQueryClient();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("pending");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewRider, setViewRider] = useState<RiderApplication | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
 
-  const { data: riders, isLoading, error, refetch } = useQuery({
-    queryKey: ["admin-riders"],
+  const {
+    data: riders,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    // IMPORTANT: include user id so we refetch after auth hydrates (prevents “0 riders” from anon fetch)
+    queryKey: ["admin-riders", user?.id],
+    enabled: !!user && !loading && isAdmin,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       // 1) Always fetch rider applications without joins first.
       //    This avoids relationship issues (missing FK) and prevents joins from hiding rows.
@@ -57,9 +65,7 @@ export const RiderManagement = () => {
       const base = (ridersData ?? []) as RiderApplication[];
 
       // 2) Best-effort fetch profiles (no FK required). If RLS blocks, we still show riders.
-      const userIds = Array.from(
-        new Set(base.map((r) => r.user_id).filter(Boolean))
-      ) as string[];
+      const userIds = Array.from(new Set(base.map((r) => r.user_id).filter(Boolean))) as string[];
 
       const profilesById = new Map<string, { full_name: string | null; email: string | null }>();
       if (userIds.length > 0) {
@@ -85,14 +91,23 @@ export const RiderManagement = () => {
         profiles: profilesById.get(r.user_id) ?? { full_name: null, email: null },
       }));
 
-      console.log("Riders loaded (raw statuses):", base.map(r => ({ id: r.id, status: r.status })));
-      console.log("Riders loaded (normalized):", merged.map(r => ({ id: r.id, status: r.status })));
+      console.log(
+        "Riders loaded (raw statuses):",
+        base.map((r) => ({ id: r.id, status: r.status }))
+      );
+      console.log(
+        "Riders loaded (normalized):",
+        merged.map((r) => ({ id: r.id, status: r.status }))
+      );
+
       return merged;
     },
   });
 
   // Realtime subscription for instant updates
   useEffect(() => {
+    if (!user || loading || !isAdmin) return;
+
     const channel = supabase
       .channel("admin-riders-realtime")
       .on(
@@ -104,8 +119,8 @@ export const RiderManagement = () => {
         },
         (payload) => {
           console.log("Rider update received:", payload);
-          queryClient.invalidateQueries({ queryKey: ["admin-riders"] });
-          
+          queryClient.invalidateQueries({ queryKey: ["admin-riders", user.id] });
+
           if (payload.eventType === "INSERT") {
             toast.info("New rider application received!", {
               icon: <Bell className="w-4 h-4" />,
@@ -118,7 +133,7 @@ export const RiderManagement = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, user, loading, isAdmin]);
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
