@@ -88,6 +88,7 @@ import { BarChart3, Gavel } from "lucide-react";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
 import SliderAdsManagement from "@/components/admin/SliderAdsManagement";
 import ListingFeaturesManagement from "@/components/admin/ListingFeaturesManagement";
+import CashDepositManagement from "@/components/admin/CashDepositManagement";
 import AdRevenueSettings from "@/components/admin/AdRevenueSettings";
 
 interface MenuItem {
@@ -157,6 +158,7 @@ const Admin = () => {
         { id: "ai-packages", label: "AI Package Purchases", icon: Sparkles },
         { id: "payouts", label: "Payout Requests", icon: DollarSign },
         { id: "qr-payment", label: "QR Payment Settings", icon: CreditCard },
+        { id: "cash-deposits", label: "Cash Deposit Requests", icon: DollarSign },
       ],
     },
     {
@@ -814,6 +816,7 @@ const Admin = () => {
           {activeTab === "ai-settings" && <AISettingsManagement />}
           {activeTab === "ai-pricing" && <AIProviderPricing />}
           {activeTab === "qr-payment" && <QRPaymentSettings />}
+          {activeTab === "cash-deposits" && <CashDepositManagement />}
           {activeTab === "member-activation" && <MemberActivationManagement />}
           {activeTab === "binary-system" && <BinarySystemManagement />}
           {activeTab === "binary-accounting" && <BinaryAccountingDashboard />}
