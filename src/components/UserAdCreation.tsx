@@ -116,7 +116,7 @@ export const UserAdCreation = () => {
   const [objective, setObjective] = useState("awareness");
   const [placement, setPlacement] = useState("feed");
   const [targetCountry, setTargetCountry] = useState("Philippines");
-  const [targetProvince, setTargetProvince] = useState("");
+  const [targetProvince, setTargetProvince] = useState("all");
   const [targetCity, setTargetCity] = useState("");
   const [targetBarangay, setTargetBarangay] = useState("");
   const [targetGender, setTargetGender] = useState("all");
@@ -214,7 +214,7 @@ export const UserAdCreation = () => {
         target_category: targetCategory || null,
         target_behavior: targetBehavior.length > 0 ? targetBehavior : null,
         target_country: targetCountry || null,
-        target_province: targetProvince || null,
+        target_province: targetProvince === "all" ? null : targetProvince,
         target_city: targetCity || null,
         target_barangay: targetBarangay || null,
         target_gender: targetGender || null,
@@ -268,7 +268,7 @@ export const UserAdCreation = () => {
     setTargetCategory("");
     setTargetBehavior([]);
     setTargetCountry("Philippines");
-    setTargetProvince("");
+    setTargetProvince("all");
     setTargetCity("");
     setTargetBarangay("");
     setTargetGender("all");
@@ -486,7 +486,7 @@ export const UserAdCreation = () => {
                                 <SelectValue placeholder="All regions" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">All Regions</SelectItem>
+                                <SelectItem value="all">All Regions</SelectItem>
                                 {PHILIPPINES_REGIONS.map((region) => (
                                   <SelectItem key={region.value} value={region.value}>
                                     {region.label}
