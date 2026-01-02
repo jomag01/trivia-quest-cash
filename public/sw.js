@@ -1,7 +1,7 @@
 // Ultra-optimized Service Worker for 100M+ concurrent users
 // Features: Aggressive caching, stale-while-revalidate, offline support, request coalescing
 
-const CACHE_VERSION = 'triviabees-v6';
+const CACHE_VERSION = 'triviabees-v7';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -72,11 +72,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Strategy 3: Never cache backend/API responses (user-specific data must be fresh)
-  // This prevents admin/rider lists from being stuck on stale cached results.
+  // IMPORTANT: Do not synthesize "Offline" responses for API calls.
+  // If the network is flaky, returning a fake 503 body can break JSON parsing and make the app look "offline".
+  // Let the request fail naturally so the app can handle it properly.
   if (isBackendRequest(url)) {
-    event.respondWith(
-      fetch(request).catch(() => new Response('Offline', { status: 503 }))
-    );
+    event.respondWith(fetch(request));
     return;
   }
 
