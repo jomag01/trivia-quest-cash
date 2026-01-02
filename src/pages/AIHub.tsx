@@ -29,6 +29,7 @@ import ContactUsAssistant from '@/components/ai/ContactUsAssistant';
 import AICreditsDisplay from '@/components/ai/AICreditsDisplay';
 import BlogContentMaker from '@/components/ai/BlogContentMaker';
 import MarketAnalysis from '@/components/ai/MarketAnalysis';
+import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -160,6 +161,16 @@ const AIHub = memo(() => {
   const [researchForVideo, setResearchForVideo] = useState<string | null>(null);
   const [topicForVideo, setTopicForVideo] = useState<string | null>(null);
 
+  // Unlock feature dialog state
+  const [showUnlockDialog, setShowUnlockDialog] = useState(false);
+  const [unlockFeatureInfo, setUnlockFeatureInfo] = useState<{
+    id: string;
+    name: string;
+    description: string;
+    cost: number;
+  } | null>(null);
+  const [unlockedFeatures, setUnlockedFeatures] = useState<Set<string>>(new Set());
+
   const handleCreateVideoFromResearch = (researchContent: string, topic: string) => {
     setResearchForVideo(researchContent);
     setTopicForVideo(topic);
@@ -168,6 +179,17 @@ const AIHub = memo(() => {
   };
 
   const isPaidAffiliate = (profile as any)?.is_paid_affiliate || (profile as any)?.ai_features_unlocked;
+
+  // Premium feature unlock costs
+  const PREMIUM_UNLOCK_COSTS: Record<string, { cost: number; name: string; description: string }> = {
+    'web-scraper': { cost: 25, name: 'Website Scraper', description: 'Extract product data and content from any website with AI-powered scraping.' },
+    'website-builder': { cost: 50, name: 'Website Builder', description: 'Create stunning websites with AI. Generate full responsive sites from prompts.' },
+    'creator-analytics': { cost: 30, name: 'Creator Analytics', description: 'Deep analytics for content creators. Track engagement, growth, and optimize your content.' },
+    'social-media': { cost: 40, name: 'Social Media Manager', description: 'Schedule posts, generate captions, and manage all your social platforms in one place.' },
+    'ads-maker': { cost: 35, name: 'AI Ads Maker', description: 'Create professional ad creatives for all platforms with AI assistance.' },
+    'blog-maker': { cost: 20, name: 'Blog Content Maker', description: 'Generate SEO-optimized blog posts with research, scripting, and publishing tools.' },
+    'market-analysis': { cost: 30, name: 'Market Analysis', description: 'AI-powered market analysis for stocks, forex, and crypto trading insights.' },
+  };
 
   // Navigation items for sidebar with colorful gradients
   const navItems = [
@@ -185,15 +207,43 @@ const AIHub = memo(() => {
     { id: 'video-to-text', label: 'V→Text', icon: TypeIcon, gradient: 'from-lime-400 to-green-500', iconColor: 'text-lime-500' },
     { id: 'content-creator', label: 'Creator', icon: Film, gradient: 'from-fuchsia-400 to-pink-500', iconColor: 'text-fuchsia-500' },
     { id: 'video-editor', label: 'Editor', icon: Scissors, gradient: 'from-orange-400 to-red-500', iconColor: 'text-orange-500' },
-    { id: 'web-scraper', label: 'Scraper', icon: Globe, gradient: 'from-cyan-400 to-blue-500', iconColor: 'text-cyan-500', premium: true },
-    { id: 'website-builder', label: 'Website', icon: Code, gradient: 'from-emerald-400 to-teal-500', iconColor: 'text-emerald-500', premium: true },
-    { id: 'creator-analytics', label: 'Analytics', icon: Crown, gradient: 'from-yellow-400 to-amber-500', iconColor: 'text-yellow-500', premium: true },
-    { id: 'social-media', label: 'Social', icon: Users, gradient: 'from-indigo-400 to-violet-500', iconColor: 'text-indigo-500', premium: true },
-    ...(isPaidAffiliate ? [{ id: 'ads-maker', label: 'Ads', icon: Megaphone, gradient: 'from-orange-400 to-red-500', iconColor: 'text-orange-500', premium: true }] : []),
-    { id: 'blog-maker', label: 'Blog', icon: Newspaper, gradient: 'from-orange-400 to-amber-500', iconColor: 'text-orange-500', premium: true },
-    { id: 'market-analysis', label: 'Markets', icon: TrendingUp, gradient: 'from-blue-500 to-indigo-600', iconColor: 'text-blue-500', premium: true },
+    { id: 'web-scraper', label: 'Scraper', icon: Globe, gradient: 'from-cyan-400 to-blue-500', iconColor: 'text-cyan-500', premium: true, unlockCost: 25 },
+    { id: 'website-builder', label: 'Website', icon: Code, gradient: 'from-emerald-400 to-teal-500', iconColor: 'text-emerald-500', premium: true, unlockCost: 50 },
+    { id: 'creator-analytics', label: 'Analytics', icon: Crown, gradient: 'from-yellow-400 to-amber-500', iconColor: 'text-yellow-500', premium: true, unlockCost: 30 },
+    { id: 'social-media', label: 'Social', icon: Users, gradient: 'from-indigo-400 to-violet-500', iconColor: 'text-indigo-500', premium: true, unlockCost: 40 },
+    ...(isPaidAffiliate ? [{ id: 'ads-maker', label: 'Ads', icon: Megaphone, gradient: 'from-orange-400 to-red-500', iconColor: 'text-orange-500', premium: true, unlockCost: 35 }] : []),
+    { id: 'blog-maker', label: 'Blog', icon: Newspaper, gradient: 'from-orange-400 to-amber-500', iconColor: 'text-orange-500', premium: true, unlockCost: 20 },
+    { id: 'market-analysis', label: 'Markets', icon: TrendingUp, gradient: 'from-blue-500 to-indigo-600', iconColor: 'text-blue-500', premium: true, unlockCost: 30 },
     { id: 'contact', label: 'Contact', icon: MessageSquare, gradient: 'from-teal-400 to-blue-500', iconColor: 'text-teal-500' },
   ];
+
+  // Handle premium feature click
+  const handlePremiumFeatureClick = (item: typeof navItems[0]) => {
+    if (item.premium && !unlockedFeatures.has(item.id)) {
+      const featureInfo = PREMIUM_UNLOCK_COSTS[item.id];
+      if (featureInfo) {
+        setUnlockFeatureInfo({
+          id: item.id,
+          name: featureInfo.name,
+          description: featureInfo.description,
+          cost: featureInfo.cost
+        });
+        setShowUnlockDialog(true);
+      }
+    } else {
+      setActiveTab(item.id);
+      if (window.innerWidth < 768) setSidebarOpen(false);
+    }
+  };
+
+  const handleFeatureUnlocked = () => {
+    if (unlockFeatureInfo) {
+      setUnlockedFeatures(prev => new Set([...prev, unlockFeatureInfo.id]));
+      setActiveTab(unlockFeatureInfo.id);
+      fetchUserCredits();
+      if (window.innerWidth < 768) setSidebarOpen(false);
+    }
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -960,59 +1010,79 @@ const AIHub = memo(() => {
         <ScrollArea className="flex-1 py-4">
           <nav className="space-y-1.5 px-2">
             <TooltipProvider delayDuration={0}>
-              {navItems.map((item) => (
-                <Tooltip key={item.id}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => {
-                        setActiveTab(item.id);
-                        if (window.innerWidth < 768) setSidebarOpen(false);
-                      }}
+              {navItems.map((item) => {
+                const isLocked = item.premium && !unlockedFeatures.has(item.id);
+                const unlockCost = (item as any).unlockCost || 0;
+                
+                return (
+                  <Tooltip key={item.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handlePremiumFeatureClick(item)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden",
+                          activeTab === item.id
+                            ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg shadow-${item.gradient.split('-')[1]}-500/30`
+                            : isLocked 
+                            ? "text-muted-foreground/60 hover:bg-amber-500/10 hover:text-amber-600"
+                            : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                        )}
+                      >
+                        {activeTab === item.id && (
+                          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        )}
+                        <div className={cn(
+                          "flex items-center justify-center w-8 h-8 rounded-lg transition-all relative",
+                          activeTab === item.id
+                            ? "bg-white/20"
+                            : isLocked
+                            ? "bg-gradient-to-br from-gray-400 to-gray-500 shadow-sm"
+                            : `bg-gradient-to-br ${item.gradient} shadow-sm`
+                        )}>
+                          {isLocked ? (
+                            <Lock className="h-4 w-4 text-white" />
+                          ) : (
+                            <item.icon className={cn(
+                              "h-4 w-4 flex-shrink-0",
+                              activeTab === item.id ? "text-white" : "text-white"
+                            )} />
+                          )}
+                        </div>
+                        <span className={cn("flex-1 text-left", !sidebarOpen && "md:hidden")}>
+                          {item.label}
+                        </span>
+                        {isLocked && (
+                          <div className={cn("flex items-center gap-1", !sidebarOpen && "md:hidden")}>
+                            <Lock className="h-3 w-3 text-amber-500" />
+                            <span className="text-xs text-amber-500">{unlockCost}c</span>
+                          </div>
+                        )}
+                        {item.premium && !isLocked && (
+                          <Crown className={cn(
+                            "h-3 w-3",
+                            activeTab === item.id ? "text-white" : "text-green-500",
+                            !sidebarOpen && "md:hidden"
+                          )} />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      side="right" 
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden",
-                        activeTab === item.id
-                          ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg shadow-${item.gradient.split('-')[1]}-500/30`
-                          : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                        "bg-background border shadow-lg z-50",
+                        sidebarOpen && "md:hidden"
                       )}
                     >
-                      {activeTab === item.id && (
-                        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      )}
-                      <div className={cn(
-                        "flex items-center justify-center w-8 h-8 rounded-lg transition-all",
-                        activeTab === item.id
-                          ? "bg-white/20"
-                          : `bg-gradient-to-br ${item.gradient} shadow-sm`
-                      )}>
-                        <item.icon className={cn(
-                          "h-4 w-4 flex-shrink-0",
-                          activeTab === item.id ? "text-white" : "text-white"
-                        )} />
-                      </div>
-                      <span className={cn("flex-1 text-left", !sidebarOpen && "md:hidden")}>
-                        {item.label}
-                      </span>
-                      {item.premium && (
-                        <Crown className={cn(
-                          "h-3 w-3",
-                          activeTab === item.id ? "text-white" : "text-yellow-500",
-                          !sidebarOpen && "md:hidden"
-                        )} />
-                      )}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent 
-                    side="right" 
-                    className={cn(
-                      "bg-background border shadow-lg z-50",
-                      sidebarOpen && "md:hidden" // Only show tooltip when sidebar is collapsed
-                    )}
-                  >
-                    <p className="font-medium">{item.label}</p>
-                    {item.premium && <p className="text-xs text-muted-foreground">Premium Feature</p>}
-                  </TooltipContent>
-                </Tooltip>
-              ))}
+                      <p className="font-medium">{item.label}</p>
+                      {isLocked ? (
+                        <p className="text-xs text-amber-500">🔒 Unlock for {unlockCost} credits</p>
+                      ) : item.premium ? (
+                        <p className="text-xs text-green-500">✓ Unlocked Premium</p>
+                      ) : null}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
             </TooltipProvider>
           </nav>
         </ScrollArea>
@@ -2119,6 +2189,20 @@ const AIHub = memo(() => {
           creditCost={pendingCreditAction.cost}
           serviceType={pendingCreditAction.type}
           serviceName={pendingCreditAction.serviceName}
+        />
+      )}
+
+      {/* Unlock Feature Dialog */}
+      {unlockFeatureInfo && (
+        <UnlockFeatureDialog
+          open={showUnlockDialog}
+          onOpenChange={setShowUnlockDialog}
+          featureName={unlockFeatureInfo.name}
+          featureDescription={unlockFeatureInfo.description}
+          unlockCost={unlockFeatureInfo.cost}
+          userCredits={userCredits}
+          onUnlock={handleFeatureUnlocked}
+          onBuyCredits={() => setShowBuyCredits(true)}
         />
       )}
     </div>
