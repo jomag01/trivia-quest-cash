@@ -7,12 +7,13 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trophy, Mail, Lock, User, Globe, Eye, EyeOff, Chrome } from "lucide-react";
+import { Mail, Lock, User, Globe, Eye, EyeOff, Chrome } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CURRENCIES, getCurrencyFromCountry, detectUserCountry, type CurrencyCode } from "@/lib/currencies";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
+import FlyingBees from "@/components/ai/FlyingBees";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -256,19 +257,30 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4">
-      <Card className="w-full max-w-md p-8 gradient-accent border-primary/20 shadow-card">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 relative overflow-hidden beehive-bg">
+      {/* Animated Honeycomb Background */}
+      <div className="absolute inset-0 honeycomb-pattern opacity-40" />
+      
+      {/* Flying Bees Animation */}
+      <FlyingBees />
+      
+      <Card className="w-full max-w-md p-8 relative z-10 bg-gradient-to-br from-amber-50/95 via-orange-50/90 to-yellow-50/95 dark:from-amber-950/95 dark:via-orange-950/90 dark:to-yellow-950/95 backdrop-blur-xl border-2 border-amber-500/30 shadow-2xl shadow-amber-500/20">
         <div className="text-center mb-8">
-          <Trophy className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse-slow" />
-          <h1 className="text-3xl font-bold text-gradient-gold mb-2">
-            {isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Join TriviaBees"}
+          {/* Animated Bee Icon */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="text-5xl animate-bounce" style={{ animationDelay: '0.1s' }}>🐝</span>
+            <span className="text-4xl animate-float">🍯</span>
+            <span className="text-5xl animate-bounce" style={{ animationDelay: '0.3s' }}>🐝</span>
+          </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-500 bg-clip-text text-transparent mb-2">
+            {isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Join the Hive"}
           </h1>
           <p className="text-muted-foreground">
             {isForgotPassword 
               ? "Enter your email to receive reset instructions" 
               : isLogin 
-                ? "Login to continue playing" 
-                : "Create your account and start earning"}
+                ? "🐝 Buzz into your TriviaBees account" 
+                : "🍯 Create your account and start earning honey"}
           </p>
         </div>
 
@@ -564,8 +576,12 @@ const Auth = () => {
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading || (!isLogin && !acceptedTerms)}>
-            {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
+          <Button 
+            type="submit" 
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg shadow-amber-500/25" 
+            disabled={loading || (!isLogin && !acceptedTerms)}
+          >
+            {loading ? "Please wait..." : isLogin ? "🐝 Login to Hive" : "🍯 Join the Hive"}
           </Button>
 
           {isLogin && (
@@ -580,12 +596,12 @@ const Auth = () => {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full gap-2"
+                className="w-full gap-2 border-amber-500/30 hover:border-amber-500 hover:bg-amber-500/10"
                 onClick={handleGoogleSignIn}
                 disabled={googleLoading}
               >
                 <Chrome className="w-4 h-4" />
-                {googleLoading ? "Connecting..." : "Sign in with Google"}
+                {googleLoading ? "Connecting..." : "🐝 Sign in with Google"}
               </Button>
             </>
           )}
