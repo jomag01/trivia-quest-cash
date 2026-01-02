@@ -142,11 +142,15 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
       }
       
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('is_paid_affiliate, is_verified_seller')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error checking paid status:', error);
+        }
         
         setIsPaidAffiliate(data?.is_paid_affiliate === true || data?.is_verified_seller === true);
       } catch (error) {
