@@ -155,15 +155,7 @@ export type Database = {
           total_revenue?: number
           unilevel_distributed?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "ad_revenue_distributions_ad_id_fkey"
-            columns: ["ad_id"]
-            isOneToOne: false
-            referencedRelation: "seller_slider_ads"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ad_revenue_settings: {
         Row: {
@@ -9730,6 +9722,10 @@ export type Database = {
       }
       deduct_wrong_answer_penalty: {
         Args: { p_category_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      distribute_ad_revenue: {
+        Args: { p_ad_id: string; p_seller_id: string; p_total_amount: number }
         Returns: undefined
       }
       distribute_leadership_breakaway: {

@@ -294,7 +294,7 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
       }
 
       // Pay with diamonds - create ad directly
-      const { error: adError } = await supabase.from('seller_custom_ads').insert({
+      const { data: adData, error: adError } = await supabase.from('seller_custom_ads').insert({
         seller_id: user.id,
         title: formData.title,
         description: formData.description || null,
@@ -318,7 +318,7 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
         custom_duration_days: formData.budget_type === 'custom' ? formData.custom_duration_days : null,
         total_budget: totalCost,
         payment_method: 'diamonds',
-      });
+      }).select('id').single();
 
       if (adError) throw adError;
 
@@ -329,6 +329,16 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
         .eq('id', user.id);
 
       if (deductError) throw deductError;
+
+      // Distribute ad revenue to commission pools (admin profit, unilevel, stairstep, leadership)
+      if (adData?.id) {
+        await supabase.rpc('distribute_ad_revenue', {
+          p_ad_id: adData.id,
+          p_seller_id: user.id,
+          p_total_amount: totalCost
+        });
+      }
+
       return { type: 'direct' };
     },
     onSuccess: (result) => {
