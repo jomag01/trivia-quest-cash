@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, memo } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,7 +9,6 @@ import Navigation from "./components/Navigation";
 import { parseAndTrackFromUrl } from "@/lib/cookieTracking";
 import { AffiliateSignupPopup } from "./components/AffiliateSignupPopup";
 import { PurchaseNotification } from "./components/PurchaseNotification";
-import { usePerformanceInit } from "@/hooks/usePerformanceInit";
 
 // Lazy load all pages for code splitting
 const AIHub = lazy(() => import("./pages/AIHub"));
@@ -38,32 +37,24 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const Auction = lazy(() => import("./pages/Auction"));
 const Install = lazy(() => import("./pages/Install"));
 
-// Configure QueryClient with aggressive caching and error handling
+// Configure QueryClient with aggressive caching
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
       refetchOnWindowFocus: false,
-      retry: (failureCount, error) => {
-        // Don't retry on 4xx errors
-        if (error && typeof error === 'object' && 'status' in error) {
-          const status = (error as any).status;
-          if (status >= 400 && status < 500) return false;
-        }
-        return failureCount < 2;
-      },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      retry: 1,
     },
   },
 });
 
-// Loading fallback component - ultra lightweight
-const PageLoader = memo(() => (
+// Loading fallback component
+const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
     <div className="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
   </div>
-));
+);
 
 // Cookie tracking component
 const CookieTracker = () => {
@@ -112,59 +103,51 @@ const PageTracker = () => {
   return null;
 };
 
-// Performance initialization wrapper
-const PerformanceWrapper = memo(({ children }: { children: React.ReactNode }) => {
-  usePerformanceInit();
-  return <>{children}</>;
-});
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <PerformanceWrapper>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <CookieTracker />
-            <PageTracker />
-            <Navigation />
-            <AffiliateSignupPopup />
-            <PurchaseNotification />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<AIHub />} />
-                <Route path="/ai-hub" element={<AIHub />} />
-                <Route path="/feed" element={<Feed />} />
-                <Route path="/games" element={<Games />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/game" element={<Game />} />
-                <Route path="/game/:category" element={<Game />} />
-                <Route path="/moba-game" element={<MobaGame />} />
-                <Route path="/treasure-hunt" element={<TreasureHunt />} />
-                <Route path="/diamond-marketplace" element={<DiamondMarketplace />} />
-                <Route path="/community" element={<Community />} />
-                <Route path="/shop" element={<Shop />} />
-                <Route path="/booking" element={<Booking />} />
-                <Route path="/food" element={<Food />} />
-                <Route path="/chess" element={<Chess />} />
-                <Route path="/guess-song" element={<GuessSong />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/seller" element={<SellerDashboard />} />
-                <Route path="/home" element={<Home />} />
-                <Route path="/profile/:userId" element={<Profile />} />
-                <Route path="/notifications" element={<Notifications />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/terms-of-service" element={<TermsOfService />} />
-                <Route path="/auction" element={<Auction />} />
-                <Route path="/install" element={<Install />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </PerformanceWrapper>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <CookieTracker />
+          <PageTracker />
+          <Navigation />
+          <AffiliateSignupPopup />
+          <PurchaseNotification />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<AIHub />} />
+              <Route path="/ai-hub" element={<AIHub />} />
+              <Route path="/feed" element={<Feed />} />
+              <Route path="/games" element={<Games />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/game" element={<Game />} />
+              <Route path="/game/:category" element={<Game />} />
+              <Route path="/moba-game" element={<MobaGame />} />
+              <Route path="/treasure-hunt" element={<TreasureHunt />} />
+              <Route path="/diamond-marketplace" element={<DiamondMarketplace />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/shop" element={<Shop />} />
+              <Route path="/booking" element={<Booking />} />
+              <Route path="/food" element={<Food />} />
+              <Route path="/chess" element={<Chess />} />
+              <Route path="/guess-song" element={<GuessSong />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/seller" element={<SellerDashboard />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/profile/:userId" element={<Profile />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/auction" element={<Auction />} />
+              <Route path="/install" element={<Install />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
