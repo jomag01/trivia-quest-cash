@@ -18,7 +18,7 @@ export const CustomerSupportChat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hi! I'm your customer support assistant. How can I help you today?",
+      content: "Hello! I'm your AI bee assistant 🐝 How can I help you today?",
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
@@ -143,14 +143,14 @@ export const CustomerSupportChat = () => {
 
   return (
     <>
-      {/* Floating Chat Button */}
+      {/* Floating Chat Button - Bee Icon */}
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-gradient-to-br from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 border-2 border-amber-300"
           size="icon"
         >
-          <MessageCircle className="h-6 w-6" />
+          <span className="text-2xl">🐝</span>
         </Button>
       )}
 
@@ -162,10 +162,10 @@ export const CustomerSupportChat = () => {
             : "bottom-6 right-6 w-full max-w-md h-[600px] max-h-[80vh]"
         }`}>
           {/* Header */}
-          <div className="flex items-center justify-between p-3 sm:p-4 border-b bg-primary text-primary-foreground rounded-t-lg shrink-0">
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-t-lg shrink-0">
             <div className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-              <h3 className="font-semibold text-sm sm:text-base">Customer Support</h3>
+              <span className="text-lg sm:text-xl">🐝</span>
+              <h3 className="font-semibold text-sm sm:text-base">AI Bee Assistant</h3>
             </div>
             <Button
               variant="ghost"
