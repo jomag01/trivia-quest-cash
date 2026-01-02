@@ -29,23 +29,51 @@ export default defineConfig(({ mode }) => ({
     reportCompressedSize: false, // Faster builds
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core React
-          'vendor-react': ['react', 'react-dom'],
+        manualChunks: (id) => {
+          // Core React - smallest possible
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor-react';
+          }
           // Routing
-          'vendor-router': ['react-router-dom'],
+          if (id.includes('react-router-dom')) {
+            return 'vendor-router';
+          }
           // Data fetching
-          'vendor-query': ['@tanstack/react-query'],
-          // UI framework
-          'vendor-ui': ['lucide-react'],
-          // Animations (load separately)
-          'vendor-motion': ['framer-motion'],
+          if (id.includes('@tanstack/react-query')) {
+            return 'vendor-query';
+          }
+          // UI icons - load separately
+          if (id.includes('lucide-react')) {
+            return 'vendor-icons';
+          }
+          // Animations - load separately (can be deferred)
+          if (id.includes('framer-motion')) {
+            return 'vendor-motion';
+          }
           // State management
-          'vendor-state': ['zustand'],
+          if (id.includes('zustand')) {
+            return 'vendor-state';
+          }
           // Form handling
-          'vendor-form': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
+            return 'vendor-form';
+          }
           // Date utilities
-          'vendor-date': ['date-fns'],
+          if (id.includes('date-fns')) {
+            return 'vendor-date';
+          }
+          // Radix UI components - group together
+          if (id.includes('@radix-ui')) {
+            return 'vendor-radix';
+          }
+          // Charts - load on demand
+          if (id.includes('recharts')) {
+            return 'vendor-charts';
+          }
+          // Supabase - essential but can be loaded after core
+          if (id.includes('@supabase')) {
+            return 'vendor-supabase';
+          }
         },
         // Content-hash for aggressive CDN caching
         entryFileNames: 'assets/[name].[hash].js',

@@ -21,3 +21,17 @@ export {
   createVisibilityObserver 
 } from './LazyLoader';
 export { useVirtualScroll, InfiniteScrollManager } from './VirtualScrollManager';
+
+// Connection-aware optimizations for slow connections
+export { connectionAwareLoader, useConnectionAware } from './ConnectionAwareLoader';
+export type { ConnectionQuality } from './ConnectionAwareLoader';
+export { 
+  loadImage, 
+  preloadCriticalImages, 
+  getPlaceholder,
+  isImageLoaded,
+  clearImageCache,
+  registerLazyImage,
+  unregisterLazyImage 
+} from './AdaptiveImageLoader';
+export { requestPrioritizer } from './RequestPrioritizer';
