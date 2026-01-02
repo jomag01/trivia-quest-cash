@@ -128,9 +128,12 @@ export default function AIHealthConsultant({
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+        className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full shadow-2xl bg-gradient-to-br from-amber-400 via-yellow-400 to-amber-600 hover:from-amber-500 hover:via-yellow-500 hover:to-amber-700 border-2 border-amber-300 animate-bounce-slow group overflow-hidden"
       >
-        <HelpCircle className="w-6 h-6 text-primary-foreground" />
+        <div className="relative">
+          <span className="text-2xl group-hover:scale-110 transition-transform duration-200 inline-block animate-wiggle">🐝</span>
+          <span className="absolute -top-1 -right-1 text-xs animate-pulse">✨</span>
+        </div>
       </Button>
     );
   }
@@ -141,16 +144,17 @@ export default function AIHealthConsultant({
         ? "bottom-24 right-4 w-72 h-14" 
         : "bottom-24 right-4 w-[90vw] max-w-md h-[70vh] max-h-[600px] md:w-96"
     }`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-t-lg">
+      {/* Header - Bee Theme */}
+      <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-white rounded-t-lg">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-primary-foreground/20 rounded-full">
-            <HelpCircle className="w-4 h-4" />
+          <div className="relative">
+            <span className="text-xl animate-wiggle inline-block">🐝</span>
+            <span className="absolute -top-1 -right-1 text-[8px] animate-pulse">✨</span>
           </div>
           <div>
-            <h3 className="font-semibold text-sm">Product Assistant</h3>
+            <h3 className="font-semibold text-sm">AI Bee Assistant</h3>
             {!isMinimized && (
-              <p className="text-xs text-primary-foreground/80">AI product recommendations</p>
+              <p className="text-xs opacity-80">Buzz! Product recommendations 🍯</p>
             )}
           </div>
         </div>
