@@ -42,8 +42,28 @@
   </section>
   <p class="loading">Loading full experience...</p>
   <script>
-    // Redirect to main app after brief display
-    setTimeout(function(){window.location.reload()},3000);
+    // Recovery mode:
+    // If the service worker cache got corrupted, this page can loop forever.
+    // Attempt a one-time cleanup (unregister SW + clear caches) then reload the app.
+    (async function () {
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.unregister()));
+        }
+        if (window.caches?.keys) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      // Wait a moment then retry main app.
+      setTimeout(function () {
+        window.location.href = '/?recovered=1';
+      }, 1200);
+    })();
   </script>
 </body>
 </html>

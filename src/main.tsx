@@ -11,4 +11,7 @@ if (container) {
       <App />
     </React.StrictMode>
   );
+
+  // Used by index.html watchdog to detect successful boot.
+  (window as any).__APP_BOOTED__ = true;
 }
