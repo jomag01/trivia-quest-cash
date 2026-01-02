@@ -38,37 +38,32 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const Auction = lazy(() => import("./pages/Auction"));
 const Install = lazy(() => import("./pages/Install"));
 
-// Configure QueryClient with aggressive caching for <2s load
+// Configure QueryClient with aggressive caching and error handling
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 10, // 10 minutes - more aggressive caching
-      gcTime: 1000 * 60 * 60, // 60 minutes cache retention
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
       refetchOnWindowFocus: false,
-      refetchOnMount: false, // Prevent refetch if data exists
-      refetchOnReconnect: false,
       retry: (failureCount, error) => {
+        // Don't retry on 4xx errors
         if (error && typeof error === 'object' && 'status' in error) {
           const status = (error as any).status;
           if (status >= 400 && status < 500) return false;
         }
-        return failureCount < 1; // Only 1 retry for faster failure
+        return failureCount < 2;
       },
-      retryDelay: 500, // Fast retry
-      networkMode: 'offlineFirst', // Use cache first
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     },
   },
 });
 
-// Loading fallback component - ultra lightweight with skeleton
+// Loading fallback component - ultra lightweight
 const PageLoader = memo(() => (
-  <div className="min-h-screen bg-background">
-    <div className="flex items-center justify-center pt-20">
-      <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-    </div>
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
   </div>
 ));
-PageLoader.displayName = 'PageLoader';
 
 // Cookie tracking component
 const CookieTracker = () => {
@@ -138,7 +133,7 @@ const App = () => (
             <PurchaseNotification />
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={<AIHub />} />
                 <Route path="/ai-hub" element={<AIHub />} />
                 <Route path="/feed" element={<Feed />} />
                 <Route path="/games" element={<Games />} />

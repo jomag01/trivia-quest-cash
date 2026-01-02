@@ -14,7 +14,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
-    <!-- Resource Hints: Prefetch critical routes (disabled for reliability on slow mobile networks) -->
+    <!-- Resource Hints: Prefetch critical routes -->
+    <link rel="prefetch" href="/game" as="document" />
+    <link rel="prefetch" href="/auth" as="document" />
+    
+    <!-- Cache Control for CDN -->
+    <meta http-equiv="Cache-Control" content="public, max-age=31536000, immutable" />
+    
     <!-- PWA & Mobile -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#8B5CF6" />
@@ -35,15 +41,15 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="/og-image.png" />
 
-    <!-- Inline Critical CSS - Eliminates render-blocking for <2s FCP -->
+    <!-- Inline Critical CSS - Eliminates render-blocking -->
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      html{-webkit-text-size-adjust:100%;height:100%}
-      body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#fff;min-height:100vh;line-height:1.5}
-      #root{min-height:100vh;contain:layout style}
-      .ld{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;border:2px solid rgba(139,92,246,.15);border-top-color:#8B5CF6;border-radius:50%;animation:s 0.6s linear infinite;will-change:transform}
+      html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;height:100%}
+      body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#fff;min-height:100vh;line-height:1.5;position:relative}
+      #root{min-height:100vh}
+      .ld{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border:3px solid rgba(139,92,246,.15);border-top-color:#8B5CF6;border-radius:50%;animation:s 0.8s linear infinite}
       @keyframes s{to{transform:translate(-50%,-50%) rotate(360deg)}}
-      .ld-txt{position:fixed;top:calc(45% + 28px);left:50%;transform:translateX(-50%);font-size:13px;color:rgba(255,255,255,0.5);font-weight:500}
+      .ld-txt{position:fixed;top:calc(50% + 32px);left:50%;transform:translateX(-50%);font-size:14px;color:rgba(255,255,255,0.6)}
     </style>
     <meta property="og:title" content="Triviabees -AI, Play, Win, Earn shop and connect">
   <meta name="twitter:title" content="Triviabees -AI, Play, Win, Earn shop and connect">
@@ -62,67 +68,13 @@
     <!-- Main app entry - type="module" for tree-shaking -->
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Service Worker Registration - Safe & Minimal -->
+    <!-- Service Worker Registration - Deferred -->
     <script>
-      (function () {
-        const SW_VERSION = 'v8';
-
-        if (!('serviceWorker' in navigator)) return;
-
-        async function clearSwAndCaches() {
-          try {
-            const regs = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map((r) => r.unregister()));
-          } catch {
-            // ignore
-          }
-          try {
-            if (window.caches?.keys) {
-              const keys = await caches.keys();
-              await Promise.all(keys.map((k) => caches.delete(k)));
-            }
-          } catch {
-            // ignore
-          }
-        }
-
-        function stripParam(url, key) {
-          try {
-            const u = new URL(url);
-            u.searchParams.delete(key);
-            return u.pathname + (u.search ? u.search : '') + (u.hash ? u.hash : '');
-          } catch {
-            return url;
-          }
-        }
-
-        // Manual recovery switch: add ?nosw=1 to disable SW + clear caches, then reload clean URL.
-        try {
-          const u = new URL(window.location.href);
-          if (u.searchParams.get('nosw') === '1') {
-            clearSwAndCaches().finally(() => {
-              window.location.replace(stripParam(window.location.href, 'nosw'));
-            });
-            return;
-          }
-        } catch {
-          // ignore
-        }
-
-        window.addEventListener('load', () => {
-          navigator.serviceWorker
-            .register(`/sw.js?${SW_VERSION}`, { scope: '/' })
-            .then((reg) => reg.update?.())
-            .catch(() => {});
+      if('serviceWorker'in navigator){
+        window.addEventListener('load',()=>{
+          navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{});
         });
-
-        // Non-intrusive boot hint (avoids reload loops)
-        setTimeout(() => {
-          if ((window).__APP_BOOTED__) return;
-          const el = document.querySelector('.ld-txt');
-          if (el) el.textContent = 'Still loading… try refresh or add ?nosw=1';
-        }, 12000);
-      })();
+      }
     </script>
   </body>
 </html>

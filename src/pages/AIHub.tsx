@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo, lazy, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,39 +10,30 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAICredits } from '@/hooks/useAICredits';
+import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
+import CreditSourceDialog from '@/components/ai/CreditSourceDialog';
+import ContentCreator from '@/components/ai/ContentCreator';
+import { VideoEditor } from '@/components/ai/VideoEditor';
 import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp } from 'lucide-react';
+import WebsiteBuilder from '@/components/ai/WebsiteBuilder';
+import BusinessSolutions from '@/components/ai/BusinessSolutions';
+import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
+import AdvancedChatAssistant from '@/components/ai/AdvancedChatAssistant';
+import BinaryAffiliateTab from '@/components/ai/BinaryAffiliateTab';
+import AIHubGallery from '@/components/ai/AIHubGallery';
+import WebsiteScraper from '@/components/ai/WebsiteScraper';
+import CreatorAnalytics from '@/components/ai/CreatorAnalytics';
+import SocialMediaManager from '@/components/ai/SocialMediaManager';
+import AdsMaker from '@/components/ai/AdsMaker';
+import ContactUsAssistant from '@/components/ai/ContactUsAssistant';
+import AICreditsDisplay from '@/components/ai/AICreditsDisplay';
+import BlogContentMaker from '@/components/ai/BlogContentMaker';
+import MarketAnalysis from '@/components/ai/MarketAnalysis';
+import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
-// Lazy load ALL heavy components - critical for <2s load time
-const BuyAICreditsDialog = lazy(() => import('@/components/ai/BuyAICreditsDialog'));
-const CreditSourceDialog = lazy(() => import('@/components/ai/CreditSourceDialog'));
-const ContentCreator = lazy(() => import('@/components/ai/ContentCreator'));
-const VideoEditor = lazy(() => import('@/components/ai/VideoEditor').then(m => ({ default: m.VideoEditor })));
-const WebsiteBuilder = lazy(() => import('@/components/ai/WebsiteBuilder'));
-const BusinessSolutions = lazy(() => import('@/components/ai/BusinessSolutions'));
-const DeepResearchAssistant = lazy(() => import('@/components/ai/DeepResearchAssistant'));
-const AdvancedChatAssistant = lazy(() => import('@/components/ai/AdvancedChatAssistant'));
-const BinaryAffiliateTab = lazy(() => import('@/components/ai/BinaryAffiliateTab'));
-const AIHubGallery = lazy(() => import('@/components/ai/AIHubGallery'));
-const WebsiteScraper = lazy(() => import('@/components/ai/WebsiteScraper'));
-const CreatorAnalytics = lazy(() => import('@/components/ai/CreatorAnalytics'));
-const SocialMediaManager = lazy(() => import('@/components/ai/SocialMediaManager'));
-const AdsMaker = lazy(() => import('@/components/ai/AdsMaker'));
-const ContactUsAssistant = lazy(() => import('@/components/ai/ContactUsAssistant'));
-const AICreditsDisplay = lazy(() => import('@/components/ai/AICreditsDisplay'));
-const BlogContentMaker = lazy(() => import('@/components/ai/BlogContentMaker'));
-const MarketAnalysis = lazy(() => import('@/components/ai/MarketAnalysis'));
-const UnlockFeatureDialog = lazy(() => import('@/components/ai/UnlockFeatureDialog'));
-
-// Lightweight tab loading skeleton
-const TabLoader = memo(() => (
-  <div className="flex items-center justify-center p-8">
-    <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-  </div>
-));
 
 const AIHub = memo(() => {
   const { user, profile } = useAuth();
@@ -1143,9 +1134,7 @@ const AIHub = memo(() => {
 
         {/* Sidebar Footer - AI Credits Display */}
         <div className={cn("p-3 border-t border-border/50 space-y-3", !sidebarOpen && "md:hidden")}>
-          <Suspense fallback={<div className="h-12 bg-muted/20 rounded animate-pulse" />}>
-            <AICreditsDisplay />
-          </Suspense>
+          <AICreditsDisplay />
           <Button
             onClick={() => setShowBuyCredits(true)}
             variant="outline"
@@ -1254,62 +1243,52 @@ const AIHub = memo(() => {
         <div className="min-h-[calc(100vh-60px)] md:min-h-screen">
           {/* Home - Gallery Style Landing */}
           {activeTab === 'home' && (
-            <Suspense fallback={<TabLoader />}>
-              <AIHubGallery 
-                onNavigate={(tab, prompt) => {
-                  setActiveTab(tab === 'deep-research' ? 'research' : tab);
-                  if (prompt) {
-                    if (tab === 'text-to-video') {
-                      setVideoPrompt(prompt);
-                    } else if (tab === 'text-to-image') {
-                      setPrompt(prompt);
-                    } else if (tab === 'deep-research') {
-                      setInitialResearchQuery(prompt);
-                    }
+            <AIHubGallery 
+              onNavigate={(tab, prompt) => {
+                setActiveTab(tab === 'deep-research' ? 'research' : tab);
+                if (prompt) {
+                  if (tab === 'text-to-video') {
+                    setVideoPrompt(prompt);
+                  } else if (tab === 'text-to-image') {
+                    setPrompt(prompt);
+                  } else if (tab === 'deep-research') {
+                    setInitialResearchQuery(prompt);
                   }
-                }}
-                userCredits={userCredits}
-              />
-            </Suspense>
+                }
+              }}
+              userCredits={userCredits}
+            />
           )}
 
           {/* Binary Affiliate Tab */}
           {activeTab === 'affiliate' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6">
-                <BinaryAffiliateTab onBuyCredits={() => setShowBuyCredits(true)} />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6">
+              <BinaryAffiliateTab onBuyCredits={() => setShowBuyCredits(true)} />
+            </div>
           )}
 
           {/* Deep Research Assistant */}
           {activeTab === 'research' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6">
-                <DeepResearchAssistant 
-                  onCreateVideo={handleCreateVideoFromResearch} 
-                  initialQuery={initialResearchQuery}
-                />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6">
+              <DeepResearchAssistant 
+                onCreateVideo={handleCreateVideoFromResearch} 
+                initialQuery={initialResearchQuery}
+              />
+            </div>
           )}
 
           {/* GPT-5 Chat Assistant */}
           {activeTab === 'chat' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6">
-                <AdvancedChatAssistant />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6">
+              <AdvancedChatAssistant />
+            </div>
           )}
 
           {/* Business Solutions */}
           {activeTab === 'business' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6">
-                <BusinessSolutions userCredits={userCredits} onCreditsChange={fetchUserCredits} />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6">
+              <BusinessSolutions userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
           )}
 
           {/* Text to Image */}
@@ -2149,155 +2128,127 @@ const AIHub = memo(() => {
 
           {/* Website Scraper - Premium */}
           {activeTab === 'web-scraper' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6">
-                <WebsiteScraper userCredits={userCredits} onCreditsChange={fetchUserCredits} />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6">
+              <WebsiteScraper userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
           )}
 
           {/* Website Builder - Premium */}
           {activeTab === 'website-builder' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6">
-                <WebsiteBuilder userCredits={userCredits} onCreditsChange={fetchUserCredits} />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6">
+              <WebsiteBuilder userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
           )}
 
           {/* Creator Analytics - Premium */}
           {activeTab === 'creator-analytics' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6">
-                <CreatorAnalytics userCredits={userCredits} onCreditsChange={fetchUserCredits} />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6">
+              <CreatorAnalytics userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
           )}
 
           {/* Social Media Manager - Premium */}
           {activeTab === 'social-media' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6">
-                <SocialMediaManager userCredits={userCredits} onCreditsChange={fetchUserCredits} />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6">
+              <SocialMediaManager userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
           )}
 
           {/* AI Ads Maker - Premium (Paid Affiliates Only) */}
           {activeTab === 'ads-maker' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6">
-                <AdsMaker userCredits={userCredits} onCreditsChange={() => { fetchUserCredits(); refetchAICredits(); }} />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6">
+              <AdsMaker userCredits={userCredits} onCreditsChange={() => { fetchUserCredits(); refetchAICredits(); }} />
+            </div>
           )}
 
           {/* Blog Content Maker - Premium */}
           {activeTab === 'blog-maker' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6">
-                <BlogContentMaker userCredits={userCredits} onCreditsChange={() => { fetchUserCredits(); refetchAICredits(); }} />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6">
+              <BlogContentMaker userCredits={userCredits} onCreditsChange={() => { fetchUserCredits(); refetchAICredits(); }} />
+            </div>
           )}
 
           {/* Market Analysis - Premium */}
           {activeTab === 'market-analysis' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6">
-                <MarketAnalysis userCredits={userCredits} onCreditsChange={() => { fetchUserCredits(); refetchAICredits(); }} />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6">
+              <MarketAnalysis userCredits={userCredits} onCreditsChange={() => { fetchUserCredits(); refetchAICredits(); }} />
+            </div>
           )}
 
           {/* Contact Us - AI Assistant */}
           {activeTab === 'contact' && (
-            <Suspense fallback={<TabLoader />}>
-              <div className="p-4 md:p-6 h-[calc(100vh-120px)]">
-                <ContactUsAssistant />
-              </div>
-            </Suspense>
+            <div className="p-4 md:p-6 h-[calc(100vh-120px)]">
+              <ContactUsAssistant />
+            </div>
           )}
         </div>
       </main>
 
-      {/* Buy Credits Dialog - Lazy loaded */}
-      {showBuyCredits && (
-        <Suspense fallback={null}>
-          <BuyAICreditsDialog
-            open={showBuyCredits}
-            onOpenChange={setShowBuyCredits}
-            onPurchaseComplete={() => {
-              fetchUserCredits();
-              refetchAICredits();
-            }}
-          />
-        </Suspense>
-      )}
+      {/* Buy Credits Dialog */}
+      <BuyAICreditsDialog
+        open={showBuyCredits}
+        onOpenChange={setShowBuyCredits}
+        onPurchaseComplete={() => {
+          fetchUserCredits();
+          refetchAICredits();
+        }}
+      />
 
-      {/* Video Editor Dialog - Lazy loaded */}
-      {showVideoEditor && (
-        <Suspense fallback={null}>
-          <VideoEditor
-            open={showVideoEditor}
-            onOpenChange={setShowVideoEditor}
-            mediaUrl={editorMediaUrl}
-            mediaType={editorMediaType}
-            onExport={(url) => {
-              toast.success('Video exported successfully!');
-            }}
-          />
-        </Suspense>
-      )}
+      {/* Video Editor Dialog */}
+      <VideoEditor
+        open={showVideoEditor}
+        onOpenChange={setShowVideoEditor}
+        mediaUrl={editorMediaUrl}
+        mediaType={editorMediaType}
+        onExport={(url) => {
+          toast.success('Video exported successfully!');
+        }}
+      />
 
-      {/* Credit Source Selection Dialog - Lazy loaded */}
-      {pendingCreditAction && showCreditSourceDialog && (
-        <Suspense fallback={null}>
-          <CreditSourceDialog
-            open={showCreditSourceDialog}
-            onOpenChange={(open) => {
-              setShowCreditSourceDialog(open);
-              if (!open && pendingCreditAction) {
-                pendingCreditAction.callback('ai_credits');
-                setPendingCreditAction(null);
-              }
-            }}
-            onConfirm={(source) => {
-              if (pendingCreditAction) {
-                pendingCreditAction.callback(source);
-              }
-            }}
-            aiCreditsAvailable={
-              pendingCreditAction.type === 'image' 
-                ? aiCredits?.images_available || 0
-                : pendingCreditAction.type === 'video'
-                ? Number(aiCredits?.video_minutes_available || 0)
-                : pendingCreditAction.type === 'audio'
-                ? Number(aiCredits?.audio_minutes_available || 0)
-                : 0
+      {/* Credit Source Selection Dialog */}
+      {pendingCreditAction && (
+        <CreditSourceDialog
+          open={showCreditSourceDialog}
+          onOpenChange={(open) => {
+            setShowCreditSourceDialog(open);
+            if (!open && pendingCreditAction) {
+              pendingCreditAction.callback('ai_credits');
+              setPendingCreditAction(null);
             }
-            legacyCreditsAvailable={userCredits}
-            creditCost={pendingCreditAction.cost}
-            serviceType={pendingCreditAction.type}
-            serviceName={pendingCreditAction.serviceName}
-          />
-        </Suspense>
+          }}
+          onConfirm={(source) => {
+            if (pendingCreditAction) {
+              pendingCreditAction.callback(source);
+            }
+          }}
+          aiCreditsAvailable={
+            pendingCreditAction.type === 'image' 
+              ? aiCredits?.images_available || 0
+              : pendingCreditAction.type === 'video'
+              ? Number(aiCredits?.video_minutes_available || 0)
+              : pendingCreditAction.type === 'audio'
+              ? Number(aiCredits?.audio_minutes_available || 0)
+              : 0
+          }
+          legacyCreditsAvailable={userCredits}
+          creditCost={pendingCreditAction.cost}
+          serviceType={pendingCreditAction.type}
+          serviceName={pendingCreditAction.serviceName}
+        />
       )}
 
-      {/* Unlock Feature Dialog - Lazy loaded */}
-      {unlockFeatureInfo && showUnlockDialog && (
-        <Suspense fallback={null}>
-          <UnlockFeatureDialog
-            open={showUnlockDialog}
-            onOpenChange={setShowUnlockDialog}
-            featureName={unlockFeatureInfo.name}
-            featureDescription={unlockFeatureInfo.description}
-            unlockCost={unlockFeatureInfo.cost}
-            userCredits={userCredits}
-            onUnlock={handleFeatureUnlocked}
-            onBuyCredits={() => setShowBuyCredits(true)}
-          />
-        </Suspense>
+      {/* Unlock Feature Dialog */}
+      {unlockFeatureInfo && (
+        <UnlockFeatureDialog
+          open={showUnlockDialog}
+          onOpenChange={setShowUnlockDialog}
+          featureName={unlockFeatureInfo.name}
+          featureDescription={unlockFeatureInfo.description}
+          unlockCost={unlockFeatureInfo.cost}
+          userCredits={userCredits}
+          onUnlock={handleFeatureUnlocked}
+          onBuyCredits={() => setShowBuyCredits(true)}
+        />
       )}
     </div>
   );

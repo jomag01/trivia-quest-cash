@@ -125,52 +125,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    let mounted = true;
-    
-    // Check for existing session first - this is the critical path for fast load
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false); // Set loading false immediately for faster FCP
-      
-      // Defer profile loading to not block initial render
-      if (session?.user) {
-        // Use requestIdleCallback for non-critical profile fetch
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(() => {
-            if (mounted) {
-              fetchProfile(session.user.id);
-              fetchUserRole(session.user.id);
-            }
-          }, { timeout: 1000 });
-        } else {
-          setTimeout(() => {
-            if (mounted) {
-              fetchProfile(session.user.id);
-              fetchUserRole(session.user.id);
-            }
-          }, 100);
-        }
-      }
-    });
-
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (!mounted) return;
-        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Defer profile fetch
           setTimeout(() => {
-            if (mounted) {
-              fetchProfile(session.user.id);
-              fetchUserRole(session.user.id);
-            }
+            fetchProfile(session.user.id);
+            fetchUserRole(session.user.id);
           }, 0);
         } else {
           setProfile(null);
@@ -179,10 +143,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchProfile(session.user.id);
+        fetchUserRole(session.user.id);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
