@@ -102,13 +102,8 @@ export const UserAdCreation = () => {
   const { user } = useAuth();
   const [ads, setAds] = useState<UserAd[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [canCreateAds, setCanCreateAds] = useState(false);
-  const [requirements, setRequirements] = useState({
-    diamonds: 0,
-    referrals: 0,
-    stairStep: 0,
-  });
   const [currentStep, setCurrentStep] = useState(1);
+  const [userDiamonds, setUserDiamonds] = useState(0);
   
   // Form state - Basic Info
   const [title, setTitle] = useState("");
@@ -139,33 +134,21 @@ export const UserAdCreation = () => {
 
   useEffect(() => {
     if (user) {
-      checkRequirements();
+      fetchUserDiamonds();
       fetchUserAds();
     }
   }, [user]);
 
-  const checkRequirements = async () => {
+  const fetchUserDiamonds = async () => {
     try {
-      const { data, error } = await supabase.rpc('can_create_ads', {
-        user_id_param: user?.id
-      });
-
-      if (error) throw error;
-      setCanCreateAds(data === true);
-
-      const [walletResult, referralsResult, rankResult] = await Promise.all([
-        supabase.from("treasure_wallet").select("diamonds").eq("user_id", user?.id).single(),
-        supabase.from("referrals").select("id").eq("referrer_id", user?.id),
-        supabase.from("affiliate_current_rank").select("current_step").eq("user_id", user?.id).single()
-      ]);
-
-      setRequirements({
-        diamonds: walletResult.data?.diamonds || 0,
-        referrals: referralsResult.data?.length || 0,
-        stairStep: rankResult.data?.current_step || 0,
-      });
+      const { data } = await supabase
+        .from("treasure_wallet")
+        .select("diamonds")
+        .eq("user_id", user?.id)
+        .single();
+      setUserDiamonds(data?.diamonds || 0);
     } catch (error: any) {
-      console.error("Error checking requirements:", error);
+      console.error("Error fetching diamonds:", error);
     }
   };
 
@@ -185,11 +168,6 @@ export const UserAdCreation = () => {
   };
 
   const handleCreateAd = async () => {
-    if (!canCreateAds) {
-      toast.error("You don't meet the requirements to create ads");
-      return;
-    }
-
     if (!title || (!imageFile && !videoFile)) {
       toast.error("Please provide a title and either an image or video");
       return;
@@ -197,6 +175,11 @@ export const UserAdCreation = () => {
 
     if (budgetDiamonds < 10) {
       toast.error("Minimum budget is 10 diamonds");
+      return;
+    }
+
+    if (userDiamonds < budgetDiamonds) {
+      toast.error("Insufficient diamonds. Please purchase more diamonds.");
       return;
     }
 
@@ -221,7 +204,7 @@ export const UserAdCreation = () => {
         videoUrl = uploadData?.publicUrl || null;
       }
 
-      const { error: insertError } = await supabase.from("user_ads").insert({
+      const { data: adData, error: insertError } = await supabase.from("user_ads").insert({
         user_id: user?.id,
         title,
         description: description || null,
@@ -245,14 +228,32 @@ export const UserAdCreation = () => {
         budget_diamonds: budgetDiamonds,
         cost_per_view: costPerView,
         status: 'pending',
-      } as any);
+      } as any).select('id').single();
 
       if (insertError) throw insertError;
+
+      // Deduct diamonds from user's wallet
+      const { error: deductError } = await supabase
+        .from("treasure_wallet")
+        .update({ diamonds: userDiamonds - budgetDiamonds })
+        .eq("user_id", user?.id);
+
+      if (deductError) throw deductError;
+
+      // Distribute ad revenue to commission pools (admin profit, unilevel, stairstep, leadership)
+      if (adData?.id) {
+        await supabase.rpc('distribute_ad_revenue', {
+          p_ad_id: adData.id,
+          p_seller_id: user?.id,
+          p_total_amount: budgetDiamonds
+        });
+      }
 
       toast.success("Ad submitted for review! Admin will approve it shortly.");
       setDialogOpen(false);
       resetForm();
       fetchUserAds();
+      fetchUserDiamonds(); // Refresh diamond balance
     } catch (error: any) {
       toast.error(error.message || "Failed to create ad");
     } finally {
@@ -365,22 +366,17 @@ export const UserAdCreation = () => {
   return (
     <Card className="p-3 md:p-6">
       <div className="space-y-4 md:space-y-6">
-        {/* Requirements Card */}
-        <Card className="p-3 md:p-4 bg-muted/50">
-          <h3 className="font-semibold mb-2 text-sm md:text-base">Ad Creation Requirements</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4 text-xs md:text-sm">
+        {/* Diamond Balance Info */}
+        <Card className="p-3 md:p-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-200">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${requirements.diamonds >= 150 ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span>150+ Diamonds ({requirements.diamonds})</span>
+              <span className="text-2xl">💎</span>
+              <div>
+                <h3 className="font-semibold text-sm md:text-base">Your Diamond Balance</h3>
+                <p className="text-xs text-muted-foreground">Used to pay for ad campaigns</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${requirements.referrals >= 2 ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span>2+ Referrals ({requirements.referrals})</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${requirements.stairStep >= 2 ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span>Stair Step 2+ (Step {requirements.stairStep})</span>
-            </div>
+            <div className="text-xl font-bold text-amber-600">{userDiamonds.toLocaleString()}</div>
           </div>
         </Card>
 
@@ -389,7 +385,7 @@ export const UserAdCreation = () => {
           <h2 className="text-lg md:text-2xl font-bold">My Ad Campaigns</h2>
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
-              <Button disabled={!canCreateAds} size="sm" className="w-full sm:w-auto">
+              <Button size="sm" className="w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Campaign
               </Button>
