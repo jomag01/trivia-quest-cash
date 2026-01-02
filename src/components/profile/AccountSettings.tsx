@@ -26,6 +26,7 @@ import {
   X
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { PayoutAccountsSettings } from "./PayoutAccountsSettings";
 
 interface EmailChangeRequest {
   id: string;
@@ -454,6 +455,9 @@ export function AccountSettings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Payout Accounts Card */}
+      <PayoutAccountsSettings />
 
       {/* Email Change Dialog */}
       <Dialog open={showEmailChangeDialog} onOpenChange={setShowEmailChangeDialog}>
