@@ -138,7 +138,7 @@ const App = () => (
             <PurchaseNotification />
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                <Route path="/" element={<AIHub />} />
+                <Route path="/" element={<Home />} />
                 <Route path="/ai-hub" element={<AIHub />} />
                 <Route path="/feed" element={<Feed />} />
                 <Route path="/games" element={<Games />} />

@@ -14,11 +14,11 @@ const Navigation = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-background/95 backdrop-blur-lg border-t border-border shadow-lg pb-[env(safe-area-inset-bottom,0px)]" style={{ position: 'fixed' }}>
       <div className="flex items-center justify-around h-14 max-w-screen-xl mx-auto px-1">
-        {/* AI Hub (Home) */}
+        {/* AI Hub */}
         <Link
-          to="/"
+          to="/ai-hub"
           className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-2 ${
-            isActive("/") ? "text-primary" : "text-muted-foreground"
+            isActive("/ai-hub") ? "text-primary" : "text-muted-foreground"
           }`}
         >
           <Sparkles className="w-5 h-5" />
