@@ -14,10 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
-    <!-- Resource Hints: Prefetch critical routes -->
-    <link rel="prefetch" href="/game" as="document" />
-    <link rel="prefetch" href="/auth" as="document" />
-    
+    <!-- Resource Hints: Prefetch critical routes (disabled for reliability on slow mobile networks) -->
     <!-- PWA & Mobile -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#8B5CF6" />
@@ -65,15 +62,12 @@
     <!-- Main app entry - type="module" for tree-shaking -->
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Service Worker Registration - Deferred -->
+    <!-- Service Worker Registration - Safe & Minimal -->
     <script>
-      // Service worker safety:
-      // - cache-bust the SW script URL so updates propagate reliably on mobile networks
-      // - auto-reload when a new SW is installed
-      // - watchdog: if the app doesn't boot, unregister SW once and retry
-      // - manual bypass: /?nosw=1 forces SW removal + reload
       (function () {
-        const SW_VERSION = 'v7';
+        const SW_VERSION = 'v8';
+
+        if (!('serviceWorker' in navigator)) return;
 
         async function clearSwAndCaches() {
           try {
@@ -92,7 +86,7 @@
           }
         }
 
-        function stripQueryParam(url, key) {
+        function stripParam(url, key) {
           try {
             const u = new URL(url);
             u.searchParams.delete(key);
@@ -102,57 +96,32 @@
           }
         }
 
-        function bootWatchdog() {
-          setTimeout(async () => {
-            try {
-              // If React didn't boot after 12s but we are online, the SW/cache may be corrupted.
-              if (sessionStorage.getItem('sw_recovered') === '1') return;
-              if (!navigator.onLine) return;
-              if ((window).__APP_BOOTED__) return;
-
-              await clearSwAndCaches();
-
-              sessionStorage.setItem('sw_recovered', '1');
-              window.location.reload();
-            } catch {
-              // ignore
-            }
-          }, 12000);
-        }
-
-        if (!('serviceWorker' in navigator)) return;
-
-        // Manual recovery switch: add ?nosw=1 to the URL.
-        if (new URL(window.location.href).searchParams.get('nosw') === '1') {
-          clearSwAndCaches().finally(() => {
-            window.location.href = stripQueryParam(window.location.href, 'nosw');
-          });
-          return;
-        }
-
-        window.addEventListener('load', async () => {
-          try {
-            const reg = await navigator.serviceWorker.register(`/sw.js?${SW_VERSION}`, { scope: '/' });
-
-            // Try to pick up an updated SW ASAP
-            reg.update?.();
-
-            // Reload when a new worker takes control
-            reg.addEventListener('updatefound', () => {
-              const installing = reg.installing;
-              if (!installing) return;
-              installing.addEventListener('statechange', () => {
-                if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-                  window.location.reload();
-                }
-              });
+        // Manual recovery switch: add ?nosw=1 to disable SW + clear caches, then reload clean URL.
+        try {
+          const u = new URL(window.location.href);
+          if (u.searchParams.get('nosw') === '1') {
+            clearSwAndCaches().finally(() => {
+              window.location.replace(stripParam(window.location.href, 'nosw'));
             });
-
-            bootWatchdog();
-          } catch {
-            bootWatchdog();
+            return;
           }
+        } catch {
+          // ignore
+        }
+
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register(`/sw.js?${SW_VERSION}`, { scope: '/' })
+            .then((reg) => reg.update?.())
+            .catch(() => {});
         });
+
+        // Non-intrusive boot hint (avoids reload loops)
+        setTimeout(() => {
+          if ((window).__APP_BOOTED__) return;
+          const el = document.querySelector('.ld-txt');
+          if (el) el.textContent = 'Still loading… try refresh or add ?nosw=1';
+        }, 12000);
       })();
     </script>
   </body>

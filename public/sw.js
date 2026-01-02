@@ -1,238 +1,79 @@
-// Ultra-optimized Service Worker for 100M+ concurrent users
-// Features: Aggressive caching, stale-while-revalidate, offline support, request coalescing
+// Minimal, reliability-first Service Worker
+// Goal: keep the site loading reliably (especially on mobile), avoid stale bundle issues.
 
-const CACHE_VERSION = 'triviabees-v7';
+const CACHE_VERSION = 'triviabees-v8';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
-const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
-const API_CACHE = `${CACHE_VERSION}-api`;
-const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 
-// Max cache sizes to prevent storage exhaustion
-const MAX_DYNAMIC_CACHE_SIZE = 100;
-const MAX_API_CACHE_SIZE = 200;
-const MAX_IMAGE_CACHE_SIZE = 500;
-
-// Critical static assets to pre-cache
-const STATIC_ASSETS = [
-  '/',
+const PRECACHE_URLS = [
   '/fallback.html',
-  '/favicon.ico',
-  '/manifest.json',
-  '/install'
 ];
 
-// Request coalescing - prevent duplicate concurrent requests
-const pendingRequests = new Map();
-
-// Install: Pre-cache critical assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then(cache => cache.addAll(STATIC_ASSETS))
+    caches
+      .open(STATIC_CACHE)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
       .then(() => self.skipWaiting())
+      .catch(() => self.skipWaiting())
   );
 });
 
-// Activate: Clean old caches aggressively
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(keys => 
-      Promise.all(
-        keys
-          .filter(key => key.startsWith('triviabees-') && 
-                        key !== STATIC_CACHE && 
-                        key !== DYNAMIC_CACHE && 
-                        key !== API_CACHE &&
-                        key !== IMAGE_CACHE)
-          .map(key => caches.delete(key))
-      )
-    ).then(() => self.clients.claim())
+    (async () => {
+      try {
+        const keys = await caches.keys();
+        await Promise.all(
+          keys
+            .filter((k) => k.startsWith('triviabees-') && k !== STATIC_CACHE)
+            .map((k) => caches.delete(k))
+        );
+      } catch {
+        // ignore
+      }
+
+      await self.clients.claim();
+    })()
   );
 });
 
-// Fetch: Smart caching strategies with request coalescing
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  
-  // Skip non-GET and non-http(s) requests
+
+  // Only handle GET http(s)
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) return;
 
-  // Strategy 1: Stale-while-revalidate for static assets (JS, CSS, fonts)
-  // This prevents clients from getting stuck on an old bundle after deployments.
-  if (isStaticAsset(url)) {
-    event.respondWith(staleWhileRevalidateCoalesced(request, STATIC_CACHE));
-    return;
-  }
-
-  // Strategy 2: Optimized image caching with size limits
-  if (isImageAsset(url)) {
-    event.respondWith(cacheFirstWithLimit(request, IMAGE_CACHE, MAX_IMAGE_CACHE_SIZE));
-    return;
-  }
-
-  // Strategy 3: Never cache backend/API responses (user-specific data must be fresh)
-  // IMPORTANT: Do not synthesize "Offline" responses for API calls.
-  // If the network is flaky, returning a fake 503 body can break JSON parsing and make the app look "offline".
-  // Let the request fail naturally so the app can handle it properly.
-  if (isBackendRequest(url)) {
-    event.respondWith(fetch(request));
-    return;
-  }
-
-  // Strategy 4: Network-first for HTML pages
+  // For navigations (SPA routes), try network first; if offline, show fallback.
   if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(networkFirstWithFallback(request));
+    event.respondWith(
+      fetch(request).catch(async () => {
+        const cached = await caches.match('/fallback.html');
+        return (
+          cached ||
+          new Response('<!doctype html><html><body><h1>Offline</h1></body></html>', {
+            headers: { 'Content-Type': 'text/html' },
+          })
+        );
+      })
+    );
     return;
   }
 
-  // Default: Network with cache fallback
-  event.respondWith(networkWithCacheFallback(request, DYNAMIC_CACHE));
+  // Everything else: pass-through (no caching, no synthetic offline responses)
+  event.respondWith(fetch(request));
 });
 
-// Static asset detection (excluding images)
-function isStaticAsset(url) {
-  return /\.(js|css|woff2?|ttf|otf)$/i.test(url.pathname) ||
-         url.pathname.startsWith('/assets/') && !/\.(png|jpg|jpeg|gif|webp|avif|svg)$/i.test(url.pathname);
-}
-
-// Image asset detection
-function isImageAsset(url) {
-  return /\.(png|jpg|jpeg|gif|webp|avif|svg|ico)$/i.test(url.pathname);
-}
-
-// Backend request detection (Lovable Cloud API) - never cache
-function isBackendRequest(url) {
-  return url.pathname.includes('/rest/') ||
-         url.pathname.includes('/functions/') ||
-         url.pathname.includes('/auth/') ||
-         url.hostname.includes('supabase');
-}
-
-// Cache-first (static assets)
-async function cacheFirst(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-  
-  if (cached) return cached;
-  
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch (e) {
-    return new Response('Offline', { status: 503 });
-  }
-}
-
-// Cache-first with size limit (images)
-async function cacheFirstWithLimit(request, cacheName, maxSize) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-  
-  if (cached) return cached;
-  
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      // Check cache size and evict if needed
-      const keys = await cache.keys();
-      if (keys.length >= maxSize) {
-        // Remove oldest 20%
-        const toRemove = Math.ceil(keys.length * 0.2);
-        for (let i = 0; i < toRemove; i++) {
-          await cache.delete(keys[i]);
-        }
-      }
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch (e) {
-    return new Response('Offline', { status: 503 });
-  }
-}
-
-// Stale-while-revalidate with request coalescing (API calls)
-async function staleWhileRevalidateCoalesced(request, cacheName) {
-  const requestKey = request.url;
-  
-  // Check if there's already a pending request for this URL
-  if (pendingRequests.has(requestKey)) {
-    return pendingRequests.get(requestKey);
-  }
-  
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-  
-  // Create the fetch promise with coalescing
-  const fetchPromise = fetch(request).then(async response => {
-    pendingRequests.delete(requestKey);
-    if (response.ok) {
-      // Check cache size
-      const keys = await cache.keys();
-      if (keys.length >= MAX_API_CACHE_SIZE) {
-        const toRemove = Math.ceil(keys.length * 0.2);
-        for (let i = 0; i < toRemove; i++) {
-          await cache.delete(keys[i]);
-        }
-      }
-      cache.put(request, response.clone());
-    }
-    return response;
-  }).catch(e => {
-    pendingRequests.delete(requestKey);
-    return cached || new Response('Offline', { status: 503 });
-  });
-  
-  // Store pending request for coalescing
-  if (!cached) {
-    pendingRequests.set(requestKey, fetchPromise);
-  }
-  
-  // Return cached immediately if available
-  return cached || fetchPromise;
-}
-
-// Legacy function name for compatibility
-async function staleWhileRevalidate(request, cacheName) {
-  return staleWhileRevalidateCoalesced(request, cacheName);
-}
-
-// Network-first with fallback (HTML pages)
-async function networkFirstWithFallback(request) {
-  try {
-    return await fetch(request);
-  } catch (e) {
-    const fallback = await caches.match('/fallback.html');
-    return fallback || new Response(
-      '<!DOCTYPE html><html><body><h1>Offline</h1></body></html>',
-      { headers: { 'Content-Type': 'text/html' } }
-    );
-  }
-}
-
-// Network with cache fallback
-async function networkWithCacheFallback(request, cacheName) {
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch (e) {
-    return await caches.match(request) || new Response('Offline', { status: 503 });
-  }
-}
-
-// Push notifications (unchanged functionality)
+// Push notifications (keep existing functionality)
 self.addEventListener('push', (event) => {
   let data = { title: 'New Message', body: 'You have a new message', icon: '/favicon.ico' };
-  
+
   if (event.data) {
-    try { data = event.data.json(); } catch (e) {}
+    try {
+      data = event.data.json();
+    } catch {
+      // ignore
+    }
   }
 
   event.waitUntil(
@@ -249,7 +90,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
     self.clients.matchAll({ type: 'window' }).then((clients) => {
-      for (let c of clients) {
+      for (const c of clients) {
         if (c.url === '/' && 'focus' in c) return c.focus();
       }
       if (self.clients.openWindow) return self.clients.openWindow('/');
