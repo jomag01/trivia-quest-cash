@@ -61,7 +61,7 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent, Settings, Megaphone, Network, UserCheck, Bell } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent, Settings, Megaphone, Network, UserCheck, Bell, Wallet } from "lucide-react";
 import { POSSystem } from "@/components/admin/POSSystem";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
 import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
@@ -90,6 +90,7 @@ import SliderAdsManagement from "@/components/admin/SliderAdsManagement";
 import ListingFeaturesManagement from "@/components/admin/ListingFeaturesManagement";
 import CashDepositManagement from "@/components/admin/CashDepositManagement";
 import AdRevenueSettings from "@/components/admin/AdRevenueSettings";
+import PayoutAccountsManagement from "@/components/admin/PayoutAccountsManagement";
 
 interface MenuItem {
   id: string;
@@ -157,6 +158,7 @@ const Admin = () => {
         { id: "credits", label: "Credit Purchases", icon: CreditCard },
         { id: "ai-packages", label: "AI Package Purchases", icon: Sparkles },
         { id: "payouts", label: "Payout Requests", icon: DollarSign },
+        { id: "payout-accounts", label: "Payout Accounts", icon: Wallet },
         { id: "qr-payment", label: "QR Payment Settings", icon: CreditCard },
         { id: "cash-deposits", label: "Cash Deposit Requests", icon: DollarSign },
       ],
@@ -817,6 +819,7 @@ const Admin = () => {
           {activeTab === "ai-pricing" && <AIProviderPricing />}
           {activeTab === "qr-payment" && <QRPaymentSettings />}
           {activeTab === "cash-deposits" && <CashDepositManagement />}
+          {activeTab === "payout-accounts" && <PayoutAccountsManagement />}
           {activeTab === "member-activation" && <MemberActivationManagement />}
           {activeTab === "binary-system" && <BinarySystemManagement />}
           {activeTab === "binary-accounting" && <BinaryAccountingDashboard />}

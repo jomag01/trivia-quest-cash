@@ -252,17 +252,17 @@ export default function AIProductRecommendations({
   if (recommendations.length === 0) return null;
 
   return (
-    <Card className="p-4 bg-gradient-to-r from-primary/5 via-background to-accent/5 border-primary/20 overflow-hidden">
-      {/* Header */}
+    <Card className="p-4 bg-gradient-to-r from-amber-500/10 via-background to-orange-500/10 border-amber-500/30 overflow-hidden">
+      {/* Header with Bee Theme */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-full bg-primary/20">
-            <Sparkles className="w-4 h-4 text-primary" />
+          <div className="p-1.5 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 animate-wiggle">
+            <span className="text-lg">🐝</span>
           </div>
           <div>
             <h3 className="font-semibold text-sm flex items-center gap-1">
-              AI Picks For You
-              <Badge variant="secondary" className="text-[10px] ml-1">Beta</Badge>
+              <span className="text-amber-600">Bee</span> AI Picks
+              <Badge variant="secondary" className="text-[10px] ml-1 bg-amber-500/20 text-amber-600">🍯 Beta</Badge>
             </h3>
             <p className="text-xs text-muted-foreground line-clamp-1">{aiReason}</p>
           </div>
