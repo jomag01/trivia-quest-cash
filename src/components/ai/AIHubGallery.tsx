@@ -6,6 +6,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, Plus, Mic, ArrowUp, Sparkles, Clock, Film, ImageIcon, Crown, Search, ShoppingCart, DollarSign, Cpu } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import FlyingBees from './FlyingBees';
 
 // Import bee-themed images
 import beeWorkingHive from '@/assets/bee-working-hive.png';
@@ -102,37 +103,59 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
 
   return (
     <div ref={galleryRef} className="relative min-h-screen pb-32 beehive-bg">
-      {/* Hero Section with TriviaBees branding */}
-      <div className="relative px-4 py-6 md:py-10 overflow-hidden">
+      {/* Hero Section with TriviaBees branding and Flying Bees */}
+      <div className="relative px-4 py-8 md:py-14 overflow-hidden min-h-[280px] md:min-h-[320px]">
         {/* Animated honeycomb background */}
-        <div className="absolute inset-0 honeycomb-pattern opacity-20" />
+        <div className="absolute inset-0 honeycomb-pattern opacity-30" />
+        
+        {/* Flying Bees Animation */}
+        <FlyingBees />
         
         <div className="relative z-10 max-w-4xl mx-auto text-center space-y-4">
-          <div className="flex items-center justify-center gap-3 animate-float">
-            <span className="text-4xl md:text-5xl">🐝</span>
-            <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent">
-              TriviaBees AI Hub
-            </h1>
-            <span className="text-4xl md:text-5xl">🍯</span>
+          {/* Animated Bee Mascot */}
+          <div className="flex items-center justify-center gap-3">
+            <div className="animate-bounce" style={{ animationDelay: '0.1s' }}>
+              <span className="text-4xl md:text-6xl drop-shadow-lg">🐝</span>
+            </div>
+            <div className="animate-float">
+              <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent drop-shadow-sm">
+                TriviaBees AI Hub
+              </h1>
+            </div>
+            <div className="animate-bounce" style={{ animationDelay: '0.3s' }}>
+              <span className="text-4xl md:text-6xl drop-shadow-lg">🍯</span>
+            </div>
           </div>
-          <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
+          
+          <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto relative z-10">
             Create stunning AI images, videos, and more. Join our hive of creators earning while they create!
           </p>
           
-          {/* Feature highlights */}
-          <div className="flex flex-wrap justify-center gap-2 md:gap-3 pt-2">
-            <Badge variant="secondary" className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1.5 py-1.5 px-3">
-              <ShoppingCart className="h-3.5 w-3.5" />
-              Shop & Earn
+          {/* Bee-themed Feature highlights */}
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3 pt-3">
+            <Badge variant="secondary" className="bg-amber-500/30 text-amber-700 dark:text-amber-300 border-amber-500/40 gap-1.5 py-2 px-4 shadow-lg shadow-amber-500/10 backdrop-blur-sm">
+              <span className="text-base">🏗️</span>
+              Working Bees
             </Badge>
-            <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30 gap-1.5 py-1.5 px-3">
-              <DollarSign className="h-3.5 w-3.5" />
-              Affiliate Rewards
+            <Badge variant="secondary" className="bg-green-500/30 text-green-700 dark:text-green-300 border-green-500/40 gap-1.5 py-2 px-4 shadow-lg shadow-green-500/10 backdrop-blur-sm">
+              <span className="text-base">💰</span>
+              Earning Honey
             </Badge>
-            <Badge variant="secondary" className="bg-purple-500/20 text-purple-700 dark:text-purple-400 border-purple-500/30 gap-1.5 py-1.5 px-3">
-              <Sparkles className="h-3.5 w-3.5" />
-              AI Powered
+            <Badge variant="secondary" className="bg-purple-500/30 text-purple-700 dark:text-purple-300 border-purple-500/40 gap-1.5 py-2 px-4 shadow-lg shadow-purple-500/10 backdrop-blur-sm">
+              <span className="text-base">🛒</span>
+              Bee Shopping
             </Badge>
+          </div>
+          
+          {/* Animated honeycomb separator */}
+          <div className="flex justify-center gap-2 pt-2">
+            {[...Array(5)].map((_, i) => (
+              <div 
+                key={i}
+                className="w-3 h-3 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 animate-pulse"
+                style={{ animationDelay: `${i * 0.2}s` }}
+              />
+            ))}
           </div>
         </div>
       </div>
