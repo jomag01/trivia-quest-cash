@@ -67,11 +67,93 @@
     
     <!-- Service Worker Registration - Deferred -->
     <script>
-      if('serviceWorker'in navigator){
-        window.addEventListener('load',()=>{
-          navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{});
+      // Service worker safety:
+      // - cache-bust the SW script URL so updates propagate reliably on mobile networks
+      // - auto-reload when a new SW is installed
+      // - watchdog: if the app doesn't boot, unregister SW once and retry
+      // - manual bypass: /?nosw=1 forces SW removal + reload
+      (function () {
+        const SW_VERSION = 'v7';
+
+        async function clearSwAndCaches() {
+          try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map((r) => r.unregister()));
+          } catch {
+            // ignore
+          }
+          try {
+            if (window.caches?.keys) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((k) => caches.delete(k)));
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        function stripQueryParam(url, key) {
+          try {
+            const u = new URL(url);
+            u.searchParams.delete(key);
+            return u.pathname + (u.search ? u.search : '') + (u.hash ? u.hash : '');
+          } catch {
+            return url;
+          }
+        }
+
+        function bootWatchdog() {
+          setTimeout(async () => {
+            try {
+              // If React didn't boot after 12s but we are online, the SW/cache may be corrupted.
+              if (sessionStorage.getItem('sw_recovered') === '1') return;
+              if (!navigator.onLine) return;
+              if ((window).__APP_BOOTED__) return;
+
+              await clearSwAndCaches();
+
+              sessionStorage.setItem('sw_recovered', '1');
+              window.location.reload();
+            } catch {
+              // ignore
+            }
+          }, 12000);
+        }
+
+        if (!('serviceWorker' in navigator)) return;
+
+        // Manual recovery switch: add ?nosw=1 to the URL.
+        if (new URL(window.location.href).searchParams.get('nosw') === '1') {
+          clearSwAndCaches().finally(() => {
+            window.location.href = stripQueryParam(window.location.href, 'nosw');
+          });
+          return;
+        }
+
+        window.addEventListener('load', async () => {
+          try {
+            const reg = await navigator.serviceWorker.register(`/sw.js?${SW_VERSION}`, { scope: '/' });
+
+            // Try to pick up an updated SW ASAP
+            reg.update?.();
+
+            // Reload when a new worker takes control
+            reg.addEventListener('updatefound', () => {
+              const installing = reg.installing;
+              if (!installing) return;
+              installing.addEventListener('statechange', () => {
+                if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                  window.location.reload();
+                }
+              });
+            });
+
+            bootWatchdog();
+          } catch {
+            bootWatchdog();
+          }
         });
-      }
+      })();
     </script>
   </body>
 </html>
