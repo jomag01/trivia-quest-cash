@@ -143,35 +143,45 @@ export const CustomerSupportChat = () => {
 
   return (
     <>
-      {/* Floating Chat Button - Bee Icon */}
+      {/* Floating Chat Button - Animated Bee Icon */}
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-gradient-to-br from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 border-2 border-amber-300"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl z-50 bg-gradient-to-br from-amber-400 via-yellow-400 to-amber-600 hover:from-amber-500 hover:via-yellow-500 hover:to-amber-700 border-2 border-amber-300 animate-bounce-slow group overflow-hidden"
           size="icon"
         >
-          <span className="text-2xl">🐝</span>
+          <div className="relative">
+            <span className="text-2xl group-hover:scale-110 transition-transform duration-200 inline-block animate-wiggle">🐝</span>
+            {/* Sparkle effect */}
+            <span className="absolute -top-1 -right-1 text-xs animate-pulse">✨</span>
+          </div>
         </Button>
       )}
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className={`fixed shadow-2xl z-50 flex flex-col ${
+        <Card className={`fixed shadow-2xl z-50 flex flex-col border-2 border-amber-500/30 overflow-hidden ${
           isMobile 
             ? "inset-2 sm:inset-4 w-auto h-auto max-h-[90vh]" 
             : "bottom-6 right-6 w-full max-w-md h-[600px] max-h-[80vh]"
         }`}>
-          {/* Header */}
-          <div className="flex items-center justify-between p-3 sm:p-4 border-b bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-t-lg shrink-0">
+          {/* Header with Bee Theme */}
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-white rounded-t-lg shrink-0">
             <div className="flex items-center gap-2">
-              <span className="text-lg sm:text-xl">🐝</span>
-              <h3 className="font-semibold text-sm sm:text-base">AI Bee Assistant</h3>
+              <div className="relative">
+                <span className="text-lg sm:text-xl animate-wiggle inline-block">🐝</span>
+                <span className="absolute -top-1 -right-1 text-[8px] animate-pulse">✨</span>
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm sm:text-base">AI Bee Assistant</h3>
+                <p className="text-[10px] opacity-80">Buzz! Ready to help 🍯</p>
+              </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(false)}
-              className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20 hover:text-primary-foreground"
+              className="h-8 w-8 text-white hover:bg-white/20 hover:text-white"
               aria-label="Close chat"
             >
               <X className="h-5 w-5" />
@@ -237,22 +247,22 @@ export const CustomerSupportChat = () => {
             </div>
           </div>
 
-          {/* Input */}
-          <div className="p-3 sm:p-4 border-t shrink-0">
+          {/* Input with Bee Theme */}
+          <div className="p-3 sm:p-4 border-t border-amber-500/20 bg-gradient-to-r from-amber-50/50 to-yellow-50/50 dark:from-amber-950/50 dark:to-yellow-950/50 shrink-0">
             <div className="flex gap-2">
               <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
+                placeholder="🐝 Ask me anything..."
                 disabled={isLoading}
-                className="flex-1 text-sm"
+                className="flex-1 text-sm border-amber-500/30 focus:border-amber-500"
               />
               <Button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || isLoading}
                 size="icon"
-                className="shrink-0"
+                className="shrink-0 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
                 aria-label="Send message"
               >
                 <Send className="h-4 w-4" />

@@ -940,42 +940,87 @@ const AIHub = memo(() => {
   // Login required wall for non-authenticated users
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-border/50 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 p-4 rounded-full bg-primary/10">
-              <Sparkles className="h-8 w-8 text-primary" />
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden beehive-bg">
+        {/* Animated Honeycomb Background */}
+        <div className="absolute inset-0 honeycomb-pattern opacity-40" />
+        
+        {/* Flying Bees Animation */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(8)].map((_, i) => (
+            <div 
+              key={i}
+              className="absolute animate-float text-2xl md:text-4xl"
+              style={{
+                left: `${10 + Math.random() * 80}%`,
+                top: `${10 + Math.random() * 80}%`,
+                animationDelay: `${i * 0.5}s`,
+                animationDuration: `${3 + Math.random() * 2}s`
+              }}
+            >
+              🐝
             </div>
-            <CardTitle className="text-2xl">Welcome to AI Hub</CardTitle>
+          ))}
+          {/* Honey drops */}
+          {[...Array(5)].map((_, i) => (
+            <div 
+              key={`honey-${i}`}
+              className="absolute animate-bounce text-xl"
+              style={{
+                left: `${20 + Math.random() * 60}%`,
+                top: `${20 + Math.random() * 60}%`,
+                animationDelay: `${i * 0.7}s`,
+              }}
+            >
+              🍯
+            </div>
+          ))}
+        </div>
+        
+        <Card className="max-w-md w-full relative z-10 bg-gradient-to-br from-amber-50/95 via-orange-50/90 to-yellow-50/95 dark:from-amber-950/95 dark:via-orange-950/90 dark:to-yellow-950/95 backdrop-blur-xl border-2 border-amber-500/30 shadow-2xl shadow-amber-500/20">
+          <CardHeader className="text-center">
+            {/* Animated Bee Icons */}
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <span className="text-5xl animate-bounce" style={{ animationDelay: '0.1s' }}>🐝</span>
+              <div className="p-4 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-2 border-amber-500/30">
+                <Sparkles className="h-8 w-8 text-amber-500" />
+              </div>
+              <span className="text-5xl animate-bounce" style={{ animationDelay: '0.3s' }}>🐝</span>
+            </div>
+            <CardTitle className="text-2xl bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-500 bg-clip-text text-transparent">
+              Welcome to AI Hub
+            </CardTitle>
             <CardDescription>
-              Create stunning images, videos, and music with AI. Login or sign up to get started.
+              🍯 Create stunning images, videos, and music with AI. Buzz into your account to get started!
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                <ImageIcon className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
+                <span className="text-lg">🖼️</span>
                 <span>{freeImageLimit} free image generations</span>
               </div>
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                <VideoIcon className="h-4 w-4 text-purple-500" />
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                <span className="text-lg">🎬</span>
                 <span>AI video creation</span>
               </div>
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                <Music className="h-4 w-4 text-pink-500" />
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20">
+                <span className="text-lg">🎵</span>
                 <span>AI music generation</span>
               </div>
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                <Film className="h-4 w-4 text-orange-500" />
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+                <span className="text-lg">🎥</span>
                 <span>Full content creator pipeline</span>
               </div>
             </div>
             <div className="pt-4 space-y-2">
-              <Button className="w-full" asChild>
-                <a href="/auth">Login to Get Started</a>
+              <Button 
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg shadow-amber-500/25" 
+                asChild
+              >
+                <a href="/auth">🐝 Login to Get Started</a>
               </Button>
               <p className="text-xs text-center text-muted-foreground">
-                Don't have an account? <a href="/auth" className="text-primary underline">Sign up</a>
+                Don't have an account? <a href="/auth" className="text-amber-600 hover:text-amber-700 underline font-medium">Sign up</a>
               </p>
             </div>
           </CardContent>
