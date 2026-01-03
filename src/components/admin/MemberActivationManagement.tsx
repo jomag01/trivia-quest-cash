@@ -12,7 +12,6 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
-  Star,
   Gem,
   Users,
   GitBranch,
@@ -21,17 +20,10 @@ import {
   Sparkles,
   Lock,
   Unlock,
-  Store
+  Store,
+  Star
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TabVisibilityManager } from './TabVisibilityManager';
@@ -77,7 +69,6 @@ export default function MemberActivationManagement() {
 
     setLoading(true);
     try {
-      // Search profiles by email or name
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('id, email, full_name, is_verified, is_paid_affiliate, ai_features_unlocked, marketplace_activated, diamonds, referral_code, created_at')
@@ -92,7 +83,6 @@ export default function MemberActivationManagement() {
         return;
       }
 
-      // Get referral counts for each user
       const userIds = profiles.map(p => p.id);
       
       const { data: referralCounts } = await supabase
@@ -107,7 +97,6 @@ export default function MemberActivationManagement() {
         }
       });
 
-      // Get affiliate ranks
       const { data: affiliateRanks } = await supabase
         .from('affiliate_current_rank')
         .select('user_id, current_step, is_fixed, admin_activated')
@@ -115,7 +104,6 @@ export default function MemberActivationManagement() {
 
       const affiliateMap = new Map(affiliateRanks?.map(a => [a.user_id, a]) || []);
 
-      // Get binary network status
       const { data: binaryStatus } = await supabase
         .from('binary_network')
         .select('id, user_id, admin_activated, has_deferred_payment, deferred_amount')
@@ -152,7 +140,6 @@ export default function MemberActivationManagement() {
     
     setActivating(userId);
     try {
-      // First, update profile is_paid_affiliate - this is critical
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ is_paid_affiliate: true })
@@ -165,7 +152,6 @@ export default function MemberActivationManagement() {
         return;
       }
 
-      // Check if affiliate_current_rank exists
       const { data: existing } = await supabase
         .from('affiliate_current_rank')
         .select('user_id')
@@ -173,7 +159,6 @@ export default function MemberActivationManagement() {
         .maybeSingle();
 
       if (existing) {
-        // Update existing record
         const { error } = await supabase
           .from('affiliate_current_rank')
           .update({
@@ -186,7 +171,6 @@ export default function MemberActivationManagement() {
 
         if (error) throw error;
       } else {
-        // Create new record
         const { error } = await supabase
           .from('affiliate_current_rank')
           .insert({
@@ -203,7 +187,7 @@ export default function MemberActivationManagement() {
       }
 
       toast.success('User activated as verified affiliate!');
-      handleSearch(); // Refresh results
+      handleSearch();
     } catch (error) {
       console.error('Activation error:', error);
       toast.error('Failed to activate user');
@@ -217,7 +201,6 @@ export default function MemberActivationManagement() {
     
     setActivating(userId);
     try {
-      // Check if user already in binary network
       const { data: existing } = await supabase
         .from('binary_network')
         .select('id')
@@ -225,7 +208,6 @@ export default function MemberActivationManagement() {
         .maybeSingle();
 
       if (existing) {
-        // Update to admin activated with deferred payment
         const { error } = await supabase
           .from('binary_network')
           .update({
@@ -240,7 +222,6 @@ export default function MemberActivationManagement() {
 
         if (error) throw error;
       } else {
-        // Create new binary network entry with deferred payment
         const { error } = await supabase
           .from('binary_network')
           .insert({
@@ -262,7 +243,7 @@ export default function MemberActivationManagement() {
       }
 
       toast.success(`User added to binary network with ₱${deferredAmount.toLocaleString()} deferred payment`);
-      handleSearch(); // Refresh results
+      handleSearch();
     } catch (error) {
       console.error('Binary activation error:', error);
       toast.error('Failed to add user to binary network');
@@ -282,7 +263,7 @@ export default function MemberActivationManagement() {
       if (error) throw error;
 
       toast.success(currentStatus ? 'AI features locked for user' : 'AI features unlocked for user');
-      handleSearch(); // Refresh results
+      handleSearch();
     } catch (error) {
       console.error('AI features toggle error:', error);
       toast.error('Failed to toggle AI features');
@@ -302,7 +283,7 @@ export default function MemberActivationManagement() {
       if (error) throw error;
 
       toast.success(currentStatus ? 'Marketplace access revoked' : 'Marketplace access granted');
-      handleSearch(); // Refresh results
+      handleSearch();
     } catch (error) {
       console.error('Marketplace toggle error:', error);
       toast.error('Failed to toggle marketplace access');
@@ -317,241 +298,212 @@ export default function MemberActivationManagement() {
     return { hasDiamonds, hasReferrals, meetsRequirements: hasDiamonds && hasReferrals };
   };
 
+  const MemberCard = ({ result }: { result: SearchResult }) => {
+    const reqs = getAffiliateRequirements(result);
+    const isActivating = activating === result.id;
+    
+    return (
+      <Card className="border border-border/50 bg-gradient-to-br from-card to-muted/20 overflow-hidden">
+        {/* User Header */}
+        <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 p-3 border-b border-border/30">
+          <p className="font-semibold text-sm truncate">{result.full_name || 'No Name'}</p>
+          <p className="text-xs text-muted-foreground truncate">{result.email}</p>
+          <p className="text-[10px] text-muted-foreground/70 font-mono">Code: {result.referral_code}</p>
+        </div>
+        
+        {/* Status Grid */}
+        <div className="p-3 space-y-3">
+          {/* Requirements Row */}
+          <div className="flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-1">
+              <Gem className="h-3 w-3 text-cyan-500" />
+              <span>{result.diamonds}</span>
+              {reqs.hasDiamonds ? (
+                <CheckCircle className="h-3 w-3 text-green-500" />
+              ) : (
+                <XCircle className="h-3 w-3 text-destructive" />
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <Users className="h-3 w-3 text-blue-500" />
+              <span>{result.referral_count}</span>
+              {reqs.hasReferrals ? (
+                <CheckCircle className="h-3 w-3 text-green-500" />
+              ) : (
+                <XCircle className="h-3 w-3 text-destructive" />
+              )}
+            </div>
+          </div>
+          
+          {/* Status Badges */}
+          <div className="flex flex-wrap gap-1.5">
+            {result.ai_features_unlocked || result.is_paid_affiliate ? (
+              <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] px-1.5 py-0.5">
+                <Sparkles className="h-2.5 w-2.5 mr-0.5" />
+                AI
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 text-muted-foreground">
+                <Lock className="h-2.5 w-2.5 mr-0.5" />
+                AI
+              </Badge>
+            )}
+            
+            {result.marketplace_activated || reqs.meetsRequirements ? (
+              <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] px-1.5 py-0.5">
+                <Store className="h-2.5 w-2.5 mr-0.5" />
+                Market
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 text-muted-foreground">
+                <Lock className="h-2.5 w-2.5 mr-0.5" />
+                Market
+              </Badge>
+            )}
+            
+            {result.affiliate_status?.is_fixed || result.affiliate_status?.admin_activated ? (
+              <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-[10px] px-1.5 py-0.5">
+                <Star className="h-2.5 w-2.5 mr-0.5" />
+                Affiliate
+              </Badge>
+            ) : result.affiliate_status ? (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                Step {result.affiliate_status.current_step}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 text-muted-foreground">
+                No Affiliate
+              </Badge>
+            )}
+            
+            {result.binary_status ? (
+              <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-[10px] px-1.5 py-0.5">
+                <GitBranch className="h-2.5 w-2.5 mr-0.5" />
+                Binary
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 text-muted-foreground">
+                No Binary
+              </Badge>
+            )}
+          </div>
+          
+          {result.binary_status?.has_deferred_payment && (
+            <p className="text-[10px] text-amber-600 font-medium">
+              Owes: ₱{(result.binary_status.deferred_amount || 0).toLocaleString()}
+            </p>
+          )}
+        </div>
+        
+        {/* Actions */}
+        <div className="p-2 border-t border-border/30 bg-muted/20">
+          <div className="grid grid-cols-2 gap-1.5">
+            {!(result.affiliate_status?.is_fixed || result.affiliate_status?.admin_activated) && (
+              <Button
+                size="sm"
+                onClick={() => handleActivateAffiliate(result.id)}
+                disabled={isActivating}
+                className="h-7 text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+              >
+                {isActivating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Shield className="h-3 w-3 mr-1" />}
+                Affiliate
+              </Button>
+            )}
+            
+            {!result.binary_status && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleAddToBinaryWithDeferred(result.id)}
+                disabled={isActivating}
+                className="h-7 text-[10px] border-blue-400 text-blue-600 hover:bg-blue-50"
+              >
+                {isActivating ? <Loader2 className="h-3 w-3 animate-spin" /> : <GitBranch className="h-3 w-3 mr-1" />}
+                Binary
+              </Button>
+            )}
+            
+            <Button
+              size="sm"
+              variant={result.ai_features_unlocked ? "destructive" : "default"}
+              onClick={() => handleToggleAIFeatures(result.id, result.ai_features_unlocked)}
+              disabled={isActivating}
+              className={`h-7 text-[10px] ${!result.ai_features_unlocked ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600" : ""}`}
+            >
+              {isActivating ? <Loader2 className="h-3 w-3 animate-spin" /> : result.ai_features_unlocked ? <Lock className="h-3 w-3 mr-1" /> : <Unlock className="h-3 w-3 mr-1" />}
+              {result.ai_features_unlocked ? 'Lock AI' : 'AI'}
+            </Button>
+            
+            <Button
+              size="sm"
+              variant={result.marketplace_activated ? "destructive" : "outline"}
+              onClick={() => handleToggleMarketplace(result.id, result.marketplace_activated)}
+              disabled={isActivating}
+              className={`h-7 text-[10px] ${!result.marketplace_activated ? "border-amber-400 text-amber-600 hover:bg-amber-50" : ""}`}
+            >
+              {isActivating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Store className="h-3 w-3 mr-1" />}
+              {result.marketplace_activated ? 'Revoke' : 'Market'}
+            </Button>
+            
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setTabVisibilityUser({ id: result.id, name: result.full_name || result.email })}
+              className="h-7 text-[10px] col-span-2"
+            >
+              <EyeOff className="h-3 w-3 mr-1" />
+              Manage Tabs
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
   return (
-    <div className="space-y-6">
-      <Card className="border-primary/20">
-        <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
-          <CardTitle className="flex items-center gap-2">
-            <UserCheck className="h-5 w-5 text-primary" />
-            Member Activation Management
+    <div className="h-full flex flex-col">
+      <Card className="border-primary/20 flex-1 flex flex-col overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 py-3 px-4 shrink-0">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <UserCheck className="h-4 w-4 text-primary" />
+            Member Activation
           </CardTitle>
-          <CardDescription>
-            Search and manually activate members as verified affiliates or add to binary network
+          <CardDescription className="text-xs">
+            Activate members as affiliates or add to binary network
           </CardDescription>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1">
-              <Input
-                placeholder="Search by email, name, or referral code..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-            <Button onClick={handleSearch} disabled={loading}>
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Search className="h-4 w-4 mr-2" />
-              )}
-              Search
+        
+        <CardContent className="flex-1 flex flex-col overflow-hidden p-3">
+          {/* Search Bar */}
+          <div className="flex gap-2 mb-3 shrink-0">
+            <Input
+              placeholder="Email, name, or code..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="h-9 text-sm"
+            />
+            <Button onClick={handleSearch} disabled={loading} size="sm" className="h-9 px-3 shrink-0">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span className="ml-1 hidden sm:inline">Search</span>
             </Button>
           </div>
 
-          {results.length > 0 && (
-            <ScrollArea className="h-[500px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Requirements</TableHead>
-                    <TableHead>AI Features</TableHead>
-                    <TableHead>Marketplace</TableHead>
-                    <TableHead>Affiliate Status</TableHead>
-                    <TableHead>Binary Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {results.map((result) => {
-                    const reqs = getAffiliateRequirements(result);
-                    return (
-                      <TableRow key={result.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{result.full_name || 'No Name'}</p>
-                            <p className="text-sm text-muted-foreground">{result.email}</p>
-                            <p className="text-xs text-muted-foreground">Code: {result.referral_code}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <Gem className="h-3 w-3" />
-                              <span className="text-sm">{result.diamonds} diamonds</span>
-                              {reqs.hasDiamonds ? (
-                                <CheckCircle className="h-3 w-3 text-green-500" />
-                              ) : (
-                                <XCircle className="h-3 w-3 text-destructive" />
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Users className="h-3 w-3" />
-                              <span className="text-sm">{result.referral_count} referrals</span>
-                              {reqs.hasReferrals ? (
-                                <CheckCircle className="h-3 w-3 text-green-500" />
-                              ) : (
-                                <XCircle className="h-3 w-3 text-destructive" />
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {result.ai_features_unlocked || result.is_paid_affiliate ? (
-                              <Badge className="bg-gradient-to-r from-purple-500 to-pink-500">
-                                <Sparkles className="h-3 w-3 mr-1" />
-                                Unlocked
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-muted-foreground">
-                                <Lock className="h-3 w-3 mr-1" />
-                                Locked
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            {result.marketplace_activated || (reqs.meetsRequirements) ? (
-                              <Badge className="bg-gradient-to-r from-amber-500 to-orange-500">
-                                <Store className="h-3 w-3 mr-1" />
-                                Active
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-muted-foreground">
-                                <Lock className="h-3 w-3 mr-1" />
-                                Locked
-                              </Badge>
-                            )}
-                            {result.marketplace_activated && (
-                              <Badge variant="outline" className="text-xs">Admin Override</Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {result.affiliate_status?.is_fixed || result.affiliate_status?.admin_activated ? (
-                            <Badge className="bg-green-500">
-                              <Star className="h-3 w-3 mr-1" />
-                              Fixed Affiliate
-                            </Badge>
-                          ) : result.affiliate_status ? (
-                            <Badge variant="secondary">Step {result.affiliate_status.current_step}</Badge>
-                          ) : (
-                            <Badge variant="outline">Not Started</Badge>
-                          )}
-                          {result.affiliate_status?.admin_activated && (
-                            <Badge variant="outline" className="ml-1 text-xs">Admin</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {result.binary_status ? (
-                            <div className="space-y-1">
-                              <Badge className="bg-primary">
-                                <GitBranch className="h-3 w-3 mr-1" />
-                                In Network
-                              </Badge>
-                              {result.binary_status.has_deferred_payment && (
-                                <div className="text-xs text-amber-600">
-                                  Owes: ₱{(result.binary_status.deferred_amount || 0).toLocaleString()}
-                                </div>
-                              )}
-                              {result.binary_status.admin_activated && (
-                                <Badge variant="outline" className="text-xs">Admin Added</Badge>
-                              )}
-                            </div>
-                          ) : (
-                            <Badge variant="outline">Not in Binary</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-2">
-                            {!(result.affiliate_status?.is_fixed || result.affiliate_status?.admin_activated) && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleActivateAffiliate(result.id)}
-                                disabled={activating === result.id}
-                                className="bg-gradient-to-r from-amber-500 to-orange-500"
-                              >
-                                {activating === result.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                ) : (
-                                  <Shield className="h-3 w-3 mr-1" />
-                                )}
-                                Activate Affiliate
-                              </Button>
-                            )}
-                            {!result.binary_status && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAddToBinaryWithDeferred(result.id)}
-                                disabled={activating === result.id}
-                              >
-                                {activating === result.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                ) : (
-                                  <GitBranch className="h-3 w-3 mr-1" />
-                                )}
-                                Add to Binary (Deferred)
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant={result.ai_features_unlocked ? "destructive" : "default"}
-                              onClick={() => handleToggleAIFeatures(result.id, result.ai_features_unlocked)}
-                              disabled={activating === result.id}
-                              className={!result.ai_features_unlocked ? "bg-gradient-to-r from-purple-500 to-pink-500" : ""}
-                            >
-                              {activating === result.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                              ) : result.ai_features_unlocked ? (
-                                <Lock className="h-3 w-3 mr-1" />
-                              ) : (
-                                <Unlock className="h-3 w-3 mr-1" />
-                              )}
-                              {result.ai_features_unlocked ? 'Lock AI' : 'Unlock AI'}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => setTabVisibilityUser({
-                                id: result.id,
-                                name: result.full_name || result.email
-                              })}
-                            >
-                              <EyeOff className="h-3 w-3 mr-1" />
-                              Manage Tabs
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={result.marketplace_activated ? "destructive" : "outline"}
-                              onClick={() => handleToggleMarketplace(result.id, result.marketplace_activated)}
-                              disabled={activating === result.id}
-                              className={!result.marketplace_activated ? "border-amber-500 text-amber-600 hover:bg-amber-50" : ""}
-                            >
-                              {activating === result.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                              ) : (
-                                <Store className="h-3 w-3 mr-1" />
-                              )}
-                              {result.marketplace_activated ? 'Revoke Market' : 'Grant Market'}
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+          {/* Results */}
+          {results.length > 0 ? (
+            <ScrollArea className="flex-1 -mx-1 px-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-2">
+                {results.map((result) => (
+                  <MemberCard key={result.id} result={result} />
+                ))}
+              </div>
             </ScrollArea>
-          )}
-
-          {results.length === 0 && !loading && (
-            <div className="text-center py-12 text-muted-foreground">
-              <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
-              <p>Search for members by email, name, or referral code</p>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center text-muted-foreground">
+                <Search className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Search for members</p>
+              </div>
             </div>
           )}
         </CardContent>
@@ -562,11 +514,11 @@ export default function MemberActivationManagement() {
         open={!!tabVisibilityUser} 
         onOpenChange={(open) => !open && setTabVisibilityUser(null)}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[85vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Settings2 className="h-5 w-5" />
-              Manage Tab Visibility
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Settings2 className="h-4 w-4" />
+              Manage Tabs
             </DialogTitle>
           </DialogHeader>
           {tabVisibilityUser && (
