@@ -122,20 +122,28 @@ async function fetchProductEnhancements(productIds: string[]): Promise<Map<strin
     entry.count += 1;
   });
 
-  // Build enhancements map
+  // Build enhancements map - only include defined values
   productIds.forEach(id => {
     const images = imagesByProduct.get(id);
     const sales = salesByProduct.get(id) || 0;
     const rating = ratingsByProduct.get(id);
 
-    enhancements.set(id, {
-      image_url: images?.static,
-      hover_image_url: images?.hover,
+    const enhancement: Partial<Product> = {
       combined_sales: sales,
       combined_rating: rating ? rating.sum / rating.count : 0,
       review_count: rating?.count || 0,
       real_sales: sales
-    });
+    };
+
+    // Only set image URLs if they exist in product_images table
+    if (images?.static) {
+      enhancement.image_url = images.static;
+    }
+    if (images?.hover) {
+      enhancement.hover_image_url = images.hover;
+    }
+
+    enhancements.set(id, enhancement);
   });
 
   return enhancements;
