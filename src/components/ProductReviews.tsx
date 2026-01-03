@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, User } from "lucide-react";
+import { Star, User, Image as ImageIcon, Play } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface Review {
   id: string;
@@ -14,6 +15,7 @@ interface Review {
   product_rating: number;
   seller_rating: number | null;
   review_text: string | null;
+  media_urls: string[] | null;
   created_at: string;
   profiles?: {
     full_name: string | null;
@@ -34,6 +36,7 @@ export const ProductReviews = ({ productId, sellerId }: ProductReviewsProps) => 
   const [sellerRating, setSellerRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReviews();
@@ -214,12 +217,61 @@ export const ProductReviews = ({ productId, sellerId }: ProductReviewsProps) => 
                       {review.review_text}
                     </p>
                   )}
+                  
+                  {/* Review Media */}
+                  {review.media_urls && review.media_urls.length > 0 && (
+                    <div className="flex gap-2 mt-3 flex-wrap">
+                      {review.media_urls.map((url, index) => {
+                        const isVideo = url.includes('video') || url.includes('.mp4') || url.includes('.mov') || url.includes('.webm');
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => setSelectedMedia(url)}
+                            className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted hover:opacity-80 transition-opacity"
+                          >
+                            {isVideo ? (
+                              <>
+                                <video src={url} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                  <Play className="w-6 h-6 text-white fill-white" />
+                                </div>
+                              </>
+                            ) : (
+                              <img src={url} alt="" className="w-full h-full object-cover" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>
           ))
         )}
       </div>
+
+      {/* Media Preview Dialog */}
+      <Dialog open={!!selectedMedia} onOpenChange={() => setSelectedMedia(null)}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          {selectedMedia && (
+            selectedMedia.includes('video') || selectedMedia.includes('.mp4') || selectedMedia.includes('.mov') || selectedMedia.includes('.webm') ? (
+              <video 
+                src={selectedMedia} 
+                controls 
+                autoPlay 
+                className="w-full max-h-[80vh] object-contain"
+              />
+            ) : (
+              <img 
+                src={selectedMedia} 
+                alt="Review media" 
+                className="w-full max-h-[80vh] object-contain"
+              />
+            )
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

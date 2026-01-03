@@ -6062,6 +6062,7 @@ export type Database = {
           buyer_id: string
           created_at: string | null
           id: string
+          media_urls: string[] | null
           order_id: string | null
           product_id: string
           product_rating: number
@@ -6074,6 +6075,7 @@ export type Database = {
           buyer_id: string
           created_at?: string | null
           id?: string
+          media_urls?: string[] | null
           order_id?: string | null
           product_id: string
           product_rating: number
@@ -6086,6 +6088,7 @@ export type Database = {
           buyer_id?: string
           created_at?: string | null
           id?: string
+          media_urls?: string[] | null
           order_id?: string | null
           product_id?: string
           product_rating?: number
@@ -6202,7 +6205,9 @@ export type Database = {
           preferred_courier: string | null
           promo_active: boolean | null
           promo_price: number | null
+          rating: number | null
           referral_commission_diamonds: number | null
+          review_count: number | null
           seller_id: string | null
           shipping_fee: number | null
           stock_quantity: number | null
@@ -6236,7 +6241,9 @@ export type Database = {
           preferred_courier?: string | null
           promo_active?: boolean | null
           promo_price?: number | null
+          rating?: number | null
           referral_commission_diamonds?: number | null
+          review_count?: number | null
           seller_id?: string | null
           shipping_fee?: number | null
           stock_quantity?: number | null
@@ -6270,7 +6277,9 @@ export type Database = {
           preferred_courier?: string | null
           promo_active?: boolean | null
           promo_price?: number | null
+          rating?: number | null
           referral_commission_diamonds?: number | null
+          review_count?: number | null
           seller_id?: string | null
           shipping_fee?: number | null
           stock_quantity?: number | null
