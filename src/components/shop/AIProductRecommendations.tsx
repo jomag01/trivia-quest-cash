@@ -2,13 +2,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, ShoppingCart, Heart, RefreshCw, ChevronRight } from "lucide-react";
+import { Sparkles, ShoppingCart, RefreshCw, ChevronRight, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { emitCartUpdated } from "@/lib/cartEvents";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import SellerChat from "@/components/shop/SellerChat";
 
 interface Product {
   id: string;
@@ -20,6 +21,8 @@ interface Product {
   image_url?: string;
   diamond_reward?: number;
   category_id?: string;
+  seller_id?: string;
+  seller_name?: string;
 }
 
 interface AIProductRecommendationsProps {
@@ -60,18 +63,21 @@ export default function AIProductRecommendations({
     setHasError(false);
     
     try {
-      // Fetch all active products with image_url
+      // Fetch all active products with image_url and seller info
       const { data: allProducts, error } = await supabase
         .from("products")
-        .select("id, name, description, base_price, promo_price, promo_active, image_url, diamond_reward, category_id, stock_quantity")
+        .select("id, name, description, base_price, promo_price, promo_active, image_url, diamond_reward, category_id, stock_quantity, seller_id, profiles:seller_id(full_name)")
         .eq("is_active", true)
         .not("image_url", "is", null)
         .limit(50);
 
       if (error) throw error;
 
-      // Filter products that have valid images
-      const productsWithImages = (allProducts || []).filter(p => p.image_url && p.image_url.length > 0);
+      // Filter products that have valid images and map seller names
+      const productsWithImages = (allProducts || []).filter(p => p.image_url && p.image_url.length > 0).map(p => ({
+        ...p,
+        seller_name: (p as any).profiles?.full_name || "Seller"
+      }));
 
       if (productsWithImages.length === 0) {
         // Fallback: get any products even without images
@@ -343,14 +349,26 @@ export default function AIProductRecommendations({
                     <span className="text-accent font-bold text-sm">₱{product.base_price.toLocaleString()}</span>
                   )}
                 </div>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="h-6 w-6 rounded-full"
-                  onClick={(e) => addToCart(product.id, e)}
-                >
-                  <ShoppingCart className="w-3 h-3" />
-                </Button>
+                <div className="flex gap-1">
+                  {product.seller_id && (
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <SellerChat
+                        productId={product.id}
+                        productName={product.name}
+                        sellerId={product.seller_id}
+                        sellerName={product.seller_name || "Seller"}
+                      />
+                    </div>
+                  )}
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-6 w-6 rounded-full"
+                    onClick={(e) => addToCart(product.id, e)}
+                  >
+                    <ShoppingCart className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
             </div>
           </Card>

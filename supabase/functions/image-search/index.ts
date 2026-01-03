@@ -40,13 +40,28 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: 'Analyze this product image and provide 2-5 simple search keywords that describe the main product. Return ONLY keywords separated by spaces, nothing else. Example: "red dress women" or "bluetooth headphones black".',
+                text: `Analyze this image thoroughly and extract search keywords for finding similar products:
+
+1. READ ANY TEXT in the image (brand names, product names, labels, logos, descriptions)
+2. IDENTIFY the main product type, category, color, material, style
+3. NOTE any distinctive features, patterns, or characteristics
+
+Return 3-8 specific search keywords/phrases that would help find this exact product or very similar items in a shop. Include:
+- Any brand/product names visible in the image
+- Product category (e.g., "sneakers", "handbag", "dress")
+- Key attributes (color, material, style)
+
+Format: Return ONLY keywords separated by spaces, nothing else.
+Example outputs:
+- "Nike Air Max sneakers white running shoes"
+- "Louis Vuitton neverfull brown leather tote bag"
+- "floral summer dress midi blue casual"`,
               },
               { type: "image_url", image_url: { url: imageDataUrl } },
             ],
           },
         ],
-        max_tokens: 80,
+        max_tokens: 150,
       }),
     });
 
