@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useShopData } from "@/hooks/useShopData";
 import { ShopLayoutSkeleton, ProductGridSkeleton, CategorySliderSkeleton, AdSliderSkeleton } from "@/components/shop/ShopSkeletons";
 import OptimizedProductCard from "@/components/shop/OptimizedProductCard";
+import { ImageSearchButton } from "@/components/shop/ImageSearchButton";
 
 // Lazy load heavy components - not needed on initial render
 const SupplierApplication = lazy(() => import("@/components/shop/SupplierApplication"));
@@ -292,8 +293,14 @@ const Shop = () => {
                 placeholder="Search products..." 
                 value={searchQuery} 
                 onChange={e => setSearchQuery(e.target.value)} 
-                className="pl-9 h-10 text-sm bg-muted/50 border-primary/30 focus:border-primary focus:ring-primary/20" 
+                className="pl-9 pr-10 h-10 text-sm bg-muted/50 border-primary/30 focus:border-primary focus:ring-primary/20" 
               />
+              {/* Image Search Button inside input */}
+              <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                <ImageSearchButton 
+                  onSearchResults={(query) => setSearchQuery(query)} 
+                />
+              </div>
               {/* Search Results Dropdown */}
               {searchQuery.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto z-50">
