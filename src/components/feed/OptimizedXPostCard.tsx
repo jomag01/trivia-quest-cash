@@ -1,7 +1,8 @@
 // Optimized X-style post card with lazy loading and deferred interactions
 // Memoized for performance - prevents unnecessary re-renders
+// Engagement loads only when post becomes visible
 
-import { useState, useRef, memo, useCallback } from "react";
+import { useState, useRef, memo, useCallback, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { 
@@ -26,6 +27,7 @@ interface OptimizedXPostCardProps {
   post: FeedPost;
   onCommentsClick?: () => void;
   onDelete?: () => void;
+  onVisible?: (postId: string) => void; // Called when post becomes visible
 }
 
 function formatCount(num: number): string {
@@ -38,11 +40,13 @@ function formatCount(num: number): string {
 const OptimizedXPostCard = memo(function OptimizedXPostCard({ 
   post, 
   onCommentsClick, 
-  onDelete 
+  onDelete,
+  onVisible
 }: OptimizedXPostCardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const cardRef = useRef<HTMLElement>(null);
   
   const [liked, setLiked] = useState(false);
   const [reposted, setReposted] = useState(false);
@@ -52,13 +56,35 @@ const OptimizedXPostCard = memo(function OptimizedXPostCard({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
 
+  // Lazy engagement loading - trigger when post becomes visible
+  useEffect(() => {
+    if (!cardRef.current || !onVisible) return;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !post.engagementLoaded) {
+            onVisible(post.id);
+            observer.disconnect();
+          }
+        });
+      },
+      { rootMargin: "100px", threshold: 0.1 }
+    );
+    
+    observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, [post.id, post.engagementLoaded, onVisible]);
+
   // Update counts when post changes
-  if (post.likes_count !== undefined && post.likes_count !== likesCount && !liked) {
-    setLikesCount(post.likes_count);
-  }
-  if (post.shares_count !== undefined && post.shares_count !== repostsCount && !reposted) {
-    setRepostsCount(post.shares_count);
-  }
+  useEffect(() => {
+    if (post.likes_count !== undefined && !liked) {
+      setLikesCount(post.likes_count);
+    }
+    if (post.shares_count !== undefined && !reposted) {
+      setRepostsCount(post.shares_count);
+    }
+  }, [post.likes_count, post.shares_count, liked, reposted]);
 
   const handleLike = useCallback(async () => {
     if (!user) {
@@ -206,7 +232,7 @@ const OptimizedXPostCard = memo(function OptimizedXPostCard({
   };
 
   return (
-    <article className="flex gap-3 px-4 py-3 border-b border-border hover:bg-muted/30 transition-colors cursor-pointer">
+    <article ref={cardRef} className="flex gap-3 px-4 py-3 border-b border-border hover:bg-muted/30 transition-colors cursor-pointer">
       {/* Avatar */}
       <button onClick={() => navigate(`/profile/${post.user_id}`)} className="flex-shrink-0">
         <Avatar className="h-10 w-10">

@@ -1,9 +1,10 @@
 // Ultra-optimized feed data hook for 100M+ concurrent users
-// Features: cursor-based pagination, caching, prefetching, deferred engagement
+// Features: cursor-based pagination, caching, prefetching, deferred engagement, lazy engagement
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { apiCache, withCache } from "@/lib/performance/ApiCache";
+import { getPrefetchedPosts, isFeedWarm } from "@/lib/feedPrefetch";
 
 const INITIAL_LOAD_COUNT = 8; // Small initial batch for fast FCP
 const PAGE_SIZE = 15; // Subsequent batches
@@ -18,11 +19,12 @@ export interface FeedPost {
   media_type: "image" | "video" | "audio";
   thumbnail_url?: string | null;
   created_at: string;
-  // Engagement counts - loaded separately
+  // Engagement counts - loaded separately when visible
   likes_count?: number;
   comments_count?: number;
   views_count?: number;
   shares_count?: number;
+  engagementLoaded?: boolean;
   // Profile - loaded separately
   profiles?: {
     full_name: string | null;
@@ -58,8 +60,38 @@ export function useFeedData(feedType: "for-you" | "following", userId?: string) 
   const engagementLoadedRef = useRef<Set<string>>(new Set());
   const isMountedRef = useRef(true);
 
-  // Load initial posts - optimized for speed
+  // Load initial posts - check prefetch cache first
   const loadInitialPosts = useCallback(async () => {
+    // Try prefetched data first for instant load
+    if (feedType === "for-you" && isFeedWarm()) {
+      const prefetched = getPrefetchedPosts();
+      if (prefetched && prefetched.length > 0) {
+        const posts = prefetched.map(p => ({
+          ...p,
+          likes_count: 0,
+          comments_count: 0,
+          views_count: 0,
+          shares_count: 0,
+          engagementLoaded: false
+        })) as FeedPost[];
+        
+        setState(prev => ({
+          ...prev,
+          posts,
+          loading: false,
+          hasMore: posts.length >= INITIAL_LOAD_COUNT
+        }));
+        
+        if (posts.length > 0) {
+          cursorRef.current = posts[posts.length - 1].created_at;
+          requestIdleCallback(() => loadProfilesForPosts(posts));
+        }
+        
+        console.log("[useFeedData] Used prefetched data");
+        return;
+      }
+    }
+    
     const cacheKey = `feed:${feedType}:${userId || "anon"}:initial`;
     
     try {
@@ -94,11 +126,12 @@ export function useFeedData(feedType: "for-you" | "following", userId?: string) 
             media_url: p.media_url?.startsWith('data:') && p.media_url.length > 500000 
               ? null 
               : p.media_url,
-            // Default engagement counts - will be updated
+            // Default engagement counts - will be updated when visible
             likes_count: 0,
             comments_count: 0,
             views_count: 0,
-            shares_count: 0
+            shares_count: 0,
+            engagementLoaded: false
           })) as FeedPost[];
         },
         CACHE_TTL
@@ -118,11 +151,10 @@ export function useFeedData(feedType: "for-you" | "following", userId?: string) 
         cursorRef.current = posts[posts.length - 1].created_at;
       }
 
-      // Defer profile and engagement loading
+      // Defer profile loading only - engagement loads when visible
       if (posts.length > 0) {
         requestIdleCallback(() => {
           loadProfilesForPosts(posts);
-          loadEngagementForPosts(posts);
         });
       }
     } catch (error) {
@@ -253,7 +285,7 @@ export function useFeedData(feedType: "for-you" | "following", userId?: string) 
     }
   }, []);
 
-  // Batch load engagement counts
+  // Batch load engagement counts - called when posts become visible
   const loadEngagementForPosts = useCallback(async (posts: FeedPost[]) => {
     const postIds = posts
       .map(p => p.id)
@@ -276,13 +308,23 @@ export function useFeedData(feedType: "for-you" | "following", userId?: string) 
         ...prev,
         posts: prev.posts.map(p => {
           const eng = engagementMap.get(p.id);
-          return eng ? { ...p, ...eng } : p;
+          return eng ? { ...p, ...eng, engagementLoaded: true } : p;
         })
       }));
     } catch (error) {
       console.error("Engagement load error:", error);
     }
   }, []);
+
+  // Load engagement for a single visible post
+  const loadEngagementForVisiblePost = useCallback((postId: string) => {
+    if (engagementLoadedRef.current.has(postId)) return;
+    
+    const post = state.posts.find(p => p.id === postId);
+    if (post) {
+      loadEngagementForPosts([post]);
+    }
+  }, [state.posts, loadEngagementForPosts]);
 
   // Refresh feed
   const refresh = useCallback(async () => {
@@ -318,6 +360,7 @@ export function useFeedData(feedType: "for-you" | "following", userId?: string) 
     ...state,
     loadMore,
     refresh,
-    checkPrefetch
+    checkPrefetch,
+    loadEngagementForVisiblePost
   };
 }

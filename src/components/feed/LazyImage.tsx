@@ -1,7 +1,8 @@
-// Lazy-loaded image component with blur placeholder
+// Lazy-loaded image component with blur placeholder, CDN optimization, WebP/AVIF
 // Uses intersection observer for efficient offscreen detection
 
 import { useState, useRef, useEffect, memo } from "react";
+import { cdnHelper } from "@/lib/performance/CDNHelper";
 
 interface LazyImageProps {
   src: string;
@@ -10,7 +11,28 @@ interface LazyImageProps {
   placeholderClassName?: string;
   onLoad?: () => void;
   onError?: () => void;
+  priority?: boolean; // Skip lazy loading for above-fold images
 }
+
+// Get device width for responsive images
+const getDeviceWidth = (): number => {
+  if (typeof window === 'undefined') return 640;
+  return Math.min(window.innerWidth * (window.devicePixelRatio || 1), 1920);
+};
+
+// Generate optimized CDN URL with format and size
+const getOptimizedUrl = (src: string): string => {
+  if (!src || src.startsWith('data:')) return src;
+  
+  const width = getDeviceWidth();
+  
+  // Use CDN helper for Supabase URLs
+  return cdnHelper.getImageURL(src, {
+    width: Math.round(width),
+    quality: 80,
+    format: 'auto' // Let CDN decide WebP/AVIF based on Accept header
+  });
+};
 
 export const LazyImage = memo(function LazyImage({
   src,
@@ -18,15 +40,20 @@ export const LazyImage = memo(function LazyImage({
   className = "",
   placeholderClassName = "",
   onLoad,
-  onError
+  onError,
+  priority = false
 }: LazyImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(false);
+  const [isInView, setIsInView] = useState(priority); // Priority images load immediately
   const [hasError, setHasError] = useState(false);
   const imgRef = useRef<HTMLDivElement>(null);
+  
+  const optimizedSrc = getOptimizedUrl(src);
 
   // Intersection observer for lazy loading
   useEffect(() => {
+    if (priority) return; // Skip for priority images
+    
     const element = imgRef.current;
     if (!element) return;
 
@@ -50,7 +77,7 @@ export const LazyImage = memo(function LazyImage({
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [priority]);
 
   const handleLoad = () => {
     setIsLoaded(true);
@@ -88,11 +115,12 @@ export const LazyImage = memo(function LazyImage({
       {/* Actual image - only render when in view */}
       {isInView && (
         <img
-          src={src}
+          src={optimizedSrc}
           alt={alt}
           className={`${className} ${isLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
           decoding="async"
+          fetchPriority={priority ? "high" : "auto"}
           onLoad={handleLoad}
           onError={handleError}
         />
