@@ -101,17 +101,50 @@ export default function Feed() {
 
   const loadPosts = async () => {
     setLoading(true);
-    const { data: postsData } = await supabase
-      .from("posts")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
+    try {
+      // Fetch posts with explicit columns to avoid timeout from huge media_url base64 data
+      const { data: postsData, error } = await supabase
+        .from("posts")
+        .select("id, user_id, content, media_type, thumbnail_url, likes_count, comments_count, views_count, shares_count, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-    if (postsData) {
-      const enriched = await enrichPostsWithProfiles(postsData);
-      setPosts(enriched);
+      if (error) {
+        console.error("Error loading posts:", error);
+        setPosts([]);
+      } else if (postsData && postsData.length > 0) {
+        // Now fetch media_url separately only for posts that need it, filtering out base64
+        const postsWithMedia = await Promise.all(
+          postsData.map(async (post) => {
+            // Check if media exists and fetch it
+            const { data: mediaData } = await supabase
+              .from("posts")
+              .select("media_url")
+              .eq("id", post.id)
+              .single();
+            
+            let media_url = mediaData?.media_url || null;
+            
+            // Skip overly large base64 data (> 500KB) to prevent performance issues
+            if (media_url?.startsWith('data:') && media_url.length > 500000) {
+              media_url = null;
+            }
+            
+            return { ...post, media_url };
+          })
+        );
+        
+        const enriched = await enrichPostsWithProfiles(postsWithMedia);
+        setPosts(enriched);
+      } else {
+        setPosts([]);
+      }
+    } catch (error) {
+      console.error("Error loading posts:", error);
+      setPosts([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const loadFollowingPosts = async () => {
@@ -142,16 +175,30 @@ export default function Feed() {
 
   const enrichPostsWithProfiles = async (postsData: any[]): Promise<Post[]> => {
     if (!postsData?.length) return [];
-    const userIds = [...new Set(postsData.map(p => p.user_id))];
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, full_name, email, avatar_url")
-      .in("id", userIds);
+    
+    try {
+      const userIds = [...new Set(postsData.map(p => p.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, avatar_url")
+        .in("id", userIds);
 
-    return postsData.map(post => ({
-      ...post,
-      profiles: profiles?.find(p => p.id === post.user_id)
-    }));
+      return postsData.map(post => {
+        // Skip posts with huge base64 media URLs (causes performance issues)
+        const mediaUrl = post.media_url;
+        const isBase64 = mediaUrl?.startsWith('data:');
+        const isTooLarge = isBase64 && mediaUrl.length > 500000; // 500KB limit
+
+        return {
+          ...post,
+          media_url: isTooLarge ? null : mediaUrl, // Clear overly large media
+          profiles: profiles?.find(p => p.id === post.user_id)
+        };
+      });
+    } catch (error) {
+      console.error("Error enriching posts:", error);
+      return postsData;
+    }
   };
 
   const videoPosts = posts.filter(p => p.media_type === "video" && p.media_url);
@@ -204,6 +251,7 @@ export default function Feed() {
             </div>
           ) : currentPosts.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
+              <div className="text-4xl mb-4">📝</div>
               <p className="text-lg font-medium">
                 {activeTab === "following" ? "Follow users to see their posts" : "No posts yet"}
               </p>

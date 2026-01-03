@@ -467,7 +467,7 @@ const Shop = () => {
               </p>
             </div>
 
-            {/* AI Product Recommendations - Deferred */}
+            {/* AI Product Recommendations - Main Grid (loads fast with images) */}
             <Suspense fallback={<ProductGridSkeleton count={4} />}>
               <AIProductRecommendations 
                 currentProductId={detailProduct?.id}
@@ -479,39 +479,10 @@ const Shop = () => {
               />
             </Suspense>
 
-            {/* Auction Products - Deferred */}
+            {/* Auction Products */}
             <Suspense fallback={null}>
               <AuctionProducts />
             </Suspense>
-
-            {/* Products Grid - Optimized */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {filteredProducts.map(product => (
-                <OptimizedProductCard
-                  key={product.id}
-                  product={product}
-                  inCart={inCart.has(product.id)}
-                  inWishlist={inWishlist.has(product.id)}
-                  onProductClick={(p) => {
-                    trackInteraction('view', 'product', p.id, { name: p.name });
-                    setDetailProduct(p);
-                    setDetailDialog(true);
-                  }}
-                  onAddToCart={addToCart}
-                  onToggleWishlist={toggleWishlist}
-                  onBuyNow={handleBuyNow}
-                  showRatings={enhancementsLoaded}
-                  showSales={enhancementsLoaded}
-                />
-              ))}
-            </div>
-
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-12">
-                <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm">No products found</p>
-              </div>
-            )}
 
             {/* Checkout Dialog */}
             <Dialog open={checkoutDialog} onOpenChange={setCheckoutDialog}>
