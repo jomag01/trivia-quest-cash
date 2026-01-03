@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,12 +20,28 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY is not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Fetch products from database for AI to compare against
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    const { data: products } = await supabase
+      .from("products")
+      .select("id, name, description, category_id")
+      .eq("is_active", true)
+      .limit(200);
+
+    // Create a product catalog summary for the AI
+    const productCatalog = products?.map(p => 
+      `${p.name}${p.description ? ` - ${p.description.substring(0, 100)}` : ''}`
+    ).join("\n") || "";
 
     const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -40,28 +57,39 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: `Analyze this image thoroughly and extract search keywords for finding similar products:
+                text: `You are a product matching AI. Analyze this image and find matching products from our catalog.
 
-1. READ ANY TEXT in the image (brand names, product names, labels, logos, descriptions)
-2. IDENTIFY the main product type, category, color, material, style
-3. NOTE any distinctive features, patterns, or characteristics
+STEP 1 - ANALYZE THE IMAGE:
+- Identify the product type, brand, model, color, material, style
+- Read ANY text visible (brand names, labels, logos, model numbers)
+- Note distinctive features, patterns, designs
 
-Return 3-8 specific search keywords/phrases that would help find this exact product or very similar items in a shop. Include:
-- Any brand/product names visible in the image
-- Product category (e.g., "sneakers", "handbag", "dress")
-- Key attributes (color, material, style)
+STEP 2 - MATCH WITH OUR CATALOG:
+Here are products in our shop:
+${productCatalog}
 
-Format: Return ONLY keywords separated by spaces, nothing else.
-Example outputs:
-- "Nike Air Max sneakers white running shoes"
-- "Louis Vuitton neverfull brown leather tote bag"
-- "floral summer dress midi blue casual"`,
+STEP 3 - RETURN SEARCH TERMS:
+Based on your analysis and our catalog, return search keywords that will find:
+1. EXACT matches if the product exists in our catalog
+2. SIMILAR products if no exact match
+
+IMPORTANT MATCHING RULES:
+- If you see a brand name (Nike, Samsung, Apple, etc), include it
+- If product text/label is visible, use those exact terms
+- Match by: brand, product type, color, category, key features
+- Be specific: "iPhone 15 Pro Max" not just "phone"
+
+Return ONLY 3-8 search keywords/phrases separated by spaces.
+Examples:
+- "Nike Air Max sneakers white"
+- "Samsung Galaxy S24 phone black"
+- "wooden dining table 6 seater"`,
               },
               { type: "image_url", image_url: { url: imageDataUrl } },
             ],
           },
         ],
-        max_tokens: 150,
+        max_tokens: 200,
       }),
     });
 
@@ -93,7 +121,33 @@ Example outputs:
     const data = await upstream.json();
     const keywords = data?.choices?.[0]?.message?.content?.trim?.() ?? "";
 
-    return new Response(JSON.stringify({ keywords }), {
+    console.log("Image search keywords:", keywords);
+
+    // Search for matching products using the AI-generated keywords
+    const searchTerms = keywords.split(/\s+/).filter((k: string) => k.length > 2);
+    let matchedProducts: any[] = [];
+
+    if (searchTerms.length > 0) {
+      // Build search query using OR conditions
+      const searchQuery = searchTerms.slice(0, 5).map((term: string) => 
+        `name.ilike.%${term}%,description.ilike.%${term}%`
+      ).join(",");
+
+      const { data: searchResults } = await supabase
+        .from("products")
+        .select("id, name, description, base_price, image_url")
+        .eq("is_active", true)
+        .or(searchQuery)
+        .limit(10);
+
+      matchedProducts = searchResults || [];
+    }
+
+    return new Response(JSON.stringify({ 
+      keywords,
+      matchedProducts,
+      searchTerms
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
