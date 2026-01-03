@@ -1,7 +1,7 @@
 // Ultra-optimized Service Worker for 100M+ concurrent users
 // Features: Aggressive caching, stale-while-revalidate, offline support, request coalescing
 
-const CACHE_VERSION = 'triviabees-v6';
+const CACHE_VERSION = 'triviabees-v7';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -80,9 +80,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy 4: Network-first for HTML pages
+  // Strategy 4: Network-first for HTML pages with SPA fallback
+  // If hosting ever returns a 404 for deep links (e.g. /feed?tab=games), serve the app shell.
   if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(networkFirstWithFallback(request));
+    event.respondWith(networkFirstWithSpaFallback(request));
     return;
   }
 
@@ -107,24 +108,6 @@ function isBackendRequest(url) {
          url.pathname.includes('/functions/') ||
          url.pathname.includes('/auth/') ||
          url.hostname.includes('supabase');
-}
-
-// Cache-first (static assets)
-async function cacheFirst(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-  
-  if (cached) return cached;
-  
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch (e) {
-    return new Response('Offline', { status: 503 });
-  }
 }
 
 // Cache-first with size limit (images)
@@ -154,7 +137,7 @@ async function cacheFirstWithLimit(request, cacheName, maxSize) {
   }
 }
 
-// Stale-while-revalidate with request coalescing (API calls)
+// Stale-while-revalidate with request coalescing (static assets)
 async function staleWhileRevalidateCoalesced(request, cacheName) {
   const requestKey = request.url;
   
@@ -181,7 +164,7 @@ async function staleWhileRevalidateCoalesced(request, cacheName) {
       cache.put(request, response.clone());
     }
     return response;
-  }).catch(e => {
+  }).catch(() => {
     pendingRequests.delete(requestKey);
     return cached || new Response('Offline', { status: 503 });
   });
@@ -195,17 +178,23 @@ async function staleWhileRevalidateCoalesced(request, cacheName) {
   return cached || fetchPromise;
 }
 
-// Legacy function name for compatibility
-async function staleWhileRevalidate(request, cacheName) {
-  return staleWhileRevalidateCoalesced(request, cacheName);
-}
-
-// Network-first with fallback (HTML pages)
-async function networkFirstWithFallback(request) {
+// Network-first with SPA fallback (HTML pages)
+async function networkFirstWithSpaFallback(request) {
   try {
-    return await fetch(request);
+    const response = await fetch(request);
+    if (response && response.ok) return response;
+
+    // If the server responds with a 404 for a deep-link, serve the app shell instead.
+    const appShell = await caches.match('/', { ignoreSearch: true });
+    if (appShell) return appShell;
+
+    const fallback = await caches.match('/fallback.html', { ignoreSearch: true });
+    return fallback || response;
   } catch (e) {
-    const fallback = await caches.match('/fallback.html');
+    const appShell = await caches.match('/', { ignoreSearch: true });
+    if (appShell) return appShell;
+
+    const fallback = await caches.match('/fallback.html', { ignoreSearch: true });
     return fallback || new Response(
       '<!DOCTYPE html><html><body><h1>Offline</h1></body></html>',
       { headers: { 'Content-Type': 'text/html' } }
