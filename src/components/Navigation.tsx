@@ -2,14 +2,18 @@ import { Link, useLocation } from "react-router-dom";
 import { Sparkles, Gamepad2, ShoppingBag, Plus, MessageSquare, User, Rss } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { CreatePost } from "@/components/social/CreatePost";
-import { AddToHomeScreenButton } from "@/components/AddToHomeScreenButton";
-import { useCallback, useRef } from "react";
+import { lazy, Suspense, useCallback, useRef, memo } from "react";
+
+// Lazy load CreatePost - not needed until clicked
+const CreatePost = lazy(() => import("@/components/social/CreatePost").then(m => ({ default: m.CreatePost })));
 
 // Prefetch functions for route optimization
 const prefetchTimeouts = new Map<string, NodeJS.Timeout>();
 
-const Navigation = () => {
+// Lazy load AddToHomeScreen - rarely used
+const AddToHomeScreenButton = lazy(() => import("@/components/AddToHomeScreenButton").then(m => ({ default: m.AddToHomeScreenButton })));
+
+const Navigation = memo(() => {
   const location = useLocation();
   const { user } = useAuth();
   const prefetchedRoutes = useRef(new Set<string>());
@@ -91,7 +95,9 @@ const Navigation = () => {
             </button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CreatePost onPostCreated={() => {}} />
+            <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+              <CreatePost onPostCreated={() => {}} />
+            </Suspense>
           </DialogContent>
         </Dialog>
 
@@ -131,18 +137,21 @@ const Navigation = () => {
           <span className="text-[9px] font-medium">Profile</span>
         </Link>
 
-        {/* Add to Home Screen - Only shown on mobile when not installed */}
+        {/* Add to Home Screen - Lazy loaded, rarely used */}
         <div className="flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-2">
-          <AddToHomeScreenButton 
-            variant="ghost" 
-            size="icon" 
-            showLabel={false}
-            className="h-8 w-8 text-muted-foreground hover:text-primary"
-          />
+          <Suspense fallback={null}>
+            <AddToHomeScreenButton 
+              variant="ghost" 
+              size="icon" 
+              showLabel={false}
+              className="h-8 w-8 text-muted-foreground hover:text-primary"
+            />
+          </Suspense>
         </div>
       </div>
     </nav>
   );
-};
+});
+Navigation.displayName = 'Navigation';
 
 export default Navigation;

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, memo } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,14 +6,24 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Navigation from "./components/Navigation";
-import { parseAndTrackFromUrl } from "@/lib/cookieTracking";
-import { AffiliateSignupPopup } from "./components/AffiliateSignupPopup";
-import { PurchaseNotification } from "./components/PurchaseNotification";
-import { warmUpFeed } from "@/lib/feedPrefetch";
 
-// Warm up feed in background immediately on app load
+// Lazy load non-critical components
+const AffiliateSignupPopup = lazy(() => import("./components/AffiliateSignupPopup").then(m => ({ default: m.AffiliateSignupPopup })));
+const PurchaseNotification = lazy(() => import("./components/PurchaseNotification").then(m => ({ default: m.PurchaseNotification })));
+
+// Defer non-critical initialization
 if (typeof window !== 'undefined') {
-  requestIdleCallback(() => warmUpFeed());
+  // Use requestIdleCallback for non-critical tasks
+  const initNonCritical = () => {
+    import("@/lib/cookieTracking").then(m => m.parseAndTrackFromUrl());
+    import("@/lib/feedPrefetch").then(m => m.warmUpFeed());
+  };
+  
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(initNonCritical, { timeout: 2000 });
+  } else {
+    setTimeout(initNonCritical, 1000);
+  }
 }
 
 // Lazy load all pages for code splitting
@@ -52,36 +62,33 @@ const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
       refetchOnWindowFocus: false,
       retry: 1,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
     },
   },
 });
 
-// Loading fallback component
-const PageLoader = () => (
+// Minimal loading fallback - renders instantly
+const PageLoader = memo(() => (
   <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
+    <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
   </div>
-);
+));
+PageLoader.displayName = 'PageLoader';
 
-// Cookie tracking component
-const CookieTracker = () => {
+// Deferred tracking component - doesn't block render
+const DeferredTracking = memo(() => {
   const location = useLocation();
   
   useEffect(() => {
-    // Track referral links on route changes
-    parseAndTrackFromUrl();
-  }, [location.search]);
-  
-  return null;
-};
-
-// Page view tracking component
-const PageTracker = () => {
-  const location = useLocation();
-  
-  useEffect(() => {
-    const trackPage = async () => {
+    // Defer all tracking to not block main thread
+    const trackingTimeout = setTimeout(async () => {
       try {
+        // Cookie tracking
+        const { parseAndTrackFromUrl } = await import("@/lib/cookieTracking");
+        parseAndTrackFromUrl();
+        
+        // Page view tracking
         const visitorId = localStorage.getItem('aff_visitor_id') || `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 15)}`;
         if (!localStorage.getItem('aff_visitor_id')) {
           localStorage.setItem('aff_visitor_id', visitorId);
@@ -100,28 +107,31 @@ const PageTracker = () => {
           referral_source: document.referrer ? 'organic' : 'direct'
         });
       } catch (error) {
-        console.error("Error tracking page:", error);
+        // Silent fail for tracking
       }
-    };
+    }, 100);
     
-    trackPage();
-  }, [location.pathname]);
+    return () => clearTimeout(trackingTimeout);
+  }, [location.pathname, location.search]);
   
   return null;
-};
+});
+DeferredTracking.displayName = 'DeferredTracking';
 
-const App = () => (
+const App = memo(() => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <CookieTracker />
-          <PageTracker />
+          <DeferredTracking />
           <Navigation />
-          <AffiliateSignupPopup />
-          <PurchaseNotification />
+          {/* Lazy load non-critical overlays */}
+          <Suspense fallback={null}>
+            <AffiliateSignupPopup />
+            <PurchaseNotification />
+          </Suspense>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<AIHub />} />
@@ -159,6 +169,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+));
+App.displayName = 'App';
 
 export default App;

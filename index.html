@@ -14,12 +14,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
-    <!-- Resource Hints: Prefetch critical routes -->
-    <link rel="prefetch" href="/game" as="document" />
-    <link rel="prefetch" href="/auth" as="document" />
+    <!-- Preload critical resources -->
+    <link rel="modulepreload" href="/src/main.tsx" />
     
-    <!-- Cache Control for CDN -->
-    <meta http-equiv="Cache-Control" content="public, max-age=31536000, immutable" />
+    <!-- Resource Hints: Prefetch likely navigation routes -->
+    <link rel="prefetch" href="/feed" as="document" />
+    <link rel="prefetch" href="/shop" as="document" />
+    <link rel="prefetch" href="/auth" as="document" />
     
     <!-- PWA & Mobile -->
     <link rel="manifest" href="/manifest.json" />
@@ -68,12 +69,15 @@
     <!-- Main app entry - type="module" for tree-shaking -->
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Service Worker Registration - Deferred -->
+    <!-- Service Worker Registration - Deferred for non-blocking load -->
     <script>
+      // Only register SW after page is interactive
       if('serviceWorker'in navigator){
-        window.addEventListener('load',()=>{
+        requestIdleCallback?requestIdleCallback(()=>{
           navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{});
-        });
+        }):(window.addEventListener('load',()=>{
+          setTimeout(()=>navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{}),2000);
+        }));
       }
     </script>
   </body>
