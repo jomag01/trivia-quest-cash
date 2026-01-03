@@ -66,6 +66,10 @@ const AIHub = memo(() => {
   const [imageStylePreset, setImageStylePreset] = useState<string>('none');
   const [videoAspectRatio, setVideoAspectRatio] = useState<string>('16:9');
   const [videoProvider, setVideoProvider] = useState<'fal' | 'kling' | 'gemini'>('fal');
+  const [videoMode, setVideoMode] = useState<'text-to-video' | 'image-to-video'>('text-to-video');
+  const [imageToVideoSource, setImageToVideoSource] = useState<string | null>(null);
+  const [generatedClips, setGeneratedClips] = useState<{url: string; prompt: string; timestamp: number}[]>([]);
+  const [isMergingVideos, setIsMergingVideos] = useState(false);
 
   // Image style presets
   const IMAGE_STYLE_PRESETS = {
@@ -643,6 +647,12 @@ const AIHub = memo(() => {
       return;
     }
     
+    // For image-to-video mode, require an image
+    if (videoMode === 'image-to-video' && !imageToVideoSource) {
+      toast.error('Please upload an image for image-to-video mode');
+      return;
+    }
+    
     // Check if user has AI video minutes first
     const hasAIVideoMinutes = aiCredits && Number(aiCredits.video_minutes_available) >= 0.5;
     const hasLegacyCredits = userCredits >= videoCreditCost;
@@ -675,18 +685,26 @@ const AIHub = memo(() => {
     setIsGenerating(true);
     setGeneratedVideo(null);
     try {
-      toast.info('Generating video... This may take a minute.');
+      toast.info('Generating video... This may take 1-3 minutes.');
       const { data, error } = await supabase.functions.invoke('text-to-video', {
         body: {
           prompt: videoPrompt.trim(),
           duration: 5,
           aspectRatio: videoAspectRatio,
-          provider: videoProvider
+          provider: videoProvider,
+          mode: videoMode,
+          imageUrl: videoMode === 'image-to-video' ? imageToVideoSource : undefined
         }
       });
       if (error) throw error;
       if (data?.videoUrl) {
         setGeneratedVideo(data.videoUrl);
+        // Add to generated clips collection
+        setGeneratedClips(prev => [...prev, {
+          url: data.videoUrl,
+          prompt: videoPrompt.trim(),
+          timestamp: Date.now()
+        }]);
         await trackGeneration('text-to-video', videoCreditCost);
         toast.success('Video generated successfully!');
       } else if (data?.error) {
@@ -703,6 +721,57 @@ const AIHub = memo(() => {
       fetchUserCredits();
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleImageToVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageToVideoSource(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveClip = (index: number) => {
+    setGeneratedClips(prev => prev.filter((_, i) => i !== index));
+    toast.success('Clip removed');
+  };
+
+  const handleMergeVideos = async () => {
+    if (generatedClips.length < 2) {
+      toast.error('You need at least 2 clips to merge');
+      return;
+    }
+    
+    setIsMergingVideos(true);
+    try {
+      // Create a simple download approach - list all clips for user to download
+      toast.info('Preparing clips for download...');
+      
+      // Download each clip
+      for (let i = 0; i < generatedClips.length; i++) {
+        const clip = generatedClips[i];
+        const response = await fetch(clip.url);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `clip-${i + 1}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        await new Promise(r => setTimeout(r, 500)); // Small delay between downloads
+      }
+      
+      toast.success(`Downloaded ${generatedClips.length} clips! Use a video editor to merge them.`);
+    } catch (error: any) {
+      toast.error('Failed to download clips');
+      console.error('Merge error:', error);
+    } finally {
+      setIsMergingVideos(false);
     }
   };
 
@@ -1538,35 +1607,98 @@ const AIHub = memo(() => {
 
           {/* Text to Video */}
           {activeTab === 'text-to-video' && (
-            <div className="p-4 md:p-6 max-w-4xl mx-auto">
+            <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-4">
               <Card className="border-border/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <VideoIcon className="h-5 w-5 text-purple-500" />
-                    Text to Video
+                    Video Generator
                     <Badge variant="outline" className="ml-2">
                       {videoCreditCost} credits
                     </Badge>
                   </CardTitle>
                   <CardDescription>
-                    Describe your video and AI will create it for you.
+                    Generate videos from text prompts or animate your images with AI.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Mode Selection */}
+                  <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                    <Button
+                      variant={videoMode === 'text-to-video' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setVideoMode('text-to-video')}
+                    >
+                      <TypeIcon className="h-4 w-4 mr-2" />
+                      Text to Video
+                    </Button>
+                    <Button
+                      variant={videoMode === 'image-to-video' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setVideoMode('image-to-video')}
+                    >
+                      <ImagePlus className="h-4 w-4 mr-2" />
+                      Image to Video
+                    </Button>
+                  </div>
+
+                  {/* Image upload for image-to-video mode */}
+                  {videoMode === 'image-to-video' && (
+                    <div className="space-y-2">
+                      <Label>Source Image</Label>
+                      {!imageToVideoSource ? (
+                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                          <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                          <span className="text-sm text-muted-foreground">Click to upload image</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageToVideoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      ) : (
+                        <div className="relative">
+                          <img 
+                            src={imageToVideoSource} 
+                            alt="Source" 
+                            className="w-full max-h-48 object-contain rounded-lg border"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-6 w-6"
+                            onClick={() => setImageToVideoSource(null)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Upload an image to animate it into a video using Kling AI
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
-                    <Label>Video Prompt</Label>
+                    <Label>{videoMode === 'image-to-video' ? 'Animation Prompt' : 'Video Prompt'}</Label>
                     <Textarea
-                      placeholder="A serene beach at sunset with waves gently rolling in..."
+                      placeholder={videoMode === 'image-to-video' 
+                        ? "Describe how the image should animate, e.g., 'gentle wind blowing through hair, subtle smile animation...'"
+                        : "A serene beach at sunset with waves gently rolling in..."
+                      }
                       value={videoPrompt}
                       onChange={e => setVideoPrompt(e.target.value)}
-                      className="min-h-[120px] resize-none"
+                      className="min-h-[100px] resize-none"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label>Aspect Ratio</Label>
-                      <Select value={videoAspectRatio} onValueChange={setVideoAspectRatio}>
+                      <Select value={videoAspectRatio} onValueChange={setVideoAspectRatio} disabled={videoMode === 'image-to-video'}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -1578,11 +1710,18 @@ const AIHub = memo(() => {
                           ))}
                         </SelectContent>
                       </Select>
+                      {videoMode === 'image-to-video' && (
+                        <p className="text-xs text-muted-foreground">Aspect ratio follows the source image</p>
+                      )}
                     </div>
 
                     <div className="space-y-1.5">
                       <Label>AI Provider</Label>
-                      <Select value={videoProvider} onValueChange={(v: 'fal' | 'kling' | 'gemini') => setVideoProvider(v)}>
+                      <Select 
+                        value={videoMode === 'image-to-video' ? 'kling' : videoProvider} 
+                        onValueChange={(v: 'fal' | 'kling' | 'gemini') => setVideoProvider(v)}
+                        disabled={videoMode === 'image-to-video'}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -1593,26 +1732,29 @@ const AIHub = memo(() => {
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-muted-foreground">
-                        MiniMax & Kling generate actual videos. Gemini creates still images.
+                        {videoMode === 'image-to-video' 
+                          ? 'Image-to-video uses Kling AI'
+                          : 'MiniMax & Kling generate actual videos'
+                        }
                       </p>
                     </div>
                   </div>
 
                   <Button
                     onClick={handleTextToVideo}
-                    disabled={isGenerating || !canGenerateVideo()}
+                    disabled={isGenerating || !canGenerateVideo() || (videoMode === 'image-to-video' && !imageToVideoSource)}
                     className="w-full gap-2"
                     size="lg"
                   >
                     {isGenerating ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Generating Video...
+                        {videoMode === 'image-to-video' ? 'Animating Image...' : 'Generating Video...'}
                       </>
                     ) : (
                       <>
                         <VideoIcon className="h-4 w-4" />
-                        Generate Video ({videoCreditCost} credits)
+                        {videoMode === 'image-to-video' ? 'Animate Image' : 'Generate Video'} ({videoCreditCost} credits)
                       </>
                     )}
                   </Button>
@@ -1640,6 +1782,76 @@ const AIHub = memo(() => {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Generated Clips Manager */}
+              {generatedClips.length > 0 && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <span className="flex items-center gap-2">
+                        <Film className="h-4 w-4 text-primary" />
+                        Generated Clips ({generatedClips.length})
+                      </span>
+                      <Button
+                        onClick={handleMergeVideos}
+                        disabled={isMergingVideos || generatedClips.length < 2}
+                        size="sm"
+                        className="gap-2"
+                      >
+                        {isMergingVideos ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Film className="h-4 w-4" />
+                        )}
+                        Download All Clips
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>
+                      Generate multiple clips and download them to merge in your video editor
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {generatedClips.map((clip, index) => (
+                        <div key={clip.timestamp} className="relative group rounded-lg overflow-hidden border">
+                          <video 
+                            src={clip.url} 
+                            className="w-full aspect-video object-cover"
+                            muted
+                            onMouseEnter={(e) => (e.target as HTMLVideoElement).play()}
+                            onMouseLeave={(e) => {
+                              const video = e.target as HTMLVideoElement;
+                              video.pause();
+                              video.currentTime = 0;
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <Button size="icon" variant="secondary" asChild className="h-8 w-8">
+                              <a href={clip.url} download={`clip-${index + 1}.mp4`}>
+                                <Download className="h-4 w-4" />
+                              </a>
+                            </Button>
+                            <Button 
+                              size="icon" 
+                              variant="destructive" 
+                              className="h-8 w-8"
+                              onClick={() => handleRemoveClip(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                            <p className="text-xs text-white truncate">Clip {index + 1}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      💡 Tip: Download all clips and use a video editor like CapCut or iMovie to merge them into one video
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 

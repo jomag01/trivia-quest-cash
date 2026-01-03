@@ -206,6 +206,8 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
   // Video state
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [generatedVideoClips, setGeneratedVideoClips] = useState<{url: string; scene: number; timestamp: number}[]>([]);
+  const [isMergingClips, setIsMergingClips] = useState(false);
   
   // Saved projects state
   const [savedProjects, setSavedProjects] = useState<any[]>([]);
@@ -704,7 +706,8 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
       const { data, error } = await supabase.functions.invoke('text-to-video', {
         body: { 
           prompt: videoPrompt,
-          duration: Math.min(selectedDuration.seconds, 8) // API max is 8 seconds per clip
+          duration: Math.min(selectedDuration.seconds, 8), // API max is 8 seconds per clip
+          provider: 'kling'
         }
       });
 
@@ -712,6 +715,12 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
       
       if (data?.videoUrl) {
         setVideoUrl(data.videoUrl);
+        // Add to clips collection
+        setGeneratedVideoClips(prev => [...prev, {
+          url: data.videoUrl,
+          scene: generatedVideoClips.length + 1,
+          timestamp: Date.now()
+        }]);
         onCreditsChange();
         toast.success(isRegenerate ? 'Video regenerated successfully!' : 'Video created successfully!');
       } else {
@@ -723,6 +732,46 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
       setIsLoading(false);
       setIsRegeneratingVideo(false);
     }
+  };
+
+  const handleMergeClips = async () => {
+    if (generatedVideoClips.length < 2) {
+      toast.error('You need at least 2 clips to merge');
+      return;
+    }
+    
+    setIsMergingClips(true);
+    try {
+      // Download each clip
+      toast.info(`Downloading ${generatedVideoClips.length} clips...`);
+      
+      for (let i = 0; i < generatedVideoClips.length; i++) {
+        const clip = generatedVideoClips[i];
+        const response = await fetch(clip.url);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `scene-${clip.scene}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        await new Promise(r => setTimeout(r, 500));
+      }
+      
+      toast.success(`Downloaded ${generatedVideoClips.length} clips! Use a video editor to merge them.`);
+    } catch (error: any) {
+      toast.error('Failed to download clips');
+      console.error('Download error:', error);
+    } finally {
+      setIsMergingClips(false);
+    }
+  };
+
+  const handleRemoveClip = (index: number) => {
+    setGeneratedVideoClips(prev => prev.filter((_, i) => i !== index));
+    toast.success('Clip removed');
   };
 
   const handleRegenerateImages = async () => {
@@ -1675,6 +1724,76 @@ const ContentCreator = ({ userCredits, onCreditsChange, externalResearch, extern
                 </div>
               )}
             </div>
+
+            {/* Generated Clips Manager */}
+            {generatedVideoClips.length > 0 && (
+              <div className="p-4 rounded-lg border bg-gradient-to-br from-purple-500/10 to-pink-500/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Video className="h-4 w-4 text-purple-500" />
+                    Generated Clips ({generatedVideoClips.length})
+                  </h4>
+                  <Button
+                    onClick={handleMergeClips}
+                    disabled={isMergingClips || generatedVideoClips.length < 2}
+                    size="sm"
+                    className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600"
+                  >
+                    {isMergingClips ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Download All Clips
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {generatedVideoClips.map((clip, index) => (
+                    <div key={clip.timestamp} className="relative group rounded-lg overflow-hidden border bg-black">
+                      <video 
+                        src={clip.url} 
+                        className="w-full aspect-video object-cover"
+                        muted
+                        onMouseEnter={(e) => (e.target as HTMLVideoElement).play()}
+                        onMouseLeave={(e) => {
+                          const video = e.target as HTMLVideoElement;
+                          video.pause();
+                          video.currentTime = 0;
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Button size="icon" variant="secondary" asChild className="h-8 w-8">
+                          <a href={clip.url} download={`scene-${clip.scene}.mp4`}>
+                            <Download className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <Button 
+                          size="icon" 
+                          variant="destructive" 
+                          className="h-8 w-8"
+                          onClick={() => handleRemoveClip(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                        <p className="text-xs text-white">Scene {clip.scene}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  💡 Generate multiple scenes then download all clips to merge them in a video editor like CapCut or iMovie
+                </p>
+              </div>
+            )}
 
             <Button onClick={() => setCurrentStep(6)} variant="outline" className="w-full">
               Next: Publish <ChevronRight className="h-4 w-4 ml-1" />
