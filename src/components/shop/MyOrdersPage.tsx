@@ -23,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { OrderStatusCarousel } from "@/components/shop/OrderStatusCarousel";
+import { ReviewOrderDialog } from "@/components/shop/ReviewOrderDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -88,6 +89,8 @@ export const MyOrdersPage = () => {
   });
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [reviewOrder, setReviewOrder] = useState<Order | null>(null);
+  const [reviewedOrderIds, setReviewedOrderIds] = useState<Set<string>>(new Set());
 
   // Sync tab with URL
   useEffect(() => {
@@ -123,15 +126,30 @@ export const MyOrdersPage = () => {
       const itemsByOrder: Record<string, Order["order_items"]> = {};
 
       if (orderIds.length > 0) {
-        const { data: itemsData, error: itemsError } = await supabase
-          .from("order_items")
-          .select("id, order_id, quantity, unit_price, subtotal, product_id")
-          .in("order_id", orderIds);
+        // Fetch order items and existing reviews in parallel
+        const [itemsResult, reviewsResult] = await Promise.all([
+          supabase
+            .from("order_items")
+            .select("id, order_id, quantity, unit_price, subtotal, product_id")
+            .in("order_id", orderIds),
+          supabase
+            .from("product_reviews")
+            .select("order_id")
+            .eq("buyer_id", user.id)
+            .in("order_id", orderIds),
+        ]);
 
-        if (itemsError) throw itemsError;
+        if (itemsResult.error) throw itemsResult.error;
+        
+        // Track which orders have been reviewed
+        const reviewedIds = new Set<string>();
+        reviewsResult.data?.forEach((r: any) => {
+          if (r.order_id) reviewedIds.add(r.order_id);
+        });
+        setReviewedOrderIds(reviewedIds);
 
         const productIds = Array.from(
-          new Set((itemsData || []).map((i: any) => i.product_id).filter(Boolean)),
+          new Set((itemsResult.data || []).map((i: any) => i.product_id).filter(Boolean)),
         ) as string[];
 
         const productsById: Record<string, { id: string; name: string; image_url?: string }> = {};
@@ -148,7 +166,7 @@ export const MyOrdersPage = () => {
           });
         }
 
-        (itemsData || []).forEach((it: any) => {
+        (itemsResult.data || []).forEach((it: any) => {
           const enriched = {
             id: it.id,
             quantity: it.quantity,
@@ -190,7 +208,17 @@ export const MyOrdersPage = () => {
 
       setOrders(merged);
 
-      // Calculate counts for each tab
+      // Calculate counts for each tab (exclude already reviewed orders from to_review count)
+      const reviewedIds = new Set<string>();
+      const { data: allReviews } = await supabase
+        .from("product_reviews")
+        .select("order_id")
+        .eq("buyer_id", user.id);
+      
+      allReviews?.forEach((r: any) => {
+        if (r.order_id) reviewedIds.add(r.order_id);
+      });
+
       const counts: Record<OrderTab, number> = {
         all: merged.length,
         to_pay: 0,
@@ -203,7 +231,12 @@ export const MyOrdersPage = () => {
 
       merged.forEach((order) => {
         tabConfig.forEach((tab) => {
-          if (tab.key !== "all" && tab.statuses.includes(order.status)) {
+          if (tab.key === "to_review") {
+            // Only count delivered orders that haven't been reviewed
+            if (order.status === "delivered" && !reviewedIds.has(order.id)) {
+              counts[tab.key]++;
+            }
+          } else if (tab.key !== "all" && tab.statuses.includes(order.status)) {
             counts[tab.key]++;
           }
         });
@@ -513,11 +546,21 @@ export const MyOrdersPage = () => {
                       Cancel
                     </Button>
                   )}
-                  {order.status === 'delivered' && (
-                    <Button size="sm" className="bg-primary">
+                  {order.status === 'delivered' && !reviewedOrderIds.has(order.id) && (
+                    <Button 
+                      size="sm" 
+                      className="bg-primary"
+                      onClick={() => setReviewOrder(order)}
+                    >
                       <Star className="w-4 h-4 mr-1" />
                       Review
                     </Button>
+                  )}
+                  {order.status === 'delivered' && reviewedOrderIds.has(order.id) && (
+                    <Badge variant="outline" className="text-green-600 border-green-600">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Reviewed
+                    </Badge>
                   )}
                   {order.status === 'pending_payment' && (
                     <Button size="sm" className="bg-primary">
@@ -552,6 +595,21 @@ export const MyOrdersPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Review Order Dialog */}
+      {reviewOrder && (
+        <ReviewOrderDialog
+          open={!!reviewOrder}
+          onOpenChange={(open) => !open && setReviewOrder(null)}
+          orderId={reviewOrder.id}
+          orderItems={reviewOrder.order_items}
+          sellerId={reviewOrder.seller_id}
+          onSuccess={() => {
+            fetchOrders();
+            setReviewOrder(null);
+          }}
+        />
+      )}
     </div>
   );
 };
