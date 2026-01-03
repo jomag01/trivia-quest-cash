@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building, Truck, Star, Gavel, Users } from "lucide-react";
-import SupplierApplication from "@/components/shop/SupplierApplication";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { emitCartUpdated } from "@/lib/cartEvents";
@@ -14,40 +13,52 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ProductDetailDialog } from "@/components/ProductDetailDialog";
 import ShippingCalculator from "@/components/ShippingCalculator";
 import { ProductShareButton } from "@/components/ProductShareButton";
-import { AdSlider } from "@/components/AdSlider";
 import { useInteractionTracking } from "@/hooks/useInteractionTracking";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SellerDashboard from "./SellerDashboard";
-import ShopAccountOverview from "@/components/ShopAccountOverview";
 import CategorySlider from "@/components/CategorySlider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import LiveStreamSlider from "@/components/live/LiveStreamSlider";
-import LiveStreamViewer from "@/components/live/LiveStreamViewer";
-import FloatingLiveStream from "@/components/live/FloatingLiveStream";
-import { CartView } from "@/components/CartView";
-import { WishlistView } from "@/components/WishlistView";
-import AIProductRecommendations from "@/components/shop/AIProductRecommendations";
-import ServicesList from "@/components/booking/ServicesList";
-import AIHealthConsultant from "@/components/shop/AIHealthConsultant";
-import MarketplaceListings from "@/components/marketplace/MarketplaceListings";
-import AuctionProducts from "@/components/shop/AuctionProducts";
-import SellerAdsSlider from "@/components/shop/SellerAdsSlider";
+import { useShopData } from "@/hooks/useShopData";
+import { ShopLayoutSkeleton, ProductGridSkeleton, CategorySliderSkeleton, AdSliderSkeleton } from "@/components/shop/ShopSkeletons";
+import OptimizedProductCard from "@/components/shop/OptimizedProductCard";
+
+// Lazy load heavy components - not needed on initial render
+const SupplierApplication = lazy(() => import("@/components/shop/SupplierApplication"));
+const AdSlider = lazy(() => import("@/components/AdSlider").then(m => ({ default: m.AdSlider })));
+const LiveStreamSlider = lazy(() => import("@/components/live/LiveStreamSlider"));
+const LiveStreamViewer = lazy(() => import("@/components/live/LiveStreamViewer"));
+const FloatingLiveStream = lazy(() => import("@/components/live/FloatingLiveStream"));
+const CartView = lazy(() => import("@/components/CartView").then(m => ({ default: m.CartView })));
+const WishlistView = lazy(() => import("@/components/WishlistView").then(m => ({ default: m.WishlistView })));
+const AIProductRecommendations = lazy(() => import("@/components/shop/AIProductRecommendations"));
+const ServicesList = lazy(() => import("@/components/booking/ServicesList"));
+const AIHealthConsultant = lazy(() => import("@/components/shop/AIHealthConsultant"));
+const MarketplaceListings = lazy(() => import("@/components/marketplace/MarketplaceListings"));
+const AuctionProducts = lazy(() => import("@/components/shop/AuctionProducts"));
+const SellerAdsSlider = lazy(() => import("@/components/shop/SellerAdsSlider"));
+const SellerDashboard = lazy(() => import("./SellerDashboard"));
+const ShopAccountOverview = lazy(() => import("@/components/ShopAccountOverview"));
 
 const Shop = () => {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const {
-    trackInteraction
-  } = useInteractionTracking();
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const { trackInteraction } = useInteractionTracking();
+  
+  // Use optimized shop data hook with caching and deferred loading
+  const { 
+    products, 
+    categories, 
+    loading, 
+    enhancementsLoaded,
+    inCart, 
+    inWishlist, 
+    refreshCart, 
+    refreshWishlist 
+  } = useShopData();
+
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
   const [checkoutDialog, setCheckoutDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
@@ -56,196 +67,72 @@ const Shop = () => {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [shippingFee, setShippingFee] = useState(50);
-  const [inCart, setInCart] = useState<Set<string>>(new Set());
-  const [inWishlist, setInWishlist] = useState<Set<string>>(new Set());
   const [detailDialog, setDetailDialog] = useState(false);
   const [detailProduct, setDetailProduct] = useState<any>(null);
   const [selectedStream, setSelectedStream] = useState<any>(null);
   const [minimizedStream, setMinimizedStream] = useState<any>(null);
   const [showBookings, setShowBookings] = useState(false);
   
-  const handleMinimizeStream = (stream: any) => {
+  const handleMinimizeStream = useCallback((stream: any) => {
     setMinimizedStream(stream);
     setSelectedStream(null);
-  };
+  }, []);
 
-  const handleExpandStream = () => {
+  const handleExpandStream = useCallback(() => {
     setSelectedStream(minimizedStream);
     setMinimizedStream(null);
-  };
+  }, [minimizedStream]);
 
-  const handleCloseMinimized = () => {
+  const handleCloseMinimized = useCallback(() => {
     setMinimizedStream(null);
-  };
+  }, []);
+
+  // Handle referral tracking
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-    if (user) {
-      fetchCartStatus();
-      fetchWishlistStatus();
-    }
     const ref = searchParams.get('ref');
     const productId = searchParams.get('product');
     if (ref && productId) {
-      localStorage.setItem('product_referrer', JSON.stringify({
-        ref,
-        productId
-      }));
+      localStorage.setItem('product_referrer', JSON.stringify({ ref, productId }));
     }
-  }, [user, searchParams]);
-  const fetchProducts = async () => {
-    try {
-      const {
-        data,
-        error
-      } = await supabase.from("products").select("*, product_categories(name)").eq("is_active", true).order("created_at", {
-        ascending: false
-      });
-      if (error) throw error;
-      
-      const productIds = (data || []).map(p => p.id);
-      
-      // Fetch real sales from delivered orders
-      const { data: salesData } = await supabase
-        .from("order_items")
-        .select("product_id, quantity, orders!inner(status)")
-        .in("product_id", productIds)
-        .eq("orders.status", "delivered");
-      
-      // Fetch real reviews/ratings
-      const { data: reviewsData } = await supabase
-        .from("product_reviews")
-        .select("product_id, product_rating")
-        .in("product_id", productIds);
-      
-      // Aggregate sales per product
-      const salesMap: Record<string, number> = {};
-      salesData?.forEach(item => {
-        salesMap[item.product_id] = (salesMap[item.product_id] || 0) + item.quantity;
-      });
-      
-      // Aggregate ratings per product
-      const ratingsMap: Record<string, { sum: number; count: number }> = {};
-      reviewsData?.forEach(review => {
-        if (!ratingsMap[review.product_id]) {
-          ratingsMap[review.product_id] = { sum: 0, count: 0 };
-        }
-        ratingsMap[review.product_id].sum += review.product_rating;
-        ratingsMap[review.product_id].count += 1;
-      });
-      
-      const productsWithImages = await Promise.all((data || []).map(async product => {
-        const {
-          data: images
-        } = await supabase.from("product_images").select("image_url, image_type").eq("product_id", product.id).in("image_type", ["static", "hover"]);
-        const staticImage = images?.find(img => img.image_type === "static")?.image_url || product.image_url;
-        const hoverImage = images?.find(img => img.image_type === "hover")?.image_url;
-        
-        // Combine boosted + real sales
-        const realSales = salesMap[product.id] || 0;
-        const boostedSales = Number(product.boosted_sales_count) || 0;
-        const totalSales = boostedSales + realSales;
-        
-        // Combine boosted + real ratings
-        const ratingData = ratingsMap[product.id];
-        const realAvgRating = ratingData ? ratingData.sum / ratingData.count : 0;
-        const realReviewCount = ratingData?.count || 0;
-        const boostedRating = Number(product.boosted_rating) || 0;
-        
-        const displayRating = realReviewCount > 0 
-          ? (boostedRating > 0 ? (boostedRating + realAvgRating) / 2 : realAvgRating)
-          : (boostedRating > 0 ? boostedRating : 0);
-        
-        return {
-          ...product,
-          image_url: staticImage,
-          hover_image_url: hoverImage,
-          combined_sales: totalSales,
-          combined_rating: displayRating,
-          review_count: realReviewCount,
-          real_sales: realSales
-        };
-      }));
-      setProducts(productsWithImages);
-    } catch (error: any) {
-      console.error("Error fetching products:", error);
-      toast.error("Failed to load products");
-    } finally {
-      setLoading(false);
-    }
-  };
-  const fetchCategories = async () => {
-    try {
-      const {
-        data,
-        error
-      } = await supabase.from("product_categories").select("*").eq("is_active", true);
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error: any) {
-      console.error("Error fetching categories:", error);
-    }
-  };
-  const fetchCartStatus = async () => {
-    try {
-      const {
-        data,
-        error
-      } = await supabase.from("cart").select("product_id").eq("user_id", user?.id);
-      if (error) throw error;
-      setInCart(new Set(data?.map(item => item.product_id) || []));
-    } catch (error: any) {
-      console.error("Error fetching cart status:", error);
-    }
-  };
-  const fetchWishlistStatus = async () => {
-    try {
-      const {
-        data,
-        error
-      } = await supabase.from("wishlist").select("product_id").eq("user_id", user?.id);
-      if (error) throw error;
-      setInWishlist(new Set(data?.map(item => item.product_id) || []));
-    } catch (error: any) {
-      console.error("Error fetching wishlist status:", error);
-    }
-  };
-  const addToCart = async (productId: string) => {
+  }, [searchParams]);
+
+  const addToCart = useCallback(async (productId: string) => {
     if (!user) {
       toast.error("Please login to add items to cart");
       navigate("/auth");
       return;
     }
     try {
-      const {
-        data: existing
-      } = await supabase.from("cart").select("id, quantity").eq("user_id", user.id).eq("product_id", productId).maybeSingle();
+      const { data: existing } = await supabase
+        .from("cart")
+        .select("id, quantity")
+        .eq("user_id", user.id)
+        .eq("product_id", productId)
+        .maybeSingle();
+
       if (existing) {
-        const {
-          error
-        } = await supabase.from("cart").update({
-          quantity: existing.quantity + 1
-        }).eq("id", existing.id);
+        const { error } = await supabase
+          .from("cart")
+          .update({ quantity: existing.quantity + 1 })
+          .eq("id", existing.id);
         if (error) throw error;
       } else {
-        const {
-          error
-        } = await supabase.from("cart").insert({
-          user_id: user.id,
-          product_id: productId,
-          quantity: 1
-        });
+        const { error } = await supabase
+          .from("cart")
+          .insert({ user_id: user.id, product_id: productId, quantity: 1 });
         if (error) throw error;
       }
-      await fetchCartStatus();
+      
+      await refreshCart();
       emitCartUpdated();
       toast.success("Added to cart");
     } catch (error: any) {
       console.error("Error adding to cart:", error);
       toast.error("Failed to add to cart");
     }
-  };
-  const toggleWishlist = async (productId: string) => {
+  }, [user, navigate, refreshCart]);
+
+  const toggleWishlist = useCallback(async (productId: string) => {
     if (!user) {
       toast.error("Please login to add items to wishlist");
       navigate("/auth");
@@ -253,38 +140,47 @@ const Shop = () => {
     }
     try {
       if (inWishlist.has(productId)) {
-        const {
-          error
-        } = await supabase.from("wishlist").delete().eq("user_id", user.id).eq("product_id", productId);
+        const { error } = await supabase
+          .from("wishlist")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("product_id", productId);
         if (error) throw error;
         toast.success("Removed from wishlist");
       } else {
-        const {
-          error
-        } = await supabase.from("wishlist").insert({
-          user_id: user.id,
-          product_id: productId
-        });
+        const { error } = await supabase
+          .from("wishlist")
+          .insert({ user_id: user.id, product_id: productId });
         if (error) throw error;
         toast.success("Added to wishlist");
       }
-      fetchWishlistStatus();
+      refreshWishlist();
     } catch (error: any) {
       console.error("Error toggling wishlist:", error);
       toast.error("Failed to update wishlist");
     }
-  };
+  }, [user, navigate, inWishlist, refreshWishlist]);
+
+  // Filter products
   const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === "all" || product.category_id === selectedCategory;
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      product.description?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-  const handleBuyNow = (product: any) => {
+
+  const handleBuyNow = useCallback((product: any) => {
     setSelectedProduct(product);
     setQuantity(1);
     setCheckoutDialog(true);
-  };
-  const handleCheckout = async () => {
+  }, []);
+
+  const getEffectivePrice = useCallback((product: any) => {
+    if (!product) return 0;
+    return product.promo_active && product.promo_price ? product.promo_price : product.base_price;
+  }, []);
+
+  const handleCheckout = useCallback(async () => {
     if (!selectedProduct) return;
     if (!shippingAddress || !customerName || !customerEmail) {
       toast.error("Please fill in all required fields");
@@ -297,23 +193,14 @@ const Shop = () => {
       const referralData = localStorage.getItem('product_referrer');
       let referrerId: string | null = null;
       if (referralData) {
-        const {
-          ref,
-          productId
-        } = JSON.parse(referralData);
+        const { ref, productId } = JSON.parse(referralData);
         if (productId === selectedProduct.id) {
           referrerId = ref;
         }
       }
-      const {
-        data: orderNumberData,
-        error: orderNumError
-      } = await supabase.rpc("generate_order_number");
+      const { data: orderNumberData, error: orderNumError } = await supabase.rpc("generate_order_number");
       if (orderNumError) throw orderNumError;
-      const {
-        data: order,
-        error: orderError
-      } = await supabase.from("orders").insert({
+      const { data: order, error: orderError } = await supabase.from("orders").insert({
         user_id: user?.id || null,
         order_number: orderNumberData,
         total_amount: totalAmount,
@@ -327,9 +214,7 @@ const Shop = () => {
       }).select().single();
       if (orderError) throw orderError;
       const diamondCredits = (selectedProduct.diamond_reward || 0) * quantity;
-      const {
-        error: itemError
-      } = await supabase.from("order_items").insert({
+      const { error: itemError } = await supabase.from("order_items").insert({
         order_id: order.id,
         product_id: selectedProduct.id,
         quantity: quantity,
@@ -337,16 +222,12 @@ const Shop = () => {
         subtotal: subtotal
       });
       if (itemError) throw itemError;
-      const {
-        error: updateError
-      } = await supabase.from("orders").update({
+      const { error: updateError } = await supabase.from("orders").update({
         total_diamond_credits: diamondCredits
       }).eq("id", order.id);
       if (updateError) throw updateError;
       if (referrerId && selectedProduct.referral_commission_diamonds > 0) {
-        const {
-          error: referralError
-        } = await supabase.from("product_referrals").insert({
+        const { error: referralError } = await supabase.from("product_referrals").insert({
           product_id: selectedProduct.id,
           referrer_id: referrerId,
           referred_user_id: user?.id || null,
@@ -358,9 +239,7 @@ const Shop = () => {
           console.error("Error creating referral record:", referralError);
         }
         if (user?.id && referrerId) {
-          const {
-            data: profile
-          } = await supabase.from("profiles").select("referred_by").eq("id", user.id).single();
+          const { data: profile } = await supabase.from("profiles").select("referred_by").eq("id", user.id).single();
           if (profile && !profile.referred_by) {
             await supabase.from("profiles").update({
               referred_by: referrerId
@@ -384,18 +263,11 @@ const Shop = () => {
       console.error("Error creating order:", error);
       toast.error("Failed to place order");
     }
-  };
-  const getEffectivePrice = (product: any) => {
-    if (!product) return 0;
-    if (product.promo_active && product.promo_price) {
-      return product.promo_price;
-    }
-    return product.base_price;
-  };
+  }, [selectedProduct, shippingAddress, customerName, customerEmail, customerPhone, quantity, shippingFee, user]);
+
+  // Show skeleton immediately while loading
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-white">
-        <Package className="w-16 h-16 text-black animate-pulse" />
-      </div>;
+    return <ShopLayoutSkeleton />;
   }
   // Determine active tab from URL params
   const tabParam = searchParams.get('tab');
@@ -490,7 +362,9 @@ const Shop = () => {
 
         <div className="max-w-7xl mx-auto px-3">
           {/* Account Overview - Compact */}
-          <ShopAccountOverview />
+          <Suspense fallback={<div className="h-12" />}>
+            <ShopAccountOverview />
+          </Suspense>
 
           {/* Navigation Tabs */}
           <TabsList className="w-full grid grid-cols-7 mb-3 mt-2">
@@ -548,24 +422,36 @@ const Shop = () => {
               </button>
               {showBookings && (
                 <div className="p-4 border-t border-primary/10">
-                  <ServicesList />
+                  <Suspense fallback={<div className="h-40 animate-pulse bg-muted rounded" />}>
+                    <ServicesList />
+                  </Suspense>
                 </div>
               )}
             </Card>
 
             {/* Promotion Slider */}
-            <div className="-mx-3">
-              <AdSlider />
-            </div>
+            <Suspense fallback={<AdSliderSkeleton />}>
+              <div className="-mx-3">
+                <AdSlider />
+              </div>
+            </Suspense>
 
             {/* Live Streams Slider */}
-            <LiveStreamSlider onSelectStream={setSelectedStream} />
+            <Suspense fallback={null}>
+              <LiveStreamSlider onSelectStream={setSelectedStream} />
+            </Suspense>
             
             {/* Category Slider */}
-            <CategorySlider categories={categories} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
+            {categories.length > 0 ? (
+              <CategorySlider categories={categories} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
+            ) : (
+              <CategorySliderSkeleton />
+            )}
 
             {/* Seller Ads Slider */}
-            <SellerAdsSlider />
+            <Suspense fallback={null}>
+              <SellerAdsSlider />
+            </Suspense>
 
             {/* Income Disclaimer */}
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
@@ -574,112 +460,51 @@ const Shop = () => {
               </p>
             </div>
 
-            {/* AI Product Recommendations */}
-            <AIProductRecommendations 
-              currentProductId={detailProduct?.id}
-              onProductClick={(product) => {
-                trackInteraction('view', 'product', product.id, { name: product.name, source: 'ai_recommendation' });
-                setDetailProduct(product);
-                setDetailDialog(true);
-              }}
-            />
+            {/* AI Product Recommendations - Deferred */}
+            <Suspense fallback={<ProductGridSkeleton count={4} />}>
+              <AIProductRecommendations 
+                currentProductId={detailProduct?.id}
+                onProductClick={(product) => {
+                  trackInteraction('view', 'product', product.id, { name: product.name, source: 'ai_recommendation' });
+                  setDetailProduct(product);
+                  setDetailDialog(true);
+                }}
+              />
+            </Suspense>
 
-            {/* Auction Products */}
-            <AuctionProducts />
+            {/* Auction Products - Deferred */}
+            <Suspense fallback={null}>
+              <AuctionProducts />
+            </Suspense>
 
-            {/* Products Grid */}
+            {/* Products Grid - Optimized */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {filteredProducts.map(product => <Card key={product.id} className="overflow-hidden border-gray-100 hover:shadow-md transition-all duration-300 flex flex-col cursor-pointer group bg-white" onClick={() => {
-              trackInteraction('view', 'product', product.id, {
-                name: product.name
-              });
-              setDetailProduct(product);
-              setDetailDialog(true);
-            }}>
-                  {/* Product Image */}
-                  <div className="aspect-square overflow-hidden bg-gray-50 relative">
-                    {product.image_url ? <>
-                        <img src={product.image_url} alt={product.name} className={`w-full h-full object-cover transition-all duration-300 ${product.hover_image_url ? 'group-hover:opacity-0' : 'group-hover:scale-105'}`} loading="lazy" />
-                        {product.hover_image_url && <img src={product.hover_image_url} alt={`${product.name} hover`} className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300" loading="lazy" />}
-                      </> : <div className="w-full h-full flex items-center justify-center text-gray-300">
-                        <Package className="w-8 h-8" />
-                      </div>}
-                    {product.promo_active && product.promo_price && <Badge className="absolute top-1 right-1 text-[9px] px-1.5 py-0.5 bg-red-500 text-white">
-                        Sale
-                      </Badge>}
-                    {product.diamond_reward > 0 && <Badge className="absolute top-1 left-1 text-[9px] px-1.5 py-0.5 bg-black text-white">
-                        💎 {product.diamond_reward}
-                      </Badge>}
-                  </div>
-                  
-                  <div className="p-2 flex-1 flex flex-col">
-                    <h3 className="text-xs font-medium mb-1 line-clamp-2 leading-tight text-black">{product.name}</h3>
-
-                    {/* Combined sales & ratings display (boosted + real) */}
-                    {(product.combined_sales > 0 || product.combined_rating > 0) && (
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                        {product.combined_sales > 0 && (
-                          <span className="flex items-center gap-1">
-                            <span aria-hidden>📊</span>
-                            <span className="font-medium">{product.combined_sales.toLocaleString()} sold</span>
-                          </span>
-                        )}
-                        {product.combined_rating > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Star className="w-3 h-3 fill-primary text-primary" />
-                            <span className="font-medium">
-                              {product.combined_rating.toFixed(1)}
-                              {product.review_count > 0 && ` (${product.review_count})`}
-                            </span>
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-1 mb-1.5">
-                      <span className="text-sm font-bold text-red-500">
-                        ₱{getEffectivePrice(product).toFixed(2)}
-                      </span>
-                      {product.promo_active && product.promo_price && <span className="text-[10px] text-gray-400 line-through">
-                          ₱{product.base_price.toFixed(2)}
-                        </span>}
-                    </div>
-
-                    <div className="mt-auto space-y-1">
-                      <Button className="w-full h-7 text-[10px] bg-red-500 hover:bg-red-600 text-white" onClick={e => {
-                    e.stopPropagation();
-                    trackInteraction('click', 'button', `buy_${product.id}`);
-                    handleBuyNow(product);
-                  }} disabled={!product.stock_quantity || product.stock_quantity === 0}>
-                        <ShoppingCart className="w-3 h-3 mr-1" />
-                        {product.stock_quantity > 0 ? "Buy Now" : "Out"}
-                      </Button>
-                      
-                      <div className="grid grid-cols-3 gap-1">
-                        <Button variant="outline" size="sm" className="h-6 text-[9px] border-red-500 text-red-500 hover:bg-red-50 px-1" onClick={e => {
-                      e.stopPropagation();
-                      trackInteraction('click', 'button', `cart_${product.id}`);
-                      addToCart(product.id);
-                    }} disabled={!product.stock_quantity || product.stock_quantity === 0}>
-                          {inCart.has(product.id) ? "✓" : "Cart"}
-                        </Button>
-                        <Button variant="outline" size="sm" className="h-6 text-[9px] px-1" onClick={e => {
-                      e.stopPropagation();
-                      toggleWishlist(product.id);
-                    }}>
-                          <Heart className={`w-2.5 h-2.5 ${inWishlist.has(product.id) ? "fill-red-500 text-red-500" : ""}`} />
-                        </Button>
-                        <ProductShareButton productId={product.id} productName={product.name} size="sm" className="h-6 text-[9px] px-1" />
-                      </div>
-                    </div>
-                  </div>
-                </Card>)}
+              {filteredProducts.map(product => (
+                <OptimizedProductCard
+                  key={product.id}
+                  product={product}
+                  inCart={inCart.has(product.id)}
+                  inWishlist={inWishlist.has(product.id)}
+                  onProductClick={(p) => {
+                    trackInteraction('view', 'product', p.id, { name: p.name });
+                    setDetailProduct(p);
+                    setDetailDialog(true);
+                  }}
+                  onAddToCart={addToCart}
+                  onToggleWishlist={toggleWishlist}
+                  onBuyNow={handleBuyNow}
+                  showRatings={enhancementsLoaded}
+                  showSales={enhancementsLoaded}
+                />
+              ))}
             </div>
 
-            {filteredProducts.length === 0 && <div className="text-center py-12">
-                <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">No products found</p>
-              </div>}
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-12">
+                <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">No products found</p>
+              </div>
+            )}
 
             {/* Checkout Dialog */}
             <Dialog open={checkoutDialog} onOpenChange={setCheckoutDialog}>
@@ -830,7 +655,7 @@ const Shop = () => {
       )}
 
       {/* Product Assistant */}
-      <AIHealthConsultant onAddToCart={addToCart} onCartUpdated={fetchCartStatus} />
+      <AIHealthConsultant onAddToCart={addToCart} onCartUpdated={refreshCart} />
     </div>;
 };
 export default Shop;
