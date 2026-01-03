@@ -1,20 +1,21 @@
 import { useState, useEffect } from "react";
-import { Plus, ArrowUp, Video, Sparkles } from "lucide-react";
+import { Plus, ArrowUp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { CreatePost } from "@/components/social/CreatePost";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+
 interface FloatingActionsProps {
-  onGoLive?: () => void;
   showScrollTop?: boolean;
 }
 
-export default function FloatingActions({ onGoLive, showScrollTop = true }: FloatingActionsProps) {
+export default function FloatingActions({ showScrollTop = true }: FloatingActionsProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showTopButton, setShowTopButton] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
   useEffect(() => {
     const handleScroll = () => {
       setShowTopButton(window.scrollY > 500);
@@ -44,15 +45,6 @@ export default function FloatingActions({ onGoLive, showScrollTop = true }: Floa
       {/* Create button - centered */}
       {user && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2">
-          {/* Go Live button */}
-          <Button
-            onClick={onGoLive}
-            size="icon"
-            className="h-12 w-12 rounded-full bg-destructive text-destructive-foreground shadow-lg hover:bg-destructive/90"
-          >
-            <Video className="w-5 h-5" />
-          </Button>
-
           {/* Create Post button */}
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>

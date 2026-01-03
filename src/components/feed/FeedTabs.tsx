@@ -1,5 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Video, Users, Compass, ShoppingBag, Gamepad2 } from "lucide-react";
+import { Users, Compass, ShoppingBag, Gamepad2 } from "lucide-react";
 
 interface FeedTabsProps {
   activeTab: string;
@@ -23,13 +23,6 @@ export default function FeedTabs({ activeTab, onTabChange }: FeedTabsProps) {
           >
             <Users className="w-4 h-4 mr-1.5 hidden sm:block" />
             Following
-          </TabsTrigger>
-          <TabsTrigger
-            value="live"
-            className="flex-1 min-w-[80px] h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent font-semibold"
-          >
-            <Video className="w-4 h-4 mr-1.5 text-destructive" />
-            Live
           </TabsTrigger>
           <TabsTrigger
             value="discover"
