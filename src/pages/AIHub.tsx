@@ -65,7 +65,7 @@ const AIHub = memo(() => {
   const [adPreset, setAdPreset] = useState<string>('none');
   const [imageStylePreset, setImageStylePreset] = useState<string>('none');
   const [videoAspectRatio, setVideoAspectRatio] = useState<string>('16:9');
-  const [videoProvider, setVideoProvider] = useState<'gemini' | 'openai'>('gemini');
+  const [videoProvider, setVideoProvider] = useState<'fal' | 'kling' | 'gemini'>('fal');
 
   // Image style presets
   const IMAGE_STYLE_PRESETS = {
@@ -1582,15 +1582,19 @@ const AIHub = memo(() => {
 
                     <div className="space-y-1.5">
                       <Label>AI Provider</Label>
-                      <Select value={videoProvider} onValueChange={(v: 'gemini' | 'openai') => setVideoProvider(v)}>
+                      <Select value={videoProvider} onValueChange={(v: 'fal' | 'kling' | 'gemini') => setVideoProvider(v)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="gemini">Google Veo3</SelectItem>
-                          <SelectItem value="openai">OpenAI</SelectItem>
+                          <SelectItem value="fal">🎬 MiniMax Video (Recommended)</SelectItem>
+                          <SelectItem value="kling">🎥 Kling Video</SelectItem>
+                          <SelectItem value="gemini">🖼️ Gemini (Image Only)</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground">
+                        MiniMax & Kling generate actual videos. Gemini creates still images.
+                      </p>
                     </div>
                   </div>
 
