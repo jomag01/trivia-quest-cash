@@ -35,7 +35,7 @@ export default function FloatingActions({ showScrollTop = true }: FloatingAction
       {showScrollTop && showTopButton && (
         <Button
           onClick={scrollToTop}
-          className="fixed bottom-24 right-4 z-40 h-12 w-12 rounded-full shadow-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 animate-fade-in"
+          className="fixed bottom-24 right-4 z-40 h-12 w-12 rounded-full shadow-lg bg-zinc-800 text-white hover:bg-zinc-700 animate-fade-in border border-zinc-700"
           size="icon"
         >
           <ArrowUp className="w-5 h-5" />
@@ -49,13 +49,13 @@ export default function FloatingActions({ showScrollTop = true }: FloatingAction
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button
-                className="h-14 w-14 rounded-full gradient-accent text-white shadow-xl hover:opacity-90 transition-opacity"
+                className="h-14 w-14 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-black shadow-xl shadow-amber-500/30 hover:opacity-90 transition-opacity"
                 size="icon"
               >
                 <Plus className="w-7 h-7" strokeWidth={3} />
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0">
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0 bg-zinc-950 border-zinc-800">
               <CreatePost onPostCreated={() => setCreateDialogOpen(false)} />
             </DialogContent>
           </Dialog>
@@ -65,7 +65,7 @@ export default function FloatingActions({ showScrollTop = true }: FloatingAction
             onClick={() => navigate('/ai-hub')}
             variant="secondary"
             size="icon"
-            className="h-12 w-12 rounded-full shadow-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
+            className="h-12 w-12 rounded-full shadow-lg bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-600 hover:to-orange-600"
           >
             <Sparkles className="w-5 h-5" />
           </Button>
