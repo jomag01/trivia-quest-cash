@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ShoppingBag, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,12 +42,19 @@ const getTimeAgo = () => {
   return `${minutes} min ago`;
 };
 
+// Only show on these routes
+const ALLOWED_ROUTES = ['/', '/ai-hub', '/shop'];
+
 export const PurchaseNotification = () => {
+  const location = useLocation();
   const [settings, setSettings] = useState<NotificationSettings>(defaultSettings);
   const [currentNotification, setCurrentNotification] = useState<PurchaseNotification | null>(null);
   const [realNotifications, setRealNotifications] = useState<PurchaseNotification[]>([]);
   const [notificationCount, setNotificationCount] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+
+  // Check if current route allows notifications
+  const isAllowedRoute = ALLOWED_ROUTES.includes(location.pathname);
 
   // Fetch settings
   useEffect(() => {
@@ -175,7 +183,7 @@ export const PurchaseNotification = () => {
     };
   }, [settings, isPaused, notificationCount, realNotifications, generateFakeNotification]);
 
-  if (!settings.is_enabled) return null;
+  if (!settings.is_enabled || !isAllowedRoute) return null;
 
   return (
     <AnimatePresence>
