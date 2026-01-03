@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Store, Package, AlertCircle, Plus, Edit2, Trash2, Images, Layers, Megaphone } from "lucide-react";
+import { Loader2, Store, Package, AlertCircle, Plus, Edit2, Trash2, Images, Layers, Megaphone, Warehouse } from "lucide-react";
 import { ProductVariantManager } from "@/components/ProductVariantManager";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -245,7 +245,13 @@ export default function SellerDashboard() {
       </div>;
   }
   return <div className="container mx-auto p-4 md:p-6">
-      <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2 mb-6 text-[#010101]"><Store className="h-6 md:h-8 w-6 md:w-8" />Seller Dashboard</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2 text-[#010101]"><Store className="h-6 md:h-8 w-6 md:w-8" />Seller Dashboard</h1>
+        <Button variant="outline" onClick={() => window.location.href = '/warehouse'} className="gap-2">
+          <Warehouse className="h-4 w-4" />
+          <span className="hidden sm:inline">Warehouse</span>
+        </Button>
+      </div>
       {!profile?.is_verified_seller && <Card className="mb-6">
           <CardHeader><CardTitle>Seller Verification</CardTitle></CardHeader>
           <CardContent>
