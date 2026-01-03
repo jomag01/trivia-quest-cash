@@ -38,7 +38,8 @@ export default function Feed() {
     loadingMore,
     hasMore,
     loadMore,
-    refresh
+    refresh,
+    loadEngagementForVisiblePost
   } = useFeedData(activeTab, user?.id);
 
   // Infinite scroll observer
@@ -104,6 +105,7 @@ export default function Feed() {
                   post={post}
                   onCommentsClick={() => handleCommentsClick(post.id)}
                   onDelete={refresh}
+                  onVisible={loadEngagementForVisiblePost}
                 />
               ))}
             </div>

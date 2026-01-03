@@ -9,6 +9,12 @@ import Navigation from "./components/Navigation";
 import { parseAndTrackFromUrl } from "@/lib/cookieTracking";
 import { AffiliateSignupPopup } from "./components/AffiliateSignupPopup";
 import { PurchaseNotification } from "./components/PurchaseNotification";
+import { warmUpFeed } from "@/lib/feedPrefetch";
+
+// Warm up feed in background immediately on app load
+if (typeof window !== 'undefined') {
+  requestIdleCallback(() => warmUpFeed());
+}
 
 // Lazy load all pages for code splitting
 const AIHub = lazy(() => import("./pages/AIHub"));
