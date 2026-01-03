@@ -11073,6 +11073,78 @@ export type Database = {
         Returns: Json
       }
       clean_ai_cache: { Args: never; Returns: undefined }
+      convert_ai_credits_to_cash: {
+        Args: {
+          p_ai_credit_amount: number
+          p_cash_to_receive: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      convert_ai_credits_to_diamonds: {
+        Args: {
+          p_ai_credit_amount: number
+          p_diamonds_to_receive: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      convert_ai_credits_to_game_credits: {
+        Args: {
+          p_ai_credit_amount: number
+          p_game_credits_to_receive: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      convert_cash_to_credits: {
+        Args: {
+          p_cash_amount: number
+          p_credits_to_receive: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      convert_cash_to_diamonds: {
+        Args: {
+          p_cash_amount: number
+          p_diamonds_to_receive: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      convert_credits_to_cash: {
+        Args: {
+          p_cash_to_receive: number
+          p_credit_amount: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      convert_credits_to_diamonds: {
+        Args: {
+          p_credit_amount: number
+          p_diamonds_to_receive: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      convert_diamonds_to_cash: {
+        Args: {
+          p_cash_to_receive: number
+          p_diamond_amount: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      convert_diamonds_to_credits: {
+        Args: {
+          p_credits_to_receive: number
+          p_diamond_amount: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
       convert_gems_to_diamonds: {
         Args: { p_gem_amount: number; p_user_id: string }
         Returns: Json
