@@ -299,6 +299,15 @@ const Shop = () => {
               <div className="absolute right-1 top-1/2 -translate-y-1/2">
                 <ImageSearchButton 
                   onSearchResults={(query) => setSearchQuery(query)} 
+                  onProductSelect={(product) => {
+                    // Find full product from products array
+                    const fullProduct = products.find(p => p.id === product.id);
+                    if (fullProduct) {
+                      trackInteraction('view', 'product', fullProduct.id, { name: fullProduct.name, source: 'image_search' });
+                      setDetailProduct(fullProduct);
+                      setDetailDialog(true);
+                    }
+                  }}
                 />
               </div>
               {/* Search Results Dropdown */}
