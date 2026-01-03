@@ -373,15 +373,48 @@ export default function CashWithdrawDialog({
                         <SelectValue placeholder="Select bank" />
                       </SelectTrigger>
                       <SelectContent>
+                        {/* Major Universal Banks */}
                         <SelectItem value="BDO">BDO Unibank</SelectItem>
-                        <SelectItem value="BPI">BPI</SelectItem>
-                        <SelectItem value="UNIONBANK">UnionBank</SelectItem>
+                        <SelectItem value="BPI">BPI (Bank of the Philippine Islands)</SelectItem>
                         <SelectItem value="METROBANK">Metrobank</SelectItem>
-                        <SelectItem value="LANDBANK">Land Bank</SelectItem>
-                        <SelectItem value="PNB">PNB</SelectItem>
-                        <SelectItem value="RCBC">RCBC</SelectItem>
+                        <SelectItem value="LANDBANK">Land Bank of the Philippines</SelectItem>
+                        <SelectItem value="PNB">PNB (Philippine National Bank)</SelectItem>
                         <SelectItem value="CHINABANK">China Bank</SelectItem>
                         <SelectItem value="SECURITYBANK">Security Bank</SelectItem>
+                        <SelectItem value="UNIONBANK">UnionBank</SelectItem>
+                        <SelectItem value="RCBC">RCBC</SelectItem>
+                        <SelectItem value="DBP">DBP (Development Bank of the Philippines)</SelectItem>
+                        <SelectItem value="EWB">EastWest Bank</SelectItem>
+                        <SelectItem value="AUB">Asia United Bank (AUB)</SelectItem>
+                        <SelectItem value="PSB">Philippine Savings Bank (PSBank)</SelectItem>
+                        <SelectItem value="PBCOM">PBCOM (Philippine Bank of Communications)</SelectItem>
+                        <SelectItem value="PHILTRUST">Philtrust Bank</SelectItem>
+                        <SelectItem value="ROBINSONSBANK">Robinsons Bank</SelectItem>
+                        <SelectItem value="CTBC">CTBC Bank Philippines</SelectItem>
+                        <SelectItem value="MAYBANK">Maybank Philippines</SelectItem>
+                        <SelectItem value="HSBC">HSBC Philippines</SelectItem>
+                        <SelectItem value="CITIBANK">Citibank Philippines</SelectItem>
+                        <SelectItem value="STANDARDCHARTERED">Standard Chartered Bank</SelectItem>
+                        {/* Digital Banks */}
+                        <SelectItem value="GOTYME">GoTyme Bank</SelectItem>
+                        <SelectItem value="MAYABANK">Maya Bank</SelectItem>
+                        <SelectItem value="CIMB">CIMB Bank Philippines</SelectItem>
+                        <SelectItem value="TONIKBANK">Tonik Digital Bank</SelectItem>
+                        <SelectItem value="UNOBANKPH">UNObank</SelectItem>
+                        <SelectItem value="SEABANK">SeaBank Philippines</SelectItem>
+                        <SelectItem value="KOMO">KOMO (EastWest Digital)</SelectItem>
+                        <SelectItem value="DISKARTECH">DiskarTech (RCBC)</SelectItem>
+                        {/* Rural/Thrift/Others */}
+                        <SelectItem value="STERLING">Sterling Bank of Asia</SelectItem>
+                        <SelectItem value="UCPB">UCPB (United Coconut Planters Bank)</SelectItem>
+                        <SelectItem value="VETERANS">Veterans Bank</SelectItem>
+                        <SelectItem value="ALLBANK">AllBank (A Thrift Bank)</SelectItem>
+                        <SelectItem value="DUNGGANON">Dungganon Bank</SelectItem>
+                        <SelectItem value="CARDBANK">CARD Bank</SelectItem>
+                        <SelectItem value="QUEENBANK">Queenbank</SelectItem>
+                        <SelectItem value="NETBANK">Netbank (PAYMAYA)</SelectItem>
+                        <SelectItem value="ING">ING Bank Philippines</SelectItem>
+                        <SelectItem value="CANTILAN">Cantilan Bank</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
