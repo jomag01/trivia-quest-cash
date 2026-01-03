@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useRef, useEffect } from "react";
+import { memo, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,52 +32,38 @@ interface ProductCardProps {
   showSales?: boolean;
 }
 
-// Lazy image with blur placeholder
+// Fast loading image like Lazada - show placeholder, load eagerly
 const LazyImage = memo(({ src, alt, className }: { src: string; alt: string; className?: string }) => {
   const [loaded, setLoaded] = useState(false);
-  const [inView, setInView] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    if (!imgRef.current) return;
-    
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setInView(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '100px' }
-    );
-
-    observer.observe(imgRef.current);
-    return () => observer.disconnect();
-  }, []);
+  const [error, setError] = useState(false);
 
   return (
-    <div className="relative w-full h-full">
-      {/* Blur placeholder */}
-      <div 
-        className={cn(
-          "absolute inset-0 bg-muted/50 transition-opacity duration-300",
-          loaded ? "opacity-0" : "opacity-100"
-        )}
-      />
-      <img
-        ref={imgRef}
-        src={inView ? src : undefined}
-        data-src={src}
-        alt={alt}
-        className={cn(
-          className,
-          "transition-opacity duration-300",
-          loaded ? "opacity-100" : "opacity-0"
-        )}
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setLoaded(true)}
-      />
+    <div className="relative w-full h-full bg-muted">
+      {/* Solid color placeholder shown until image loads */}
+      {!loaded && !error && (
+        <div className="absolute inset-0 bg-muted flex items-center justify-center">
+          <Package className="w-8 h-8 text-muted-foreground/30 animate-pulse" />
+        </div>
+      )}
+      {error ? (
+        <div className="absolute inset-0 bg-muted flex items-center justify-center">
+          <Package className="w-8 h-8 text-muted-foreground/30" />
+        </div>
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          className={cn(
+            className,
+            "transition-opacity duration-200",
+            loaded ? "opacity-100" : "opacity-0"
+          )}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setLoaded(true)}
+          onError={() => setError(true)}
+        />
+      )}
     </div>
   );
 });
