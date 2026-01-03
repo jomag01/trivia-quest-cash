@@ -168,7 +168,7 @@ async function generateWithFalAI(prompt: string, duration: number, aspectRatio: 
   return videoUrl;
 }
 
-// Alternative: Use Kling video model
+// Alternative: Use Kling video model (text-to-video)
 async function generateWithKling(prompt: string, duration: number, aspectRatio: string) {
   const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
   if (!FAL_API_KEY) {
@@ -193,6 +193,12 @@ async function generateWithKling(prompt: string, duration: number, aspectRatio: 
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Kling error:', response.status, errorText);
+    
+    if (response.status === 402 || errorText.toLowerCase().includes('credit')) {
+      await saveProviderAlert('Kling (fal.ai)', 'credit_exhausted', 'Kling credits exhausted.');
+      throw new Error('Kling credits exhausted. Please top up your fal.ai account.');
+    }
+    
     throw new Error(`Kling error: ${response.status} - ${errorText}`);
   }
 
@@ -214,6 +220,7 @@ async function generateWithKling(prompt: string, duration: number, aspectRatio: 
     });
 
     const statusData = await statusResponse.json();
+    console.log('Kling status:', statusData.status);
     
     if (statusData.status === 'COMPLETED') {
       const resultUrl = `https://queue.fal.run/fal-ai/kling-video/v1.5/pro/text-to-video/requests/${requestId}`;
@@ -230,6 +237,77 @@ async function generateWithKling(prompt: string, duration: number, aspectRatio: 
   }
 
   throw new Error('Video generation timed out');
+}
+
+// Image-to-Video using Kling
+async function generateImageToVideo(imageUrl: string, prompt: string, duration: number) {
+  const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
+  if (!FAL_API_KEY) {
+    throw new Error('FAL_API_KEY is not configured');
+  }
+
+  console.log('Generating image-to-video with Kling:', prompt);
+
+  const response = await fetch('https://queue.fal.run/fal-ai/kling-video/v1.5/pro/image-to-video', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Key ${FAL_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      prompt: prompt,
+      image_url: imageUrl,
+      duration: duration === 10 ? "10" : "5",
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Kling image-to-video error:', response.status, errorText);
+    
+    if (response.status === 402 || errorText.toLowerCase().includes('credit')) {
+      await saveProviderAlert('Kling (fal.ai)', 'credit_exhausted', 'Kling credits exhausted.');
+      throw new Error('Kling credits exhausted. Please top up your fal.ai account.');
+    }
+    
+    throw new Error(`Kling image-to-video error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  const requestId = result.request_id;
+  
+  if (!requestId) {
+    throw new Error('No request ID returned');
+  }
+
+  // Poll for result
+  const statusUrl = `https://queue.fal.run/fal-ai/kling-video/v1.5/pro/image-to-video/requests/${requestId}/status`;
+  
+  for (let attempt = 0; attempt < 120; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const statusResponse = await fetch(statusUrl, {
+      headers: { 'Authorization': `Key ${FAL_API_KEY}` },
+    });
+
+    const statusData = await statusResponse.json();
+    console.log('Kling image-to-video status:', statusData.status);
+    
+    if (statusData.status === 'COMPLETED') {
+      const resultUrl = `https://queue.fal.run/fal-ai/kling-video/v1.5/pro/image-to-video/requests/${requestId}`;
+      const resultResponse = await fetch(resultUrl, {
+        headers: { 'Authorization': `Key ${FAL_API_KEY}` },
+      });
+      const finalResult = await resultResponse.json();
+      return finalResult.video?.url;
+    }
+
+    if (statusData.status === 'FAILED') {
+      throw new Error('Kling image-to-video generation failed');
+    }
+  }
+
+  throw new Error('Image-to-video generation timed out');
 }
 
 // Generate image using Lovable AI (fallback for image generation)
@@ -281,7 +359,7 @@ serve(async (req) => {
     if (body.type === 'test-connection') {
       const provider = body.provider || 'fal';
       
-      if (provider === 'fal') {
+      if (provider === 'fal' || provider === 'kling') {
         const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
         if (!FAL_API_KEY) {
           return new Response(
@@ -308,7 +386,7 @@ serve(async (req) => {
       }
     }
 
-    const { prompt, duration = 5, aspectRatio = "16:9", provider = "fal" } = body;
+    const { prompt, duration = 5, aspectRatio = "16:9", provider = "fal", imageUrl, mode = "text-to-video" } = body;
     
     if (!prompt) {
       return new Response(
@@ -317,19 +395,25 @@ serve(async (req) => {
       );
     }
 
-    console.log('Generating video with provider:', provider, 'prompt:', prompt, 'duration:', duration, 'aspectRatio:', aspectRatio);
+    console.log('Video generation request:', { provider, mode, prompt, duration, aspectRatio, hasImage: !!imageUrl });
 
     let videoUrl: string;
     let isVideo = false;
     let providerName = 'fal.ai';
     
-    if (provider === 'fal' || provider === 'minimax') {
+    // Handle image-to-video mode
+    if (mode === 'image-to-video' && imageUrl) {
+      console.log('Image-to-video mode with Kling');
+      videoUrl = await generateImageToVideo(imageUrl, prompt, duration);
+      providerName = 'Kling (Image-to-Video)';
+      isVideo = true;
+    } else if (provider === 'fal' || provider === 'minimax') {
       videoUrl = await generateWithFalAI(prompt, duration, aspectRatio);
       providerName = 'fal.ai (MiniMax Video)';
       isVideo = true;
     } else if (provider === 'kling') {
       videoUrl = await generateWithKling(prompt, duration, aspectRatio);
-      providerName = 'fal.ai (Kling)';
+      providerName = 'Kling Video';
       isVideo = true;
     } else {
       // Fallback to image generation
@@ -346,7 +430,7 @@ serve(async (req) => {
         isVideo,
         message: isVideo 
           ? `Video generated successfully with ${providerName}!` 
-          : `Image generated with ${providerName}. For videos, use fal.ai provider.`
+          : `Image generated with ${providerName}. For videos, use fal.ai or Kling provider.`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
