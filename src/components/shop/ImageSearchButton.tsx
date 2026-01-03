@@ -3,6 +3,7 @@ import { Camera, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ImageSearchButtonProps {
   onSearchResults: (query: string, imageUrl?: string) => void;
@@ -49,40 +50,14 @@ export const ImageSearchButton = ({ onSearchResults }: ImageSearchButtonProps) =
 
     setIsAnalyzing(true);
     try {
-      // Use AI to analyze the image and extract product keywords
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Analyze this product image and provide 2-4 simple search keywords that describe the main product. Return ONLY the keywords separated by spaces, nothing else. Example: "red dress women" or "bluetooth headphones black"'
-                },
-                {
-                  type: 'image_url',
-                  image_url: { url: selectedImage }
-                }
-              ]
-            }
-          ],
-          max_tokens: 50
-        })
+      const { data, error } = await supabase.functions.invoke("image-search", {
+        body: { imageDataUrl: selectedImage },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to analyze image');
-      }
+      if (error) throw error;
 
-      const data = await response.json();
-      const keywords = data.choices?.[0]?.message?.content?.trim() || '';
-      
+      const keywords = (data as any)?.keywords?.trim?.() || "";
+
       if (keywords) {
         onSearchResults(keywords, selectedImage);
         setIsOpen(false);
@@ -91,9 +66,12 @@ export const ImageSearchButton = ({ onSearchResults }: ImageSearchButtonProps) =
       } else {
         toast.error("Could not identify the product. Please try another image.");
       }
-    } catch (error) {
-      console.error('Image analysis error:', error);
-      toast.error("Failed to analyze image. Please try again.");
+    } catch (error: any) {
+      console.error("Image analysis error:", error);
+      const status = error?.status;
+      if (status === 429) toast.error("Too many requests. Please try again.");
+      else if (status === 402) toast.error("Image search is temporarily unavailable.");
+      else toast.error("Failed to analyze image. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }

@@ -1,6 +1,6 @@
 import { Package, Users, Calculator, Award, ShoppingCart, Heart, Store, Wallet, Truck, Star, RotateCcw, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -15,15 +15,9 @@ const ShopAccountOverview = () => {
     returns: 0
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchOrderCounts();
-    }
-  }, [user]);
-
-  const fetchOrderCounts = async () => {
+  const fetchOrderCounts = useCallback(async () => {
     if (!user) return;
-    
+
     try {
       const { data, error } = await supabase
         .from("orders")
@@ -37,22 +31,47 @@ const ShopAccountOverview = () => {
         to_ship: 0,
         to_receive: 0,
         to_review: 0,
-        returns: 0
+        returns: 0,
       };
 
       (data || []).forEach((order: { status: string }) => {
-        if (order.status === 'pending_payment') counts.to_pay++;
-        else if (['pending', 'processing'].includes(order.status)) counts.to_ship++;
-        else if (order.status === 'shipped') counts.to_receive++;
-        else if (order.status === 'delivered') counts.to_review++;
-        else if (['returned', 'refunded', 'cancelled'].includes(order.status)) counts.returns++;
+        if (order.status === "pending_payment") counts.to_pay++;
+        else if (["pending", "processing"].includes(order.status)) counts.to_ship++;
+        else if (order.status === "shipped") counts.to_receive++;
+        else if (order.status === "delivered") counts.to_review++;
+        else if (["returned", "refunded", "cancelled"].includes(order.status)) counts.returns++;
       });
 
       setOrderCounts(counts);
     } catch (error) {
       console.error("Error fetching order counts:", error);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    fetchOrderCounts();
+
+    const channel = supabase
+      .channel(`orders-counts-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => fetchOrderCounts(),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchOrderCounts]);
+
 
   const orderStatusLinks = [
     { icon: Wallet, label: "To Pay", href: "/my-orders?tab=to_pay", count: orderCounts.to_pay },

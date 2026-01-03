@@ -3,16 +3,27 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Package, Truck, CheckCircle, Clock, XCircle, Star, 
-  RotateCcw, Search, Filter, ChevronLeft, Wallet, 
-  ShoppingBag, ArrowRight
+import {
+  Package,
+  Truck,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Star,
+  RotateCcw,
+  Search,
+  Filter,
+  ChevronLeft,
+  Wallet,
+  ShoppingBag,
+  ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { 
+import { OrderStatusCarousel } from "@/components/shop/OrderStatusCarousel";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -92,51 +103,117 @@ export const MyOrdersPage = () => {
 
   const fetchOrders = useCallback(async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // NOTE: We intentionally avoid relational embedding here because some projects
+      // may not have foreign keys defined (which breaks nested selects).
+      const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
-        .select(`
-          *,
-          order_items(*, products(id, name, image_url)),
-          seller:profiles!orders_seller_id_fkey(full_name)
-        `)
+        .select(
+          "id, order_number, total_amount, status, shipping_fee, tracking_number, created_at, shipped_at, delivered_at, seller_id",
+        )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      
-      // Transform the data - seller comes as an object from the join
-      const ordersData = (data || []).map((order: any) => ({
-        ...order,
-        seller: order.seller || null
-      })) as Order[];
-      setOrders(ordersData);
-      
+      if (ordersError) throw ordersError;
+
+      const orderIds = (ordersData || []).map((o: any) => o.id) as string[];
+
+      const itemsByOrder: Record<string, Order["order_items"]> = {};
+
+      if (orderIds.length > 0) {
+        const { data: itemsData, error: itemsError } = await supabase
+          .from("order_items")
+          .select("id, order_id, quantity, unit_price, subtotal, product_id")
+          .in("order_id", orderIds);
+
+        if (itemsError) throw itemsError;
+
+        const productIds = Array.from(
+          new Set((itemsData || []).map((i: any) => i.product_id).filter(Boolean)),
+        ) as string[];
+
+        const productsById: Record<string, { id: string; name: string; image_url?: string }> = {};
+        if (productIds.length > 0) {
+          const { data: productsData, error: productsError } = await supabase
+            .from("products")
+            .select("id, name, image_url")
+            .in("id", productIds);
+
+          if (productsError) throw productsError;
+
+          (productsData || []).forEach((p: any) => {
+            productsById[p.id] = { id: p.id, name: p.name, image_url: p.image_url || undefined };
+          });
+        }
+
+        (itemsData || []).forEach((it: any) => {
+          const enriched = {
+            id: it.id,
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+            subtotal: it.subtotal,
+            product_id: it.product_id,
+            products: productsById[it.product_id] || { id: it.product_id, name: "Product" },
+          } as Order["order_items"][number];
+
+          (itemsByOrder[it.order_id] ||= []).push(enriched);
+        });
+      }
+
+      const sellerIds = Array.from(
+        new Set((ordersData || []).map((o: any) => o.seller_id).filter(Boolean)),
+      ) as string[];
+
+      const sellerById: Record<string, { full_name: string }> = {};
+      if (sellerIds.length > 0) {
+        const { data: sellersData, error: sellersError } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", sellerIds);
+
+        if (sellersError) throw sellersError;
+
+        (sellersData || []).forEach((s: any) => {
+          sellerById[s.id] = { full_name: s.full_name };
+        });
+      }
+
+      const merged = (ordersData || []).map((o: any) => {
+        return {
+          ...o,
+          order_items: itemsByOrder[o.id] || [],
+          seller: o.seller_id ? sellerById[o.seller_id] || null : null,
+        } as Order;
+      });
+
+      setOrders(merged);
+
       // Calculate counts for each tab
       const counts: Record<OrderTab, number> = {
-        all: ordersData.length,
+        all: merged.length,
         to_pay: 0,
         to_ship: 0,
         to_receive: 0,
         to_review: 0,
         returns: 0,
-        cancelled: 0
+        cancelled: 0,
       };
-      
-      ordersData.forEach(order => {
-        tabConfig.forEach(tab => {
-          if (tab.key !== 'all' && tab.statuses.includes(order.status)) {
+
+      merged.forEach((order) => {
+        tabConfig.forEach((tab) => {
+          if (tab.key !== "all" && tab.statuses.includes(order.status)) {
             counts[tab.key]++;
           }
         });
       });
-      
+
       setOrderCounts(counts);
     } catch (error: any) {
       console.error("Error fetching orders:", error);
       toast.error("Failed to load orders");
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -144,7 +221,27 @@ export const MyOrdersPage = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, [fetchOrders]);
+
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`orders-page-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => fetchOrders(),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchOrders]);
 
   const handleCancelOrder = useCallback(async () => {
     if (!cancelOrderId) return;
@@ -210,26 +307,27 @@ export const MyOrdersPage = () => {
 
   const getStatusDisplay = (status: string) => {
     switch (status) {
-      case 'pending_payment':
-        return { label: 'To Pay', color: 'bg-yellow-500', icon: <Wallet className="w-4 h-4" /> };
-      case 'pending':
-        return { label: 'Pending', color: 'bg-orange-500', icon: <Clock className="w-4 h-4" /> };
-      case 'processing':
-        return { label: 'Processing', color: 'bg-blue-500', icon: <Package className="w-4 h-4" /> };
-      case 'shipped':
-        return { label: 'In Transit', color: 'bg-purple-500', icon: <Truck className="w-4 h-4" /> };
-      case 'delivered':
-        return { label: 'Delivered', color: 'bg-green-500', icon: <CheckCircle className="w-4 h-4" /> };
-      case 'cancelled':
-        return { label: 'Cancelled', color: 'bg-red-500', icon: <XCircle className="w-4 h-4" /> };
-      case 'returned':
-        return { label: 'Returned', color: 'bg-gray-500', icon: <RotateCcw className="w-4 h-4" /> };
-      case 'refunded':
-        return { label: 'Refunded', color: 'bg-teal-500', icon: <RotateCcw className="w-4 h-4" /> };
+      case "pending_payment":
+        return { label: "To Pay", color: "bg-primary", icon: <Wallet className="w-4 h-4" /> };
+      case "pending":
+        return { label: "Pending", color: "bg-secondary", icon: <Clock className="w-4 h-4" /> };
+      case "processing":
+        return { label: "Processing", color: "bg-accent", icon: <Package className="w-4 h-4" /> };
+      case "shipped":
+        return { label: "In Transit", color: "bg-primary", icon: <Truck className="w-4 h-4" /> };
+      case "delivered":
+        return { label: "Delivered", color: "bg-primary", icon: <CheckCircle className="w-4 h-4" /> };
+      case "cancelled":
+        return { label: "Cancelled", color: "bg-destructive", icon: <XCircle className="w-4 h-4" /> };
+      case "returned":
+        return { label: "Returned", color: "bg-muted", icon: <RotateCcw className="w-4 h-4" /> };
+      case "refunded":
+        return { label: "Refunded", color: "bg-muted", icon: <RotateCcw className="w-4 h-4" /> };
       default:
-        return { label: status, color: 'bg-gray-500', icon: <Package className="w-4 h-4" /> };
+        return { label: status, color: "bg-muted", icon: <Package className="w-4 h-4" /> };
     }
   };
+
 
   const canCancelOrder = (status: string) => {
     return ['pending', 'pending_payment'].includes(status);
@@ -304,6 +402,10 @@ export const MyOrdersPage = () => {
 
       {/* Content */}
       <div className="p-4 space-y-4">
+        {!loading && orders.length > 0 && (
+          <OrderStatusCarousel orders={orders} onSelectTab={handleTabChange} />
+        )}
+
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
@@ -378,14 +480,18 @@ export const MyOrdersPage = () => {
               </div>
 
               {/* Order Status Info */}
-              {order.status === 'shipped' && (
-                <div className="px-4 py-2 bg-purple-50 dark:bg-purple-950/20 border-t flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm text-purple-700 dark:text-purple-300">
-                    In Transit | {order.tracking_number ? `Tracking: ${order.tracking_number}` : 'Your parcel is on the way'}
+              {order.status === "shipped" && (
+                <div className="px-4 py-2 bg-muted/40 border-t flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    In Transit |{" "}
+                    {order.tracking_number
+                      ? `Tracking: ${order.tracking_number}`
+                      : "Your parcel is on the way"}
                   </span>
                 </div>
               )}
+
 
               {/* Order Footer */}
               <div className="px-4 py-3 border-t bg-muted/30 flex items-center justify-between">
