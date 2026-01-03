@@ -132,10 +132,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
+          // Defer profile/role fetch to not block render
+          requestAnimationFrame(() => {
             fetchProfile(session.user.id);
             fetchUserRole(session.user.id);
-          }, 0);
+          });
         } else {
           setProfile(null);
           setUserRole(null);
@@ -143,16 +144,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Check for existing session
+    // Check for existing session - don't block render
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      // Set loading to false IMMEDIATELY to not block render
+      setLoading(false);
       
       if (session?.user) {
-        fetchProfile(session.user.id);
-        fetchUserRole(session.user.id);
+        // Defer profile/role fetch 
+        requestAnimationFrame(() => {
+          fetchProfile(session.user.id);
+          fetchUserRole(session.user.id);
+        });
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();

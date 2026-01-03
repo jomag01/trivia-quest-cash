@@ -23,29 +23,49 @@ export default defineConfig(({ mode }) => ({
     minify: 'esbuild',
     target: 'es2020',
     cssMinify: true,
-    chunkSizeWarningLimit: 300, // Stricter limit
+    chunkSizeWarningLimit: 250, // Even stricter limit
     sourcemap: false,
     cssCodeSplit: true,
     reportCompressedSize: false, // Faster builds
+    modulePreload: {
+      polyfill: false, // Modern browsers only
+    },
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core React
-          'vendor-react': ['react', 'react-dom'],
-          // Routing
-          'vendor-router': ['react-router-dom'],
+        manualChunks: (id) => {
+          // Core React - smallest possible
+          if (id.includes('react-dom')) return 'vendor-react-dom';
+          if (id.includes('node_modules/react/')) return 'vendor-react';
+          
+          // Routing - critical path
+          if (id.includes('react-router')) return 'vendor-router';
+          
           // Data fetching
-          'vendor-query': ['@tanstack/react-query'],
-          // UI framework
-          'vendor-ui': ['lucide-react'],
-          // Animations (load separately)
-          'vendor-motion': ['framer-motion'],
+          if (id.includes('@tanstack/react-query')) return 'vendor-query';
+          
+          // UI icons - defer load
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          
+          // Animations - defer load
+          if (id.includes('framer-motion')) return 'vendor-motion';
+          
           // State management
-          'vendor-state': ['zustand'],
-          // Form handling
-          'vendor-form': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          if (id.includes('zustand')) return 'vendor-state';
+          
+          // Forms - only when needed
+          if (id.includes('react-hook-form') || id.includes('zod') || id.includes('@hookform')) return 'vendor-form';
+          
           // Date utilities
-          'vendor-date': ['date-fns'],
+          if (id.includes('date-fns')) return 'vendor-date';
+          
+          // Radix UI components - split by usage
+          if (id.includes('@radix-ui')) return 'vendor-radix';
+          
+          // Supabase - backend
+          if (id.includes('@supabase')) return 'vendor-supabase';
+          
+          // Charts - heavy, defer
+          if (id.includes('recharts')) return 'vendor-charts';
         },
         // Content-hash for aggressive CDN caching
         entryFileNames: 'assets/[name].[hash].js',
