@@ -2001,6 +2001,44 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_response_ratings: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          feedback: string | null
+          id: string
+          provider_id: string
+          rater_id: string
+          rating: number
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          provider_id: string
+          rater_id: string
+          rating: number
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          provider_id?: string
+          rater_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_response_ratings_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "provider_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chess_rooms: {
         Row: {
           created_at: string
@@ -6310,6 +6348,8 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           birthday: string | null
+          chat_response_count: number | null
+          chat_response_rating: number | null
           country: string | null
           cover_url: string | null
           created_at: string
@@ -6346,6 +6386,8 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           birthday?: string | null
+          chat_response_count?: number | null
+          chat_response_rating?: number | null
           country?: string | null
           cover_url?: string | null
           created_at?: string
@@ -6382,6 +6424,8 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           birthday?: string | null
+          chat_response_count?: number | null
+          chat_response_rating?: number | null
           country?: string | null
           cover_url?: string | null
           created_at?: string

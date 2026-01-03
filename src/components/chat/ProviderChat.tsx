@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { MessageSquare, Send, Check, CheckCheck } from "lucide-react";
+import { MessageSquare, Send, Check, CheckCheck, Star, Share2, Package } from "lucide-react";
 import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 
 export type ProviderType = 'shop' | 'marketplace' | 'restaurant' | 'service' | 'booking';
 
@@ -24,6 +26,8 @@ interface ProviderChatProps {
   buttonSize?: "default" | "sm" | "lg" | "icon";
   buttonClassName?: string;
   showLabel?: boolean;
+  onShareProduct?: () => void;
+  availableProducts?: Array<{ id: string; name: string; image_url?: string; price: number }>;
 }
 
 interface Message {
@@ -55,7 +59,9 @@ export default function ProviderChat({
   buttonVariant = "outline",
   buttonSize = "sm",
   buttonClassName = "",
-  showLabel = true
+  showLabel = true,
+  onShareProduct,
+  availableProducts = []
 }: ProviderChatProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -67,6 +73,11 @@ export default function ProviderChat({
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const pendingSendRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showRating, setShowRating] = useState(false);
+  const [ratingValue, setRatingValue] = useState(0);
+  const [ratingFeedback, setRatingFeedback] = useState("");
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
 
   // Resolve "Store Support" provider id (provider_id is UUID in DB)
   useEffect(() => {
@@ -333,6 +344,57 @@ export default function ProviderChat({
     }
   };
 
+  // Check if user already rated this conversation
+  useEffect(() => {
+    if (!conversationId || !user) return;
+    supabase
+      .from('chat_response_ratings')
+      .select('id')
+      .eq('conversation_id', conversationId)
+      .eq('rater_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setHasRated(!!data);
+      });
+  }, [conversationId, user]);
+
+  // Rate seller response mutation
+  const rateResponseMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !conversationId || !ratingValue) throw new Error("Missing data");
+
+      const { error } = await supabase
+        .from('chat_response_ratings')
+        .insert({
+          conversation_id: conversationId,
+          rater_id: user.id,
+          provider_id: effectiveProviderId,
+          rating: ratingValue,
+          feedback: ratingFeedback.trim() || null
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Rating submitted! Thank you for your feedback.");
+      setShowRating(false);
+      setHasRated(true);
+      setRatingValue(0);
+      setRatingFeedback("");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to submit rating");
+    }
+  });
+
+  // Share product in chat
+  const handleShareProduct = (product: { id: string; name: string; image_url?: string; price: number }) => {
+    const productUrl = `${window.location.origin}/shop?product=${product.id}`;
+    const shareMessage = `📦 Inquiring about: ${product.name}\n💰 Price: ₱${product.price.toLocaleString()}\n🔗 ${productUrl}`;
+    setNewMessage(shareMessage);
+    setShowProductPicker(false);
+  };
+
   if (!user) {
     return (
       <Button variant={buttonVariant} size={buttonSize} disabled className={buttonClassName}>
@@ -380,6 +442,53 @@ export default function ProviderChat({
               <p className="font-semibold text-sm truncate">{providerName}</p>
               <p className="text-[10px] opacity-80 capitalize">{providerType}</p>
             </div>
+            {/* Rate Response Button */}
+            <Popover open={showRating} onOpenChange={setShowRating}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                  disabled={hasRated || !conversationId}
+                  title={hasRated ? "Already rated" : "Rate seller response"}
+                >
+                  <Star className={`w-4 h-4 ${hasRated ? 'fill-amber-400 text-amber-400' : ''}`} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-3" align="end">
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">Rate {getProviderTypeLabel()} Response</p>
+                  <div className="flex gap-1 justify-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => setRatingValue(star)}
+                        className="p-1 transition-transform hover:scale-110"
+                      >
+                        <Star 
+                          className={`w-7 h-7 ${star <= ratingValue ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} 
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <Textarea
+                    placeholder="Optional feedback..."
+                    value={ratingFeedback}
+                    onChange={(e) => setRatingFeedback(e.target.value)}
+                    className="text-sm resize-none"
+                    rows={2}
+                  />
+                  <Button 
+                    onClick={() => rateResponseMutation.mutate()} 
+                    disabled={!ratingValue || rateResponseMutation.isPending}
+                    className="w-full"
+                    size="sm"
+                  >
+                    {rateResponseMutation.isPending ? "Submitting..." : "Submit Rating"}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </DialogTitle>
         </DialogHeader>
 
@@ -441,6 +550,51 @@ export default function ProviderChat({
 
         <div className="p-2 border-t bg-gradient-to-r from-background via-muted/30 to-background">
           <div className="flex gap-2 items-center">
+            {/* Share Product Button */}
+            {(providerType === 'shop' || providerType === 'marketplace') && (
+              <Popover open={showProductPicker} onOpenChange={setShowProductPicker}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-9 w-9 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0"
+                    title="Share a product"
+                  >
+                    <Package className="w-4 h-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-2" align="start">
+                  <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Share a product to inquire:</p>
+                  {availableProducts.length > 0 ? (
+                    <ScrollArea className="max-h-48">
+                      <div className="space-y-1">
+                        {availableProducts.map((product) => (
+                          <button
+                            key={product.id}
+                            onClick={() => handleShareProduct(product)}
+                            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                          >
+                            {product.image_url ? (
+                              <img src={product.image_url} alt={product.name} className="w-10 h-10 rounded object-cover" />
+                            ) : (
+                              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                                <Package className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{product.name}</p>
+                              <p className="text-xs text-primary">₱{product.price.toLocaleString()}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-4">No products available</p>
+                  )}
+                </PopoverContent>
+              </Popover>
+            )}
             <Input
               placeholder={isStartingChat ? "Starting chat…" : "Type your message..."}
               value={newMessage}
