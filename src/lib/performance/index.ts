@@ -5,7 +5,7 @@ export { apiCache, withCache, prefetch } from './ApiCache';
 export { bandwidthDetector, STREAMING_REQUIREMENTS } from './BandwidthDetector';
 export type { BandwidthInfo, BandwidthRequirements } from './BandwidthDetector';
 
-// New ultra-scale optimizations
+// Ultra-scale optimizations
 export { connectionPool } from './ConnectionPool';
 export { requestBatcher } from './RequestBatcher';
 export { memoryOptimizer } from './MemoryOptimizer';
@@ -21,3 +21,8 @@ export {
   createVisibilityObserver 
 } from './LazyLoader';
 export { useVirtualScroll, InfiniteScrollManager } from './VirtualScrollManager';
+
+// CDN, Queueing, and Database optimization
+export { cdnHelper, generateSrcSet, createImageObserver } from './CDNHelper';
+export { queueManager, queued } from './QueueManager';
+export { dbOptimizer } from './DatabaseOptimizer';

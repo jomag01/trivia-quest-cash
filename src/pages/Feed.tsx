@@ -1,16 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import FeedTopNav from "@/components/feed/FeedTopNav";
 import FeedTabs from "@/components/feed/FeedTabs";
-import FeedCard from "@/components/feed/FeedCard";
-import StorySlider from "@/components/feed/StorySlider";
+import XPostCard from "@/components/feed/XPostCard";
 import FloatingActions from "@/components/feed/FloatingActions";
 import CommentsSheet from "@/components/feed/CommentsSheet";
 import LiveFeedGrid from "@/components/feed/LiveFeedGrid";
 import ShopFeedGrid from "@/components/feed/ShopFeedGrid";
-import GamesCategoryGrid from "@/components/feed/GamesCategoryGrid";
 import GamingHome from "@/components/feed/GamingHome";
 import VideoFeed from "@/components/feed/VideoFeed";
 import GoLiveDialog from "@/components/live/GoLiveDialog";
@@ -190,31 +188,40 @@ export default function Feed() {
       <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       {activeTab === "for-you" || activeTab === "following" ? (
-        <>
-          <StorySlider />
-          <div className="max-w-lg mx-auto">
-            {loading ? (
-              <div className="space-y-4 p-4">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-96 bg-muted rounded-xl animate-pulse" />
-                ))}
-              </div>
-            ) : currentPosts.length === 0 ? (
-              <div className="text-center py-20 text-muted-foreground">
-                <p>{activeTab === "following" ? "Follow users to see their posts" : "No posts yet"}</p>
-              </div>
-            ) : (
-              currentPosts.map(post => (
-                <FeedCard
+        <div className="max-w-xl mx-auto border-x border-border min-h-screen">
+          {loading ? (
+            <div className="divide-y divide-border">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="flex gap-3 p-4">
+                  <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-muted rounded w-1/3 animate-pulse" />
+                    <div className="h-4 bg-muted rounded w-full animate-pulse" />
+                    <div className="h-4 bg-muted rounded w-2/3 animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : currentPosts.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <p className="text-lg font-medium">
+                {activeTab === "following" ? "Follow users to see their posts" : "No posts yet"}
+              </p>
+              <p className="text-sm mt-1">Be the first to post something!</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {currentPosts.map(post => (
+                <XPostCard
                   key={post.id}
                   post={post}
                   onCommentsClick={() => setCommentsPostId(post.id)}
                   onDelete={loadPosts}
                 />
-              ))
-            )}
-          </div>
-        </>
+              ))}
+            </div>
+          )}
+        </div>
       ) : activeTab === "live" ? (
         <LiveFeedGrid onSelectStream={setWatchingStream} />
       ) : activeTab === "shop" ? (
