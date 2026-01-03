@@ -61,7 +61,7 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent, Settings, Megaphone, Network, UserCheck, Bell, Wallet } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent, Settings, Megaphone, Network, UserCheck, Bell, Wallet, Warehouse } from "lucide-react";
 import { POSSystem } from "@/components/admin/POSSystem";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
 import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
@@ -198,9 +198,10 @@ const Admin = () => {
     },
     {
       id: "shipping",
-      label: "Shipping & Delivery",
+      label: "Shipping & Logistics",
       icon: Truck,
       items: [
+        { id: "warehouse", label: "Warehouse Management", icon: Warehouse },
         { id: "shipping-zones", label: "Shipping Zones", icon: MapPin },
         { id: "bulk-shipping", label: "Bulk Shipping", icon: Truck },
         { id: "courier-settings", label: "Courier Settings", icon: Truck },
@@ -836,6 +837,23 @@ const Admin = () => {
           {activeTab === "purchase-notifications" && <PurchaseNotificationSettings />}
           {activeTab === "auctions" && <AuctionManagement />}
           {activeTab === "legal-terms" && <LegalTermsManagement />}
+          {activeTab === "warehouse" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Warehouse Management</h2>
+                  <p className="text-muted-foreground">Manage inventory, SKUs, and fulfillment</p>
+                </div>
+                <Button onClick={() => window.open('/warehouse', '_blank')}>
+                  <Warehouse className="h-4 w-4 mr-2" />
+                  Open Full Dashboard
+                </Button>
+              </div>
+              <Card className="p-6">
+                <p className="text-muted-foreground">Click "Open Full Dashboard" to access the complete Warehouse Management System with inventory tracking, SKU management, fulfillment queue, and more.</p>
+              </Card>
+            </div>
+          )}
           </div>
         </main>
       </div>
