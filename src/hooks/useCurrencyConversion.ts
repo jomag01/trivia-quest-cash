@@ -29,6 +29,15 @@ export interface UserBalances {
   cashBalance: number;
 }
 
+interface ConversionResult {
+  success: boolean;
+  error?: string;
+  new_diamonds?: number;
+  new_credits?: number;
+  new_cash?: number;
+  new_ai_credits?: number;
+}
+
 export function useCurrencyConversion() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<ConversionSettings>({
@@ -164,23 +173,14 @@ export function useCurrencyConversion() {
     return isMultiply ? amountAfterFee * rate : amountAfterFee / rate;
   };
 
-  // Credit to Diamond conversion
+  // Credit to Diamond conversion - using database function
   const convertCreditsToDiamonds = async (creditAmount: number) => {
     if (!user || !settings.enableCreditToDiamond) {
       toast.error('Credit to diamond conversion is disabled');
       return false;
     }
 
-    // Fetch fresh balances before conversion
-    const { data: currentProfile } = await supabase
-      .from('profiles')
-      .select('credits')
-      .eq('id', user.id)
-      .single();
-    
-    const currentCredits = currentProfile?.credits || 0;
-
-    if (creditAmount > currentCredits) {
+    if (creditAmount > balances.credits) {
       toast.error('Insufficient credits');
       return false;
     }
@@ -194,32 +194,18 @@ export function useCurrencyConversion() {
 
     setConverting(true);
     try {
-      // Deduct credits using fresh value
-      const { error: creditError } = await supabase
-        .from('profiles')
-        .update({ credits: currentCredits - creditAmount })
-        .eq('id', user.id);
+      const { data, error } = await supabase.rpc('convert_credits_to_diamonds', {
+        p_user_id: user.id,
+        p_credit_amount: creditAmount,
+        p_diamonds_to_receive: diamondsToReceive
+      });
 
-      if (creditError) throw creditError;
+      if (error) throw error;
 
-      // Add diamonds - fetch current first
-      const { data: wallet } = await supabase
-        .from('treasure_wallet')
-        .select('diamonds')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (wallet) {
-        const { error: diamondError } = await supabase
-          .from('treasure_wallet')
-          .update({ diamonds: (wallet.diamonds || 0) + diamondsToReceive })
-          .eq('user_id', user.id);
-        if (diamondError) throw diamondError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('treasure_wallet')
-          .insert({ user_id: user.id, diamonds: diamondsToReceive });
-        if (insertError) throw insertError;
+      const result = data as unknown as ConversionResult;
+      if (!result?.success) {
+        toast.error(result?.error || 'Conversion failed');
+        return false;
       }
 
       toast.success(`Converted ${creditAmount} credits to ${diamondsToReceive} diamonds`);
@@ -234,23 +220,14 @@ export function useCurrencyConversion() {
     }
   };
 
-  // Diamond to Credit conversion
+  // Diamond to Credit conversion - using database function
   const convertDiamondsToCredits = async (diamondAmount: number) => {
     if (!user || !settings.enableDiamondToCredit) {
       toast.error('Diamond to credit conversion is disabled');
       return false;
     }
 
-    // Fetch fresh diamond balance
-    const { data: currentWallet } = await supabase
-      .from('treasure_wallet')
-      .select('diamonds')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    
-    const currentDiamonds = currentWallet?.diamonds || 0;
-
-    if (diamondAmount > currentDiamonds) {
+    if (diamondAmount > balances.diamonds) {
       toast.error('Insufficient diamonds');
       return false;
     }
@@ -264,30 +241,19 @@ export function useCurrencyConversion() {
 
     setConverting(true);
     try {
-      // Deduct diamonds using fresh value
-      const { error: diamondError } = await supabase
-        .from('treasure_wallet')
-        .update({ diamonds: currentDiamonds - diamondAmount })
-        .eq('user_id', user.id);
+      const { data, error } = await supabase.rpc('convert_diamonds_to_credits', {
+        p_user_id: user.id,
+        p_diamond_amount: diamondAmount,
+        p_credits_to_receive: creditsToReceive
+      });
 
-      if (diamondError) throw diamondError;
+      if (error) throw error;
 
-      // Fetch fresh credit balance
-      const { data: currentProfile } = await supabase
-        .from('profiles')
-        .select('credits')
-        .eq('id', user.id)
-        .single();
-
-      const currentCredits = currentProfile?.credits || 0;
-
-      // Add credits using fresh value
-      const { error: creditError } = await supabase
-        .from('profiles')
-        .update({ credits: currentCredits + creditsToReceive })
-        .eq('id', user.id);
-
-      if (creditError) throw creditError;
+      const result = data as unknown as ConversionResult;
+      if (!result?.success) {
+        toast.error(result?.error || 'Conversion failed');
+        return false;
+      }
 
       toast.success(`Converted ${diamondAmount} diamonds to ${creditsToReceive} credits`);
       await fetchBalances();
@@ -301,23 +267,14 @@ export function useCurrencyConversion() {
     }
   };
 
-  // AI Credit to Cash conversion (adds to cash wallet balance)
+  // AI Credit to Cash conversion - using database function
   const convertAiCreditsToCash = async (aiCreditAmount: number) => {
     if (!user || !settings.enableAiCreditToCash) {
       toast.error('AI credit to cash conversion is disabled');
       return false;
     }
 
-    // Fetch fresh AI credit balance
-    const { data: currentAiCredits } = await supabase
-      .from('user_ai_credits')
-      .select('total_credits')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const aiCreditsAvailable = currentAiCredits?.total_credits || 0;
-
-    if (aiCreditAmount > aiCreditsAvailable) {
+    if (aiCreditAmount > balances.aiCredits) {
       toast.error('Insufficient AI credits');
       return false;
     }
@@ -331,32 +288,18 @@ export function useCurrencyConversion() {
 
     setConverting(true);
     try {
-      // Deduct AI credits using fresh value
-      const { error: aiError } = await supabase
-        .from('user_ai_credits')
-        .update({ total_credits: aiCreditsAvailable - aiCreditAmount })
-        .eq('user_id', user.id);
+      const { data, error } = await supabase.rpc('convert_ai_credits_to_cash', {
+        p_user_id: user.id,
+        p_ai_credit_amount: aiCreditAmount,
+        p_cash_to_receive: cashToReceive
+      });
 
-      if (aiError) throw aiError;
+      if (error) throw error;
 
-      // Add to cash wallet balance
-      const { data: cashWallet } = await supabase
-        .from('cash_wallets')
-        .select('balance')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (cashWallet) {
-        const { error: cashError } = await supabase
-          .from('cash_wallets')
-          .update({ balance: cashWallet.balance + cashToReceive })
-          .eq('user_id', user.id);
-        if (cashError) throw cashError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('cash_wallets')
-          .insert({ user_id: user.id, balance: cashToReceive });
-        if (insertError) throw insertError;
+      const result = data as unknown as ConversionResult;
+      if (!result?.success) {
+        toast.error(result?.error || 'Conversion failed');
+        return false;
       }
 
       toast.success(`Converted ${aiCreditAmount} AI credits to ₱${cashToReceive.toFixed(2)}`);
@@ -371,23 +314,14 @@ export function useCurrencyConversion() {
     }
   };
 
-  // AI Credit to Diamond conversion
+  // AI Credit to Diamond conversion - using database function
   const convertAiCreditsToDiamonds = async (aiCreditAmount: number) => {
     if (!user || !settings.enableAiCreditToDiamond) {
       toast.error('AI credit to diamond conversion is disabled');
       return false;
     }
 
-    // Fetch fresh AI credit balance
-    const { data: currentAiCredits } = await supabase
-      .from('user_ai_credits')
-      .select('total_credits')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const aiCreditsAvailable = currentAiCredits?.total_credits || 0;
-
-    if (aiCreditAmount > aiCreditsAvailable) {
+    if (aiCreditAmount > balances.aiCredits) {
       toast.error('Insufficient AI credits');
       return false;
     }
@@ -401,32 +335,18 @@ export function useCurrencyConversion() {
 
     setConverting(true);
     try {
-      // Deduct AI credits using fresh value
-      const { error: aiError } = await supabase
-        .from('user_ai_credits')
-        .update({ total_credits: aiCreditsAvailable - aiCreditAmount })
-        .eq('user_id', user.id);
+      const { data, error } = await supabase.rpc('convert_ai_credits_to_diamonds', {
+        p_user_id: user.id,
+        p_ai_credit_amount: aiCreditAmount,
+        p_diamonds_to_receive: diamondsToReceive
+      });
 
-      if (aiError) throw aiError;
+      if (error) throw error;
 
-      // Add diamonds - fetch current first
-      const { data: wallet } = await supabase
-        .from('treasure_wallet')
-        .select('diamonds')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (wallet) {
-        const { error: diamondError } = await supabase
-          .from('treasure_wallet')
-          .update({ diamonds: (wallet.diamonds || 0) + diamondsToReceive })
-          .eq('user_id', user.id);
-        if (diamondError) throw diamondError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('treasure_wallet')
-          .insert({ user_id: user.id, diamonds: diamondsToReceive });
-        if (insertError) throw insertError;
+      const result = data as unknown as ConversionResult;
+      if (!result?.success) {
+        toast.error(result?.error || 'Conversion failed');
+        return false;
       }
 
       toast.success(`Converted ${aiCreditAmount} AI credits to ${diamondsToReceive} diamonds`);
@@ -441,23 +361,14 @@ export function useCurrencyConversion() {
     }
   };
 
-  // AI Credit to Game Credit conversion
+  // AI Credit to Game Credit conversion - using database function
   const convertAiCreditsToGameCredits = async (aiCreditAmount: number) => {
     if (!user || !settings.enableAiCreditToGameCredit) {
       toast.error('AI credit to game credit conversion is disabled');
       return false;
     }
 
-    // Fetch fresh AI credit balance
-    const { data: currentAiCredits } = await supabase
-      .from('user_ai_credits')
-      .select('total_credits')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const aiCreditsAvailable = currentAiCredits?.total_credits || 0;
-
-    if (aiCreditAmount > aiCreditsAvailable) {
+    if (aiCreditAmount > balances.aiCredits) {
       toast.error('Insufficient AI credits');
       return false;
     }
@@ -471,30 +382,19 @@ export function useCurrencyConversion() {
 
     setConverting(true);
     try {
-      // Deduct AI credits using fresh value
-      const { error: aiError } = await supabase
-        .from('user_ai_credits')
-        .update({ total_credits: aiCreditsAvailable - aiCreditAmount })
-        .eq('user_id', user.id);
+      const { data, error } = await supabase.rpc('convert_ai_credits_to_game_credits', {
+        p_user_id: user.id,
+        p_ai_credit_amount: aiCreditAmount,
+        p_game_credits_to_receive: gameCreditsToReceive
+      });
 
-      if (aiError) throw aiError;
+      if (error) throw error;
 
-      // Fetch fresh credit balance
-      const { data: currentProfile } = await supabase
-        .from('profiles')
-        .select('credits')
-        .eq('id', user.id)
-        .single();
-
-      const currentCredits = currentProfile?.credits || 0;
-
-      // Add game credits using fresh value
-      const { error: creditError } = await supabase
-        .from('profiles')
-        .update({ credits: currentCredits + gameCreditsToReceive })
-        .eq('id', user.id);
-
-      if (creditError) throw creditError;
+      const result = data as unknown as ConversionResult;
+      if (!result?.success) {
+        toast.error(result?.error || 'Conversion failed');
+        return false;
+      }
 
       toast.success(`Converted ${aiCreditAmount} AI credits to ${gameCreditsToReceive} game credits`);
       await fetchBalances();
@@ -508,23 +408,14 @@ export function useCurrencyConversion() {
     }
   };
 
-  // Cash to Diamond conversion
+  // Cash to Diamond conversion - using database function
   const convertCashToDiamonds = async (cashAmount: number) => {
     if (!user || !settings.enableCashToDiamond) {
       toast.error('Cash to diamond conversion is disabled');
       return false;
     }
 
-    // Fetch fresh cash balance
-    const { data: currentCashWallet } = await supabase
-      .from('cash_wallets')
-      .select('balance')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const cashAvailable = currentCashWallet?.balance || 0;
-
-    if (cashAmount > cashAvailable) {
+    if (cashAmount > balances.cashBalance) {
       toast.error('Insufficient cash balance');
       return false;
     }
@@ -538,32 +429,18 @@ export function useCurrencyConversion() {
 
     setConverting(true);
     try {
-      // Deduct cash
-      const { error: cashError } = await supabase
-        .from('cash_wallets')
-        .update({ balance: cashAvailable - cashAmount })
-        .eq('user_id', user.id);
+      const { data, error } = await supabase.rpc('convert_cash_to_diamonds', {
+        p_user_id: user.id,
+        p_cash_amount: cashAmount,
+        p_diamonds_to_receive: diamondsToReceive
+      });
 
-      if (cashError) throw cashError;
+      if (error) throw error;
 
-      // Add diamonds
-      const { data: wallet } = await supabase
-        .from('treasure_wallet')
-        .select('diamonds')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (wallet) {
-        const { error: diamondError } = await supabase
-          .from('treasure_wallet')
-          .update({ diamonds: (wallet.diamonds || 0) + diamondsToReceive })
-          .eq('user_id', user.id);
-        if (diamondError) throw diamondError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('treasure_wallet')
-          .insert({ user_id: user.id, diamonds: diamondsToReceive });
-        if (insertError) throw insertError;
+      const result = data as unknown as ConversionResult;
+      if (!result?.success) {
+        toast.error(result?.error || 'Conversion failed');
+        return false;
       }
 
       toast.success(`Converted ₱${cashAmount} to ${diamondsToReceive} diamonds`);
@@ -578,28 +455,18 @@ export function useCurrencyConversion() {
     }
   };
 
-  // Cash to Credits conversion
+  // Cash to Credits conversion - using database function
   const convertCashToCredits = async (cashAmount: number) => {
     if (!user || !settings.enableCashToCredit) {
       toast.error('Cash to credit conversion is disabled');
       return false;
     }
 
-    // Fetch fresh cash balance
-    const { data: currentCashWallet } = await supabase
-      .from('cash_wallets')
-      .select('balance')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const cashAvailable = currentCashWallet?.balance || 0;
-
-    if (cashAmount > cashAvailable) {
+    if (cashAmount > balances.cashBalance) {
       toast.error('Insufficient cash balance');
       return false;
     }
 
-    // Convert cash to diamonds first, then diamonds to credits
     const creditsToReceive = Math.floor(calculateConversion(cashAmount, settings.diamondToCreditRate / settings.diamondBasePrice, true));
 
     if (creditsToReceive < 1) {
@@ -609,29 +476,19 @@ export function useCurrencyConversion() {
 
     setConverting(true);
     try {
-      // Deduct cash
-      const { error: cashError } = await supabase
-        .from('cash_wallets')
-        .update({ balance: cashAvailable - cashAmount })
-        .eq('user_id', user.id);
+      const { data, error } = await supabase.rpc('convert_cash_to_credits', {
+        p_user_id: user.id,
+        p_cash_amount: cashAmount,
+        p_credits_to_receive: creditsToReceive
+      });
 
-      if (cashError) throw cashError;
+      if (error) throw error;
 
-      // Fetch fresh credit balance and add
-      const { data: currentProfile } = await supabase
-        .from('profiles')
-        .select('credits')
-        .eq('id', user.id)
-        .single();
-
-      const currentCredits = currentProfile?.credits || 0;
-
-      const { error: creditError } = await supabase
-        .from('profiles')
-        .update({ credits: currentCredits + creditsToReceive })
-        .eq('id', user.id);
-
-      if (creditError) throw creditError;
+      const result = data as unknown as ConversionResult;
+      if (!result?.success) {
+        toast.error(result?.error || 'Conversion failed');
+        return false;
+      }
 
       toast.success(`Converted ₱${cashAmount} to ${creditsToReceive} credits`);
       await fetchBalances();
@@ -645,23 +502,14 @@ export function useCurrencyConversion() {
     }
   };
 
-  // Diamond to Cash conversion
+  // Diamond to Cash conversion - using database function
   const convertDiamondsToCash = async (diamondAmount: number) => {
     if (!user || !settings.enableDiamondToCash) {
       toast.error('Diamond to cash conversion is disabled');
       return false;
     }
 
-    // Fetch fresh diamond balance
-    const { data: currentWallet } = await supabase
-      .from('treasure_wallet')
-      .select('diamonds')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const currentDiamonds = currentWallet?.diamonds || 0;
-
-    if (diamondAmount > currentDiamonds) {
+    if (diamondAmount > balances.diamonds) {
       toast.error('Insufficient diamonds');
       return false;
     }
@@ -675,32 +523,18 @@ export function useCurrencyConversion() {
 
     setConverting(true);
     try {
-      // Deduct diamonds
-      const { error: diamondError } = await supabase
-        .from('treasure_wallet')
-        .update({ diamonds: currentDiamonds - diamondAmount })
-        .eq('user_id', user.id);
+      const { data, error } = await supabase.rpc('convert_diamonds_to_cash', {
+        p_user_id: user.id,
+        p_diamond_amount: diamondAmount,
+        p_cash_to_receive: cashToReceive
+      });
 
-      if (diamondError) throw diamondError;
+      if (error) throw error;
 
-      // Add to cash wallet
-      const { data: cashWallet } = await supabase
-        .from('cash_wallets')
-        .select('balance')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (cashWallet) {
-        const { error: cashError } = await supabase
-          .from('cash_wallets')
-          .update({ balance: cashWallet.balance + cashToReceive })
-          .eq('user_id', user.id);
-        if (cashError) throw cashError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('cash_wallets')
-          .insert({ user_id: user.id, balance: cashToReceive });
-        if (insertError) throw insertError;
+      const result = data as unknown as ConversionResult;
+      if (!result?.success) {
+        toast.error(result?.error || 'Conversion failed');
+        return false;
       }
 
       toast.success(`Converted ${diamondAmount} diamonds to ₱${cashToReceive.toFixed(2)}`);
@@ -715,29 +549,19 @@ export function useCurrencyConversion() {
     }
   };
 
-  // Credit to Cash conversion
+  // Credit to Cash conversion - using database function
   const convertCreditsToCash = async (creditAmount: number) => {
     if (!user || !settings.enableCreditToCash) {
       toast.error('Credit to cash conversion is disabled');
       return false;
     }
 
-    // Fetch fresh credit balance
-    const { data: currentProfile } = await supabase
-      .from('profiles')
-      .select('credits')
-      .eq('id', user.id)
-      .single();
-
-    const currentCredits = currentProfile?.credits || 0;
-
-    if (creditAmount > currentCredits) {
+    if (creditAmount > balances.credits) {
       toast.error('Insufficient credits');
       return false;
     }
 
-    // Credits → Diamonds → Cash 
-    const cashToReceive = calculateConversion(creditAmount, settings.diamondBasePrice / settings.diamondToCreditRate);
+    const cashToReceive = calculateConversion(creditAmount, settings.diamondBasePrice / settings.creditToDiamondRate);
 
     if (cashToReceive < 1) {
       toast.error('Amount too small to convert');
@@ -746,32 +570,18 @@ export function useCurrencyConversion() {
 
     setConverting(true);
     try {
-      // Deduct credits
-      const { error: creditError } = await supabase
-        .from('profiles')
-        .update({ credits: currentCredits - creditAmount })
-        .eq('id', user.id);
+      const { data, error } = await supabase.rpc('convert_credits_to_cash', {
+        p_user_id: user.id,
+        p_credit_amount: creditAmount,
+        p_cash_to_receive: cashToReceive
+      });
 
-      if (creditError) throw creditError;
+      if (error) throw error;
 
-      // Add to cash wallet
-      const { data: cashWallet } = await supabase
-        .from('cash_wallets')
-        .select('balance')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (cashWallet) {
-        const { error: cashError } = await supabase
-          .from('cash_wallets')
-          .update({ balance: cashWallet.balance + cashToReceive })
-          .eq('user_id', user.id);
-        if (cashError) throw cashError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('cash_wallets')
-          .insert({ user_id: user.id, balance: cashToReceive });
-        if (insertError) throw insertError;
+      const result = data as unknown as ConversionResult;
+      if (!result?.success) {
+        toast.error(result?.error || 'Conversion failed');
+        return false;
       }
 
       toast.success(`Converted ${creditAmount} credits to ₱${cashToReceive.toFixed(2)}`);
@@ -786,41 +596,49 @@ export function useCurrencyConversion() {
     }
   };
 
-  // Preview calculations (with fee)
-  const previewCreditsToDiamonds = (credits: number) => 
-    Math.floor(calculateConversion(credits, 1 / settings.creditToDiamondRate, true));
-  
-  const previewDiamondsToCredits = (diamonds: number) => 
-    Math.floor(calculateConversion(diamonds, settings.diamondToCreditRate));
-  
-  const previewAiCreditsToCash = (aiCredits: number) => 
-    calculateConversion(aiCredits, settings.aiCreditToCashRate);
-  
-  const previewAiCreditsToDiamonds = (aiCredits: number) => 
-    Math.floor(calculateConversion(aiCredits, 1 / settings.aiCreditToDiamondRate, true));
-  
-  const previewAiCreditsToGameCredits = (aiCredits: number) => 
-    Math.floor(calculateConversion(aiCredits, settings.aiCreditToGameCreditRate));
+  // Preview functions (no actual conversion)
+  const previewCreditsToDiamonds = (creditAmount: number) => {
+    return Math.floor(calculateConversion(creditAmount, 1 / settings.creditToDiamondRate, true));
+  };
 
-  const previewCashToDiamonds = (cash: number) =>
-    Math.floor(calculateConversion(cash, 1 / settings.diamondBasePrice, true));
+  const previewDiamondsToCredits = (diamondAmount: number) => {
+    return Math.floor(calculateConversion(diamondAmount, settings.diamondToCreditRate));
+  };
 
-  const previewCashToCredits = (cash: number) =>
-    Math.floor(calculateConversion(cash, settings.diamondToCreditRate / settings.diamondBasePrice, true));
+  const previewAiCreditsToCash = (aiCreditAmount: number) => {
+    return calculateConversion(aiCreditAmount, settings.aiCreditToCashRate);
+  };
 
-  const previewDiamondsToCash = (diamonds: number) =>
-    calculateConversion(diamonds, settings.diamondBasePrice);
+  const previewAiCreditsToDiamonds = (aiCreditAmount: number) => {
+    return Math.floor(calculateConversion(aiCreditAmount, 1 / settings.aiCreditToDiamondRate, true));
+  };
 
-  const previewCreditsToCash = (credits: number) =>
-    calculateConversion(credits, settings.diamondBasePrice / settings.diamondToCreditRate);
+  const previewAiCreditsToGameCredits = (aiCreditAmount: number) => {
+    return Math.floor(calculateConversion(aiCreditAmount, settings.aiCreditToGameCreditRate));
+  };
+
+  const previewCashToDiamonds = (cashAmount: number) => {
+    return Math.floor(calculateConversion(cashAmount, 1 / settings.diamondBasePrice, true));
+  };
+
+  const previewCashToCredits = (cashAmount: number) => {
+    return Math.floor(calculateConversion(cashAmount, settings.diamondToCreditRate / settings.diamondBasePrice, true));
+  };
+
+  const previewDiamondsToCash = (diamondAmount: number) => {
+    return calculateConversion(diamondAmount, settings.diamondBasePrice);
+  };
+
+  const previewCreditsToCash = (creditAmount: number) => {
+    return calculateConversion(creditAmount, settings.diamondBasePrice / settings.creditToDiamondRate);
+  };
 
   return {
     settings,
     balances,
     loading,
     converting,
-    refetch: () => Promise.all([fetchSettings(), fetchBalances()]),
-    // Conversion functions
+    fetchBalances,
     convertCreditsToDiamonds,
     convertDiamondsToCredits,
     convertAiCreditsToCash,
@@ -830,7 +648,6 @@ export function useCurrencyConversion() {
     convertCashToCredits,
     convertDiamondsToCash,
     convertCreditsToCash,
-    // Preview functions
     previewCreditsToDiamonds,
     previewDiamondsToCredits,
     previewAiCreditsToCash,
