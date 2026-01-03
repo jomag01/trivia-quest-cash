@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import FeedTopNav from "@/components/feed/FeedTopNav";
@@ -6,8 +6,6 @@ import FeedTabs from "@/components/feed/FeedTabs";
 import XPostCard from "@/components/feed/XPostCard";
 import FloatingActions from "@/components/feed/FloatingActions";
 import CommentsSheet from "@/components/feed/CommentsSheet";
-import ShopFeedGrid from "@/components/feed/ShopFeedGrid";
-import GamingHome from "@/components/feed/GamingHome";
 
 interface Post {
   id: string;
@@ -28,8 +26,9 @@ interface Post {
   };
 }
 
+// Include media_url in the query now - we'll handle large files properly
 const POST_SELECT =
-  "id, user_id, content, media_type, thumbnail_url, likes_count, comments_count, views_count, shares_count, created_at";
+  "id, user_id, content, media_url, media_type, thumbnail_url, likes_count, comments_count, views_count, shares_count, created_at";
 
 export default function Feed() {
   const { user } = useAuth();
@@ -55,7 +54,6 @@ export default function Feed() {
   const loadPosts = async () => {
     setLoading(true);
     try {
-      // Fast feed: avoid fetching media_url entirely (large base64 values can time out).
       const { data, error } = await supabase
         .from("posts")
         .select(POST_SELECT)
@@ -68,7 +66,14 @@ export default function Feed() {
         return;
       }
 
-      const sanitized = (data ?? []).map((p: any) => ({ ...p, media_url: null })) as any[];
+      // Filter out posts with extremely large base64 media (>500KB) to avoid performance issues
+      const sanitized = (data ?? []).map((p: any) => {
+        if (p.media_url && p.media_url.startsWith('data:') && p.media_url.length > 500000) {
+          return { ...p, media_url: null };
+        }
+        return p;
+      }) as any[];
+
       const enriched = await enrichPostsWithProfiles(sanitized);
       setPosts(enriched);
     } catch (error) {
@@ -114,7 +119,14 @@ export default function Feed() {
         return;
       }
 
-      const sanitized = (postsData ?? []).map((p: any) => ({ ...p, media_url: null })) as any[];
+      // Filter out posts with extremely large base64 media
+      const sanitized = (postsData ?? []).map((p: any) => {
+        if (p.media_url && p.media_url.startsWith('data:') && p.media_url.length > 500000) {
+          return { ...p, media_url: null };
+        }
+        return p;
+      }) as any[];
+
       const enriched = await enrichPostsWithProfiles(sanitized);
       setFollowingPosts(enriched);
     } catch (error) {
@@ -162,48 +174,40 @@ export default function Feed() {
       <FeedTopNav />
       <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {activeTab === "for-you" || activeTab === "following" ? (
-        <div className="max-w-xl mx-auto border-x border-border min-h-screen">
-          {isLoadingList ? (
-            <div className="divide-y divide-border">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex gap-3 p-4">
-                  <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-muted rounded w-1/3 animate-pulse" />
-                    <div className="h-4 bg-muted rounded w-full animate-pulse" />
-                    <div className="h-4 bg-muted rounded w-2/3 animate-pulse" />
-                  </div>
+      <div className="max-w-xl mx-auto border-x border-border min-h-screen">
+        {isLoadingList ? (
+          <div className="divide-y divide-border">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex gap-3 p-4">
+                <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-muted rounded w-1/3 animate-pulse" />
+                  <div className="h-4 bg-muted rounded w-full animate-pulse" />
+                  <div className="h-4 bg-muted rounded w-2/3 animate-pulse" />
                 </div>
-              ))}
-            </div>
-          ) : currentPosts.length === 0 ? (
-            <div className="text-center py-20 text-muted-foreground">
-              <p className="text-lg font-medium">
-                {activeTab === "following" ? "Follow users to see their posts" : "No posts yet"}
-              </p>
-              <p className="text-sm mt-1">Be the first to post something!</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {currentPosts.map((post) => (
-                <XPostCard
-                  key={post.id}
-                  post={post}
-                  onCommentsClick={() => setCommentsPostId(post.id)}
-                  onDelete={loadPosts}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      ) : activeTab === "shop" ? (
-        <ShopFeedGrid />
-      ) : activeTab === "games" ? (
-        <GamingHome />
-      ) : activeTab === "discover" ? (
-        <div className="p-4 text-center text-muted-foreground">Explore content coming soon</div>
-      ) : null}
+              </div>
+            ))}
+          </div>
+        ) : currentPosts.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground">
+            <p className="text-lg font-medium">
+              {activeTab === "following" ? "Follow users to see their posts" : "No posts yet"}
+            </p>
+            <p className="text-sm mt-1">Be the first to post something!</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {currentPosts.map((post) => (
+              <XPostCard
+                key={post.id}
+                post={post}
+                onCommentsClick={() => setCommentsPostId(post.id)}
+                onDelete={loadPosts}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       <FloatingActions />
 
