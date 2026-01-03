@@ -126,7 +126,8 @@ const AIHub = memo(() => {
   // Animate image state
   const [isAnimating, setIsAnimating] = useState(false);
   const [animatedVideoUrl, setAnimatedVideoUrl] = useState<string | null>(null);
-  const [animationDuration, setAnimationDuration] = useState(4);
+  const [animationDuration, setAnimationDuration] = useState(5);
+  const [animatorProvider, setAnimatorProvider] = useState<'minimax' | 'kling'>('minimax');
 
   // Image enhancement state
   const [enhanceImage, setEnhanceImage] = useState<string | null>(null);
@@ -927,7 +928,7 @@ const AIHub = memo(() => {
       return;
     }
 
-    const creditCost = Math.ceil(animationDuration / 2) * 5;
+    const creditCost = videoCreditCost;
     
     // Check if user has AI video minutes for animation
     const minutesNeeded = animationDuration / 60;
@@ -955,7 +956,8 @@ const AIHub = memo(() => {
         body: {
           imageUrl: generatedImage,
           duration: animationDuration,
-          prompt: prompt
+          prompt: prompt,
+          provider: animatorProvider
         }
       });
 
@@ -1535,27 +1537,47 @@ const AIHub = memo(() => {
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                          <div className="flex items-center gap-4">
-                            <Label className="text-sm">Duration:</Label>
-                            <Select
-                              value={animationDuration.toString()}
-                              onValueChange={(v) => setAnimationDuration(parseInt(v))}
-                            >
-                              <SelectTrigger className="w-32 h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="2">2 seconds</SelectItem>
-                                <SelectItem value="4">4 seconds</SelectItem>
-                                <SelectItem value="6">6 seconds</SelectItem>
-                              </SelectContent>
-                            </Select>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Animator</Label>
+                              <Select
+                                value={animatorProvider}
+                                onValueChange={(v) => setAnimatorProvider(v as 'minimax' | 'kling')}
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="minimax">🎬 MiniMax</SelectItem>
+                                  <SelectItem value="kling">🎥 Kling</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Duration</Label>
+                              <Select
+                                value={animationDuration.toString()}
+                                onValueChange={(v) => setAnimationDuration(parseInt(v))}
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="5">5 seconds</SelectItem>
+                                  <SelectItem value="10">10 seconds</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
+                          <p className="text-xs text-muted-foreground">
+                            {animatorProvider === 'minimax' 
+                              ? 'MiniMax: Fast, smooth animations with AI optimization' 
+                              : 'Kling: High quality cinematic animations'}
+                          </p>
                           <Button
                             onClick={handleAnimateImage}
                             disabled={isAnimating}
-                            variant="outline"
-                            className="w-full gap-2"
+                            className="w-full gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
                           >
                             {isAnimating ? (
                               <>
@@ -1565,7 +1587,7 @@ const AIHub = memo(() => {
                             ) : (
                               <>
                                 <Play className="h-4 w-4" />
-                                Animate ({Math.ceil(animationDuration / 2) * 5} credits)
+                                Animate ({videoCreditCost} credits)
                               </>
                             )}
                           </Button>

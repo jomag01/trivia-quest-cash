@@ -240,7 +240,7 @@ async function generateWithKling(prompt: string, duration: number, aspectRatio: 
 }
 
 // Image-to-Video using Kling
-async function generateImageToVideo(imageUrl: string, prompt: string, duration: number) {
+async function generateImageToVideoKling(imageUrl: string, prompt: string, duration: number) {
   const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
   if (!FAL_API_KEY) {
     throw new Error('FAL_API_KEY is not configured');
@@ -304,6 +304,78 @@ async function generateImageToVideo(imageUrl: string, prompt: string, duration: 
 
     if (statusData.status === 'FAILED') {
       throw new Error('Kling image-to-video generation failed');
+    }
+  }
+
+  throw new Error('Image-to-video generation timed out');
+}
+
+// Image-to-Video using fal.ai Luma/MiniMax Image Animator
+async function generateImageToVideoMinimax(imageUrl: string, prompt: string, duration: number) {
+  const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
+  if (!FAL_API_KEY) {
+    throw new Error('FAL_API_KEY is not configured');
+  }
+
+  console.log('Generating image-to-video with MiniMax/Hailuo:', prompt);
+
+  // Use MiniMax/Hailuo image-to-video model
+  const response = await fetch('https://queue.fal.run/fal-ai/minimax-video/image-to-video', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Key ${FAL_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      prompt: prompt,
+      image_url: imageUrl,
+      prompt_optimizer: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('MiniMax image-to-video error:', response.status, errorText);
+    
+    if (response.status === 402 || errorText.toLowerCase().includes('credit')) {
+      await saveProviderAlert('fal.ai', 'credit_exhausted', 'fal.ai credits exhausted.');
+      throw new Error('fal.ai credits exhausted. Please top up your account.');
+    }
+    
+    throw new Error(`MiniMax image-to-video error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  const requestId = result.request_id;
+  
+  if (!requestId) {
+    throw new Error('No request ID returned');
+  }
+
+  // Poll for result
+  const statusUrl = `https://queue.fal.run/fal-ai/minimax-video/image-to-video/requests/${requestId}/status`;
+  
+  for (let attempt = 0; attempt < 120; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const statusResponse = await fetch(statusUrl, {
+      headers: { 'Authorization': `Key ${FAL_API_KEY}` },
+    });
+
+    const statusData = await statusResponse.json();
+    console.log('MiniMax image-to-video status:', statusData.status);
+    
+    if (statusData.status === 'COMPLETED') {
+      const resultUrl = `https://queue.fal.run/fal-ai/minimax-video/image-to-video/requests/${requestId}`;
+      const resultResponse = await fetch(resultUrl, {
+        headers: { 'Authorization': `Key ${FAL_API_KEY}` },
+      });
+      const finalResult = await resultResponse.json();
+      return finalResult.video?.url;
+    }
+
+    if (statusData.status === 'FAILED') {
+      throw new Error('MiniMax image-to-video generation failed');
     }
   }
 
@@ -386,7 +458,7 @@ serve(async (req) => {
       }
     }
 
-    const { prompt, duration = 5, aspectRatio = "16:9", provider = "fal", imageUrl, mode = "text-to-video" } = body;
+    const { prompt, duration = 5, aspectRatio = "16:9", provider = "fal", imageUrl, mode = "text-to-video", animatorProvider = "minimax" } = body;
     
     if (!prompt) {
       return new Response(
@@ -395,17 +467,23 @@ serve(async (req) => {
       );
     }
 
-    console.log('Video generation request:', { provider, mode, prompt, duration, aspectRatio, hasImage: !!imageUrl });
+    console.log('Video generation request:', { provider, mode, prompt, duration, aspectRatio, hasImage: !!imageUrl, animatorProvider });
 
     let videoUrl: string;
     let isVideo = false;
     let providerName = 'fal.ai';
     
-    // Handle image-to-video mode
+    // Handle image-to-video mode (animate image)
     if (mode === 'image-to-video' && imageUrl) {
-      console.log('Image-to-video mode with Kling');
-      videoUrl = await generateImageToVideo(imageUrl, prompt, duration);
-      providerName = 'Kling (Image-to-Video)';
+      if (animatorProvider === 'kling') {
+        console.log('Image-to-video mode with Kling');
+        videoUrl = await generateImageToVideoKling(imageUrl, prompt, duration);
+        providerName = 'Kling (Image Animator)';
+      } else {
+        console.log('Image-to-video mode with MiniMax');
+        videoUrl = await generateImageToVideoMinimax(imageUrl, prompt, duration);
+        providerName = 'MiniMax (Image Animator)';
+      }
       isVideo = true;
     } else if (provider === 'fal' || provider === 'minimax') {
       videoUrl = await generateWithFalAI(prompt, duration, aspectRatio);
