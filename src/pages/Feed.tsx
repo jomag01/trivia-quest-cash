@@ -11,15 +11,16 @@ import FloatingActions from "@/components/feed/FloatingActions";
 import CommentsSheet from "@/components/feed/CommentsSheet";
 import { FeedSkeletonList, InfiniteScrollLoader } from "@/components/feed/FeedSkeletons";
 import { useFeedData } from "@/hooks/useFeedData";
+import FeedFlyingBees from "@/components/feed/FeedFlyingBees";
 
-// Memoized empty state
+// Memoized empty state - dark themed
 const EmptyFeed = memo(function EmptyFeed({ isFollowing }: { isFollowing: boolean }) {
   return (
-    <div className="text-center py-20 text-muted-foreground">
-      <p className="text-lg font-medium">
-        {isFollowing ? "Follow users to see their posts" : "No posts yet"}
+    <div className="text-center py-20">
+      <p className="text-lg font-medium text-zinc-300">
+        {isFollowing ? "Follow users to see their posts" : "No posts yet"} 🐝
       </p>
-      <p className="text-sm mt-1">Be the first to post something!</p>
+      <p className="text-sm mt-1 text-zinc-500">Be the first to post something!</p>
     </div>
   );
 });
@@ -84,12 +85,17 @@ export default function Feed() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-[#000000] pb-20 relative">
+      {/* Flying bees background - light themed */}
+      <FeedFlyingBees />
+      
       {/* Render nav immediately - no data dependency */}
-      <FeedTopNav />
-      <FeedTabs activeTab={activeTab} onTabChange={handleTabChange} />
+      <div className="relative z-10">
+        <FeedTopNav />
+        <FeedTabs activeTab={activeTab} onTabChange={handleTabChange} />
+      </div>
 
-      <div className="max-w-xl mx-auto border-x border-border min-h-screen">
+      <div className="max-w-xl mx-auto border-x border-zinc-800/50 min-h-screen relative z-10 bg-black/80 backdrop-blur-sm">
         {/* Show skeleton immediately while loading */}
         {loading ? (
           <FeedSkeletonList count={6} />
@@ -98,7 +104,7 @@ export default function Feed() {
         ) : (
           <>
             {/* Virtualized post list */}
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-zinc-800/50">
               {posts.map((post, index) => (
                 <OptimizedXPostCard
                   key={post.id}
@@ -118,8 +124,8 @@ export default function Feed() {
             
             {/* End of feed indicator */}
             {!hasMore && posts.length > 0 && (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                You've reached the end
+              <div className="text-center py-8 text-zinc-500 text-sm">
+                You've reached the end 🐝
               </div>
             )}
           </>

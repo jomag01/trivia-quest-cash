@@ -161,10 +161,10 @@ const OptimizedXPostCard = memo(function OptimizedXPostCard({
     const parts = text.split(/(#\w+|@\w+)/g);
     return parts.map((part, i) => {
       if (part.startsWith('#')) {
-        return <span key={i} className="text-primary hover:underline cursor-pointer">{part}</span>;
+        return <span key={i} className="text-amber-400 hover:underline cursor-pointer">{part}</span>;
       }
       if (part.startsWith('@')) {
-        return <span key={i} className="text-primary hover:underline cursor-pointer">{part}</span>;
+        return <span key={i} className="text-amber-400 hover:underline cursor-pointer">{part}</span>;
       }
       return part;
     });
@@ -232,12 +232,12 @@ const OptimizedXPostCard = memo(function OptimizedXPostCard({
   };
 
   return (
-    <article ref={cardRef} className="flex gap-3 px-4 py-3 border-b border-border hover:bg-muted/30 transition-colors cursor-pointer">
+    <article ref={cardRef} className="flex gap-3 px-4 py-3 border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors cursor-pointer">
       {/* Avatar */}
       <button onClick={() => navigate(`/profile/${post.user_id}`)} className="flex-shrink-0">
-        <Avatar className="h-10 w-10">
+        <Avatar className="h-10 w-10 ring-1 ring-zinc-700">
           <AvatarImage src={post.profiles?.avatar_url || ""} />
-          <AvatarFallback className="bg-muted text-muted-foreground font-semibold">
+          <AvatarFallback className="bg-zinc-800 text-amber-300 font-semibold">
             {username[0]?.toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -250,28 +250,28 @@ const OptimizedXPostCard = memo(function OptimizedXPostCard({
           <div className="flex items-center gap-1 min-w-0">
             <button 
               onClick={() => navigate(`/profile/${post.user_id}`)}
-              className="font-bold text-[15px] hover:underline truncate"
+              className="font-bold text-[15px] hover:underline truncate text-white"
             >
               {username}
             </button>
             {post.profiles?.is_verified && (
-              <BadgeCheck className="w-4 h-4 text-primary flex-shrink-0" fill="currentColor" />
+              <BadgeCheck className="w-4 h-4 text-amber-400 flex-shrink-0" fill="currentColor" />
             )}
-            <span className="text-muted-foreground text-[15px] truncate">{handle}</span>
-            <span className="text-muted-foreground">·</span>
-            <span className="text-muted-foreground text-[15px] hover:underline">{timeAgo}</span>
+            <span className="text-zinc-500 text-[15px] truncate">{handle}</span>
+            <span className="text-zinc-600">·</span>
+            <span className="text-zinc-500 text-[15px] hover:underline">{timeAgo}</span>
           </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary -mr-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-zinc-800 text-zinc-500 hover:text-white -mr-2">
                 <MoreHorizontal className="w-5 h-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={handleShare}>Copy link</DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-56 bg-zinc-900 border-zinc-700">
+              <DropdownMenuItem onClick={handleShare} className="text-white hover:bg-zinc-800">Copy link</DropdownMenuItem>
               {user?.id === post.user_id && (
-                <DropdownMenuItem onClick={onDelete} className="text-destructive">Delete</DropdownMenuItem>
+                <DropdownMenuItem onClick={onDelete} className="text-red-400 hover:bg-zinc-800">Delete</DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -279,7 +279,7 @@ const OptimizedXPostCard = memo(function OptimizedXPostCard({
 
         {/* Post content */}
         {post.content && (
-          <p className="text-[15px] leading-normal mt-0.5 whitespace-pre-wrap break-words">
+          <p className="text-[15px] leading-normal mt-0.5 whitespace-pre-wrap break-words text-zinc-100">
             {renderContent(post.content)}
           </p>
         )}
@@ -292,9 +292,9 @@ const OptimizedXPostCard = memo(function OptimizedXPostCard({
           {/* Reply */}
           <button 
             onClick={(e) => { e.stopPropagation(); onCommentsClick?.(); }}
-            className="flex items-center gap-1 text-muted-foreground hover:text-primary group"
+            className="flex items-center gap-1 text-zinc-500 hover:text-amber-400 group"
           >
-            <div className="p-2 rounded-full group-hover:bg-primary/10">
+            <div className="p-2 rounded-full group-hover:bg-amber-500/10">
               <MessageCircle className="w-[18px] h-[18px]" />
             </div>
             {(post.comments_count || 0) > 0 && (
@@ -305,7 +305,7 @@ const OptimizedXPostCard = memo(function OptimizedXPostCard({
           {/* Repost */}
           <button 
             onClick={(e) => { e.stopPropagation(); handleRepost(); }}
-            className={`flex items-center gap-1 group ${reposted ? 'text-green-500' : 'text-muted-foreground hover:text-green-500'}`}
+            className={`flex items-center gap-1 group ${reposted ? 'text-green-400' : 'text-zinc-500 hover:text-green-400'}`}
           >
             <div className="p-2 rounded-full group-hover:bg-green-500/10">
               <Repeat2 className="w-[18px] h-[18px]" />
@@ -318,7 +318,7 @@ const OptimizedXPostCard = memo(function OptimizedXPostCard({
           {/* Like */}
           <button 
             onClick={(e) => { e.stopPropagation(); handleLike(); }}
-            className={`flex items-center gap-1 group ${liked ? 'text-pink-500' : 'text-muted-foreground hover:text-pink-500'}`}
+            className={`flex items-center gap-1 group ${liked ? 'text-pink-400' : 'text-zinc-500 hover:text-pink-400'}`}
           >
             <div className="p-2 rounded-full group-hover:bg-pink-500/10">
               <Heart className={`w-[18px] h-[18px] ${liked ? 'fill-current' : ''}`} />
@@ -329,8 +329,8 @@ const OptimizedXPostCard = memo(function OptimizedXPostCard({
           </button>
 
           {/* Views */}
-          <button className="flex items-center gap-1 text-muted-foreground hover:text-primary group">
-            <div className="p-2 rounded-full group-hover:bg-primary/10">
+          <button className="flex items-center gap-1 text-zinc-500 hover:text-amber-400 group">
+            <div className="p-2 rounded-full group-hover:bg-amber-500/10">
               <BarChart3 className="w-[18px] h-[18px]" />
             </div>
             {(post.views_count || 0) > 0 && (
@@ -342,13 +342,13 @@ const OptimizedXPostCard = memo(function OptimizedXPostCard({
           <div className="flex items-center">
             <button 
               onClick={(e) => { e.stopPropagation(); setBookmarked(!bookmarked); }}
-              className={`p-2 rounded-full hover:bg-primary/10 ${bookmarked ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+              className={`p-2 rounded-full hover:bg-amber-500/10 ${bookmarked ? 'text-amber-400' : 'text-zinc-500 hover:text-amber-400'}`}
             >
               <Bookmark className={`w-[18px] h-[18px] ${bookmarked ? 'fill-current' : ''}`} />
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); handleShare(); }}
-              className="p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10"
+              className="p-2 rounded-full text-zinc-500 hover:text-amber-400 hover:bg-amber-500/10"
             >
               <Share className="w-[18px] h-[18px]" />
             </button>
