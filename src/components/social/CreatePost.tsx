@@ -6,8 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Image, Video, Music, X, Upload, Users, Radio, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadToStorage } from "@/lib/storage";
-import { uploadToAWS, validateFile, getFileSizeLimits } from "@/lib/awsMedia";
+import { validateFile, getFileSizeLimits } from "@/lib/awsMedia";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import imageCompression from "browser-image-compression";
@@ -67,8 +66,9 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
       return;
     }
 
-    if (!selectedFile || !mediaType) {
-      toast.error("Please select media to upload");
+    // Allow text-only posts OR posts with media
+    if (!content.trim() && !selectedFile) {
+      toast.error("Please add some content or media");
       return;
     }
 
@@ -77,71 +77,70 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
     setUploadStatus("Preparing...");
 
     try {
-      let mediaUrl = "";
-      let fileToUpload = selectedFile;
+      let mediaUrl: string | null = null;
+      let finalMediaType: string | null = null;
 
-      // Fast image compression with lower quality for quick uploads
-      if (mediaType === "image") {
-        setUploadStatus("Optimizing...");
-        const options = {
-          maxSizeMB: 0.5, // Reduced for faster uploads
-          maxWidthOrHeight: 1080, // Reduced for faster processing
-          useWebWorker: true,
-          initialQuality: 0.7, // Lower quality for speed
-        };
-        fileToUpload = await imageCompression(selectedFile, options);
-        setUploadProgress(15);
-      }
+      // Only process media if a file was selected
+      if (selectedFile && mediaType) {
+        let fileToUpload = selectedFile;
 
-      setUploadStatus("Uploading...");
-
-      // Try Supabase Storage first (faster for most cases)
-      const fileExt = fileToUpload.name.split(".").pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-
-      try {
-        const { data: uploadData, error: uploadError } = await uploadToStorage("post-media", fileName, fileToUpload);
-        if (!uploadError && uploadData?.publicUrl) {
-          mediaUrl = uploadData.publicUrl;
-          setUploadProgress(85);
-        } else {
-          throw uploadError;
+        // Fast image compression with lower quality for quick uploads
+        if (mediaType === "image") {
+          setUploadStatus("Optimizing...");
+          const options = {
+            maxSizeMB: 0.5, // Reduced for faster uploads
+            maxWidthOrHeight: 1080, // Reduced for faster processing
+            useWebWorker: true,
+            initialQuality: 0.7, // Lower quality for speed
+          };
+          fileToUpload = await imageCompression(selectedFile, options);
+          setUploadProgress(15);
         }
-      } catch (storageError) {
-        // Fallback to AWS if Supabase fails
-        console.log("Supabase storage failed, trying AWS...");
-        const awsResult = await uploadToAWS(
-          fileToUpload, 
-          `posts/${user.id}`,
-          (progress) => {
-            const mappedProgress = 15 + Math.round(progress.percentage * 0.7);
-            setUploadProgress(mappedProgress);
-          }
-        );
+
+        setUploadStatus("Uploading...");
+
+        // Use direct Supabase Storage upload
+        const fileExt = fileToUpload.name.split(".").pop() || "jpg";
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("post-media")
+          .upload(fileName, fileToUpload, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("Storage upload error:", uploadError);
+          throw new Error("Failed to upload media. Please try again.");
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from("post-media")
+          .getPublicUrl(uploadData.path);
+
+        mediaUrl = urlData.publicUrl;
+        setUploadProgress(85);
+
+        if (!mediaUrl) {
+          throw new Error("Failed to upload media");
+        }
         
-        if (awsResult?.cdnUrl) {
-          mediaUrl = awsResult.cdnUrl;
-        } else {
-          // Last resort - use data URL (not ideal but works)
-          mediaUrl = previewUrl || "";
-        }
-      }
-
-      if (!mediaUrl) {
-        throw new Error("Failed to upload media");
+        finalMediaType = mediaType;
       }
 
       setUploadProgress(90);
       setUploadStatus("Saving...");
 
-      // Create post in database
+      // Create post in database (allow text-only posts)
       const { error: insertError } = await supabase
         .from("posts")
         .insert({
           user_id: user.id,
-          content: content || null,
+          content: content.trim() || null,
           media_url: mediaUrl,
-          media_type: mediaType,
+          media_type: finalMediaType,
         });
 
       if (insertError) throw insertError;
@@ -288,7 +287,7 @@ export const CreatePost = ({ onPostCreated }: { onPostCreated: () => void }) => 
 
             <Button
               onClick={handlePost}
-              disabled={uploading || !selectedFile}
+              disabled={uploading || (!content.trim() && !selectedFile)}
               className="w-full"
             >
               {uploading ? (

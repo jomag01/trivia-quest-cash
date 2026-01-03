@@ -132,7 +132,7 @@ export default function Feed() {
         )}
       </div>
 
-      <FloatingActions />
+      <FloatingActions onPostCreated={refresh} />
 
       <CommentsSheet
         open={!!commentsPostId}

@@ -5798,7 +5798,7 @@ export type Database = {
           created_at: string
           id: string
           likes_count: number | null
-          media_type: string
+          media_type: string | null
           media_url: string | null
           shares_count: number | null
           thumbnail_url: string | null
@@ -5812,7 +5812,7 @@ export type Database = {
           created_at?: string
           id?: string
           likes_count?: number | null
-          media_type: string
+          media_type?: string | null
           media_url?: string | null
           shares_count?: number | null
           thumbnail_url?: string | null
@@ -5826,7 +5826,7 @@ export type Database = {
           created_at?: string
           id?: string
           likes_count?: number | null
-          media_type?: string
+          media_type?: string | null
           media_url?: string | null
           shares_count?: number | null
           thumbnail_url?: string | null
