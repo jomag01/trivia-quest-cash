@@ -60,29 +60,45 @@ export default function AIProductRecommendations({
     setHasError(false);
     
     try {
-      // Fetch all active products
+      // Fetch all active products with image_url
       const { data: allProducts, error } = await supabase
         .from("products")
-        .select("*, product_categories(name)")
+        .select("id, name, description, base_price, promo_price, promo_active, image_url, diamond_reward, category_id, stock_quantity")
         .eq("is_active", true)
+        .not("image_url", "is", null)
         .limit(50);
 
       if (error) throw error;
 
-      if (!allProducts || allProducts.length === 0) {
-        setRecommendations([]);
-        setAiReason("No products available");
+      // Filter products that have valid images
+      const productsWithImages = (allProducts || []).filter(p => p.image_url && p.image_url.length > 0);
+
+      if (productsWithImages.length === 0) {
+        // Fallback: get any products even without images
+        const { data: fallbackProducts } = await supabase
+          .from("products")
+          .select("id, name, description, base_price, promo_price, promo_active, image_url, diamond_reward, category_id, stock_quantity")
+          .eq("is_active", true)
+          .limit(50);
+        
+        const shuffled = (fallbackProducts || [])
+          .filter(p => p.id !== currentProductId)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 8);
+        
+        setRecommendations(shuffled);
+        setAiReason("Products for you");
         setLoading(false);
         return;
       }
 
-      // Get random products as fallback (skip AI call to prevent blinking)
-      const fallbackProducts = allProducts
+      // Get random products with images
+      const recommendedProducts = productsWithImages
         .filter(p => p.id !== currentProductId)
         .sort(() => Math.random() - 0.5)
-        .slice(0, 4);
+        .slice(0, 8);
       
-      setRecommendations(fallbackProducts);
+      setRecommendations(recommendedProducts);
       setAiReason("Recommended for you");
     } catch (error) {
       console.error("Error fetching recommendations:", error);
@@ -278,8 +294,8 @@ export default function AIProductRecommendations({
         </Button>
       </div>
 
-      {/* Products Grid */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Products Grid - Show more products */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
         {recommendations.map((product) => (
           <Card
             key={product.id}
