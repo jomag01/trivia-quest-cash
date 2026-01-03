@@ -36,7 +36,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const AIHub = memo(() => {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const { 
     credits: aiCredits, 
     loading: aiCreditsLoading, 
@@ -1608,6 +1608,52 @@ const AIHub = memo(() => {
           {/* Text to Video */}
           {activeTab === 'text-to-video' && (
             <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-4">
+              {/* Admin Video Cost Settings */}
+              {isAdmin && (
+                <Card className="border-yellow-500/30 bg-yellow-500/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Crown className="h-4 w-4 text-yellow-500" />
+                      Admin: Video Cost Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 space-y-1">
+                        <Label className="text-xs text-muted-foreground">Credits per video generation</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="1"
+                            value={videoCreditCost}
+                            onChange={(e) => setVideoCreditCost(parseInt(e.target.value) || 10)}
+                            className="w-24 h-8 text-sm"
+                          />
+                          <span className="text-xs text-muted-foreground">credits</span>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            await supabase.from('app_settings').upsert({
+                              key: 'ai_video_credit_cost',
+                              value: videoCreditCost.toString()
+                            }, { onConflict: 'key' });
+                            toast.success('Video cost updated!');
+                          } catch (error) {
+                            toast.error('Failed to update video cost');
+                          }
+                        }}
+                        className="h-8"
+                      >
+                        Save
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card className="border-border/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
