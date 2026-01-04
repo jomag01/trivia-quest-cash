@@ -1281,7 +1281,7 @@ const AIHub = memo(() => {
         </ScrollArea>
 
         {/* Sidebar Footer - Subscription & Credits Display */}
-        <div className={cn("p-3 border-t border-border/50 space-y-3", !sidebarOpen && "md:hidden")}>
+        <div className={cn("p-3 border-t border-border/50 space-y-3 overflow-hidden", !sidebarOpen && "hidden md:hidden")}>
           {/* Subscription Status */}
           {hasActiveSubscription ? (
             <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
