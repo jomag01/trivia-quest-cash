@@ -9,16 +9,9 @@ import Navigation from "./components/Navigation";
 import { parseAndTrackFromUrl } from "@/lib/cookieTracking";
 import { AffiliateSignupPopup } from "./components/AffiliateSignupPopup";
 import { PurchaseNotification } from "./components/PurchaseNotification";
-import { warmUpFeed } from "@/lib/feedPrefetch";
-
-// Warm up feed in background immediately on app load
-if (typeof window !== 'undefined') {
-  requestIdleCallback(() => warmUpFeed());
-}
 
 // Lazy load all pages for code splitting
 const AIHub = lazy(() => import("./pages/AIHub"));
-const Feed = lazy(() => import("./pages/Feed"));
 const Games = lazy(() => import("./pages/Games"));
 const Home = lazy(() => import("./pages/Home"));
 const Game = lazy(() => import("./pages/Game"));
@@ -127,7 +120,6 @@ const App = () => (
             <Routes>
               <Route path="/" element={<AIHub />} />
               <Route path="/ai-hub" element={<AIHub />} />
-              <Route path="/feed" element={<Feed />} />
               <Route path="/games" element={<Games />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/game" element={<Game />} />
