@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToStorage } from "@/lib/storage";
 import {
   Dialog,
   DialogContent,
@@ -115,20 +116,19 @@ const CreateAuctionDialog = ({ open, onOpenChange, categories }: CreateAuctionDi
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("product-images")
-        .upload(fileName, file);
+      // Use uploadToStorage utility which has fallback to base64
+      const { data, error } = await uploadToStorage("product-images", fileName, file, {
+        contentType: file.type,
+        fileName: file.name
+      });
 
-      if (uploadError) {
+      if (error || !data?.publicUrl) {
+        console.error("Upload error:", error);
         toast.error("Failed to upload image");
         continue;
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("product-images")
-        .getPublicUrl(fileName);
-
-      newImages.push(publicUrl);
+      newImages.push(data.publicUrl);
     }
 
     setImages([...images, ...newImages]);
