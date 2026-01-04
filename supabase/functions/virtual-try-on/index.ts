@@ -13,7 +13,7 @@ async function fetchImageAsBase64(imageUrl: string): Promise<string> {
       return imageUrl;
     }
 
-    console.log("Fetching image:", imageUrl);
+    console.log("Fetching image:", imageUrl.substring(0, 100));
     
     const response = await fetch(imageUrl, {
       headers: {
@@ -36,7 +36,7 @@ async function fetchImageAsBase64(imageUrl: string): Promise<string> {
     return `data:${contentType};base64,${base64}`;
   } catch (error) {
     console.error("Error fetching image:", error);
-    throw new Error(`Failed to fetch image from URL: ${imageUrl}`);
+    throw new Error(`Failed to fetch image from URL`);
   }
 }
 
@@ -46,7 +46,7 @@ serve(async (req) => {
   }
 
   try {
-    const { productImageUrl, userPhotoUrl, prompt, productDescription } = await req.json();
+    const { productImageUrl, userPhotoUrl, prompt, productDescription, viewAngle } = await req.json();
 
     if (!productImageUrl) {
       throw new Error("Product image URL is required");
@@ -57,55 +57,89 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Generating virtual try-on image...");
+    console.log("=== Virtual Try-On Request ===");
     console.log("Product:", productDescription);
+    console.log("View angle:", viewAngle || "not specified");
     console.log("Has user photo:", !!userPhotoUrl);
-    console.log("User photo provided:", userPhotoUrl ? "Yes (base64)" : "No");
 
     // Convert product image to base64
     let productImageBase64: string;
     try {
       productImageBase64 = await fetchImageAsBase64(productImageUrl);
-      console.log("Product image converted to base64");
+      console.log("Product image converted successfully");
     } catch (error) {
       console.error("Failed to convert product image:", error);
       throw new Error("Could not load product image. Please try a different product.");
     }
 
-    // Build the appropriate prompt based on whether user photo is provided
-    let finalPrompt: string;
+    // Convert user photo to base64 if provided
+    let userPhotoBase64: string | null = null;
     if (userPhotoUrl) {
-      // User uploaded their own photo - generate them wearing the product
-      finalPrompt = `You are a professional fashion AI. I'm providing two images:
-1. First image: A clothing item (${productDescription})
-2. Second image: A photo of a person
-
-Your task: Generate a NEW photorealistic image showing the person from the second image wearing the clothing item from the first image. 
-
-IMPORTANT INSTRUCTIONS:
-- Keep the person's face, body shape, skin tone, and pose EXACTLY as shown in their photo
-- ONLY change their outfit to show them wearing the clothing item
-- Make the clothing fit naturally on their body
-- Maintain realistic lighting and shadows
-- The result should look like a real photograph, not an edited image
-- Do NOT just return the product image - you MUST generate a new composite image
-
-Generate a high-quality, photorealistic image now.`;
-    } else {
-      // No user photo - show on a model
-      finalPrompt = `You are a professional fashion AI. Generate a NEW high-quality fashion photograph showing a professional model wearing this clothing item: ${productDescription}
-
-IMPORTANT INSTRUCTIONS:
-- Create a completely NEW image of a model wearing this exact garment
-- The model should be in a clean, professional studio setting
-- Show the full outfit clearly with good lighting
-- Make it look like a professional fashion catalog photograph
-- Do NOT just return the input product image - generate a NEW image of someone wearing it
-
-Generate the fashion photograph now.`;
+      try {
+        userPhotoBase64 = userPhotoUrl.startsWith('data:') 
+          ? userPhotoUrl 
+          : await fetchImageAsBase64(userPhotoUrl);
+        console.log("User photo converted successfully");
+      } catch (error) {
+        console.error("Failed to convert user photo:", error);
+        throw new Error("Could not process your photo. Please try a different image.");
+      }
     }
 
-    // Build the message content with proper image order
+    // Build angle-specific instructions
+    const angleInstructions: Record<string, string> = {
+      front: "The person should be facing directly towards the camera, showing the front of the outfit clearly.",
+      back: "The person should be facing away from the camera, showing the back of the outfit. We should see the back of their head and the rear view of the clothing.",
+      left: "The person should be shown from their left side in profile view. We see the left side of their face and the left side of the outfit.",
+      right: "The person should be shown from their right side in profile view. We see the right side of their face and the right side of the outfit."
+    };
+
+    const currentAngleInstruction = viewAngle ? angleInstructions[viewAngle] || "" : angleInstructions.front;
+
+    // Build the generation prompt
+    let finalPrompt: string;
+    
+    if (userPhotoBase64) {
+      // User uploaded their own photo - generate them wearing the product
+      finalPrompt = `VIRTUAL TRY-ON TASK: Create a NEW photorealistic image.
+
+I am providing TWO images:
+IMAGE 1: A product photo of clothing (${productDescription})
+IMAGE 2: A photo of a person who wants to try on this clothing
+
+YOUR TASK: Generate a COMPLETELY NEW image that shows the PERSON from Image 2 wearing the CLOTHING from Image 1.
+
+CRITICAL REQUIREMENTS:
+1. PRESERVE the person's exact face, skin tone, hair style, and body proportions from their photo
+2. REPLACE their current clothing with the product clothing item
+3. Make the clothing FIT NATURALLY on their body shape
+4. VIEW ANGLE: ${currentAngleInstruction}
+5. Maintain professional lighting and natural shadows
+6. The result must look like a real photograph, not a digital composite
+7. DO NOT just show the product image - GENERATE A NEW IMAGE of the actual person wearing it
+
+Output: A single high-quality photorealistic image of this specific person wearing the clothing item from the ${viewAngle || 'front'} angle.`;
+    } else {
+      // No user photo - show on a model
+      finalPrompt = `FASHION CATALOG TASK: Create a NEW professional fashion photograph.
+
+I am providing an image of a clothing item: ${productDescription}
+
+YOUR TASK: Generate a COMPLETELY NEW image of a fashion model wearing this exact clothing item.
+
+CRITICAL REQUIREMENTS:
+1. Create a professional-looking model (adult, attractive, appropriate for the clothing style)
+2. The model should be WEARING the clothing item naturally
+3. VIEW ANGLE: ${currentAngleInstruction}
+4. Studio setting with clean background and professional lighting
+5. Full body or 3/4 body shot showing the outfit clearly
+6. The result should look like a high-end fashion catalog photo
+7. DO NOT return the original product image - CREATE A NEW image of a model wearing it
+
+Output: A single high-quality fashion photograph showing a model wearing this outfit from the ${viewAngle || 'front'} view.`;
+    }
+
+    // Build the message content
     const messageContent: any[] = [
       {
         type: "text",
@@ -119,18 +153,18 @@ Generate the fashion photograph now.`;
       }
     ];
 
-    // If user uploaded their photo, include it as the second image
-    if (userPhotoUrl) {
-      console.log("Adding user photo to request");
+    // Add user photo if provided
+    if (userPhotoBase64) {
       messageContent.push({
         type: "image_url",
         image_url: {
-          url: userPhotoUrl
+          url: userPhotoBase64
         }
       });
     }
 
-    console.log("Sending request to AI API with", messageContent.length, "content items");
+    console.log("Sending request to AI with", messageContent.length, "content items");
+    console.log("Using model: google/gemini-3-pro-image-preview");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -139,7 +173,7 @@ Generate the fashion photograph now.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
+        model: "google/gemini-3-pro-image-preview",
         messages: [
           {
             role: "user",
@@ -156,49 +190,67 @@ Generate the fashion photograph now.`;
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Insufficient credits. Please add more credits." }),
+          JSON.stringify({ error: "Insufficient AI credits. Please add more credits." }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      throw new Error(`AI API error: ${response.status}`);
+      throw new Error(`AI API error: ${response.status} - ${errorText.substring(0, 200)}`);
     }
 
     const data = await response.json();
-    console.log("AI response received");
-    console.log("Response structure:", JSON.stringify(Object.keys(data)));
+    console.log("AI response received successfully");
 
-    // Extract the generated image - check multiple possible locations
-    let imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    // Extract the generated image from multiple possible locations
+    let imageUrl: string | null = null;
     
-    // Alternative extraction if the above doesn't work
+    // Try primary location
+    imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    
+    // Try alternative locations
     if (!imageUrl) {
       const message = data.choices?.[0]?.message;
-      console.log("Message keys:", message ? Object.keys(message) : "no message");
-      
-      // Check if images are in a different format
       if (message?.images && Array.isArray(message.images) && message.images.length > 0) {
         const firstImage = message.images[0];
-        imageUrl = firstImage?.image_url?.url || firstImage?.url || firstImage;
+        imageUrl = firstImage?.image_url?.url || firstImage?.url || (typeof firstImage === 'string' ? firstImage : null);
+      }
+    }
+
+    // Check content array for image
+    if (!imageUrl && data.choices?.[0]?.message?.content) {
+      const content = data.choices[0].message.content;
+      if (Array.isArray(content)) {
+        for (const item of content) {
+          if (item.type === 'image_url' && item.image_url?.url) {
+            imageUrl = item.image_url.url;
+            break;
+          }
+          if (item.type === 'image' && item.url) {
+            imageUrl = item.url;
+            break;
+          }
+        }
       }
     }
     
     if (!imageUrl) {
-      console.error("No image in response. Full response:", JSON.stringify(data));
+      console.error("No image found in response. Keys:", JSON.stringify(Object.keys(data)));
+      console.error("Choices:", JSON.stringify(data.choices?.[0] ? Object.keys(data.choices[0]) : "none"));
       throw new Error("AI did not generate an image. Please try again.");
     }
 
-    console.log("Successfully extracted image URL");
+    console.log("Image generated successfully for", viewAngle || "front", "view");
 
     return new Response(
       JSON.stringify({ 
         imageUrl,
-        message: data.choices?.[0]?.message?.content || "Image generated successfully"
+        viewAngle: viewAngle || 'front',
+        message: "Virtual try-on image generated successfully"
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
