@@ -5,17 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Cloud, Sun, CloudRain, CloudSnow, Wind, Droplets, 
   Thermometer, MapPin, RefreshCw, Loader2, CloudLightning,
-  Sunrise, Sunset, Eye, Gauge, TrendingUp, Calendar,
-  Share2, Facebook, Twitter, MessageCircle, Send, Copy, Check
+  Sunrise, Sunset, Eye, Gauge, TrendingUp, Calendar
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { toast } from 'sonner';
+import SocialShareMenu from '@/components/common/SocialShareMenu';
+import { useMetaTags } from '@/hooks/useMetaTags';
 
 interface WeatherData {
   current: {
@@ -78,7 +72,6 @@ const WeatherForecast = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
-  const [copied, setCopied] = useState(false);
 
   const fetchWeather = async (lat: number, lon: number, locationName: string = 'Your Location') => {
     setLoading(true);
@@ -145,44 +138,18 @@ const WeatherForecast = () => {
     }
   }, []);
 
-  const getShareText = () => {
-    if (!weather) return '';
+  const getShareDescription = () => {
+    if (!weather) return 'GraphCast AI Weather - 10-day AI-powered predictions';
     const currentWeather = getWeatherInfo(weather.current.weatherCode);
-    return `🌤️ Weather in ${weather.location.name}: ${weather.current.temperature}°C - ${currentWeather.label}\n\n📊 10-Day Forecast powered by GraphCast AI\n\nCheck it out on TriviaBees! 🐝`;
+    return `🌤️ Weather in ${weather.location.name}: ${weather.current.temperature}°C - ${currentWeather.label}. 10-Day Forecast powered by GraphCast AI on TriviaBees! 🐝`;
   };
 
-  const shareToFacebook = () => {
-    const url = encodeURIComponent(window.location.href);
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${encodeURIComponent(getShareText())}`, '_blank');
-  };
-
-  const shareToTwitter = () => {
-    const text = encodeURIComponent(getShareText());
-    const url = encodeURIComponent(window.location.href);
-    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
-  };
-
-  const shareToWhatsApp = () => {
-    const text = encodeURIComponent(getShareText() + '\n' + window.location.href);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-  };
-
-  const shareToTelegram = () => {
-    const text = encodeURIComponent(getShareText());
-    const url = encodeURIComponent(window.location.href);
-    window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
-  };
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(getShareText() + '\n' + window.location.href);
-      setCopied(true);
-      toast.success('Copied to clipboard!');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      toast.error('Failed to copy');
-    }
-  };
+  // Set dynamic meta tags for sharing
+  useMetaTags({
+    title: weather ? `Weather in ${weather.location.name} - ${weather.current.temperature}°C` : 'GraphCast AI Weather',
+    description: getShareDescription(),
+    url: `${window.location.origin}/ai-hub?tab=weather${weather ? `&location=${encodeURIComponent(weather.location.name)}` : ''}`,
+  });
 
   if (loading) {
     return (
@@ -229,46 +196,15 @@ const WeatherForecast = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 bg-gradient-to-r from-pink-500/10 to-purple-500/10 border-pink-500/30 hover:border-pink-500/50">
-                <Share2 className="h-4 w-4 text-pink-500" />
-                <span className="hidden sm:inline">Share</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={shareToFacebook} className="gap-3 cursor-pointer">
-                <div className="p-1.5 rounded-full bg-blue-600">
-                  <Facebook className="h-3.5 w-3.5 text-white" />
-                </div>
-                Facebook
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={shareToTwitter} className="gap-3 cursor-pointer">
-                <div className="p-1.5 rounded-full bg-sky-500">
-                  <Twitter className="h-3.5 w-3.5 text-white" />
-                </div>
-                Twitter / X
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={shareToWhatsApp} className="gap-3 cursor-pointer">
-                <div className="p-1.5 rounded-full bg-green-500">
-                  <MessageCircle className="h-3.5 w-3.5 text-white" />
-                </div>
-                WhatsApp
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={shareToTelegram} className="gap-3 cursor-pointer">
-                <div className="p-1.5 rounded-full bg-blue-500">
-                  <Send className="h-3.5 w-3.5 text-white" />
-                </div>
-                Telegram
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={copyToClipboard} className="gap-3 cursor-pointer">
-                <div className="p-1.5 rounded-full bg-gray-500">
-                  {copied ? <Check className="h-3.5 w-3.5 text-white" /> : <Copy className="h-3.5 w-3.5 text-white" />}
-                </div>
-                Copy Link
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <SocialShareMenu
+            title={weather ? `Weather in ${weather.location.name} - ${weather.current.temperature}°C` : 'GraphCast AI Weather'}
+            description={getShareDescription()}
+            path="/ai-hub"
+            params={{ tab: 'weather', location: weather?.location.name || '' }}
+            variant="outline"
+            size="sm"
+            className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border-pink-500/30 hover:border-pink-500/50"
+          />
           <Button 
             variant="outline" 
             size="icon" 

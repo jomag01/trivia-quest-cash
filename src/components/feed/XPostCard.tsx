@@ -103,10 +103,16 @@ export default function XPostCard({ post, onCommentsClick, onDelete }: XPostCard
   };
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/?post=${post.id}`;
+    const shareUrl = user 
+      ? `${window.location.origin}/?post=${post.id}&ref=${user.id}`
+      : `${window.location.origin}/?post=${post.id}`;
     try {
       if (navigator.share) {
-        await navigator.share({ url: shareUrl });
+        await navigator.share({ 
+          title: `${post.profiles?.full_name || 'Someone'} on Triviabees`,
+          text: post.content?.substring(0, 100) || 'Check out this post on Triviabees!',
+          url: shareUrl 
+        });
       } else {
         await navigator.clipboard.writeText(shareUrl);
         toast.success("Link copied!");

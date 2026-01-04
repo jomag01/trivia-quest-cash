@@ -8,11 +8,12 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   FileText, Search, Clock, Eye, Calendar, ChevronRight, 
-  Newspaper, BookOpen, Star, ArrowLeft, User, Tag,
-  Share2, Loader2, TrendingUp, RefreshCw
+  Newspaper, BookOpen, Star, ArrowLeft, User, Tag, Loader2, TrendingUp, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import WeatherWidget from './WeatherWidget';
+import SocialShareMenu from '@/components/common/SocialShareMenu';
+import { useMetaTags } from '@/hooks/useMetaTags';
 
 interface BlogCategory {
   id: string;
@@ -81,14 +82,18 @@ const BlogPage = () => {
     };
   }, []);
 
-  // Update page title when viewing a post
-  useEffect(() => {
-    if (selectedPost) {
-      document.title = selectedPost.meta_title || selectedPost.title;
-    } else {
-      document.title = 'Tech Blog - Latest Technology News & Articles';
-    }
-  }, [selectedPost]);
+  // Set dynamic meta tags for sharing
+  useMetaTags(selectedPost ? {
+    title: selectedPost.meta_title || selectedPost.title,
+    description: selectedPost.meta_description || selectedPost.excerpt || 'Read this article on Triviabees Blog',
+    image: selectedPost.featured_image || undefined,
+    url: `${window.location.origin}/ai-hub?tab=blog&post=${selectedPost.slug}`,
+    type: 'article',
+  } : {
+    title: 'Tech Blog - Latest Technology News & Articles',
+    description: 'Read the latest tech news, articles, and tutorials on Triviabees',
+    url: `${window.location.origin}/ai-hub?tab=blog`,
+  });
 
   const fetchData = async () => {
     setLoading(true);
@@ -250,10 +255,14 @@ const BlogPage = () => {
 
           <div className="flex items-center gap-4 pt-4 border-t">
             <span className="text-sm text-muted-foreground">Share:</span>
-            <Button variant="outline" size="sm">
-              <Share2 className="h-4 w-4 mr-1" />
-              Share
-            </Button>
+            <SocialShareMenu
+              title={selectedPost.title}
+              description={selectedPost.meta_description || selectedPost.excerpt || 'Read this article on Triviabees'}
+              path="/ai-hub"
+              params={{ tab: 'blog', post: selectedPost.slug }}
+              variant="outline"
+              size="sm"
+            />
           </div>
         </article>
 
