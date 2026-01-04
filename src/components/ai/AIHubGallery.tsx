@@ -36,11 +36,11 @@ const SAMPLE_GALLERY = [
 ];
 
 const CATEGORIES = [
-  { id: 'all', label: '🐝 All', icon: null },
-  { id: 'work', label: '🏗️ Work', icon: null },
-  { id: 'shopping', label: '🛒 Shopping', icon: ShoppingCart },
-  { id: 'earning', label: '💰 Earning', icon: DollarSign },
-  { id: 'ai', label: '🤖 AI Tech', icon: Cpu },
+  { id: 'all', label: '🐝 All', icon: null, action: null },
+  { id: 'work', label: '🏗️ Work', icon: null, action: null },
+  { id: 'shopping', label: '🛒 Shopping', icon: ShoppingCart, action: 'shop' },
+  { id: 'earning', label: '💰 Earning', icon: DollarSign, action: null },
+  { id: 'ai', label: '🤖 AI Tech', icon: Cpu, action: null },
 ];
 
 const VIDEO_QUALITY_OPTIONS = [
@@ -196,7 +196,14 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
+                  onClick={() => {
+                    if (cat.action) {
+                      // Navigate to shop tab
+                      onNavigate(cat.action);
+                    } else {
+                      setActiveCategory(cat.id);
+                    }
+                  }}
                   className={cn(
                     "px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all border",
                     activeCategory === cat.id 
