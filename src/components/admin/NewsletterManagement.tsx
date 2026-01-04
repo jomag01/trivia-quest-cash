@@ -351,7 +351,8 @@ export default function NewsletterManagement() {
       draft: 'bg-muted text-muted-foreground',
       scheduled: 'bg-amber-500/20 text-amber-600',
       sending: 'bg-blue-500/20 text-blue-600',
-      sent: 'bg-green-500/20 text-green-600'
+      sent: 'bg-green-500/20 text-green-600',
+      failed: 'bg-destructive/15 text-destructive'
     };
     return <Badge className={colors[status] || colors.draft}>{status}</Badge>;
   };
