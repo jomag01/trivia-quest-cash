@@ -48,20 +48,21 @@ serve(async (req) => {
 
     let sentCount = 0;
     let failedCount = 0;
-    const batchSize = 50; // Send in batches to avoid rate limits
+    let fatalError: string | null = null;
 
-    // Process in batches
-    for (let i = 0; i < (subscribers?.length || 0); i += batchSize) {
-      const batch = subscribers!.slice(i, i + batchSize);
-      
-      const emailPromises = batch.map(async (subscriber) => {
-        try {
-          // Create personalized content
-          const personalizedContent = newsletter.content
-            .replace(/\{\{name\}\}/g, subscriber.full_name || 'Friend')
-            .replace(/\{\{email\}\}/g, subscriber.email);
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-          const emailHtml = `
+    // Send sequentially to respect Resend rate limits (2 requests/sec)
+    for (const subscriber of subscribers || []) {
+      const nowIso = new Date().toISOString();
+
+      try {
+        // Create personalized content
+        const personalizedContent = newsletter.content
+          .replace(/\{\{name\}\}/g, subscriber.full_name || "Friend")
+          .replace(/\{\{email\}\}/g, subscriber.email);
+
+        const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -85,7 +86,10 @@ serve(async (req) => {
       <h1>🐝 TriviaBees</h1>
     </div>
     <div class="content">
-      ${personalizedContent.split('\n').map((line: string) => `<p>${line}</p>`).join('')}
+      ${personalizedContent
+        .split('\n')
+        .map((line: string) => `<p>${line}</p>`)
+        .join('')}
       <p style="text-align: center;">
         <a href="https://triviabees.com" class="cta-button">Visit TriviaBees →</a>
       </p>
@@ -102,66 +106,90 @@ serve(async (req) => {
 </body>
 </html>`;
 
-          const sendResult = await resend.emails.send({
-            from: "TriviaBees <no-reply@triviabees.com>",
-            reply_to: "support@triviabees.com",
-            to: [subscriber.email],
-            subject: newsletter.subject,
-            html: emailHtml,
-            text: personalizedContent,
-          });
+        const sendResult = await resend.emails.send({
+          from: "TriviaBees <no-reply@triviabees.com>",
+          reply_to: "support@triviabees.com",
+          to: [subscriber.email],
+          subject: newsletter.subject,
+          html: emailHtml,
+          text: personalizedContent,
+        });
 
-          console.log('Resend send result:', sendResult);
+        console.log("Resend send result:", sendResult);
 
-          // Record the send
-          await supabase.from('newsletter_sends').insert({
-            newsletter_id: newsletter.id,
-            subscriber_id: subscriber.id,
-            status: 'sent'
-          });
-
-          sentCount++;
-          return { success: true };
-        } catch (error) {
-          console.error(`Failed to send to ${subscriber.email}:`, error);
-          failedCount++;
-          
-          // Record the failure
-          await supabase.from('newsletter_sends').insert({
-            newsletter_id: newsletter.id,
-            subscriber_id: subscriber.id,
-            status: 'failed'
-          });
-          
-          return { success: false, error };
+        if ((sendResult as any)?.error) {
+          const message = (sendResult as any).error?.message || "Email provider returned an error";
+          throw new Error(message);
         }
-      });
 
-      await Promise.all(emailPromises);
-      
-      // Small delay between batches
-      if (i + batchSize < (subscribers?.length || 0)) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Record the send
+        await supabase.from("newsletter_sends").insert({
+          newsletter_id: newsletter.id,
+          subscriber_id: subscriber.id,
+          status: "sent",
+          sent_at: nowIso,
+        });
+
+        sentCount++;
+      } catch (error: any) {
+        const message = error?.message ? String(error.message) : String(error);
+        console.error(`Failed to send to ${subscriber.email}:`, message);
+
+        failedCount++;
+
+        // Record the failure
+        await supabase.from("newsletter_sends").insert({
+          newsletter_id: newsletter.id,
+          subscriber_id: subscriber.id,
+          status: "failed",
+          sent_at: nowIso,
+        });
+
+        // If domain isn't verified, continuing will never succeed.
+        if (message.toLowerCase().includes("domain is not verified")) {
+          fatalError =
+            "Email sending is blocked because the sending domain is not verified with the email provider. Please verify triviabees.com, then resend the campaign.";
+          break;
+        }
       }
+
+      // Resend free tier default: 2 req/sec
+      await sleep(600);
     }
 
     // Update newsletter status
-    await supabase
-      .from('newsletters')
-      .update({
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-        total_recipients: sentCount
-      })
-      .eq('id', newsletter_id);
+    const newsletterStatus = failedCount > 0 ? "failed" : "sent";
 
-    console.log(`Newsletter sent: ${sentCount} success, ${failedCount} failed`);
+    await supabase
+      .from("newsletters")
+      .update({
+        status: newsletterStatus,
+        sent_at: new Date().toISOString(),
+        total_recipients: sentCount,
+      })
+      .eq("id", newsletter_id);
+
+    console.log(`Newsletter send finished: ${sentCount} success, ${failedCount} failed`);
+
+    if (fatalError) {
+      return new Response(
+        JSON.stringify({
+          error: fatalError,
+          total_sent: sentCount,
+          total_failed: failedCount,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        total_sent: sentCount, 
-        total_failed: failedCount 
+      JSON.stringify({
+        success: failedCount === 0,
+        total_sent: sentCount,
+        total_failed: failedCount,
       }),
       {
         status: 200,
