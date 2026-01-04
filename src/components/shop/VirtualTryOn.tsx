@@ -3,11 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Upload, Sparkles, Download, RefreshCw, User, X, RotateCcw, ChevronLeft, ChevronRight, Play, Pause, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Camera, Upload, Sparkles, Download, RefreshCw, User, X, RotateCcw, ChevronLeft, ChevronRight, Play, Pause, Image as ImageIcon, Loader2, Coins, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAICredits } from "@/hooks/useAICredits";
 
 interface VirtualTryOnProps {
   product: {
@@ -15,6 +18,8 @@ interface VirtualTryOnProps {
     name: string;
     image_url?: string;
     description?: string;
+    seller_id?: string;
+    virtual_tryon_enabled?: boolean;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,6 +36,7 @@ interface GeneratedImages {
 
 export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps) => {
   const { user } = useAuth();
+  const { credits, subscription, deductCredits, refetch: fetchCredits } = useAICredits();
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImages>({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -39,6 +45,10 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
   const [currentAngle, setCurrentAngle] = useState<ViewAngle>('front');
   const [isSpinning, setIsSpinning] = useState(false);
   const [viewMode, setViewMode] = useState<'single' | 'spin'>('single');
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [buyerCreditCost, setBuyerCreditCost] = useState(5);
+  const [isFeatureEnabled, setIsFeatureEnabled] = useState(false);
+  const [checkingFeature, setCheckingFeature] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const spinIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -50,6 +60,48 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
     right: 'Right Side'
   };
 
+  // Fetch pricing and check if feature is enabled
+  useEffect(() => {
+    const checkFeatureAndPricing = async () => {
+      if (!open) return;
+      
+      setCheckingFeature(true);
+      try {
+        // Fetch buyer credit cost
+        const { data: settings } = await supabase
+          .from('app_settings')
+          .select('key, value')
+          .in('key', ['virtual_tryon_buyer_credits']);
+
+        settings?.forEach(setting => {
+          if (setting.key === 'virtual_tryon_buyer_credits') {
+            setBuyerCreditCost(parseInt(setting.value || '5'));
+          }
+        });
+
+        // Check if product has virtual try-on enabled
+        if (product.virtual_tryon_enabled) {
+          setIsFeatureEnabled(true);
+        } else {
+          // Check if seller has enabled it by checking if they've paid
+          const { data: productData } = await supabase
+            .from('products')
+            .select('virtual_tryon_enabled')
+            .eq('id', product.id)
+            .single();
+          
+          setIsFeatureEnabled(productData?.virtual_tryon_enabled || false);
+        }
+      } catch (error) {
+        console.error('Error checking feature:', error);
+      } finally {
+        setCheckingFeature(false);
+      }
+    };
+
+    checkFeatureAndPricing();
+  }, [open, product.id, product.virtual_tryon_enabled]);
+
   // Auto-spin effect
   useEffect(() => {
     if (isSpinning && Object.keys(generatedImages).length >= 2) {
@@ -57,7 +109,6 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
         setCurrentAngle(prev => {
           const currentIndex = angleOrder.indexOf(prev);
           const nextIndex = (currentIndex + 1) % angleOrder.length;
-          // Skip angles that don't have images
           let attempts = 0;
           let next = angleOrder[nextIndex];
           while (!generatedImages[next] && attempts < 4) {
@@ -91,6 +142,7 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
         setCurrentAngle('front');
         setIsSpinning(false);
         setViewMode('single');
+        setCustomPrompt("");
       }, 100);
     }
     onOpenChange(isOpen);
@@ -113,6 +165,12 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
     reader.readAsDataURL(file);
   };
 
+  const getTotalCredits = () => {
+    const legacyCredits = credits?.total_credits || 0;
+    const subscriptionCredits = subscription?.credits_remaining || 0;
+    return legacyCredits + subscriptionCredits;
+  };
+
   const generateSingleAngle = async (angle: ViewAngle): Promise<string | null> => {
     if (!product.image_url) return null;
 
@@ -123,15 +181,20 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
       right: 'from the right side, profile view showing the right side'
     };
 
+    // Base prompt with custom instructions if provided
+    let basePrompt = customPrompt.trim() 
+      ? `${customPrompt}. Also show the ${angle} view of the person with the item.`
+      : '';
+
     const prompt = activeTab === "model"
-      ? `Generate a professional fashion photograph showing a model wearing this clothing item "${product.name}" ${angleDescriptions[angle]}. 
+      ? `${basePrompt} Generate a professional fashion photograph showing a model wearing/using this item "${product.name}" ${angleDescriptions[angle]}. 
          The model should be in a clean studio setting with good lighting.
-         Show the full outfit clearly from this specific angle: ${angle.toUpperCase()} VIEW.
+         Show the full outfit/item clearly from this specific angle: ${angle.toUpperCase()} VIEW.
          Make it look like a professional fashion catalog photo.
-         The pose should naturally show this angle of the clothing.`
-      : `Take this person's photo and show them wearing this clothing item: "${product.name}" ${angleDescriptions[angle]}.
+         The pose should naturally show this angle of the item.`
+      : `${basePrompt} Take this person's photo and show them wearing/using this item: "${product.name}" ${angleDescriptions[angle]}.
          Keep the person's face and body proportions similar, but show them from this angle: ${angle.toUpperCase()} VIEW.
-         The person should be posed to show the ${angle} view of the outfit.
+         The person should be posed to show the ${angle} view of the item.
          Make it look natural and realistic as if viewed from the ${angle}.`;
 
     try {
@@ -154,17 +217,48 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
   };
 
   const handleTryOn = async () => {
+    if (!user) {
+      toast.error("Please login to use this feature");
+      return;
+    }
+
+    if (!isFeatureEnabled) {
+      toast.error("Virtual Try-On is not enabled for this product");
+      return;
+    }
+
     if (!product.image_url) {
       toast.error("Product image not available");
       return;
     }
+
+    // Check credits
+    const totalCredits = getTotalCredits();
+    if (totalCredits < buyerCreditCost) {
+      toast.error(`Insufficient credits. You need ${buyerCreditCost} credits to use Virtual Try-On.`);
+      return;
+    }
+
+    // Deduct credits first
+    const deducted = await deductCredits(buyerCreditCost);
+    if (!deducted) {
+      toast.error("Failed to deduct credits");
+      return;
+    }
+
+    // Log usage
+    await supabase.from('virtual_tryon_usage').insert({
+      user_id: user.id,
+      product_id: product.id,
+      credits_used: buyerCreditCost,
+      custom_prompt: customPrompt || null
+    });
 
     setIsGenerating(true);
     setGeneratingAngles(['front', 'back', 'left', 'right']);
     setGeneratedImages({});
     
     try {
-      // Generate all angles in parallel
       const anglesToGenerate: ViewAngle[] = ['front', 'back', 'left', 'right'];
       
       toast.info("Generating 4 different angle views...", { duration: 5000 });
@@ -172,7 +266,6 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
       const results = await Promise.allSettled(
         anglesToGenerate.map(async (angle) => {
           const result = await generateSingleAngle(angle);
-          // Update as each completes
           if (result) {
             setGeneratedImages(prev => ({ ...prev, [angle]: result }));
             setGeneratingAngles(prev => prev.filter(a => a !== angle));
@@ -188,6 +281,7 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
       if (successCount > 0) {
         toast.success(`Generated ${successCount} view${successCount > 1 ? 's' : ''}!`);
         setCurrentAngle('front');
+        fetchCredits(); // Refresh credits display
       } else {
         throw new Error("Failed to generate any images");
       }
@@ -233,6 +327,7 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
     setCurrentAngle('front');
     setIsSpinning(false);
     setViewMode('single');
+    setCustomPrompt("");
   };
 
   const navigateAngle = (direction: 'prev' | 'next') => {
@@ -312,12 +407,10 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
           />
         </AnimatePresence>
         
-        {/* Angle indicator */}
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 px-3 py-1 rounded-full">
           <p className="text-white text-xs font-medium">{angleLabels[currentAngle]}</p>
         </div>
 
-        {/* Navigation arrows */}
         {hasMultipleImages && !isSpinning && (
           <>
             <Button
@@ -388,6 +481,36 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
     );
   };
 
+  // Feature not enabled UI
+  if (!checkingFeature && !isFeatureEnabled) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-muted-foreground" />
+              Virtual Try-On Not Available
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-6 space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center">
+              <Lock className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground">
+              The seller has not enabled Virtual Try-On for this product.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Contact the seller to request this feature.
+            </p>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -397,6 +520,37 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
             360° Virtual Try-On: {product.name}
           </DialogTitle>
         </DialogHeader>
+
+        {/* Credits Info */}
+        <Card className="p-3 bg-primary/5 border-primary/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Coins className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Cost: {buyerCreditCost} credits</span>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Your balance: {getTotalCredits()} credits
+            </div>
+          </div>
+        </Card>
+
+        {/* Custom Prompt Input */}
+        <div className="space-y-2">
+          <Label htmlFor="custom-prompt" className="text-sm font-medium">
+            Custom Instructions (Optional)
+          </Label>
+          <Textarea
+            id="custom-prompt"
+            placeholder="E.g., 'Show me sleeping with this pillow' or 'Show me wearing this at the beach' or 'Make the background a living room'"
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
+            className="min-h-[60px] text-sm"
+            disabled={isGenerating}
+          />
+          <p className="text-xs text-muted-foreground">
+            Give the AI specific instructions on how you want to be shown with the item
+          </p>
+        </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "model" | "upload")}>
           <TabsList className="grid w-full grid-cols-2">
@@ -509,7 +663,6 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
 
             {renderAngleThumbnails()}
 
-            {/* Product reference */}
             <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
               <div className="w-16 h-16 rounded border overflow-hidden flex-shrink-0">
                 {product.image_url && (
@@ -528,7 +681,6 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
           </TabsContent>
         </Tabs>
 
-        {/* 360° Spin Control */}
         {hasMultipleImages && (
           <div className="flex justify-center gap-2 mt-2">
             <Button
@@ -552,7 +704,6 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex gap-2 mt-4">
           {hasAnyImage ? (
             <>
@@ -585,9 +736,14 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
             <Button 
               className="w-full"
               onClick={handleTryOn}
-              disabled={isGenerating || (activeTab === "upload" && !userPhoto)}
+              disabled={isGenerating || (activeTab === "upload" && !userPhoto) || checkingFeature}
             >
-              {isGenerating ? (
+              {checkingFeature ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Checking...
+                </>
+              ) : isGenerating ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                   Generating 360° Views...
@@ -595,7 +751,7 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Generate 360° Try-On
+                  Generate 360° Try-On ({buyerCreditCost} credits)
                 </>
               )}
             </Button>
@@ -603,7 +759,7 @@ export const VirtualTryOn = ({ product, open, onOpenChange }: VirtualTryOnProps)
         </div>
 
         <p className="text-xs text-muted-foreground text-center mt-2">
-          Powered by AI • Generates front, back, left & right views
+          Powered by AI • Generates front, back, left & right views • {buyerCreditCost} credits per generation
         </p>
       </DialogContent>
     </Dialog>
