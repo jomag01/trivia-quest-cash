@@ -37,38 +37,22 @@ serve(async (req) => {
       review: 'Write a balanced review with pros, cons, and recommendations.'
     };
 
-    const systemPrompt = `You are an expert blog content writer specializing in technology topics. 
+    const systemPrompt = `You are an expert blog content writer. Write high-quality, engaging blog content.
 ${toneInstructions[tone as keyof typeof toneInstructions] || toneInstructions.professional}
 ${typeInstructions[type as keyof typeof typeInstructions] || typeInstructions.article}
 
-Create content that is:
-- SEO-optimized with proper keyword usage
-- Google AdSense compliant (original, valuable, no prohibited content)
-- Well-structured with headings (use ## for H2, ### for H3)
-- Engaging and informative
-- Between 800-1500 words
-- Include a compelling introduction and conclusion
+CRITICAL INSTRUCTIONS:
+1. Write the ACTUAL blog article content directly - NOT JSON format
+2. Use markdown formatting: ## for H2 headings, ### for H3, **bold**, *italic*
+3. Write 800-1500 words of real, valuable content
+4. Include a compelling introduction and strong conclusion
+5. Be SEO-optimized with natural keyword usage`;
 
-IMPORTANT: Return your response as valid JSON with this exact structure:
-{
-  "title": "SEO-optimized title under 60 characters",
-  "excerpt": "Compelling summary under 160 characters",
-  "content": "Full article content with markdown formatting",
-  "meta_title": "SEO title tag under 60 chars",
-  "meta_description": "Meta description under 160 chars",
-  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
-}`;
+    const userPrompt = `Write a complete ${type} about: ${topic}
 
-    const userPrompt = `Write a ${type} about: ${topic}
-
-Make sure the content is:
-1. Original and valuable for readers
-2. Well-researched with accurate information
-3. Properly formatted with headings and paragraphs
-4. SEO-friendly with natural keyword integration
-5. AdSense compliant (no prohibited content, proper length, quality content)
-
-Return ONLY valid JSON, no additional text.`;
+Write the full article NOW. Start with the article content directly.
+Use markdown formatting for headings and emphasis.
+Do NOT return JSON - write the actual article text.`;
 
     console.log('Generating blog content for topic:', topic);
 
@@ -108,40 +92,76 @@ Return ONLY valid JSON, no additional text.`;
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const rawContent = data.choices?.[0]?.message?.content;
 
-    if (!content) {
+    if (!rawContent) {
       throw new Error('No content generated');
     }
 
-    console.log('Raw AI response:', content.substring(0, 200));
+    console.log('Raw AI response length:', rawContent.length);
 
-    // Parse the JSON response
-    let parsedContent;
+    // Clean the content - remove any JSON wrapper or code blocks
+    let cleanContent = rawContent.trim();
+    
+    // Remove markdown code blocks if present
+    cleanContent = cleanContent.replace(/^```(?:json|markdown)?\s*\n?/i, '');
+    cleanContent = cleanContent.replace(/\n?```\s*$/i, '');
+    
+    // Check if response is JSON and extract content
+    let finalContent = cleanContent;
+    let extractedTitle = topic;
+    let extractedExcerpt = '';
+    
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      // Try to parse as JSON in case AI returned JSON despite instructions
+      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        parsedContent = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.content && typeof parsed.content === 'string') {
+          // AI returned JSON, extract the actual content
+          finalContent = parsed.content;
+          extractedTitle = parsed.title || topic;
+          extractedExcerpt = parsed.excerpt || '';
+          console.log('Extracted content from JSON response');
+        }
       }
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      // Fallback: create structured response from raw content
-      parsedContent = {
-        title: topic,
-        excerpt: content.substring(0, 160),
-        content: content,
-        meta_title: topic.substring(0, 60),
-        meta_description: content.substring(0, 160),
-        keywords: topic.split(' ').filter((w: string) => w.length > 3).slice(0, 5)
-      };
+    } catch (e) {
+      // Not JSON, use as-is (this is the expected path)
+      console.log('Content is plain text/markdown (expected)');
     }
+
+    // Generate title from topic if not extracted
+    const title = extractedTitle.length > 60 ? extractedTitle.substring(0, 57) + '...' : extractedTitle;
+    
+    // Generate excerpt from content if not extracted
+    const excerpt = extractedExcerpt || finalContent
+      .replace(/^#+\s+.+\n?/gm, '') // Remove headings
+      .replace(/\*\*|__|\*|_/g, '') // Remove bold/italic markers
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
+      .trim()
+      .substring(0, 160);
+
+    // Extract keywords from topic and content
+    const keywords = topic
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w: string) => w.length > 3)
+      .slice(0, 5);
+
+    const result = {
+      title,
+      excerpt,
+      content: finalContent,
+      meta_title: title,
+      meta_description: excerpt,
+      keywords
+    };
+
+    console.log('Successfully processed blog content');
 
     console.log('Successfully generated blog content');
 
-    return new Response(JSON.stringify(parsedContent), {
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
