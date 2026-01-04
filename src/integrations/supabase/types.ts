@@ -509,6 +509,77 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_credit_topups: {
+        Row: {
+          admin_notes: string | null
+          admin_profit: number | null
+          ai_cost_deduction: number | null
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          credits_purchased: number
+          id: string
+          leadership_commission: number | null
+          payment_method: string
+          payment_reference: string | null
+          referrer_id: string | null
+          stairstep_commission: number | null
+          status: string
+          subscription_id: string | null
+          unilevel_commission: number | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          admin_profit?: number | null
+          ai_cost_deduction?: number | null
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          credits_purchased: number
+          id?: string
+          leadership_commission?: number | null
+          payment_method: string
+          payment_reference?: string | null
+          referrer_id?: string | null
+          stairstep_commission?: number | null
+          status?: string
+          subscription_id?: string | null
+          unilevel_commission?: number | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          admin_profit?: number | null
+          ai_cost_deduction?: number | null
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          credits_purchased?: number
+          id?: string
+          leadership_commission?: number | null
+          payment_method?: string
+          payment_reference?: string | null
+          referrer_id?: string | null
+          stairstep_commission?: number | null
+          status?: string
+          subscription_id?: string | null
+          unilevel_commission?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_topups_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "ai_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_generations: {
         Row: {
           created_at: string
@@ -533,6 +604,36 @@ export type Database = {
           id?: string
           prompt?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_monthly_restrictions: {
+        Row: {
+          created_at: string
+          description: string | null
+          feature_key: string
+          feature_name: string
+          id: string
+          is_hidden: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          feature_key: string
+          feature_name: string
+          id?: string
+          is_hidden?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          feature_key?: string
+          feature_name?: string
+          id?: string
+          is_hidden?: boolean
+          updated_at?: string
         }
         Relationships: []
       }
@@ -647,6 +748,119 @@ export type Database = {
           response_text?: string | null
           response_type?: string
           response_url?: string | null
+        }
+        Relationships: []
+      }
+      ai_subscription_history: {
+        Row: {
+          action: string
+          admin_approved_at: string | null
+          admin_approved_by: string | null
+          amount_paid: number
+          binary_volume_added: number | null
+          created_at: string
+          credits_granted: number
+          id: string
+          payment_method: string | null
+          payment_reference: string | null
+          plan_type: string
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          admin_approved_at?: string | null
+          admin_approved_by?: string | null
+          amount_paid: number
+          binary_volume_added?: number | null
+          created_at?: string
+          credits_granted: number
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          plan_type: string
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          admin_approved_at?: string | null
+          admin_approved_by?: string | null
+          amount_paid?: number
+          binary_volume_added?: number | null
+          created_at?: string
+          credits_granted?: number
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          plan_type?: string
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_subscription_history_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "ai_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_subscriptions: {
+        Row: {
+          admin_notes: string | null
+          amount_paid: number
+          binary_volume_added: boolean | null
+          created_at: string
+          credits_remaining: number
+          expires_at: string
+          id: string
+          payment_method: string | null
+          payment_reference: string | null
+          plan_type: string
+          renewal_count: number
+          renewed_at: string | null
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_paid?: number
+          binary_volume_added?: boolean | null
+          created_at?: string
+          credits_remaining?: number
+          expires_at: string
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          plan_type: string
+          renewal_count?: number
+          renewed_at?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_paid?: number
+          binary_volume_added?: boolean | null
+          created_at?: string
+          credits_remaining?: number
+          expires_at?: string
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          plan_type?: string
+          renewal_count?: number
+          renewed_at?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -11250,6 +11464,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_subscription_credits: {
+        Args: { p_credits: number; p_user_id: string }
+        Returns: boolean
+      }
       approve_cash_deposit: {
         Args: { p_admin_id: string; p_request_id: string }
         Returns: boolean
@@ -11390,6 +11608,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      deduct_subscription_credits: {
+        Args: { p_credits: number; p_user_id: string }
+        Returns: boolean
+      }
       deduct_wrong_answer_penalty: {
         Args: { p_category_id: string; p_user_id: string }
         Returns: undefined
@@ -11449,6 +11671,7 @@ export type Database = {
           }
       generate_order_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
+      get_ai_subscription_type: { Args: { p_user_id: string }; Returns: string }
       get_referral_count: { Args: { p_user_id: string }; Returns: number }
       get_store_support_user_id: { Args: never; Returns: string }
       get_supplier_id: { Args: { _user_id: string }; Returns: string }
@@ -11459,6 +11682,10 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_active_ai_subscription: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       increment_credits: {

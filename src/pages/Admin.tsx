@@ -61,7 +61,7 @@ import { HomePageManagement } from "@/components/HomePageManagement";
 import { FoodCommissionManagement } from "@/components/FoodCommissionManagement";
 import { FoodItemRewardsManagement } from "@/components/food/FoodItemRewardsManagement";
 import { RiderManagement } from "@/components/food/RiderManagement";
-import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent, Settings, Megaphone, Network, UserCheck, Bell, Wallet, Warehouse } from "lucide-react";
+import { Gamepad2, Trophy, ShoppingBag, FolderOpen, Package, Upload, TrendingUp, MapPin, Truck, CalendarCheck, Tags, Home, UtensilsCrossed, Bike, Cookie, Calculator, Barcode, Image, RotateCcw, Sparkles, GitBranch, Building2, Percent, Settings, Megaphone, Network, UserCheck, Bell, Wallet, Warehouse, Crown } from "lucide-react";
 import { POSSystem } from "@/components/admin/POSSystem";
 import { CookiePolicyManagement } from "@/components/CookiePolicyManagement";
 import AdminAccountingDashboard from "@/components/AdminAccountingDashboard";
@@ -92,6 +92,7 @@ import CashDepositManagement from "@/components/admin/CashDepositManagement";
 import AdRevenueSettings from "@/components/admin/AdRevenueSettings";
 import PayoutAccountsManagement from "@/components/admin/PayoutAccountsManagement";
 import BlogManagement from "@/components/admin/BlogManagement";
+import AISubscriptionManagement from "@/components/admin/AISubscriptionManagement";
 
 interface MenuItem {
   id: string;
@@ -258,6 +259,7 @@ const Admin = () => {
       label: "AI Hub",
       icon: Sparkles,
       items: [
+        { id: "ai-subscriptions", label: "AI Subscriptions", icon: Crown },
         { id: "ai-settings", label: "AI Hub Settings", icon: Sparkles },
         { id: "ai-pricing", label: "AI Provider Costs", icon: DollarSign },
         { id: "blog-management", label: "Blog Management", icon: Barcode },
@@ -818,6 +820,7 @@ const Admin = () => {
           {activeTab === "cookie-policy" && <CookiePolicyManagement />}
           {activeTab === "pos-system" && <POSSystem />}
           {activeTab === "unilevel-settings" && <UnilevelCommissionSettings />}
+          {activeTab === "ai-subscriptions" && <AISubscriptionManagement />}
           {activeTab === "ai-settings" && <AISettingsManagement />}
           {activeTab === "ai-pricing" && <AIProviderPricing />}
           {activeTab === "blog-management" && <BlogManagement />}

@@ -11,6 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAICredits } from '@/hooks/useAICredits';
 import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
+import AISubscriptionDialog from '@/components/ai/AISubscriptionDialog';
+import { useAISubscription } from '@/hooks/useAISubscription';
 import CreditSourceDialog from '@/components/ai/CreditSourceDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
@@ -171,6 +173,18 @@ const AIHub = memo(() => {
   // Logo and dialogs
   const [appLogo, setAppLogo] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
+  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
+  
+  // Subscription hook
+  const { 
+    subscription, 
+    hasActiveSubscription, 
+    isYearlySubscriber, 
+    isMonthlySubscriber, 
+    isFeatureAvailable,
+    getCreditsRemaining,
+    getDaysUntilExpiry 
+  } = useAISubscription();
   
   // Credit source dialog state
   const [showCreditSourceDialog, setShowCreditSourceDialog] = useState(false);
@@ -1229,18 +1243,55 @@ const AIHub = memo(() => {
           </nav>
         </ScrollArea>
 
-        {/* Sidebar Footer - AI Credits Display */}
+        {/* Sidebar Footer - Subscription & Credits Display */}
         <div className={cn("p-3 border-t border-border/50 space-y-3", !sidebarOpen && "md:hidden")}>
+          {/* Subscription Status */}
+          {hasActiveSubscription ? (
+            <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+              <div className="flex items-center gap-2 mb-1">
+                <Crown className="h-4 w-4 text-yellow-500" />
+                <span className="text-xs font-medium capitalize">{subscription?.plan_type} Plan</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{getCreditsRemaining()} credits</span>
+                <span>{getDaysUntilExpiry()}d left</span>
+              </div>
+            </div>
+          ) : (
+            <Button
+              onClick={() => setShowSubscriptionDialog(true)}
+              className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              size="sm"
+            >
+              <Crown className="h-4 w-4" />
+              Subscribe
+            </Button>
+          )}
+          
           <AICreditsDisplay />
-          <Button
-            onClick={() => setShowBuyCredits(true)}
-            variant="outline"
-            size="sm"
-            className="w-full gap-2"
-          >
-            <ShoppingCart className="h-3 w-3" />
-            Buy AI Credits
-          </Button>
+          
+          <div className="flex gap-2">
+            {hasActiveSubscription && (
+              <Button
+                onClick={() => setShowSubscriptionDialog(true)}
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-1 text-xs"
+              >
+                <Sparkles className="h-3 w-3" />
+                Top-up
+              </Button>
+            )}
+            <Button
+              onClick={() => setShowBuyCredits(true)}
+              variant="outline"
+              size="sm"
+              className={cn("gap-1 text-xs", hasActiveSubscription ? "flex-1" : "w-full")}
+            >
+              <ShoppingCart className="h-3 w-3" />
+              Credits
+            </Button>
+          </div>
         </div>
       </aside>
 
@@ -2574,6 +2625,16 @@ const AIHub = memo(() => {
           onBuyCredits={() => setShowBuyCredits(true)}
         />
       )}
+
+      {/* AI Subscription Dialog */}
+      <AISubscriptionDialog
+        open={showSubscriptionDialog}
+        onOpenChange={setShowSubscriptionDialog}
+        onPurchaseComplete={() => {
+          fetchUserCredits();
+          refetchAICredits();
+        }}
+      />
     </div>
   );
 });
