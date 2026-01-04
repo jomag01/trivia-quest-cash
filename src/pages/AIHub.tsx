@@ -36,10 +36,8 @@ import MarketAnalysis from '@/components/ai/MarketAnalysis';
 import WeatherForecast from '@/components/ai/WeatherForecast';
 import EmailMarketingHub from '@/components/ai/EmailMarketingHub';
 import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 
-// Lazy load Shop component for performance
-const ShopPage = lazy(() => import('@/pages/Shop'));
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -48,7 +46,7 @@ import { useMetaTags } from '@/hooks/useMetaTags';
 import { parseAndTrackFromUrl } from '@/lib/cookieTracking';
 
 // Public tabs that don't require login
-const PUBLIC_TABS = ['blog', 'weather', 'read-blog', 'contact', 'shop'];
+const PUBLIC_TABS = ['blog', 'weather', 'read-blog', 'contact'];
 
 const AIHub = memo(() => {
   const [searchParams] = useSearchParams();
@@ -259,7 +257,6 @@ const AIHub = memo(() => {
   // Navigation items for sidebar with colorful gradients
   const navItems = [
     { id: 'home', label: 'Home', icon: Sparkles, gradient: 'from-yellow-400 to-orange-500', iconColor: 'text-yellow-500' },
-    { id: 'shop', label: 'Shop', icon: ShoppingBag, gradient: 'from-emerald-400 to-green-500', iconColor: 'text-emerald-500' },
     // Only show affiliate tab for affiliates or users looking to buy credits
     ...(isPaidAffiliate || user ? [{ id: 'affiliate', label: 'Affiliate', icon: GitBranch, gradient: 'from-green-400 to-emerald-500', iconColor: 'text-green-500' }] : []),
     { id: 'research', label: 'Research', icon: Brain, gradient: 'from-purple-400 to-indigo-500', iconColor: 'text-purple-500' },
@@ -2604,18 +2601,6 @@ const AIHub = memo(() => {
             </div>
           )}
 
-          {/* Shop */}
-          {activeTab === 'shop' && (
-            <div className="h-[calc(100vh-120px)]">
-              <Suspense fallback={
-                <div className="flex items-center justify-center h-full">
-                  <div className="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
-                </div>
-              }>
-                <ShopPage />
-              </Suspense>
-            </div>
-          )}
         </div>
       </main>
 

@@ -1,19 +1,13 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Sparkles, Gamepad2, ShoppingBag, MessageSquare, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddToHomeScreenButton } from "@/components/AddToHomeScreenButton";
 
 const Navigation = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
-
-  // Handle Shop click - navigate to AI Hub with shop tab
-  const handleShopClick = () => {
-    navigate('/?tab=shop');
-  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-background/95 backdrop-blur-lg border-t border-border shadow-lg pb-[env(safe-area-inset-bottom,0px)]" style={{ position: 'fixed' }}>
@@ -22,23 +16,23 @@ const Navigation = () => {
         <Link
           to="/"
           className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-2 ${
-            isActive("/") && !location.search.includes('tab=shop') ? "text-primary" : "text-muted-foreground"
+            isActive("/") ? "text-primary" : "text-muted-foreground"
           }`}
         >
           <Sparkles className="w-5 h-5" />
           <span className="text-[9px] font-medium">AI Hub</span>
         </Link>
 
-        {/* Shop - opens AI Hub with shop tab */}
-        <button
-          onClick={handleShopClick}
+        {/* Shop - Independent page */}
+        <Link
+          to="/shop"
           className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-2 ${
-            location.search.includes('tab=shop') ? "text-primary" : "text-muted-foreground"
+            isActive("/shop") ? "text-primary" : "text-muted-foreground"
           }`}
         >
           <ShoppingBag className="w-5 h-5" />
           <span className="text-[9px] font-medium">Shop</span>
-        </button>
+        </Link>
 
         {/* Games */}
         <Link
