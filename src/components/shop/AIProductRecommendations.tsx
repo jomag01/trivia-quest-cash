@@ -257,14 +257,14 @@ export default function AIProductRecommendations({
 
   if (loading) {
     return (
-      <Card className="p-4 bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
-        <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-          <Skeleton className="h-5 w-40" />
+      <Card className="p-2 bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+          <Skeleton className="h-4 w-32" />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="aspect-[3/4] rounded-lg" />
+            <Skeleton key={i} className="aspect-[4/5] rounded-lg" />
           ))}
         </div>
       </Card>
@@ -274,38 +274,34 @@ export default function AIProductRecommendations({
   if (recommendations.length === 0) return null;
 
   return (
-    <Card className="p-4 bg-gradient-to-r from-amber-500/10 via-background to-orange-500/10 border-amber-500/30 overflow-hidden">
-      {/* Header with Bee Theme */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 animate-wiggle">
-            <span className="text-lg">🐝</span>
-          </div>
-          <div>
-            <h3 className="font-semibold text-sm flex items-center gap-1">
-              <span className="text-amber-600">Bee</span> AI Picks
-              <Badge variant="secondary" className="text-[10px] ml-1 bg-amber-500/20 text-amber-600">🍯 Beta</Badge>
-            </h3>
-            <p className="text-xs text-muted-foreground line-clamp-1">{aiReason}</p>
-          </div>
+    <Card className="p-2 bg-gradient-to-r from-amber-500/10 via-background to-orange-500/10 border-amber-500/20 overflow-hidden">
+      {/* Compact Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <span className="text-base">🐝</span>
+          <span className="text-xs font-semibold">
+            <span className="text-amber-600">Bee</span> AI Picks
+          </span>
+          <Badge variant="secondary" className="text-[8px] px-1 py-0 h-4 bg-amber-500/20 text-amber-600">Beta</Badge>
         </div>
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-6 w-6"
           onClick={handleRefresh}
           disabled={refreshing}
         >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
         </Button>
       </div>
+      <p className="text-[10px] text-muted-foreground mb-2 line-clamp-1">{aiReason}</p>
 
-      {/* Products Grid - Show more products */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-        {recommendations.map((product) => (
-          <Card
+      {/* Products Grid - Compact */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
+        {recommendations.slice(0, 4).map((product) => (
+          <div
             key={product.id}
-            className="group overflow-hidden border-border/50 cursor-pointer hover:shadow-md transition-all"
+            className="group overflow-hidden rounded-lg border border-border/50 bg-card cursor-pointer hover:shadow-sm transition-all"
             onClick={() => onProductClick?.(product)}
           >
             <div className="aspect-square relative bg-secondary">
@@ -313,77 +309,65 @@ export default function AIProductRecommendations({
                 <img
                   src={product.image_url}
                   alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="w-full h-full object-cover"
                   loading="lazy"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
-                  <ShoppingCart className="w-6 h-6" />
+                  <ShoppingCart className="w-4 h-4" />
                 </div>
               )}
 
-              {/* AI Badge */}
-              <Badge className="absolute top-1 left-1 bg-primary/90 text-[9px] gap-0.5">
-                <Sparkles className="w-2.5 h-2.5" />
+              {/* AI Badge - Smaller */}
+              <Badge className="absolute top-0.5 left-0.5 bg-primary/90 text-[8px] px-1 py-0 h-4 gap-0.5">
+                <Sparkles className="w-2 h-2" />
                 AI Pick
               </Badge>
 
               {/* Promo Badge */}
               {product.promo_active && product.promo_price && (
-                <Badge className="absolute top-1 right-1 bg-destructive text-[9px]">
+                <Badge className="absolute top-0.5 right-0.5 bg-destructive text-[8px] px-1 py-0 h-4">
                   -{Math.round(((product.base_price - product.promo_price) / product.base_price) * 100)}%
                 </Badge>
               )}
             </div>
 
-            <div className="p-2">
-              <p className="text-xs font-medium line-clamp-1">{product.name}</p>
-              <div className="flex items-center justify-between mt-1">
-                <div className="flex items-center gap-1">
+            <div className="p-1.5">
+              <p className="text-[10px] font-medium line-clamp-1">{product.name}</p>
+              <div className="flex items-center justify-between mt-0.5">
+                <div className="flex items-center gap-0.5">
                   {product.promo_active && product.promo_price ? (
                     <>
-                      <span className="text-destructive font-bold text-sm">₱{product.promo_price.toLocaleString()}</span>
-                      <span className="text-muted-foreground text-[10px] line-through">₱{product.base_price}</span>
+                      <span className="text-destructive font-bold text-xs">₱{product.promo_price.toLocaleString()}</span>
+                      <span className="text-muted-foreground text-[8px] line-through">₱{product.base_price}</span>
                     </>
                   ) : (
-                    <span className="text-accent font-bold text-sm">₱{product.base_price.toLocaleString()}</span>
+                    <span className="text-foreground font-bold text-xs">₱{product.base_price.toLocaleString()}</span>
                   )}
                 </div>
-                <div className="flex gap-1">
-                  {product.seller_id && (
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <SellerChat
-                        productId={product.id}
-                        productName={product.name}
-                        sellerId={product.seller_id}
-                        sellerName={product.seller_name || "Seller"}
-                      />
-                    </div>
-                  )}
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    className="h-6 w-6 rounded-full"
-                    onClick={(e) => addToCart(product.id, e)}
-                  >
-                    <ShoppingCart className="w-3 h-3" />
-                  </Button>
-                </div>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-5 w-5 rounded-full"
+                  onClick={(e) => addToCart(product.id, e)}
+                >
+                  <ShoppingCart className="w-2.5 h-2.5" />
+                </Button>
               </div>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
 
-      {/* See More */}
+      {/* See More - Compact */}
       <Button
         variant="ghost"
         size="sm"
-        className="w-full mt-3 text-xs text-muted-foreground hover:text-primary"
+        className="w-full mt-1.5 text-[10px] h-6 text-muted-foreground hover:text-primary"
         onClick={handleRefresh}
       >
-        Show different recommendations
-        <ChevronRight className="w-3 h-3 ml-1" />
+        Show different picks
+        <ChevronRight className="w-3 h-3 ml-0.5" />
       </Button>
     </Card>
   );

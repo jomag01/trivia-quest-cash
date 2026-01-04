@@ -396,101 +396,82 @@ const Shop = () => {
             <ShopAccountOverview />
           </Suspense>
 
-          {/* Navigation Tabs */}
-          <TabsList className="w-full grid grid-cols-7 mb-3 mt-2">
-            <TabsTrigger value="shop" className="text-xs gap-1">
-              <Package className="w-3.5 h-3.5" />
+          {/* Navigation Tabs - Compact */}
+          <TabsList className="w-full h-8 grid grid-cols-7 mb-2 mt-1">
+            <TabsTrigger value="shop" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+              <Package className="w-3 h-3" />
               Shop
             </TabsTrigger>
-            <TabsTrigger value="marketplace" className="text-xs gap-1">
-              <Building className="w-3.5 h-3.5" />
+            <TabsTrigger value="marketplace" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+              <Building className="w-3 h-3" />
               Market
             </TabsTrigger>
-            <TabsTrigger value="auction" className="text-xs gap-1">
-              <Gavel className="w-3.5 h-3.5" />
+            <TabsTrigger value="auction" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+              <Gavel className="w-3 h-3" />
               Auction
             </TabsTrigger>
-            <TabsTrigger value="food" className="text-xs gap-1">
-              <UtensilsCrossed className="w-3.5 h-3.5" />
+            <TabsTrigger value="food" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+              <UtensilsCrossed className="w-3 h-3" />
               Food
             </TabsTrigger>
-            <TabsTrigger value="seller" className="text-xs gap-1">
-              <Store className="w-3.5 h-3.5" />
+            <TabsTrigger value="seller" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+              <Store className="w-3 h-3" />
               Seller
             </TabsTrigger>
-            <TabsTrigger value="supplier" className="text-xs gap-1">
-              <Truck className="w-3.5 h-3.5" />
+            <TabsTrigger value="supplier" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+              <Truck className="w-3 h-3" />
               Supplier
             </TabsTrigger>
-            <TabsTrigger value="cart" className="text-xs gap-1" onClick={() => navigate('/shop?tab=cart')}>
-              <ShoppingCart className="w-3.5 h-3.5" />
+            <TabsTrigger value="cart" className="text-[10px] px-1 py-1 gap-0.5 h-7" onClick={() => navigate('/shop?tab=cart')}>
+              <ShoppingCart className="w-3 h-3" />
               Cart
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="shop" className="space-y-3 mt-0">
-            {/* Booking Services Panel */}
-            <Card className="overflow-hidden border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
-              <button 
-                onClick={() => setShowBookings(!showBookings)}
-                className="w-full p-3 flex items-center justify-between hover:bg-primary/5 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-primary/20">
-                    <CalendarCheck className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-semibold text-sm">Book Services</h3>
-                    <p className="text-xs text-muted-foreground">Browse and book approved services</p>
-                  </div>
-                </div>
-                {showBookings ? (
-                  <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                )}
-              </button>
-              {showBookings && (
-                <div className="p-4 border-t border-primary/10">
-                  <Suspense fallback={<div className="h-40 animate-pulse bg-muted rounded" />}>
-                    <ServicesList />
-                  </Suspense>
-                </div>
-              )}
-            </Card>
-
-            {/* Promotion Slider */}
-            <Suspense fallback={<AdSliderSkeleton />}>
-              <div className="-mx-3">
-                <AdSlider />
+          <TabsContent value="shop" className="space-y-2 mt-0">
+            {/* Booking Services - Compact Inline */}
+            <button 
+              onClick={() => setShowBookings(!showBookings)}
+              className="w-full flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="w-4 h-4 text-primary" />
+                <span className="text-xs font-medium">Book Services</span>
               </div>
+              {showBookings ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {showBookings && (
+              <div className="p-2 bg-card rounded-lg">
+                <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded" />}>
+                  <ServicesList />
+                </Suspense>
+              </div>
+            )}
+
+            {/* Promotion Slider - Compact */}
+            <Suspense fallback={<AdSliderSkeleton />}>
+              <AdSlider />
             </Suspense>
 
-            {/* Live Streams Slider */}
-            <Suspense fallback={null}>
-              <LiveStreamSlider onSelectStream={setSelectedStream} />
-            </Suspense>
-            
-            {/* Category Slider */}
+            {/* Category Slider - Compact */}
             {categories.length > 0 ? (
               <CategorySlider categories={categories} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
             ) : (
               <CategorySliderSkeleton />
             )}
 
-            {/* Seller Ads Slider */}
-            <Suspense fallback={null}>
-              <SellerAdsSlider />
-            </Suspense>
-
-            {/* Income Disclaimer */}
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-              <p className="text-[10px] text-amber-700 dark:text-amber-300 leading-relaxed">
-                <span className="font-semibold">SEC Disclaimer:</span> This is a sales-based referral rewards program. Earnings are not guaranteed and depend on individual effort, team performance, and compliance with company rules.
+            {/* Income Disclaimer - Compact */}
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1">
+              <p className="text-[9px] text-amber-700 dark:text-amber-300 leading-tight">
+                <span className="font-semibold">SEC Disclaimer:</span> This is a sales-based referral rewards program. Earnings are not guaranteed.
               </p>
             </div>
 
-            {/* AI Product Recommendations - Main Grid (loads fast with images) */}
+            {/* AI Product Recommendations */}
             <Suspense fallback={<ProductGridSkeleton count={4} />}>
               <AIProductRecommendations 
                 currentProductId={detailProduct?.id}
@@ -500,6 +481,16 @@ const Shop = () => {
                   setDetailDialog(true);
                 }}
               />
+            </Suspense>
+
+            {/* Seller Ads Slider */}
+            <Suspense fallback={null}>
+              <SellerAdsSlider />
+            </Suspense>
+
+            {/* Live Streams Slider */}
+            <Suspense fallback={null}>
+              <LiveStreamSlider onSelectStream={setSelectedStream} />
             </Suspense>
 
             {/* Auction Products */}
