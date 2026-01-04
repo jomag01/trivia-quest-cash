@@ -9,7 +9,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   FileText, Search, Clock, Eye, Calendar, ChevronRight, 
-  Newspaper, BookOpen, Star, ArrowLeft, User, Tag, Loader2, TrendingUp, RefreshCw
+  Newspaper, BookOpen, Star, ArrowLeft, User, Tag, Loader2, TrendingUp, RefreshCw,
+  Bell, Sparkles, X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import WeatherWidget from './WeatherWidget';
@@ -54,22 +55,45 @@ const BlogPage = () => {
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [featuredPosts, setFeaturedPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [activeTab, setActiveTab] = useState('all');
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [showSubscribePulse, setShowSubscribePulse] = useState(true);
 
   // Track referral cookies on mount
   useEffect(() => {
     parseAndTrackFromUrl();
   }, []);
 
+  // Initial data fetch - only runs once
   useEffect(() => {
-    fetchData();
+    fetchData(true);
+  }, []);
 
-    // Set up realtime subscription for new posts
+  // Handle URL post parameter - separate from data fetching
+  useEffect(() => {
+    if (initialLoadDone || posts.length === 0) return;
+    
+    const postSlug = searchParams.get('post');
+    if (postSlug) {
+      const matchingPost = posts.find(p => p.slug === postSlug);
+      if (matchingPost) {
+        setSelectedPost(matchingPost);
+        // Increment view count in background
+        supabase
+          .from('blog_posts')
+          .update({ view_count: matchingPost.view_count + 1 })
+          .eq('id', matchingPost.id);
+      }
+      setInitialLoadDone(true);
+    }
+  }, [posts, searchParams, initialLoadDone]);
+
+  // Realtime subscription - background updates without loading state
+  useEffect(() => {
     const channel = supabase
       .channel('blog-posts-changes')
       .on(
@@ -80,8 +104,8 @@ const BlogPage = () => {
           table: 'blog_posts'
         },
         () => {
-          // Refetch data when any change occurs
-          fetchData();
+          // Background refetch - no loading spinner
+          fetchData(false);
         }
       )
       .subscribe();
@@ -104,12 +128,11 @@ const BlogPage = () => {
     url: `${window.location.origin}/ai-hub?tab=read-blog`,
   });
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoading: boolean = true) => {
+    if (showLoading) setInitialLoading(true);
     try {
       const [catRes, postRes] = await Promise.all([
         supabase.from('blog_categories').select('*').eq('is_active', true).order('display_order'),
-        // Fetch both published and draft posts, ordered by created_at (newest first)
         supabase.from('blog_posts').select('*, blog_categories(*)').in('status', ['published', 'draft']).order('created_at', { ascending: false })
       ]);
       
@@ -118,26 +141,11 @@ const BlogPage = () => {
         const allPosts = postRes.data as BlogPost[];
         setPosts(allPosts);
         setFeaturedPosts(allPosts.filter(p => p.is_featured));
-        
-        // Auto-select post from URL if specified
-        const postSlug = searchParams.get('post');
-        if (postSlug && !initialLoadDone) {
-          const matchingPost = allPosts.find(p => p.slug === postSlug);
-          if (matchingPost) {
-            setSelectedPost(matchingPost);
-            // Increment view count
-            await supabase
-              .from('blog_posts')
-              .update({ view_count: matchingPost.view_count + 1 })
-              .eq('id', matchingPost.id);
-          }
-          setInitialLoadDone(true);
-        }
       }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) setInitialLoading(false);
     }
   };
 
@@ -186,7 +194,7 @@ const BlogPage = () => {
       });
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -311,6 +319,62 @@ const BlogPage = () => {
               ))}
           </div>
         </div>
+
+        {/* Floating Subscribe CTA */}
+        {showSubscribePulse && (
+          <div className="fixed bottom-20 right-4 z-50 animate-in slide-in-from-bottom-4 duration-500">
+            <div className="relative">
+              {/* Dismiss button */}
+              <button
+                onClick={() => setShowSubscribePulse(false)}
+                className="absolute -top-2 -right-2 w-6 h-6 bg-background border rounded-full flex items-center justify-center shadow-md hover:bg-muted transition-colors z-10"
+              >
+                <X className="h-3 w-3" />
+              </button>
+              
+              {/* Main CTA Card */}
+              <div className="relative group">
+                {/* Animated glow ring */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 rounded-2xl opacity-75 blur-sm group-hover:opacity-100 animate-pulse" />
+                
+                <Card className="relative bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border-amber-200 dark:border-amber-800 overflow-hidden shadow-xl">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      {/* Animated bee/bell icon */}
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
+                          <Bell className="h-6 w-6 text-white animate-[wiggle_1s_ease-in-out_infinite]" />
+                        </div>
+                        <Sparkles className="absolute -top-1 -right-1 h-4 w-4 text-amber-500 animate-pulse" />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-sm text-amber-900 dark:text-amber-100">
+                          Stay Updated! 🐝
+                        </h4>
+                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 line-clamp-2">
+                          Get the latest articles & earn rewards
+                        </p>
+                        
+                        <Button
+                          size="sm"
+                          className="mt-2.5 w-full h-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-xs shadow-md hover:shadow-lg transition-all hover:scale-[1.02]"
+                          onClick={() => {
+                            setShowSubscribePulse(false);
+                            window.location.href = '/auth';
+                          }}
+                        >
+                          <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                          Join Free Now
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
