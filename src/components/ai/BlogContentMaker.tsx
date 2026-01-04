@@ -31,7 +31,11 @@ import {
   Hash,
   Image,
   List,
-  Wand2
+  Wand2,
+  Link2,
+  ExternalLink,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -87,6 +91,70 @@ const BlogContentMaker = ({ userCredits, onCreditsChange }: BlogContentMakerProp
   const [apiKey, setApiKey] = useState('');
   const [platform, setPlatform] = useState<'wordpress' | 'blogger' | 'medium' | 'custom'>('wordpress');
   const [isPublishing, setIsPublishing] = useState(false);
+
+  // Affiliate links state
+  interface AffiliateLink {
+    id: string;
+    name: string;
+    url: string;
+    placeholder: string;
+  }
+  const [affiliateLinks, setAffiliateLinks] = useState<AffiliateLink[]>([]);
+  const [newLinkName, setNewLinkName] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+
+  // Affiliate link functions
+  const addAffiliateLink = () => {
+    if (!newLinkName.trim() || !newLinkUrl.trim()) {
+      toast.error('Please enter both name and URL');
+      return;
+    }
+    
+    const newLink: AffiliateLink = {
+      id: Date.now().toString(),
+      name: newLinkName.trim(),
+      url: newLinkUrl.trim(),
+      placeholder: `{{${newLinkName.trim().toUpperCase().replace(/\s+/g, '_')}_LINK}}`
+    };
+    
+    setAffiliateLinks(prev => [...prev, newLink]);
+    setNewLinkName('');
+    setNewLinkUrl('');
+    toast.success('Affiliate link added!');
+  };
+
+  const removeAffiliateLink = (id: string) => {
+    setAffiliateLinks(prev => prev.filter(link => link.id !== id));
+  };
+
+  const insertAffiliateLinkToContent = (link: AffiliateLink) => {
+    if (!generatedContent) {
+      toast.error('Generate content first');
+      return;
+    }
+    const markdownLink = `[${link.name}](${link.url})`;
+    setGeneratedContent(prev => prev ? {
+      ...prev,
+      content: prev.content + '\n\n' + markdownLink
+    } : null);
+    toast.success(`Inserted ${link.name} link into content`);
+  };
+
+  const replaceAllPlaceholders = () => {
+    if (!generatedContent) return;
+    let updatedContent = generatedContent.content;
+    affiliateLinks.forEach(link => {
+      const regex = new RegExp(link.placeholder.replace(/[{}]/g, '\\$&'), 'gi');
+      updatedContent = updatedContent.replace(regex, `[${link.name}](${link.url})`);
+    });
+    setGeneratedContent(prev => prev ? { ...prev, content: updatedContent } : null);
+    toast.success('All affiliate placeholders replaced with links!');
+  };
+
+  const copyPlaceholder = (placeholder: string) => {
+    navigator.clipboard.writeText(placeholder);
+    toast.success('Placeholder copied!');
+  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -482,6 +550,59 @@ const BlogContentMaker = ({ userCredits, onCreditsChange }: BlogContentMakerProp
                 />
               </div>
 
+              {/* Affiliate Links Section */}
+              <div className="p-4 rounded-xl border-2 border-green-500/30 bg-green-500/5 space-y-3">
+                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                  <Link2 className="h-4 w-4" />
+                  <span className="font-medium text-sm">Affiliate Links (Earn Extra Income)</span>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Link name"
+                    value={newLinkName}
+                    onChange={(e) => setNewLinkName(e.target.value)}
+                    className="flex-1 h-8 text-sm border-green-200"
+                  />
+                  <Input
+                    placeholder="Affiliate URL / Hoplink"
+                    value={newLinkUrl}
+                    onChange={(e) => setNewLinkUrl(e.target.value)}
+                    className="flex-1 h-8 text-sm border-green-200"
+                  />
+                  <Button onClick={addAffiliateLink} size="sm" className="h-8 bg-green-600 hover:bg-green-700">
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+
+                {affiliateLinks.length > 0 && (
+                  <div className="space-y-1.5">
+                    {affiliateLinks.map(link => (
+                      <div key={link.id} className="flex items-center gap-2 p-2 rounded-lg bg-background/50 border text-xs">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{link.name}</div>
+                          <div className="text-muted-foreground truncate flex items-center gap-1">
+                            <ExternalLink className="h-2.5 w-2.5" />
+                            {link.url.substring(0, 30)}...
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="text-[10px] font-mono cursor-pointer" onClick={() => copyPlaceholder(link.placeholder)}>
+                          <Copy className="h-2.5 w-2.5 mr-0.5" />
+                          Copy
+                        </Badge>
+                        <Button variant="ghost" size="sm" onClick={() => removeAffiliateLink(link.id)} className="h-6 w-6 p-0 text-destructive">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-[10px] text-muted-foreground">
+                  💰 Add ClickBank, Amazon, or any affiliate links. Use "Insert" after generating content.
+                </p>
+              </div>
+
               <Button
                 onClick={generateBlogContent}
                 disabled={isGenerating || !selectedTopic}
@@ -541,6 +662,41 @@ const BlogContentMaker = ({ userCredits, onCreditsChange }: BlogContentMakerProp
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       <div className="whitespace-pre-wrap text-sm">{generatedContent.content}</div>
                     </div>
+
+                    {/* Affiliate Links Insert Actions */}
+                    {affiliateLinks.length > 0 && (
+                      <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-green-700 dark:text-green-300 flex items-center gap-1">
+                            <Link2 className="h-3 w-3" />
+                            Insert Affiliate Links
+                          </span>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={replaceAllPlaceholders}
+                            className="h-6 text-xs border-green-300 text-green-700"
+                          >
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Replace Placeholders
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {affiliateLinks.map(link => (
+                            <Button
+                              key={link.id}
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => insertAffiliateLinkToContent(link)}
+                              className="h-6 text-xs bg-green-100 hover:bg-green-200 text-green-700"
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              {link.name}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex gap-2 pt-4 border-t">
                       <Button variant="outline" size="sm" onClick={() => copyToClipboard(generatedContent.content)} className="flex-1">
