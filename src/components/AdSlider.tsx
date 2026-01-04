@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface Ad {
   id: string;
@@ -12,21 +11,22 @@ interface Ad {
   display_order: number;
 }
 
-export const AdSlider = () => {
+export const AdSlider = memo(() => {
   const [ads, setAds] = useState<Ad[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchAds();
   }, []);
 
   useEffect(() => {
-    if (!isAutoPlaying || ads.length === 0) return;
+    if (!isAutoPlaying || ads.length <= 1) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % ads.length);
-    }, 5000);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [isAutoPlaying, ads.length]);
@@ -34,9 +34,10 @@ export const AdSlider = () => {
   const fetchAds = async () => {
     const { data, error } = await supabase
       .from("ads")
-      .select("*")
+      .select("id, title, image_url, link_url, display_order")
       .eq("is_active", true)
-      .order("display_order", { ascending: true });
+      .order("display_order", { ascending: true })
+      .limit(5);
 
     if (!error && data) {
       setAds(data);
@@ -54,7 +55,7 @@ export const AdSlider = () => {
         metadata: { timestamp: new Date().toISOString() }
       });
     } catch (error) {
-      console.error("Error tracking ad interaction:", error);
+      // Silent fail for tracking
     }
   };
 
@@ -79,32 +80,46 @@ export const AdSlider = () => {
     if (ads.length > 0 && ads[currentIndex]) {
       trackAdInteraction(ads[currentIndex].id, 'view');
     }
-  }, [currentIndex, ads]);
+  }, [currentIndex, ads.length]);
 
   if (ads.length === 0) return null;
 
   return (
-    <Card className="relative w-full overflow-hidden bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 mx-3">
-      <div className="relative h-24 md:h-36">
+    <div className="relative w-full overflow-hidden rounded-lg bg-muted">
+      {/* Compact height - Amazon/Lazada style */}
+      <div className="relative aspect-[2.5/1] max-h-28 sm:max-h-36">
         {ads.map((ad, index) => (
           <div
             key={ad.id}
-            className={`absolute inset-0 transition-opacity duration-500 ${
-              index === currentIndex ? "opacity-100" : "opacity-0"
-            }`}
+            className={cn(
+              "absolute inset-0 transition-opacity duration-500",
+              index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+            )}
           >
             <div
               onClick={() => handleAdClick(ad)}
-              className="w-full h-full cursor-pointer group"
+              className="w-full h-full cursor-pointer"
             >
+              {/* Placeholder until image loads */}
+              {!imageLoaded.has(index) && (
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 animate-pulse" />
+              )}
               <img
                 src={ad.image_url}
                 alt={ad.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading={index === 0 ? "eager" : "lazy"}
+                decoding="async"
+                className={cn(
+                  "w-full h-full object-cover transition-opacity duration-300",
+                  imageLoaded.has(index) ? "opacity-100" : "opacity-0"
+                )}
+                onLoad={() => setImageLoaded(prev => new Set(prev).add(index))}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4">
-                <h3 className="text-white font-bold text-lg md:text-xl drop-shadow-lg">
+              {/* Subtle gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              {/* Title overlay */}
+              <div className="absolute bottom-2 left-3 right-3">
+                <h3 className="text-white font-semibold text-xs sm:text-sm drop-shadow-lg line-clamp-1">
                   {ad.title}
                 </h3>
               </div>
@@ -113,26 +128,26 @@ export const AdSlider = () => {
         ))}
       </div>
 
+      {/* Navigation - Only show if multiple ads */}
       {ads.length > 1 && (
         <>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white"
+          <button
             onClick={prevSlide}
+            className="absolute left-1 top-1/2 -translate-y-1/2 p-1 bg-black/30 hover:bg-black/50 text-white rounded-full transition-colors z-20"
+            aria-label="Previous slide"
           >
-            <ChevronLeft className="w-6 h-6" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white"
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
             onClick={nextSlide}
+            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 bg-black/30 hover:bg-black/50 text-white rounded-full transition-colors z-20"
+            aria-label="Next slide"
           >
-            <ChevronRight className="w-6 h-6" />
-          </Button>
+            <ChevronRight className="w-4 h-4" />
+          </button>
 
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+          {/* Dots indicator */}
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1 z-20">
             {ads.map((_, index) => (
               <button
                 key={index}
@@ -140,16 +155,20 @@ export const AdSlider = () => {
                   setCurrentIndex(index);
                   setIsAutoPlaying(false);
                 }}
-                className={`w-2 h-2 rounded-full transition-all ${
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full transition-all",
                   index === currentIndex
-                    ? "bg-white w-4"
+                    ? "bg-white w-3"
                     : "bg-white/50 hover:bg-white/75"
-                }`}
+                )}
+                aria-label={`Go to slide ${index + 1}`}
               />
             ))}
           </div>
         </>
       )}
-    </Card>
+    </div>
   );
-};
+});
+
+AdSlider.displayName = 'AdSlider';

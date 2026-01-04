@@ -1,10 +1,8 @@
-import { useEffect, useState, useCallback, lazy, Suspense } from "react";
-import { Card } from "@/components/ui/card";
+import { useEffect, useState, useCallback, lazy, Suspense, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Package, Search, Heart, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building, Truck, Star, Gavel, Users } from "lucide-react";
+import { ShoppingCart, Package, Search, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building, Truck, Gavel } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { emitCartUpdated } from "@/lib/cartEvents";
@@ -12,17 +10,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ProductDetailDialog } from "@/components/ProductDetailDialog";
 import ShippingCalculator from "@/components/ShippingCalculator";
-import { ProductShareButton } from "@/components/ProductShareButton";
 import { useInteractionTracking } from "@/hooks/useInteractionTracking";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CategorySlider from "@/components/CategorySlider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useShopData } from "@/hooks/useShopData";
-import { ShopLayoutSkeleton, ProductGridSkeleton, CategorySliderSkeleton, AdSliderSkeleton } from "@/components/shop/ShopSkeletons";
-import OptimizedProductCard from "@/components/shop/OptimizedProductCard";
+import { ShopLayoutSkeleton, ProductGridSkeleton, CategorySliderSkeleton, AdSliderSkeleton, QuickTabsSkeleton } from "@/components/shop/ShopSkeletons";
 import { ImageSearchButton } from "@/components/shop/ImageSearchButton";
 import { useMetaTags } from "@/hooks/useMetaTags";
+import SwipeableCategorySlider from "@/components/shop/SwipeableCategorySlider";
+import InfiniteProductGrid from "@/components/shop/InfiniteProductGrid";
+import QuickTabs, { type QuickTabType } from "@/components/shop/QuickTabs";
 
 // Lazy load heavy components - not needed on initial render
 const SupplierApplication = lazy(() => import("@/components/shop/SupplierApplication"));
@@ -60,6 +58,7 @@ const Shop = () => {
   } = useShopData();
 
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [quickTab, setQuickTab] = useState<QuickTabType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [checkoutDialog, setCheckoutDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -74,6 +73,7 @@ const Shop = () => {
   const [selectedStream, setSelectedStream] = useState<any>(null);
   const [minimizedStream, setMinimizedStream] = useState<any>(null);
   const [showBookings, setShowBookings] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Dynamic meta tags for shop
   const productIdFromUrl = searchParams.get('product');
@@ -176,13 +176,39 @@ const Shop = () => {
     }
   }, [user, navigate, inWishlist, refreshWishlist]);
 
-  // Filter products
-  const filteredProducts = products.filter(product => {
-    const matchesCategory = selectedCategory === "all" || product.category_id === selectedCategory;
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      product.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Filter and sort products - memoized for performance
+  const filteredProducts = useMemo(() => {
+    let result = products.filter(product => {
+      const matchesCategory = selectedCategory === "all" || product.category_id === selectedCategory;
+      const matchesSearch = !searchQuery || 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+
+    // Apply quick tab filters
+    switch (quickTab) {
+      case 'deals':
+        result = result.filter(p => p.promo_active && p.promo_price);
+        break;
+      case 'ai_picks':
+        // Tag high-rated or trending products as AI picks
+        result = result.filter(p => (p.combined_rating && p.combined_rating >= 4) || (p.combined_sales && p.combined_sales >= 10));
+        result = result.map(p => ({ ...p, ai_pick: true }));
+        break;
+      case 'top_rated':
+        result = result.filter(p => p.combined_rating && p.combined_rating >= 4);
+        result.sort((a, b) => (b.combined_rating || 0) - (a.combined_rating || 0));
+        break;
+      case 'trending':
+        result = result.filter(p => p.combined_sales && p.combined_sales > 0);
+        result.sort((a, b) => (b.combined_sales || 0) - (a.combined_sales || 0));
+        result = result.map(p => ({ ...p, trending: true }));
+        break;
+    }
+
+    return result;
+  }, [products, selectedCategory, searchQuery, quickTab]);
 
   const handleBuyNow = useCallback((product: any) => {
     setSelectedProduct(product);
@@ -194,6 +220,14 @@ const Shop = () => {
     if (!product) return 0;
     return product.promo_active && product.promo_price ? product.promo_price : product.base_price;
   }, []);
+
+  const handleProductClick = useCallback((product: any) => {
+    trackInteraction('view', 'product', product.id, { name: product.name, source: 'grid' });
+    setDetailProduct(product);
+    setDetailDialog(true);
+    setSearchQuery("");
+    setIsSearchFocused(false);
+  }, [trackInteraction]);
 
   const handleCheckout = useCallback(async () => {
     if (!selectedProduct) return;
@@ -284,6 +318,7 @@ const Shop = () => {
   if (loading) {
     return <ShopLayoutSkeleton />;
   }
+  
   // Determine active tab from URL params
   const tabParam = searchParams.get('tab');
   const activeTab = tabParam === 'cart' ? 'cart' : tabParam === 'wishlist' ? 'wishlist' : tabParam === 'seller' ? 'seller' : tabParam === 'food' ? 'food' : tabParam === 'marketplace' ? 'marketplace' : tabParam === 'supplier' ? 'supplier' : tabParam === 'auction' ? 'auction' : 'shop';
@@ -296,140 +331,157 @@ const Shop = () => {
     navigate(`/shop?tab=${value}`);
   };
 
-  return <div className="min-h-screen bg-background pb-20 beehive-bg beehive-theme">
+  return (
+    <div className="min-h-screen bg-background pb-20 beehive-bg beehive-theme">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        {/* Top Header with Search and Cart */}
-        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border shadow-sm px-3 py-2">
+        {/* Sticky Search Header - Amazon/Lazada style */}
+        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/50 shadow-sm px-3 py-2">
           <div className="flex items-center gap-2 max-w-7xl mx-auto">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
                 placeholder="Search products..." 
                 value={searchQuery} 
                 onChange={e => setSearchQuery(e.target.value)} 
-                className="pl-9 pr-10 h-10 text-sm bg-muted/50 border-primary/30 focus:border-primary focus:ring-primary/20" 
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                className="pl-8 pr-9 h-9 text-sm bg-muted/40 border-border/50 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-lg" 
               />
-              {/* Image Search Button inside input */}
+              {/* Image Search Button */}
               <div className="absolute right-1 top-1/2 -translate-y-1/2">
                 <ImageSearchButton 
                   onSearchResults={(query) => setSearchQuery(query)} 
                   onProductSelect={(product) => {
-                    // Find full product from products array
                     const fullProduct = products.find(p => p.id === product.id);
                     if (fullProduct) {
-                      trackInteraction('view', 'product', fullProduct.id, { name: fullProduct.name, source: 'image_search' });
-                      setDetailProduct(fullProduct);
-                      setDetailDialog(true);
+                      handleProductClick(fullProduct);
                     }
                   }}
                 />
               </div>
+              
               {/* Search Results Dropdown */}
-              {searchQuery.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto z-50">
+              {isSearchFocused && searchQuery.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg max-h-72 overflow-y-auto z-50">
                   {filteredProducts.length > 0 ? (
-                    filteredProducts.slice(0, 8).map(product => (
+                    filteredProducts.slice(0, 6).map(product => (
                       <div 
                         key={product.id}
-                        className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer border-b border-border/50 last:border-b-0 transition-colors"
-                        onClick={() => {
-                          trackInteraction('view', 'product', product.id, { name: product.name, source: 'search' });
-                          setDetailProduct(product);
-                          setDetailDialog(true);
-                          setSearchQuery("");
-                        }}
+                        className="flex items-center gap-2.5 p-2.5 hover:bg-muted/50 cursor-pointer border-b border-border/30 last:border-b-0 transition-colors"
+                        onClick={() => handleProductClick(product)}
                       >
                         {product.image_url ? (
                           <img 
                             src={product.image_url} 
                             alt={product.name} 
-                            className="w-12 h-12 object-cover rounded-md"
+                            className="w-10 h-10 object-cover rounded"
                           />
                         ) : (
-                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
-                            <Package className="w-6 h-6 text-muted-foreground" />
+                          <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                            <Package className="w-5 h-5 text-muted-foreground" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{product.name}</p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-primary">
-                              ₱{getEffectivePrice(product).toFixed(2)}
-                            </span>
-                            {product.promo_active && product.promo_price && (
-                              <span className="text-xs text-muted-foreground line-through">
-                                ₱{product.base_price.toFixed(2)}
-                              </span>
-                            )}
-                          </div>
+                          <p className="text-xs font-medium truncate">{product.name}</p>
+                          <p className="text-sm font-bold text-destructive">
+                            ₱{getEffectivePrice(product).toLocaleString()}
+                          </p>
                         </div>
-                        {product.promo_active && (
-                          <Badge className="text-[10px] bg-destructive text-destructive-foreground">Sale</Badge>
-                        )}
                       </div>
                     ))
                   ) : (
                     <div className="p-4 text-center text-muted-foreground">
-                      <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No products found for "{searchQuery}"</p>
-                    </div>
-                  )}
-                  {filteredProducts.length > 8 && (
-                    <div className="p-2 text-center border-t border-border">
-                      <p className="text-xs text-muted-foreground">
-                        Showing 8 of {filteredProducts.length} results
-                      </p>
+                      <p className="text-xs">No products found</p>
                     </div>
                   )}
                 </div>
               )}
             </div>
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate("/dashboard?tab=cart")}>
-              <ShoppingCart className="w-5 h-5 text-foreground" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9 shrink-0" 
+              onClick={() => navigate("/dashboard?tab=cart")}
+            >
+              <ShoppingCart className="w-5 h-5" />
             </Button>
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-3">
           {/* Account Overview - Compact */}
-          <Suspense fallback={<div className="h-12" />}>
+          <Suspense fallback={<div className="h-14 bg-muted/30 rounded-lg animate-pulse mt-2" />}>
             <ShopAccountOverview />
           </Suspense>
 
           {/* Navigation Tabs - Compact */}
-          <TabsList className="w-full h-8 grid grid-cols-7 mb-2 mt-1">
-            <TabsTrigger value="shop" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+          <TabsList className="w-full h-8 grid grid-cols-7 gap-0.5 mt-2 bg-muted/30 p-0.5 rounded-lg">
+            <TabsTrigger value="shop" className="text-[9px] sm:text-[10px] px-1 py-1 gap-0.5 h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Package className="w-3 h-3" />
-              Shop
+              <span className="hidden sm:inline">Shop</span>
             </TabsTrigger>
-            <TabsTrigger value="marketplace" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+            <TabsTrigger value="marketplace" className="text-[9px] sm:text-[10px] px-1 py-1 gap-0.5 h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Building className="w-3 h-3" />
-              Market
+              <span className="hidden sm:inline">Market</span>
             </TabsTrigger>
-            <TabsTrigger value="auction" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+            <TabsTrigger value="auction" className="text-[9px] sm:text-[10px] px-1 py-1 gap-0.5 h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Gavel className="w-3 h-3" />
-              Auction
+              <span className="hidden sm:inline">Auction</span>
             </TabsTrigger>
-            <TabsTrigger value="food" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+            <TabsTrigger value="food" className="text-[9px] sm:text-[10px] px-1 py-1 gap-0.5 h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <UtensilsCrossed className="w-3 h-3" />
-              Food
+              <span className="hidden sm:inline">Food</span>
             </TabsTrigger>
-            <TabsTrigger value="seller" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+            <TabsTrigger value="seller" className="text-[9px] sm:text-[10px] px-1 py-1 gap-0.5 h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Store className="w-3 h-3" />
-              Seller
+              <span className="hidden sm:inline">Seller</span>
             </TabsTrigger>
-            <TabsTrigger value="supplier" className="text-[10px] px-1 py-1 gap-0.5 h-7">
+            <TabsTrigger value="supplier" className="text-[9px] sm:text-[10px] px-1 py-1 gap-0.5 h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Truck className="w-3 h-3" />
-              Supplier
+              <span className="hidden sm:inline">Supplier</span>
             </TabsTrigger>
-            <TabsTrigger value="cart" className="text-[10px] px-1 py-1 gap-0.5 h-7" onClick={() => navigate('/shop?tab=cart')}>
+            <TabsTrigger value="cart" className="text-[9px] sm:text-[10px] px-1 py-1 gap-0.5 h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <ShoppingCart className="w-3 h-3" />
-              Cart
+              <span className="hidden sm:inline">Cart</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="shop" className="space-y-2 mt-0">
-            {/* Booking Services - Compact Inline */}
+          <TabsContent value="shop" className="space-y-2 mt-2">
+            {/* Quick Tabs - Deals, AI Picks, etc */}
+            <QuickTabs activeTab={quickTab} onTabChange={setQuickTab} />
+
+            {/* Promotion Slider - Compact */}
+            <Suspense fallback={<AdSliderSkeleton />}>
+              <AdSlider />
+            </Suspense>
+
+            {/* Swipeable Category Slider - Amazon/Lazada style */}
+            {categories.length > 0 ? (
+              <SwipeableCategorySlider 
+                categories={categories} 
+                selectedCategory={selectedCategory} 
+                onSelectCategory={setSelectedCategory} 
+              />
+            ) : (
+              <CategorySliderSkeleton />
+            )}
+
+            {/* Income Disclaimer - Minimal */}
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1">
+              <p className="text-[8px] text-amber-700 dark:text-amber-300 leading-tight">
+                <span className="font-semibold">SEC:</span> Sales-based referral rewards. Earnings not guaranteed.
+              </p>
+            </div>
+
+            {/* AI Product Recommendations - Compact */}
+            <Suspense fallback={<ProductGridSkeleton count={4} />}>
+              <AIProductRecommendations 
+                currentProductId={detailProduct?.id}
+                onProductClick={handleProductClick}
+              />
+            </Suspense>
+
+            {/* Booking Services - Collapsible */}
             <button 
               onClick={() => setShowBookings(!showBookings)}
               className="w-full flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors"
@@ -445,43 +497,39 @@ const Shop = () => {
               )}
             </button>
             {showBookings && (
-              <div className="p-2 bg-card rounded-lg">
-                <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded" />}>
+              <div className="p-2 bg-card rounded-lg border border-border/50">
+                <Suspense fallback={<div className="h-24 animate-pulse bg-muted rounded" />}>
                   <ServicesList />
                 </Suspense>
               </div>
             )}
 
-            {/* Promotion Slider - Compact */}
-            <Suspense fallback={<AdSliderSkeleton />}>
-              <AdSlider />
-            </Suspense>
-
-            {/* Category Slider - Compact */}
-            {categories.length > 0 ? (
-              <CategorySlider categories={categories} selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
-            ) : (
-              <CategorySliderSkeleton />
-            )}
-
-            {/* Income Disclaimer - Compact */}
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1">
-              <p className="text-[9px] text-amber-700 dark:text-amber-300 leading-tight">
-                <span className="font-semibold">SEC Disclaimer:</span> This is a sales-based referral rewards program. Earnings are not guaranteed.
-              </p>
-            </div>
-
-            {/* AI Product Recommendations */}
-            <Suspense fallback={<ProductGridSkeleton count={4} />}>
-              <AIProductRecommendations 
-                currentProductId={detailProduct?.id}
-                onProductClick={(product) => {
-                  trackInteraction('view', 'product', product.id, { name: product.name, source: 'ai_recommendation' });
-                  setDetailProduct(product);
-                  setDetailDialog(true);
-                }}
+            {/* Main Product Grid - Infinite Scroll */}
+            <div className="pt-1">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-foreground">
+                  {quickTab === 'all' ? 'All Products' : 
+                   quickTab === 'deals' ? '🔥 Hot Deals' :
+                   quickTab === 'ai_picks' ? '🧠 AI Picks for You' :
+                   quickTab === 'top_rated' ? '⭐ Top Rated' :
+                   '📈 Trending Now'}
+                </h2>
+                <span className="text-[10px] text-muted-foreground">
+                  {filteredProducts.length} items
+                </span>
+              </div>
+              
+              <InfiniteProductGrid
+                products={filteredProducts}
+                inCart={inCart}
+                inWishlist={inWishlist}
+                onProductClick={handleProductClick}
+                onAddToCart={addToCart}
+                onToggleWishlist={toggleWishlist}
+                showRatings={enhancementsLoaded}
+                batchSize={8}
               />
-            </Suspense>
+            </div>
 
             {/* Seller Ads Slider */}
             <Suspense fallback={null}>
@@ -502,71 +550,75 @@ const Shop = () => {
             <Dialog open={checkoutDialog} onOpenChange={setCheckoutDialog}>
               <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Complete Your Order</DialogTitle>
-                  <p className="text-sm text-gray-500">Fill in your shipping details</p>
+                  <DialogTitle className="text-base">Complete Your Order</DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-4">
-                  <div>
-                    <Label>Product</Label>
-                    <p className="font-semibold text-sm">{selectedProduct?.name}</p>
-                    <p className="text-xs text-gray-500">
-                      ₱{getEffectivePrice(selectedProduct).toFixed(2)} each
-                    </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
+                    {selectedProduct?.image_url && (
+                      <img src={selectedProduct.image_url} alt="" className="w-12 h-12 object-cover rounded" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{selectedProduct?.name}</p>
+                      <p className="text-xs text-destructive font-bold">
+                        ₱{getEffectivePrice(selectedProduct).toFixed(2)} each
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="quantity" className="text-xs">Qty</Label>
+                      <Input id="quantity" type="number" min="1" max={selectedProduct?.stock_quantity || 1} value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} className="h-8 text-sm" />
+                    </div>
+                    <div className="flex items-end">
+                      <p className="text-sm font-bold">
+                        Subtotal: ₱{(getEffectivePrice(selectedProduct) * quantity).toFixed(2)}
+                      </p>
+                    </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="quantity">Quantity</Label>
-                    <Input id="quantity" type="number" min="1" max={selectedProduct?.stock_quantity || 1} value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} className="h-9" />
+                    <Label htmlFor="customerName" className="text-xs">Full Name *</Label>
+                    <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-8 text-sm" required />
                   </div>
 
                   <div>
-                    <Label htmlFor="customerName">
-                      Full Name <span className="text-red-500">*</span>
-                    </Label>
-                    <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-9" required />
+                    <Label htmlFor="customerEmail" className="text-xs">Email *</Label>
+                    <Input id="customerEmail" type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} className="h-8 text-sm" required />
                   </div>
 
                   <div>
-                    <Label htmlFor="customerEmail">
-                      Email <span className="text-red-500">*</span>
-                    </Label>
-                    <Input id="customerEmail" type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} className="h-9" required />
+                    <Label htmlFor="customerPhone" className="text-xs">Phone</Label>
+                    <Input id="customerPhone" type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-8 text-sm" />
                   </div>
 
                   <div>
-                    <Label htmlFor="customerPhone">Phone Number</Label>
-                    <Input id="customerPhone" type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-9" />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="shippingAddress">
-                      Shipping Address <span className="text-red-500">*</span>
-                    </Label>
-                    <Textarea id="shippingAddress" value={shippingAddress} onChange={e => setShippingAddress(e.target.value)} rows={2} required />
+                    <Label htmlFor="shippingAddress" className="text-xs">Shipping Address *</Label>
+                    <Textarea id="shippingAddress" value={shippingAddress} onChange={e => setShippingAddress(e.target.value)} rows={2} className="text-sm" required />
                   </div>
 
                   <ShippingCalculator productWeight={selectedProduct?.weight_kg || 1} subtotal={getEffectivePrice(selectedProduct) * quantity} onShippingCalculated={setShippingFee} />
 
-                  <div className="pt-3 border-t space-y-1.5">
-                    <div className="flex justify-between text-sm">
-                      <span>Subtotal:</span>
-                      <span>₱{(getEffectivePrice(selectedProduct) * quantity).toFixed(2)}</span>
+                  <div className="pt-2 border-t space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span>Shipping:</span>
+                      <span>₱{shippingFee.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-base font-bold border-t pt-2">
+                    <div className="flex justify-between text-sm font-bold">
                       <span>Total:</span>
-                      <span className="text-red-500">
+                      <span className="text-destructive">
                         ₱{(getEffectivePrice(selectedProduct) * quantity + shippingFee).toFixed(2)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="gap-2">
                   <Button variant="outline" onClick={() => setCheckoutDialog(false)} size="sm">
                     Cancel
                   </Button>
-                  <Button onClick={handleCheckout} size="sm" className="bg-red-500 hover:bg-red-600">
+                  <Button onClick={handleCheckout} size="sm" className="bg-destructive hover:bg-destructive/90">
                     Place Order
                   </Button>
                 </DialogFooter>
@@ -574,80 +626,109 @@ const Shop = () => {
             </Dialog>
 
             {/* Product Detail Dialog */}
-            <ProductDetailDialog product={detailProduct} open={detailDialog} onOpenChange={setDetailDialog} onBuyNow={() => {
-            if (detailProduct) {
-              setDetailDialog(false);
-              handleBuyNow(detailProduct);
-            }
-          }} onAddToCart={() => {
-            if (detailProduct) {
-              addToCart(detailProduct.id);
-            }
-          }} onToggleWishlist={() => {
-            if (detailProduct) {
-              toggleWishlist(detailProduct.id);
-            }
-          }} inCart={detailProduct ? inCart.has(detailProduct.id) : false} inWishlist={detailProduct ? inWishlist.has(detailProduct.id) : false} />
+            <ProductDetailDialog 
+              product={detailProduct} 
+              open={detailDialog} 
+              onOpenChange={setDetailDialog} 
+              onBuyNow={() => {
+                if (detailProduct) {
+                  setDetailDialog(false);
+                  handleBuyNow(detailProduct);
+                }
+              }} 
+              onAddToCart={() => {
+                if (detailProduct) {
+                  addToCart(detailProduct.id);
+                }
+              }} 
+              onToggleWishlist={() => {
+                if (detailProduct) {
+                  toggleWishlist(detailProduct.id);
+                }
+              }} 
+              inCart={detailProduct ? inCart.has(detailProduct.id) : false} 
+              inWishlist={detailProduct ? inWishlist.has(detailProduct.id) : false} 
+            />
           </TabsContent>
 
-          <TabsContent value="marketplace" className="space-y-3 mt-0">
-            <MarketplaceListings />
+          <TabsContent value="marketplace" className="mt-2">
+            <Suspense fallback={<ProductGridSkeleton count={8} />}>
+              <MarketplaceListings />
+            </Suspense>
           </TabsContent>
 
-          <TabsContent value="auction" className="space-y-3 mt-0">
-            <div className="py-4">
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-xl font-bold flex items-center gap-2">
-                  <Gavel className="w-6 h-6 text-primary" />
+          <TabsContent value="auction" className="mt-2">
+            <div className="py-2">
+              <div className="flex items-center justify-between mb-3">
+                <h1 className="text-lg font-bold flex items-center gap-2">
+                  <Gavel className="w-5 h-5 text-primary" />
                   Live Auctions
                 </h1>
-                <Button onClick={() => navigate("/auction")} className="gap-2">
-                  <Gavel className="w-4 h-4" />
-                  Go to Auction Hub
+                <Button size="sm" onClick={() => navigate("/auction")} className="gap-1.5 h-8 text-xs">
+                  <Gavel className="w-3.5 h-3.5" />
+                  Auction Hub
                 </Button>
               </div>
-              <AuctionProducts />
+              <Suspense fallback={<ProductGridSkeleton count={4} />}>
+                <AuctionProducts />
+              </Suspense>
             </div>
           </TabsContent>
 
-          <TabsContent value="seller">
-            <SellerDashboard />
+          <TabsContent value="seller" className="mt-2">
+            <Suspense fallback={<div className="h-64 animate-pulse bg-muted rounded-lg" />}>
+              <SellerDashboard />
+            </Suspense>
           </TabsContent>
 
-          <TabsContent value="supplier">
-            <SupplierApplication />
+          <TabsContent value="supplier" className="mt-2">
+            <Suspense fallback={<div className="h-64 animate-pulse bg-muted rounded-lg" />}>
+              <SupplierApplication />
+            </Suspense>
           </TabsContent>
 
-          <TabsContent value="cart">
-            <CartView />
+          <TabsContent value="cart" className="mt-2">
+            <Suspense fallback={<div className="h-64 animate-pulse bg-muted rounded-lg" />}>
+              <CartView />
+            </Suspense>
           </TabsContent>
 
-          <TabsContent value="wishlist">
-            <WishlistView />
+          <TabsContent value="wishlist" className="mt-2">
+            <Suspense fallback={<div className="h-64 animate-pulse bg-muted rounded-lg" />}>
+              <WishlistView />
+            </Suspense>
           </TabsContent>
         </div>
       </Tabs>
 
       {/* Live Stream Viewer */}
       {selectedStream && (
-        <LiveStreamViewer
-          stream={selectedStream}
-          onClose={() => setSelectedStream(null)}
-          onMinimize={handleMinimizeStream}
-        />
+        <Suspense fallback={null}>
+          <LiveStreamViewer
+            stream={selectedStream}
+            onClose={() => setSelectedStream(null)}
+            onMinimize={handleMinimizeStream}
+          />
+        </Suspense>
       )}
 
       {/* Floating Live Stream (when minimized) */}
       {minimizedStream && (
-        <FloatingLiveStream
-          stream={minimizedStream}
-          onExpand={handleExpandStream}
-          onClose={handleCloseMinimized}
-        />
+        <Suspense fallback={null}>
+          <FloatingLiveStream
+            stream={minimizedStream}
+            onExpand={handleExpandStream}
+            onClose={handleCloseMinimized}
+          />
+        </Suspense>
       )}
 
       {/* Product Assistant */}
-      <AIHealthConsultant onAddToCart={addToCart} onCartUpdated={refreshCart} />
-    </div>;
+      <Suspense fallback={null}>
+        <AIHealthConsultant onAddToCart={addToCart} onCartUpdated={refreshCart} />
+      </Suspense>
+    </div>
+  );
 };
+
 export default Shop;
