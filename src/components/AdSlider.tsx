@@ -84,8 +84,8 @@ export const AdSlider = () => {
   if (ads.length === 0) return null;
 
   return (
-    <Card className="relative w-full overflow-hidden bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
-      <div className="relative h-32 md:h-48">
+    <Card className="relative w-full overflow-hidden bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 mx-3">
+      <div className="relative h-24 md:h-36">
         {ads.map((ad, index) => (
           <div
             key={ad.id}

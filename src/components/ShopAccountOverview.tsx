@@ -95,51 +95,44 @@ const ShopAccountOverview = () => {
   };
 
   return (
-    <div className="space-y-4">
-      {/* My Orders Section - Lazada Style */}
-      <div className="bg-card rounded-lg p-3 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm">My Orders</h3>
-          <button 
-            onClick={() => navigate('/my-orders')}
-            className="text-xs text-primary flex items-center gap-1"
-          >
-            View All Orders <ChevronRight className="w-3 h-3" />
-          </button>
-        </div>
-        <div className="flex justify-between">
-          {orderStatusLinks.map((item) => (
+    <div className="space-y-2 py-2">
+      {/* My Orders - Ultra Compact Inline */}
+      <div className="flex items-center justify-between bg-card/50 rounded-lg px-2 py-1.5">
+        <button 
+          onClick={() => navigate('/my-orders')}
+          className="text-xs font-medium text-foreground flex items-center gap-1"
+        >
+          My Orders <ChevronRight className="w-3 h-3 text-muted-foreground" />
+        </button>
+        <div className="flex items-center gap-1">
+          {orderStatusLinks.slice(0, 4).map((item) => (
             <button
               key={item.label}
               onClick={() => handleClick(item.href)}
-              className="flex flex-col items-center gap-1 min-w-[55px] text-center relative"
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-muted/50 hover:bg-muted transition-colors relative"
+              title={item.label}
             >
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-muted relative">
-                <item.icon className="w-5 h-5 text-foreground" />
-                {item.count > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-medium">
-                    {item.count > 99 ? '99+' : item.count}
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] text-muted-foreground font-medium">{item.label}</span>
+              <item.icon className="w-3 h-3 text-muted-foreground" />
+              {item.count > 0 && (
+                <span className="text-[9px] font-medium text-destructive">{item.count}</span>
+              )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Quick Links */}
-      <div className="flex gap-3 overflow-x-auto py-2 px-1 scrollbar-hide">
+      {/* Quick Links - Single Row Compact */}
+      <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
         {quickLinks.map((item) => (
           <button
             key={item.label}
             onClick={() => handleClick(item.href)}
-            className="flex flex-col items-center gap-1 min-w-[50px] text-center"
+            className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted/50 hover:bg-muted transition-colors shrink-0"
           >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.color}`}>
-              <item.icon className="w-4 h-4" />
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center ${item.color}`}>
+              <item.icon className="w-2.5 h-2.5" />
             </div>
-            <span className="text-[10px] text-muted-foreground font-medium">{item.label}</span>
+            <span className="text-[10px] font-medium text-muted-foreground">{item.label}</span>
           </button>
         ))}
       </div>
