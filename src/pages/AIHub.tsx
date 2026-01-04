@@ -1,4 +1,5 @@
 import React, { useState, useEffect, memo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,8 +40,13 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMetaTags } from '@/hooks/useMetaTags';
+import { parseAndTrackFromUrl } from '@/lib/cookieTracking';
+
+// Public tabs that don't require login
+const PUBLIC_TABS = ['blog', 'weather', 'read-blog', 'contact'];
 
 const AIHub = memo(() => {
+  const [searchParams] = useSearchParams();
   const { user, profile, isAdmin } = useAuth();
   const { 
     credits: aiCredits, 
@@ -53,7 +59,17 @@ const AIHub = memo(() => {
     deductVideoMinutes,
     deductAudioMinutes
   } = useAICredits();
-  const [activeTab, setActiveTab] = useState('home');
+  
+  // Read tab from URL on initial load
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(() => {
+    // Handle both 'blog' and 'read-blog' as blog tab
+    if (tabFromUrl === 'read-blog' || tabFromUrl === 'blog') return 'blog';
+    return tabFromUrl || 'home';
+  });
+  
+  // Check if user is on a public tab
+  const isPublicTab = PUBLIC_TABS.includes(activeTab);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [homeInputValue, setHomeInputValue] = useState('');
@@ -289,6 +305,22 @@ const AIHub = memo(() => {
       if (window.innerWidth < 768) setSidebarOpen(false);
     }
   };
+
+  // Track referral cookie on mount and sync tab from URL
+  useEffect(() => {
+    // Track referral cookies for affiliate attribution
+    parseAndTrackFromUrl();
+    
+    // Sync tab from URL params if changed
+    const tab = searchParams.get('tab');
+    if (tab) {
+      if (tab === 'read-blog' || tab === 'blog') {
+        setActiveTab('blog');
+      } else {
+        setActiveTab(tab);
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchSettings();
@@ -1048,8 +1080,8 @@ const AIHub = memo(() => {
     toast.info('Starting your research...');
   };
 
-  // Login required wall for non-authenticated users
-  if (!user) {
+  // Login required wall for non-authenticated users (skip for public tabs)
+  if (!user && !isPublicTab) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden beehive-bg">
         {/* Animated Honeycomb Background */}

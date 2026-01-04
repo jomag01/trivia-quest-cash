@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ import { format } from 'date-fns';
 import WeatherWidget from './WeatherWidget';
 import SocialShareMenu from '@/components/common/SocialShareMenu';
 import { useMetaTags } from '@/hooks/useMetaTags';
+import { parseAndTrackFromUrl } from '@/lib/cookieTracking';
 
 interface BlogCategory {
   id: string;
@@ -48,6 +50,7 @@ interface BlogPost {
 }
 
 const BlogPage = () => {
+  const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [featuredPosts, setFeaturedPosts] = useState<BlogPost[]>([]);
@@ -56,6 +59,12 @@ const BlogPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  // Track referral cookies on mount
+  useEffect(() => {
+    parseAndTrackFromUrl();
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -109,6 +118,21 @@ const BlogPage = () => {
         const allPosts = postRes.data as BlogPost[];
         setPosts(allPosts);
         setFeaturedPosts(allPosts.filter(p => p.is_featured));
+        
+        // Auto-select post from URL if specified
+        const postSlug = searchParams.get('post');
+        if (postSlug && !initialLoadDone) {
+          const matchingPost = allPosts.find(p => p.slug === postSlug);
+          if (matchingPost) {
+            setSelectedPost(matchingPost);
+            // Increment view count
+            await supabase
+              .from('blog_posts')
+              .update({ view_count: matchingPost.view_count + 1 })
+              .eq('id', matchingPost.id);
+          }
+          setInitialLoadDone(true);
+        }
       }
     } catch (error) {
       console.error('Error fetching data:', error);
