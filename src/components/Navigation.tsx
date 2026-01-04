@@ -1,51 +1,19 @@
-import { Link, useLocation } from "react-router-dom";
-import { Sparkles, Gamepad2, ShoppingBag, Plus, MessageSquare, User, Rss } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Sparkles, Gamepad2, ShoppingBag, MessageSquare, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { CreatePost } from "@/components/social/CreatePost";
 import { AddToHomeScreenButton } from "@/components/AddToHomeScreenButton";
-import { useCallback, useRef } from "react";
-
-// Prefetch functions for route optimization
-const prefetchTimeouts = new Map<string, NodeJS.Timeout>();
 
 const Navigation = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const prefetchedRoutes = useRef(new Set<string>());
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Prefetch route on hover with debounce
-  const handlePrefetch = useCallback((route: string) => {
-    // Don't prefetch if already done
-    if (prefetchedRoutes.current.has(route)) return;
-    
-    // Clear existing timeout for this route
-    if (prefetchTimeouts.has(route)) {
-      clearTimeout(prefetchTimeouts.get(route)!);
-    }
-
-    // Debounce prefetch to avoid triggering on quick hover
-    const timeout = setTimeout(async () => {
-      prefetchedRoutes.current.add(route);
-      
-      if (route === '/shop') {
-        // Prefetch shop data
-        const { prefetchShopData } = await import('@/hooks/useShopData');
-        prefetchShopData();
-      }
-    }, 150);
-
-    prefetchTimeouts.set(route, timeout);
-  }, []);
-
-  const handlePrefetchCancel = useCallback((route: string) => {
-    if (prefetchTimeouts.has(route)) {
-      clearTimeout(prefetchTimeouts.get(route)!);
-      prefetchTimeouts.delete(route);
-    }
-  }, []);
+  // Handle Shop click - navigate to AI Hub with shop tab
+  const handleShopClick = () => {
+    navigate('/?tab=shop');
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-background/95 backdrop-blur-lg border-t border-border shadow-lg pb-[env(safe-area-inset-bottom,0px)]" style={{ position: 'fixed' }}>
@@ -54,23 +22,23 @@ const Navigation = () => {
         <Link
           to="/"
           className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-2 ${
-            isActive("/") ? "text-primary" : "text-muted-foreground"
+            isActive("/") && !location.search.includes('tab=shop') ? "text-primary" : "text-muted-foreground"
           }`}
         >
           <Sparkles className="w-5 h-5" />
           <span className="text-[9px] font-medium">AI Hub</span>
         </Link>
 
-        {/* Feed */}
-        <Link
-          to="/feed"
+        {/* Shop - opens AI Hub with shop tab */}
+        <button
+          onClick={handleShopClick}
           className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-2 ${
-            isActive("/feed") ? "text-primary" : "text-muted-foreground"
+            location.search.includes('tab=shop') ? "text-primary" : "text-muted-foreground"
           }`}
         >
-          <Rss className="w-5 h-5" />
-          <span className="text-[9px] font-medium">Feed</span>
-        </Link>
+          <ShoppingBag className="w-5 h-5" />
+          <span className="text-[9px] font-medium">Shop</span>
+        </button>
 
         {/* Games */}
         <Link
@@ -81,32 +49,6 @@ const Navigation = () => {
         >
           <Gamepad2 className="w-5 h-5" />
           <span className="text-[9px] font-medium">Games</span>
-        </Link>
-
-        {/* Create Post (Center) - TikTok style */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <button className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-md">
-              <Plus className="w-5 h-5" strokeWidth={3} />
-            </button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CreatePost onPostCreated={() => {}} />
-          </DialogContent>
-        </Dialog>
-
-        {/* Shop - with prefetch on hover */}
-        <Link
-          to="/shop"
-          className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-2 ${
-            isActive("/shop") ? "text-primary" : "text-muted-foreground"
-          }`}
-          onMouseEnter={() => handlePrefetch('/shop')}
-          onMouseLeave={() => handlePrefetchCancel('/shop')}
-          onTouchStart={() => handlePrefetch('/shop')}
-        >
-          <ShoppingBag className="w-5 h-5" />
-          <span className="text-[9px] font-medium">Shop</span>
         </Link>
 
         {/* Messages */}
