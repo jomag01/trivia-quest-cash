@@ -12,6 +12,7 @@ import {
   Share2, Loader2, TrendingUp, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
+import WeatherWidget from './WeatherWidget';
 
 interface BlogCategory {
   id: string;
@@ -178,6 +179,11 @@ const BlogPage = () => {
         </Button>
 
         <article className="space-y-6">
+          {/* Weather Widget for News articles */}
+          {selectedPost.post_type === 'news' && (
+            <WeatherWidget />
+          )}
+
           {selectedPost.featured_image && (
             <div className="aspect-video rounded-xl overflow-hidden">
               <img 
