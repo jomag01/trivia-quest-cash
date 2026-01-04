@@ -293,40 +293,30 @@ const BlogPage = () => {
 
   // Blog Listing View
   return (
-    <div className="space-y-4 px-1">
-      {/* Header - Compact for mobile */}
-      <div className="text-center space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-          Tech Blog
-        </h1>
-        <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-          Stay updated with the latest technology news, AI developments, tutorials, and industry insights.
-        </p>
-      </div>
-
-      {/* Search with Refresh Button */}
-      <div className="flex gap-2 max-w-md mx-auto">
+    <div className="space-y-3 px-2">
+      {/* Search - Compact mobile-first */}
+      <div className="flex gap-2">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search articles..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-8 h-9 text-sm"
           />
         </div>
-        <Button variant="outline" size="icon" onClick={() => fetchData()} title="Refresh">
+        <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => fetchData()} title="Refresh">
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Categories - Scrollable horizontally */}
-      <ScrollArea className="w-full">
-        <div className="flex gap-2 pb-2 px-1">
+      {/* Categories - Compact horizontal scroll */}
+      <ScrollArea className="w-full -mx-2 px-2">
+        <div className="flex gap-1.5 pb-1">
           <Button
             variant={!selectedCategory ? "default" : "outline"}
             size="sm"
-            className="shrink-0"
+            className="shrink-0 h-7 px-2.5 text-xs"
             onClick={() => setSelectedCategory(null)}
           >
             All
@@ -336,7 +326,7 @@ const BlogPage = () => {
               key={cat.id}
               variant={selectedCategory === cat.id ? "default" : "outline"}
               size="sm"
-              className="shrink-0"
+              className="shrink-0 h-7 px-2.5 text-xs whitespace-nowrap"
               onClick={() => setSelectedCategory(cat.id)}
               style={selectedCategory === cat.id ? { backgroundColor: cat.color || undefined } : {}}
             >
@@ -346,28 +336,64 @@ const BlogPage = () => {
         </div>
       </ScrollArea>
 
-      {/* Tabs - Compact */}
+      {/* Tabs - Ultra compact */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 max-w-sm mx-auto h-9">
-          <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-          <TabsTrigger value="news" className="text-xs">News</TabsTrigger>
-          <TabsTrigger value="articles" className="text-xs">Articles</TabsTrigger>
-          <TabsTrigger value="tutorials" className="text-xs">Tutorials</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 h-8">
+          <TabsTrigger value="all" className="text-xs h-7">All</TabsTrigger>
+          <TabsTrigger value="news" className="text-xs h-7">News</TabsTrigger>
+          <TabsTrigger value="articles" className="text-xs h-7">Articles</TabsTrigger>
+          <TabsTrigger value="tutorials" className="text-xs h-7">Tutorials</TabsTrigger>
         </TabsList>
       </Tabs>
 
-      {/* Featured Posts */}
+      {/* Featured Post - Mobile optimized single card */}
       {featuredPosts.length > 0 && !searchQuery && !selectedCategory && activeTab === 'all' && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold flex items-center gap-1.5">
+            <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
             Featured
           </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Mobile: show 1, Desktop: show up to 3 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {featuredPosts.slice(0, 1).map(post => (
+              <Card 
+                key={post.id}
+                className="cursor-pointer hover:shadow-lg transition-all overflow-hidden group sm:hidden"
+                onClick={() => openPost(post)}
+              >
+                <div className="flex gap-3 p-3">
+                  {post.featured_image && (
+                    <div className="w-24 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                      <img 
+                        src={post.featured_image} 
+                        alt={post.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                      {post.blog_categories && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{post.blog_categories.name}</Badge>
+                      )}
+                    </div>
+                    <h3 className="font-medium text-sm line-clamp-2 leading-tight">
+                      {post.title}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
+                      <span className="flex items-center gap-0.5"><Clock className="h-3 w-3" />{post.reading_time_minutes}m</span>
+                      <span className="flex items-center gap-0.5"><Eye className="h-3 w-3" />{post.view_count}</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+            {/* Desktop featured cards */}
             {featuredPosts.slice(0, 3).map(post => (
               <Card 
                 key={post.id}
-                className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] overflow-hidden group"
+                className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] overflow-hidden group hidden sm:block"
                 onClick={() => openPost(post)}
               >
                 {post.featured_image && (
@@ -379,18 +405,18 @@ const BlogPage = () => {
                     />
                   </div>
                 )}
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
                     {post.blog_categories && (
                       <Badge variant="secondary" className="text-xs">{post.blog_categories.name}</Badge>
                     )}
                   </div>
-                  <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+                  <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">
                     {post.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{post.excerpt}</p>
-                  <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{post.excerpt}</p>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{post.reading_time_minutes}m</span>
                     <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{post.view_count}</span>
                   </div>
@@ -401,31 +427,31 @@ const BlogPage = () => {
         </div>
       )}
 
-      {/* All Posts */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          {activeTab === 'all' ? 'Latest Posts' : activeTab === 'news' ? 'Latest News' : activeTab === 'articles' ? 'Articles' : 'Tutorials'}
-          <Badge variant="secondary" className="ml-2">{filteredPosts.length}</Badge>
+      {/* All Posts - Mobile optimized list */}
+      <div className="space-y-2">
+        <h2 className="text-sm font-semibold flex items-center gap-1.5">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          {activeTab === 'all' ? 'Latest' : activeTab === 'news' ? 'News' : activeTab === 'articles' ? 'Articles' : 'Tutorials'}
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{filteredPosts.length}</Badge>
         </h2>
 
         {filteredPosts.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-3" />
-            <p className="text-muted-foreground">No posts found</p>
+          <div className="text-center py-8">
+            <FileText className="h-10 w-10 mx-auto text-muted-foreground opacity-50 mb-2" />
+            <p className="text-sm text-muted-foreground">No posts found</p>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="space-y-2">
             {filteredPosts.map(post => (
               <Card 
                 key={post.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
+                className="cursor-pointer hover:shadow-md transition-shadow active:scale-[0.99]"
                 onClick={() => openPost(post)}
               >
-                <CardContent className="p-4">
-                  <div className="flex gap-4">
+                <CardContent className="p-2.5">
+                  <div className="flex gap-2.5">
                     {post.featured_image && (
-                      <div className="hidden sm:block w-32 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="w-20 h-16 sm:w-28 sm:h-20 rounded-md overflow-hidden flex-shrink-0">
                         <img 
                           src={post.featured_image} 
                           alt={post.title}
@@ -433,42 +459,40 @@ const BlogPage = () => {
                         />
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <div className="flex-1 min-w-0 py-0.5">
+                      <div className="flex flex-wrap items-center gap-1 mb-0.5">
                         {post.blog_categories && (
                           <Badge 
                             variant="secondary" 
-                            className="text-xs"
+                            className="text-[10px] px-1.5 py-0"
                             style={{ backgroundColor: `${post.blog_categories.color}20`, color: post.blog_categories.color || undefined }}
                           >
                             {post.blog_categories.name}
                           </Badge>
                         )}
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                           {post.post_type}
                         </Badge>
                       </div>
-                      <h3 className="font-semibold line-clamp-1 hover:text-primary transition-colors">
+                      <h3 className="font-medium text-sm line-clamp-2 leading-tight">
                         {post.title}
                       </h3>
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{post.excerpt}</p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />{post.author_name || 'Admin'}
+                      <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1 text-[10px] text-muted-foreground">
+                        <span className="flex items-center gap-0.5">
+                          <User className="h-2.5 w-2.5" />{post.author_name || 'Admin'}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
+                        <span className="flex items-center gap-0.5">
+                          <Calendar className="h-2.5 w-2.5" />
                           {format(new Date(post.published_at || post.created_at), 'MMM d, yyyy')}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />{post.reading_time_minutes}m read
+                        <span className="flex items-center gap-0.5">
+                          <Clock className="h-2.5 w-2.5" />{post.reading_time_minutes}m
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />{post.view_count}
+                        <span className="flex items-center gap-0.5">
+                          <Eye className="h-2.5 w-2.5" />{post.view_count}
                         </span>
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground self-center" />
                   </div>
                 </CardContent>
               </Card>
