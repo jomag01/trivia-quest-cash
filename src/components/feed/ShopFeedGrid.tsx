@@ -3,11 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Flame } from "lucide-react";
+import { ShoppingCart, Star, Heart, Play, Clock, Flame } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import LazadaProductCard from "@/components/shop/LazadaProductCard";
 
 interface Product {
   id: string;
@@ -168,11 +167,11 @@ export default function ShopFeedGrid({ limit = 8 }: ShopFeedGridProps) {
 
   if (loading) {
     return (
-      <div className="space-y-2 p-2">
-        <div className="h-16 bg-muted rounded-lg animate-pulse" />
-        <div className="grid grid-cols-3 gap-1.5">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="aspect-[3/4] bg-muted rounded-lg animate-pulse" />
+      <div className="space-y-4 p-4">
+        <div className="h-24 bg-muted rounded-xl animate-pulse" />
+        <div className="grid grid-cols-2 gap-3">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="aspect-square bg-muted rounded-xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -183,25 +182,25 @@ export default function ShopFeedGrid({ limit = 8 }: ShopFeedGridProps) {
   const regularProducts = products.filter(p => !p.promo_active);
 
   return (
-    <div className="space-y-2 pb-4">
-      {/* Flash Sale Banner - Compact */}
+    <div className="space-y-4 pb-4">
+      {/* Flash Sale Banner */}
       {promoProducts.length > 0 && (
-        <div className="mx-2 p-2 rounded-lg bg-gradient-to-r from-orange-500 to-pink-500 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1">
-              <Flame className="w-4 h-4" />
-              <span className="font-bold text-xs">Flash Sale</span>
+        <div className="mx-4 p-4 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Flame className="w-5 h-5" />
+              <span className="font-bold">Flash Sale</span>
             </div>
-            <div className="flex items-center gap-1 bg-white/20 rounded-full px-2 py-0.5">
-              <Clock className="w-3 h-3" />
-              <span className="font-mono font-bold text-[10px]">{timeLeft}</span>
+            <div className="flex items-center gap-2 bg-white/20 rounded-full px-3 py-1">
+              <Clock className="w-4 h-4" />
+              <span className="font-mono font-bold">{timeLeft}</span>
             </div>
           </div>
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
             {promoProducts.map(product => (
-              <div
+              <Card
                 key={product.id}
-                className="min-w-[90px] max-w-[90px] overflow-hidden rounded-md bg-white cursor-pointer"
+                className="min-w-[140px] overflow-hidden border-0 bg-white cursor-pointer"
                 onClick={() => navigate(`/shop?product=${product.id}`)}
               >
                 <div className="aspect-square relative">
@@ -210,41 +209,97 @@ export default function ShopFeedGrid({ limit = 8 }: ShopFeedGridProps) {
                   ) : (
                     <div className="w-full h-full bg-muted" />
                   )}
-                  <Badge className="absolute top-0.5 left-0.5 bg-destructive text-[7px] px-1 py-0 h-3">
+                  <Badge className="absolute top-1 left-1 bg-destructive text-[10px]">
                     -{Math.round(((product.base_price - (product.promo_price || 0)) / product.base_price) * 100)}%
                   </Badge>
                 </div>
-                <div className="p-1">
-                  <p className="text-[8px] text-foreground line-clamp-1">{product.name}</p>
-                  <span className="text-destructive font-bold text-[10px]">₱{product.promo_price?.toLocaleString()}</span>
+                <div className="p-2">
+                  <p className="text-xs text-foreground line-clamp-1">{product.name}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-destructive font-bold text-sm">₱{product.promo_price}</span>
+                    <span className="text-muted-foreground text-xs line-through">₱{product.base_price}</span>
+                  </div>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         </div>
       )}
 
-      {/* Products Grid - Lazada style 3 columns */}
-      <div className="grid grid-cols-3 gap-1.5 px-2">
+      {/* Products Grid */}
+      <div className="grid grid-cols-2 gap-3 px-4">
         {regularProducts.map(product => (
-          <LazadaProductCard
+          <Card
             key={product.id}
-            product={product}
-            inWishlist={wishlist.has(product.id)}
-            onProductClick={() => navigate(`/shop?product=${product.id}`)}
-            onAddToCart={(id, e) => addToCart(id, e)}
-            onToggleWishlist={(id, e) => toggleWishlist(id, e)}
-          />
+            className="group overflow-hidden border-border/50 cursor-pointer"
+            onClick={() => navigate(`/shop?product=${product.id}`)}
+          >
+            <div className="aspect-square relative bg-secondary">
+              {product.image_url ? (
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                  <ShoppingCart className="w-8 h-8" />
+                </div>
+              )}
+              
+              {/* Wishlist button */}
+              <button
+                onClick={(e) => toggleWishlist(product.id, e)}
+                className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
+              >
+                <Heart className={`w-4 h-4 ${wishlist.has(product.id) ? 'fill-destructive text-destructive' : ''}`} />
+              </button>
+
+              {/* Diamond reward */}
+              {product.diamond_reward && product.diamond_reward > 0 && (
+                <Badge className="absolute top-2 left-2 bg-primary text-[10px]">
+                  💎 {product.diamond_reward}
+                </Badge>
+              )}
+            </div>
+
+            <div className="p-3">
+              <p className="text-sm font-medium line-clamp-2 mb-1">{product.name}</p>
+              
+              <div className="flex items-center gap-1 mb-2">
+                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                <span className="text-xs text-muted-foreground">
+                  {(product.rating || 4.8).toFixed(1)}
+                  {product.review_count && product.review_count > 0 && (
+                    <span className="ml-0.5">({product.review_count})</span>
+                  )}
+                  {" · "}
+                  {(product.sold_count || 0).toLocaleString()} sold
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-accent font-bold">₱{product.base_price.toLocaleString()}</span>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-8 w-8 rounded-full"
+                  onClick={(e) => addToCart(product.id, e)}
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </Card>
         ))}
       </div>
 
-      {/* View all button - Compact */}
-      <div className="px-2">
+      {/* View all button */}
+      <div className="px-4">
         <Button 
           variant="outline" 
-          size="sm"
-          className="w-full rounded-full h-8 text-xs"
-          onClick={() => navigate("/?tab=shop")}
+          className="w-full rounded-full"
+          onClick={() => navigate("/shop")}
         >
           View All Products
         </Button>

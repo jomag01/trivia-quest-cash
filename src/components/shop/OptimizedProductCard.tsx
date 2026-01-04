@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Package, ShoppingCart, Heart, Star } from "lucide-react";
+import { ProductShareButton } from "@/components/ProductShareButton";
 import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
@@ -110,12 +111,12 @@ const OptimizedProductCard = memo(({
 
   return (
     <Card 
-      className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer bg-card rounded-lg"
+      className="overflow-hidden border-border/50 hover:shadow-md transition-all duration-300 flex flex-col cursor-pointer group bg-card"
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Product Image - Compact square */}
+      {/* Product Image */}
       <div className="aspect-square overflow-hidden bg-muted relative">
         {product.image_url ? (
           <>
@@ -124,7 +125,7 @@ const OptimizedProductCard = memo(({
               alt={product.name}
               className={cn(
                 "w-full h-full object-cover transition-all duration-300",
-                product.hover_image_url ? 'group-hover:opacity-0' : ''
+                product.hover_image_url ? 'group-hover:opacity-0' : 'group-hover:scale-105'
               )}
             />
             {product.hover_image_url && isHovered && (
@@ -137,85 +138,93 @@ const OptimizedProductCard = memo(({
           </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
-            <Package className="w-6 h-6" />
+            <Package className="w-8 h-8" />
           </div>
         )}
         
-        {/* Discount badge */}
         {hasDiscount && (
-          <Badge className="absolute top-1 right-1 text-[8px] px-1 py-0 h-4 bg-destructive text-destructive-foreground font-bold rounded">
+          <Badge className="absolute top-1 right-1 text-[9px] px-1.5 py-0.5 bg-destructive text-destructive-foreground">
             Sale
           </Badge>
         )}
-        {/* Diamond reward badge */}
         {product.diamond_reward && product.diamond_reward > 0 && (
-          <Badge className="absolute top-1 left-1 text-[8px] px-1 py-0 h-4 bg-primary text-primary-foreground rounded">
-            💎{product.diamond_reward}
+          <Badge className="absolute top-1 left-1 text-[9px] px-1.5 py-0.5 bg-primary text-primary-foreground">
+            💎 {product.diamond_reward}
           </Badge>
         )}
       </div>
       
-      {/* Product Info - Compact */}
-      <div className="p-1.5">
-        {/* Product name - 2 lines max */}
-        <h3 className="text-[10px] font-medium line-clamp-2 leading-tight text-foreground min-h-[24px]">
+      <div className="p-2 flex-1 flex flex-col">
+        <h3 className="text-xs font-medium mb-1 line-clamp-2 leading-tight text-foreground">
           {product.name}
         </h3>
 
-        {/* Sales & Ratings - Compact single line */}
+        {/* Deferred: Sales & Ratings */}
         {(showSales || showRatings) && (product.combined_sales || product.combined_rating) ? (
-          <div className="flex items-center gap-1 text-[9px] text-muted-foreground mt-0.5">
-            {showRatings && product.combined_rating && product.combined_rating > 0 && (
-              <span className="flex items-center gap-0.5">
-                <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                {product.combined_rating.toFixed(1)}
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+            {showSales && product.combined_sales && product.combined_sales > 0 && (
+              <span className="flex items-center gap-1">
+                <span aria-hidden>📊</span>
+                <span className="font-medium">{product.combined_sales.toLocaleString()} sold</span>
               </span>
             )}
-            {showSales && product.combined_sales && product.combined_sales > 0 && (
-              <span>· {product.combined_sales.toLocaleString()} sold</span>
+            {showRatings && product.combined_rating && product.combined_rating > 0 && (
+              <span className="flex items-center gap-1">
+                <Star className="w-3 h-3 fill-primary text-primary" />
+                <span className="font-medium">
+                  {product.combined_rating.toFixed(1)}
+                  {product.review_count && product.review_count > 0 && ` (${product.review_count})`}
+                </span>
+              </span>
             )}
           </div>
         ) : null}
 
-        {/* Price section */}
-        <div className="flex items-center gap-1 mt-1">
-          <span className="text-xs font-bold text-destructive">
-            ₱{effectivePrice.toLocaleString()}
+        <div className="flex items-center gap-1 mb-1.5">
+          <span className="text-sm font-bold text-destructive">
+            ₱{effectivePrice.toFixed(2)}
           </span>
           {hasDiscount && (
-            <span className="text-[9px] text-muted-foreground line-through">
-              ₱{product.base_price.toLocaleString()}
+            <span className="text-[10px] text-muted-foreground line-through">
+              ₱{product.base_price.toFixed(2)}
             </span>
           )}
         </div>
 
-        {/* Action buttons - Compact */}
-        <div className="mt-1.5 grid grid-cols-2 gap-1">
+        <div className="mt-auto space-y-1">
           <Button 
-            className="h-6 text-[9px] bg-destructive hover:bg-destructive/90 text-destructive-foreground px-1" 
+            className="w-full h-7 text-[10px] bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
             onClick={handleBuyNow}
             disabled={isOutOfStock}
           >
-            {isOutOfStock ? "Out" : "Buy"}
+            <ShoppingCart className="w-3 h-3 mr-1" />
+            {isOutOfStock ? "Out" : "Buy Now"}
           </Button>
-          <div className="flex gap-0.5">
+          
+          <div className="grid grid-cols-3 gap-1">
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-6 flex-1 text-[9px] px-1" 
+              className="h-6 text-[9px] border-destructive text-destructive hover:bg-destructive/10 px-1" 
               onClick={handleAddToCart}
               disabled={isOutOfStock}
             >
-              <ShoppingCart className="w-3 h-3" />
+              {inCart ? "✓" : "Cart"}
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-6 w-6 px-0" 
+              className="h-6 text-[9px] px-1" 
               onClick={handleToggleWishlist}
             >
-              <Heart className={cn("w-3 h-3", inWishlist && "fill-destructive text-destructive")} />
+              <Heart className={cn("w-2.5 h-2.5", inWishlist && "fill-destructive text-destructive")} />
             </Button>
+            <ProductShareButton 
+              productId={product.id} 
+              productName={product.name} 
+              size="sm" 
+              className="h-6 text-[9px] px-1" 
+            />
           </div>
         </div>
       </div>
