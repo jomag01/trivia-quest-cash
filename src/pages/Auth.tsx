@@ -14,6 +14,7 @@ import { CURRENCIES, getCurrencyFromCountry, detectUserCountry, type CurrencyCod
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import FlyingBees from "@/components/ai/FlyingBees";
+import { getReferralCodeFromCookie, markConversion, parseAndTrackFromUrl } from "@/lib/cookieTracking";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -66,13 +67,26 @@ const Auth = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    // Check for referral code in URL
+    // Parse and track referral from URL on mount
+    parseAndTrackFromUrl();
+    
+    // Check for referral code in URL first
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
     
     if (refCode) {
       setReferralCode(refCode);
       setIsLogin(false); // Switch to signup mode
+    } else {
+      // If no URL param, check cookies for referral
+      const loadReferralFromCookie = async () => {
+        const cookieRefCode = await getReferralCodeFromCookie();
+        if (cookieRefCode && !referralCode) {
+          setReferralCode(cookieRefCode);
+          setIsLogin(false); // Switch to signup mode
+        }
+      };
+      loadReferralFromCookie();
     }
   }, []);
 
@@ -240,6 +254,10 @@ const Auth = () => {
         });
 
         if (error) throw error;
+        
+        // Mark conversion for affiliate tracking
+        await markConversion('referral', 'signup');
+        await markConversion('affiliate', 'signup');
         
         toast.success("Account created! You can now login.");
         setIsLogin(true);
