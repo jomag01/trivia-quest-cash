@@ -157,10 +157,10 @@ serve(async (req) => {
       await sleep(600);
     }
 
-    // Update newsletter status
+    // Update newsletter status ("failed" is now an allowed status)
     const newsletterStatus = failedCount > 0 ? "failed" : "sent";
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("newsletters")
       .update({
         status: newsletterStatus,
@@ -168,6 +168,10 @@ serve(async (req) => {
         total_recipients: sentCount,
       })
       .eq("id", newsletter_id);
+
+    if (updateError) {
+      console.error("Failed to update newsletter status:", updateError);
+    }
 
     console.log(`Newsletter send finished: ${sentCount} success, ${failedCount} failed`);
 
