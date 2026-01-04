@@ -85,14 +85,14 @@ const BlogPage = () => {
   // Set dynamic meta tags for sharing
   useMetaTags(selectedPost ? {
     title: selectedPost.meta_title || selectedPost.title,
-    description: selectedPost.meta_description || selectedPost.excerpt || 'Read this article on Triviabees Blog',
+    description: selectedPost.meta_description || selectedPost.excerpt || 'Read this article on AI Hub Blog',
     image: selectedPost.featured_image || undefined,
-    url: `${window.location.origin}/ai-hub?tab=blog&post=${selectedPost.slug}`,
+    url: `${window.location.origin}/ai-hub?tab=read-blog&post=${selectedPost.slug}`,
     type: 'article',
   } : {
     title: 'Tech Blog - Latest Technology News & Articles',
-    description: 'Read the latest tech news, articles, and tutorials on Triviabees',
-    url: `${window.location.origin}/ai-hub?tab=blog`,
+    description: 'Read the latest tech news, articles, and tutorials on AI Hub',
+    url: `${window.location.origin}/ai-hub?tab=read-blog`,
   });
 
   const fetchData = async () => {
@@ -257,9 +257,9 @@ const BlogPage = () => {
             <span className="text-sm text-muted-foreground">Share:</span>
             <SocialShareMenu
               title={selectedPost.title}
-              description={selectedPost.meta_description || selectedPost.excerpt || 'Read this article on Triviabees'}
+              description={selectedPost.meta_description || selectedPost.excerpt || 'Read this article on AI Hub'}
               path="/ai-hub"
-              params={{ tab: 'blog', post: selectedPost.slug }}
+              params={{ tab: 'read-blog', post: selectedPost.slug }}
               variant="outline"
               size="sm"
             />
