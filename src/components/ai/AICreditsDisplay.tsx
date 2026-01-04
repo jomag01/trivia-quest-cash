@@ -124,108 +124,65 @@ const AICreditsDisplay = () => {
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
-      <CardContent className="p-4 space-y-4">
-        {/* Header - Show subscription credits first */}
+      <CardContent className="p-2 space-y-2">
+        {/* Compact Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500">
-              <Sparkles className="h-4 w-4 text-white" />
+          <div className="flex items-center gap-1.5">
+            <div className="p-1.5 rounded-md bg-gradient-to-br from-yellow-400 to-orange-500">
+              <Sparkles className="h-3 w-3 text-white" />
             </div>
             <div>
-              <p className="font-semibold text-sm">AI Credits</p>
-              <p className="text-2xl font-bold">{totalCredits.toLocaleString()}</p>
+              <p className="font-semibold text-xs">AI Credits</p>
+              <p className="text-lg font-bold leading-tight">{totalCredits.toLocaleString()}</p>
             </div>
           </div>
           {subscription ? (
-            <Badge variant="secondary" className="gap-1 bg-purple-500/10 text-purple-500 border-purple-500/20">
-              <Crown className="h-3 w-3" />
+            <Badge variant="secondary" className="gap-0.5 bg-purple-500/10 text-purple-500 border-purple-500/20 text-[10px] px-1.5 py-0.5">
+              <Crown className="h-2.5 w-2.5" />
               {subscription.plan_type}
             </Badge>
           ) : isPaidAffiliate ? (
-            <Badge variant="secondary" className="gap-1 bg-green-500/10 text-green-500 border-green-500/20">
-              <CheckCircle className="h-3 w-3" />
+            <Badge variant="secondary" className="gap-0.5 bg-green-500/10 text-green-500 border-green-500/20 text-[10px] px-1.5 py-0.5">
+              <CheckCircle className="h-2.5 w-2.5" />
               Affiliate
             </Badge>
           ) : null}
         </div>
 
-        {/* Subscription Info */}
+        {/* Subscription Info - Compact */}
         {subscription && (
-          <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
-            <div className="flex items-center gap-1.5">
-              <Calendar className="h-3 w-3 text-purple-500" />
+          <div className="flex items-center justify-between text-[10px] px-1.5 py-1 rounded bg-purple-500/10 border border-purple-500/20">
+            <div className="flex items-center gap-1">
+              <Calendar className="h-2.5 w-2.5 text-purple-500" />
               <span className="text-purple-600 dark:text-purple-400">
-                {subscription.credits_remaining.toLocaleString()} subscription credits
+                {subscription.credits_remaining.toLocaleString()} sub credits
               </span>
             </div>
-            <span className="text-muted-foreground">{getDaysUntilExpiry()}d left</span>
+            <span className="text-muted-foreground">{getDaysUntilExpiry()}d</span>
           </div>
         )}
 
-        {/* Resource Breakdown (Legacy Credits) */}
+        {/* Compact Resource Stats - Inline */}
         {credits && (credits.images_available > 0 || credits.video_minutes_available > 0 || credits.audio_minutes_available > 0) && (
-          <div className="space-y-3">
-            {/* Images */}
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px]">
             {credits.images_available > 0 && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <Image className="h-4 w-4 text-blue-500" />
-                    <span>Images</span>
-                  </div>
-                  <span className="text-muted-foreground">
-                    {credits.images_available - (credits.images_used || 0)} left
-                  </span>
-                </div>
-                <Progress value={100 - imagesUsedPercent} className="h-2" />
+              <div className="flex items-center gap-1">
+                <Image className="h-3 w-3 text-blue-500" />
+                <span className="text-muted-foreground">{credits.images_available - (credits.images_used || 0)} img</span>
               </div>
             )}
-
-            {/* Video Minutes */}
             {credits.video_minutes_available > 0 && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <Video className="h-4 w-4 text-purple-500" />
-                    <span>Video</span>
-                  </div>
-                  <span className="text-muted-foreground">
-                    {((credits.video_minutes_available || 0) - (credits.video_minutes_used || 0)).toFixed(1)}m left
-                  </span>
-                </div>
-                <Progress value={100 - videoUsedPercent} className="h-2" />
+              <div className="flex items-center gap-1">
+                <Video className="h-3 w-3 text-purple-500" />
+                <span className="text-muted-foreground">{((credits.video_minutes_available || 0) - (credits.video_minutes_used || 0)).toFixed(0)}m vid</span>
               </div>
             )}
-
-            {/* Audio Minutes */}
             {credits.audio_minutes_available > 0 && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <Music className="h-4 w-4 text-green-500" />
-                    <span>Audio</span>
-                  </div>
-                  <span className="text-muted-foreground">
-                    {((credits.audio_minutes_available || 0) - (credits.audio_minutes_used || 0)).toFixed(1)}m left
-                  </span>
-                </div>
-                <Progress value={100 - audioUsedPercent} className="h-2" />
+              <div className="flex items-center gap-1">
+                <Music className="h-3 w-3 text-green-500" />
+                <span className="text-muted-foreground">{((credits.audio_minutes_available || 0) - (credits.audio_minutes_used || 0)).toFixed(0)}m aud</span>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Available Features */}
-        {(subscription || isPaidAffiliate) && (
-          <div className="pt-2 border-t border-border/50">
-            <p className="text-xs text-muted-foreground mb-2">Features Unlocked:</p>
-            <div className="flex flex-wrap gap-1.5">
-              <Badge variant="outline" className="text-xs">Image Gen</Badge>
-              <Badge variant="outline" className="text-xs">Video Gen</Badge>
-              <Badge variant="outline" className="text-xs">AI Music</Badge>
-              <Badge variant="outline" className="text-xs">Deep Research</Badge>
-              <Badge variant="outline" className="text-xs">Content Creator</Badge>
-            </div>
           </div>
         )}
       </CardContent>
