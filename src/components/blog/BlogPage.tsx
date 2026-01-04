@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   FileText, Search, Clock, Eye, Calendar, ChevronRight, 
   Newspaper, BookOpen, Star, ArrowLeft, User, Tag,
-  Share2, Loader2, TrendingUp
+  Share2, Loader2, TrendingUp, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -41,6 +41,7 @@ interface BlogPost {
   like_count: number;
   published_at: string | null;
   created_at: string;
+  status: string;
   blog_categories?: BlogCategory;
 }
 
@@ -56,6 +57,27 @@ const BlogPage = () => {
 
   useEffect(() => {
     fetchData();
+
+    // Set up realtime subscription for new posts
+    const channel = supabase
+      .channel('blog-posts-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'blog_posts'
+        },
+        () => {
+          // Refetch data when any change occurs
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Update page title when viewing a post
@@ -72,7 +94,8 @@ const BlogPage = () => {
     try {
       const [catRes, postRes] = await Promise.all([
         supabase.from('blog_categories').select('*').eq('is_active', true).order('display_order'),
-        supabase.from('blog_posts').select('*, blog_categories(*)').eq('status', 'published').order('published_at', { ascending: false })
+        // Fetch both published and draft posts, ordered by created_at (newest first)
+        supabase.from('blog_posts').select('*, blog_categories(*)').in('status', ['published', 'draft']).order('created_at', { ascending: false })
       ]);
       
       if (catRes.data) setCategories(catRes.data);
@@ -255,34 +278,40 @@ const BlogPage = () => {
 
   // Blog Listing View
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+    <div className="space-y-4 px-1">
+      {/* Header - Compact for mobile */}
+      <div className="text-center space-y-1">
+        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
           Tech Blog
         </h1>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
           Stay updated with the latest technology news, AI developments, tutorials, and industry insights.
         </p>
       </div>
 
-      {/* Search */}
-      <div className="max-w-md mx-auto relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search articles..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search with Refresh Button */}
+      <div className="flex gap-2 max-w-md mx-auto">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search articles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Button variant="outline" size="icon" onClick={() => fetchData()} title="Refresh">
+          <RefreshCw className="h-4 w-4" />
+        </Button>
       </div>
 
-      {/* Categories */}
+      {/* Categories - Scrollable horizontally */}
       <ScrollArea className="w-full">
-        <div className="flex gap-2 pb-2">
+        <div className="flex gap-2 pb-2 px-1">
           <Button
             variant={!selectedCategory ? "default" : "outline"}
             size="sm"
+            className="shrink-0"
             onClick={() => setSelectedCategory(null)}
           >
             All
@@ -292,6 +321,7 @@ const BlogPage = () => {
               key={cat.id}
               variant={selectedCategory === cat.id ? "default" : "outline"}
               size="sm"
+              className="shrink-0"
               onClick={() => setSelectedCategory(cat.id)}
               style={selectedCategory === cat.id ? { backgroundColor: cat.color || undefined } : {}}
             >
@@ -301,13 +331,13 @@ const BlogPage = () => {
         </div>
       </ScrollArea>
 
-      {/* Tabs */}
+      {/* Tabs - Compact */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 max-w-md mx-auto">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="news">News</TabsTrigger>
-          <TabsTrigger value="articles">Articles</TabsTrigger>
-          <TabsTrigger value="tutorials">Tutorials</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 max-w-sm mx-auto h-9">
+          <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
+          <TabsTrigger value="news" className="text-xs">News</TabsTrigger>
+          <TabsTrigger value="articles" className="text-xs">Articles</TabsTrigger>
+          <TabsTrigger value="tutorials" className="text-xs">Tutorials</TabsTrigger>
         </TabsList>
       </Tabs>
 
