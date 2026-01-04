@@ -14,7 +14,7 @@ import BuyAICreditsDialog from '@/components/ai/BuyAICreditsDialog';
 import CreditSourceDialog from '@/components/ai/CreditSourceDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp, BookOpen } from 'lucide-react';
 import WebsiteBuilder from '@/components/ai/WebsiteBuilder';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
@@ -28,6 +28,7 @@ import AdsMaker from '@/components/ai/AdsMaker';
 import ContactUsAssistant from '@/components/ai/ContactUsAssistant';
 import AICreditsDisplay from '@/components/ai/AICreditsDisplay';
 import BlogContentMaker from '@/components/ai/BlogContentMaker';
+import BlogPage from '@/components/blog/BlogPage';
 import MarketAnalysis from '@/components/ai/MarketAnalysis';
 import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -218,6 +219,7 @@ const AIHub = memo(() => {
     { id: 'social-media', label: 'Social', icon: Users, gradient: 'from-indigo-400 to-violet-500', iconColor: 'text-indigo-500', premium: true, unlockCost: 40 },
     ...(isPaidAffiliate ? [{ id: 'ads-maker', label: 'Ads', icon: Megaphone, gradient: 'from-orange-400 to-red-500', iconColor: 'text-orange-500', premium: true, unlockCost: 35 }] : []),
     { id: 'blog-maker', label: 'Blog', icon: Newspaper, gradient: 'from-orange-400 to-amber-500', iconColor: 'text-orange-500', premium: true, unlockCost: 20 },
+    { id: 'blog', label: 'Read Blog', icon: BookOpen, gradient: 'from-teal-400 to-emerald-500', iconColor: 'text-teal-500' },
     { id: 'market-analysis', label: 'Markets', icon: TrendingUp, gradient: 'from-blue-500 to-indigo-600', iconColor: 'text-blue-500', premium: true, unlockCost: 30 },
     { id: 'contact', label: 'Contact', icon: MessageSquare, gradient: 'from-teal-400 to-blue-500', iconColor: 'text-teal-500' },
   ];
@@ -2449,6 +2451,13 @@ const AIHub = memo(() => {
           {activeTab === 'blog-maker' && (
             <div className="p-4 md:p-6">
               <BlogContentMaker userCredits={userCredits} onCreditsChange={() => { fetchUserCredits(); refetchAICredits(); }} />
+            </div>
+          )}
+
+          {/* Public Blog */}
+          {activeTab === 'blog' && (
+            <div className="p-4 md:p-6">
+              <BlogPage />
             </div>
           )}
 

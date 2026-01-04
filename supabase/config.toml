@@ -101,3 +101,9 @@ verify_jwt = true
 
 [functions.driver-dispatch]
 verify_jwt = false
+
+[functions.image-search]
+verify_jwt = false
+
+[functions.generate-blog-content]
+verify_jwt = false
