@@ -17,7 +17,7 @@ import { useAISubscription } from '@/hooks/useAISubscription';
 import CreditSourceDialog from '@/components/ai/CreditSourceDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp, BookOpen, CloudSun } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp, BookOpen, CloudSun, Mail } from 'lucide-react';
 import WebsiteBuilder from '@/components/ai/WebsiteBuilder';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
@@ -34,6 +34,7 @@ import BlogContentMaker from '@/components/ai/BlogContentMaker';
 import BlogPage from '@/components/blog/BlogPage';
 import MarketAnalysis from '@/components/ai/MarketAnalysis';
 import WeatherForecast from '@/components/ai/WeatherForecast';
+import EmailMarketingHub from '@/components/ai/EmailMarketingHub';
 import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -248,6 +249,7 @@ const AIHub = memo(() => {
     'ads-maker': { cost: 35, name: 'AI Ads Maker', description: 'Create professional ad creatives for all platforms with AI assistance.' },
     'blog-maker': { cost: 20, name: 'Blog Content Maker', description: 'Generate SEO-optimized blog posts with research, scripting, and publishing tools.' },
     'market-analysis': { cost: 30, name: 'Market Analysis', description: 'AI-powered market analysis for stocks, forex, and crypto trading insights.' },
+    'email-marketing': { cost: 25, name: 'Email Marketing', description: 'Create AI-powered newsletters and email automations like Mailchimp to engage your audience.' },
   };
 
   // Navigation items for sidebar with colorful gradients
@@ -275,6 +277,7 @@ const AIHub = memo(() => {
     { id: 'blog', label: 'Read Blog', icon: BookOpen, gradient: 'from-teal-400 to-emerald-500', iconColor: 'text-teal-500' },
     { id: 'weather', label: 'Weather', icon: CloudSun, gradient: 'from-sky-400 to-blue-500', iconColor: 'text-sky-500' },
     { id: 'market-analysis', label: 'Markets', icon: TrendingUp, gradient: 'from-blue-500 to-indigo-600', iconColor: 'text-blue-500', premium: true, unlockCost: 30 },
+    { id: 'email-marketing', label: 'Email', icon: Mail, gradient: 'from-rose-400 to-pink-500', iconColor: 'text-rose-500', premium: true, unlockCost: 25 },
     { id: 'contact', label: 'Contact', icon: MessageSquare, gradient: 'from-teal-400 to-blue-500', iconColor: 'text-teal-500' },
   ];
 
@@ -2579,6 +2582,13 @@ const AIHub = memo(() => {
           {activeTab === 'market-analysis' && (
             <div className="p-4 md:p-6">
               <MarketAnalysis userCredits={userCredits} onCreditsChange={() => { fetchUserCredits(); refetchAICredits(); }} />
+            </div>
+          )}
+
+          {/* Email Marketing Hub - Premium */}
+          {activeTab === 'email-marketing' && (
+            <div className="p-4 md:p-6">
+              <EmailMarketingHub />
             </div>
           )}
 

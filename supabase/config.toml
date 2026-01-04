@@ -107,3 +107,12 @@ verify_jwt = false
 
 [functions.generate-blog-content]
 verify_jwt = false
+
+[functions.generate-newsletter-content]
+verify_jwt = false
+
+[functions.send-newsletter]
+verify_jwt = false
+
+[functions.sync-newsletter-subscribers]
+verify_jwt = false

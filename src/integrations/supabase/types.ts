@@ -1589,6 +1589,45 @@ export type Database = {
           },
         ]
       }
+      automation_sends: {
+        Row: {
+          automation_id: string | null
+          id: string
+          sent_at: string | null
+          status: string | null
+          subscriber_id: string | null
+        }
+        Insert: {
+          automation_id?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string | null
+          subscriber_id?: string | null
+        }
+        Update: {
+          automation_id?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string | null
+          subscriber_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_sends_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "email_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_sends_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       binary_accounting_ledger: {
         Row: {
           amount: number
@@ -3562,6 +3601,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_automations: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          subject: string
+          trigger_delay_hours: number | null
+          trigger_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          subject: string
+          trigger_delay_hours?: number | null
+          trigger_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          subject?: string
+          trigger_delay_hours?: number | null
+          trigger_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       email_change_requests: {
         Row: {
@@ -6217,6 +6295,135 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      newsletter_sends: {
+        Row: {
+          clicked_at: string | null
+          id: string
+          newsletter_id: string | null
+          opened_at: string | null
+          sent_at: string | null
+          status: string | null
+          subscriber_id: string | null
+        }
+        Insert: {
+          clicked_at?: string | null
+          id?: string
+          newsletter_id?: string | null
+          opened_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subscriber_id?: string | null
+        }
+        Update: {
+          clicked_at?: string | null
+          id?: string
+          newsletter_id?: string | null
+          opened_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subscriber_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_sends_newsletter_id_fkey"
+            columns: ["newsletter_id"]
+            isOneToOne: false
+            referencedRelation: "newsletters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_sends_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_subscribers: {
+        Row: {
+          email: string
+          full_name: string | null
+          id: string
+          is_subscribed: boolean | null
+          source: string | null
+          subscribed_at: string | null
+          unsubscribed_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          email: string
+          full_name?: string | null
+          id?: string
+          is_subscribed?: boolean | null
+          source?: string | null
+          subscribed_at?: string | null
+          unsubscribed_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          email?: string
+          full_name?: string | null
+          id?: string
+          is_subscribed?: boolean | null
+          source?: string | null
+          subscribed_at?: string | null
+          unsubscribed_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      newsletters: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          preview_text: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+          title: string
+          total_clicks: number | null
+          total_opens: number | null
+          total_recipients: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          preview_text?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+          title: string
+          total_clicks?: number | null
+          total_opens?: number | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          preview_text?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+          title?: string
+          total_clicks?: number | null
+          total_opens?: number | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       notifications: {
         Row: {
