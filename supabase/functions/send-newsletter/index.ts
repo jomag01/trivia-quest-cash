@@ -99,7 +99,7 @@ serve(async (req) => {
 </html>`;
 
           await resend.emails.send({
-            from: "BeeHive <onboarding@resend.dev>",
+            from: "TriviaBees <support@triviabees.com>",
             to: [subscriber.email],
             subject: newsletter.subject,
             html: emailHtml,
