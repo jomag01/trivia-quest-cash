@@ -18,7 +18,8 @@ import {
   Save, Globe, Calendar, Clock, Tag, Search,
   Newspaper, BookOpen, Star, CheckCircle, XCircle, RefreshCw,
   BarChart3, TrendingUp, MousePointerClick, Target, Award,
-  Megaphone, DollarSign, Users, FileCheck, AlertTriangle, Rocket
+  Megaphone, DollarSign, Users, FileCheck, AlertTriangle, Rocket,
+  Link2, ExternalLink, Copy
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -56,6 +57,13 @@ interface BlogPost {
   blog_categories?: BlogCategory;
 }
 
+interface AffiliateLink {
+  id: string;
+  name: string;
+  url: string;
+  placeholder: string;
+}
+
 const BlogManagement = () => {
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -70,6 +78,11 @@ const BlogManagement = () => {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Affiliate links state
+  const [affiliateLinks, setAffiliateLinks] = useState<AffiliateLink[]>([]);
+  const [newLinkName, setNewLinkName] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
   
   // Form state
   const [form, setForm] = useState({
@@ -359,6 +372,54 @@ const BlogManagement = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Affiliate link functions
+  const addAffiliateLink = () => {
+    if (!newLinkName.trim() || !newLinkUrl.trim()) {
+      toast.error('Please enter both name and URL');
+      return;
+    }
+    
+    const newLink: AffiliateLink = {
+      id: Date.now().toString(),
+      name: newLinkName.trim(),
+      url: newLinkUrl.trim(),
+      placeholder: `{{${newLinkName.trim().toUpperCase().replace(/\s+/g, '_')}_LINK}}`
+    };
+    
+    setAffiliateLinks(prev => [...prev, newLink]);
+    setNewLinkName('');
+    setNewLinkUrl('');
+    toast.success('Affiliate link added!');
+  };
+
+  const removeAffiliateLink = (id: string) => {
+    setAffiliateLinks(prev => prev.filter(link => link.id !== id));
+  };
+
+  const insertAffiliateLink = (link: AffiliateLink) => {
+    const markdownLink = `[${link.name}](${link.url})`;
+    setForm(prev => ({
+      ...prev,
+      content: prev.content + '\n\n' + markdownLink
+    }));
+    toast.success(`Inserted ${link.name} link into content`);
+  };
+
+  const replaceAllPlaceholders = () => {
+    let updatedContent = form.content;
+    affiliateLinks.forEach(link => {
+      const regex = new RegExp(link.placeholder.replace(/[{}]/g, '\\$&'), 'gi');
+      updatedContent = updatedContent.replace(regex, `[${link.name}](${link.url})`);
+    });
+    setForm(prev => ({ ...prev, content: updatedContent }));
+    toast.success('All affiliate placeholders replaced with links!');
+  };
+
+  const copyPlaceholder = (placeholder: string) => {
+    navigator.clipboard.writeText(placeholder);
+    toast.success('Placeholder copied! Paste it in your content.');
   };
 
   const filteredPosts = posts.filter(post => {
@@ -920,6 +981,82 @@ const BlogManagement = () => {
                     placeholder="https://example.com/image.jpg"
                   />
                 </div>
+
+                {/* Affiliate Links Section */}
+                <Card className="border-2 border-green-500/30 bg-green-500/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <Link2 className="h-4 w-4" />
+                      Affiliate Links (Earn Extra Income)
+                    </CardTitle>
+                    <CardDescription>Add hoplinks and affiliate URLs to monetize your content</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Add new link */}
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Link name (e.g., ClickBank Product)"
+                        value={newLinkName}
+                        onChange={(e) => setNewLinkName(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="Affiliate URL or Hoplink"
+                        value={newLinkUrl}
+                        onChange={(e) => setNewLinkUrl(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button onClick={addAffiliateLink} size="sm" className="bg-green-600 hover:bg-green-700">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Links list */}
+                    {affiliateLinks.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs text-muted-foreground">Your Affiliate Links</Label>
+                          <Button variant="outline" size="sm" onClick={replaceAllPlaceholders} className="h-7 text-xs">
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Replace All Placeholders
+                          </Button>
+                        </div>
+                        {affiliateLinks.map(link => (
+                          <div key={link.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 border text-sm">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">{link.name}</div>
+                              <div className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                                <ExternalLink className="h-3 w-3" />
+                                {link.url}
+                              </div>
+                            </div>
+                            <Badge variant="secondary" className="text-xs font-mono cursor-pointer hover:bg-secondary/80" onClick={() => copyPlaceholder(link.placeholder)}>
+                              <Copy className="h-3 w-3 mr-1" />
+                              {link.placeholder}
+                            </Badge>
+                            <Button variant="ghost" size="sm" onClick={() => insertAffiliateLink(link)} className="h-7 text-xs text-green-600">
+                              Insert
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => removeAffiliateLink(link.id)} className="h-7 text-xs text-destructive">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Tips */}
+                    <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-xs space-y-1">
+                      <p className="font-medium text-green-700 dark:text-green-300">💰 How to Use Affiliate Links:</p>
+                      <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                        <li>Add your ClickBank, Amazon, or any affiliate link above</li>
+                        <li>Click "Insert" to add the link at the end of your content</li>
+                        <li>Or copy the placeholder and paste it anywhere in your content</li>
+                        <li>Click "Replace All Placeholders" before publishing</li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="ai" className="space-y-4 pr-4">
