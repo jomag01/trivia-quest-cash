@@ -122,96 +122,46 @@ const MarketAnalysis = ({ userCredits, onCreditsChange }: MarketAnalysisProps) =
 
     setIsAnalyzing(true);
     try {
-      // Deduct credits
+      const marketInfo = MARKET_TYPES.find((m) => m.value === marketType);
+      const analysisInfo = ANALYSIS_TYPES.find((a) => a.value === analysisType);
+      const timeframeInfo = TIMEFRAMES.find((t) => t.value === timeframe);
+
+      const { data, error } = await supabase.functions.invoke('business-solutions', {
+        body: {
+          type: 'market-analysis',
+          symbol: symbol.trim(),
+          marketType,
+          analysisType,
+          timeframe,
+          additionalContext: additionalContext || null,
+          marketLabel: marketInfo?.label,
+          analysisLabel: analysisInfo?.label,
+          timeframeLabel: timeframeInfo?.label,
+        },
+      });
+
+      if (error) throw error;
+
+      const analysis = (data as any)?.analysis as AnalysisResult | undefined;
+      if (!analysis) {
+        throw new Error('No analysis returned');
+      }
+
+      // Deduct credits only after a successful analysis
       const { error: creditError } = await supabase
         .from('profiles')
         .update({ credits: userCredits - CREDIT_COST })
         .eq('id', user?.id);
 
-      if (creditError) throw creditError;
-      onCreditsChange();
+      if (creditError) {
+        console.error('Credit update error:', creditError);
+        toast.warning('Analysis completed, but credits could not be updated. Please refresh.');
+      } else {
+        onCreditsChange();
+      }
 
-      const marketInfo = MARKET_TYPES.find(m => m.value === marketType);
-      const analysisInfo = ANALYSIS_TYPES.find(a => a.value === analysisType);
-      const timeframeInfo = TIMEFRAMES.find(t => t.value === timeframe);
-
-      const { data, error } = await supabase.functions.invoke('business-solutions', {
-        body: {
-          action: 'analyze',
-          topic: `${marketInfo?.label} Market Analysis for ${symbol.toUpperCase()}`,
-          context: `
-            Asset/Symbol: ${symbol.toUpperCase()}
-            Market Type: ${marketInfo?.label}
-            Analysis Type: ${analysisInfo?.label} - ${analysisInfo?.description}
-            Timeframe: ${timeframeInfo?.label} (${timeframeInfo?.description})
-            Additional Context: ${additionalContext || 'None provided'}
-            
-            Provide comprehensive market analysis including:
-            1. Technical indicators (trend, RSI, MACD, support/resistance levels)
-            2. Fundamental analysis (if applicable)
-            3. Market sentiment and news impact
-            4. Price prediction with confidence level
-            5. Key risks and opportunities
-            6. Clear trading recommendation
-            
-            Format the response as detailed JSON with all analysis components.
-          `
-        }
-      });
-
-      if (error) throw error;
-
-      // Parse and structure the result
-      const result: AnalysisResult = {
-        symbol: symbol.toUpperCase(),
-        marketType: marketInfo?.label || marketType,
-        summary: data.analysis?.summary || data.content || `Analysis complete for ${symbol.toUpperCase()}`,
-        technicalIndicators: {
-          trend: Math.random() > 0.5 ? 'bullish' : Math.random() > 0.5 ? 'bearish' : 'neutral',
-          strength: Math.floor(Math.random() * 40) + 60,
-          support: `$${(Math.random() * 1000).toFixed(2)}`,
-          resistance: `$${(Math.random() * 1000 + 500).toFixed(2)}`,
-          rsi: Math.floor(Math.random() * 60) + 20,
-          macd: Math.random() > 0.5 ? 'Bullish crossover' : 'Bearish divergence'
-        },
-        fundamentals: {
-          score: Math.floor(Math.random() * 40) + 60,
-          keyPoints: [
-            'Strong earnings growth potential',
-            'Healthy balance sheet metrics',
-            'Competitive market position'
-          ]
-        },
-        sentiment: {
-          overall: Math.random() > 0.5 ? 'positive' : Math.random() > 0.5 ? 'negative' : 'neutral',
-          newsImpact: 'Moderately positive with recent developments',
-          socialBuzz: 'High engagement on trading communities'
-        },
-        prediction: {
-          direction: Math.random() > 0.6 ? 'up' : Math.random() > 0.5 ? 'down' : 'sideways',
-          confidence: Math.floor(Math.random() * 30) + 60,
-          priceTargets: {
-            low: `$${(Math.random() * 500).toFixed(2)}`,
-            mid: `$${(Math.random() * 500 + 250).toFixed(2)}`,
-            high: `$${(Math.random() * 500 + 500).toFixed(2)}`
-          },
-          timeframe: timeframeInfo?.description || '1-4 weeks'
-        },
-        risks: [
-          'Market volatility and macroeconomic factors',
-          'Regulatory changes in the sector',
-          'Competition and market share risks'
-        ],
-        opportunities: [
-          'Potential breakout from current consolidation',
-          'Sector rotation favoring this asset class',
-          'Strong institutional interest'
-        ],
-        recommendation: data.analysis?.recommendation || 'Monitor closely with defined entry/exit points. Consider position sizing based on risk tolerance.'
-      };
-
-      setAnalysisResult(result);
-      setAnalysisHistory(prev => [result, ...prev.slice(0, 4)]);
+      setAnalysisResult(analysis);
+      setAnalysisHistory((prev) => [analysis, ...prev.slice(0, 4)]);
       toast.success('Market analysis completed!');
     } catch (error) {
       console.error('Analysis error:', error);

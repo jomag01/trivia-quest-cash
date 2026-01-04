@@ -309,6 +309,102 @@ Return a JSON object with this structure:
       );
     }
 
+    if (type === 'market-analysis') {
+      const {
+        symbol,
+        marketType,
+        analysisType,
+        timeframe,
+        additionalContext,
+        marketLabel,
+        analysisLabel,
+        timeframeLabel,
+      } = params;
+
+      if (!symbol) {
+        throw new Error('symbol is required');
+      }
+
+      const systemPrompt = `You are a senior market analyst. Produce a market analysis as STRICT JSON only (no markdown, no code fences).
+
+Rules:
+- Use real-world, plausible reasoning but DO NOT claim to have live prices. If you need current data, state assumptions.
+- Keep values consistent and realistic.
+- Return EXACTLY this JSON schema:
+{
+  "symbol": string,
+  "marketType": string,
+  "summary": string,
+  "technicalIndicators": {
+    "trend": "bullish"|"bearish"|"neutral",
+    "strength": number,
+    "support": string,
+    "resistance": string,
+    "rsi": number,
+    "macd": string
+  },
+  "fundamentals": { "score": number, "keyPoints": string[] },
+  "sentiment": { "overall": "positive"|"negative"|"neutral", "newsImpact": string, "socialBuzz": string },
+  "prediction": {
+    "direction": "up"|"down"|"sideways",
+    "confidence": number,
+    "priceTargets": { "low": string, "mid": string, "high": string },
+    "timeframe": string
+  },
+  "risks": string[],
+  "opportunities": string[],
+  "recommendation": string
+}`;
+
+      const userPrompt = `Analyze this asset:
+- Symbol/Asset: ${String(symbol).toUpperCase()}
+- Market Type: ${marketLabel || marketType}
+- Analysis Type: ${analysisLabel || analysisType}
+- Timeframe: ${timeframeLabel || timeframe}
+- Additional Context: ${additionalContext || 'None'}
+
+Return JSON only.`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI API error:', errorText);
+        throw new Error(`AI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) throw new Error('No content returned from AI');
+
+      let analysis: any;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+      } catch (parseError) {
+        console.error('Market analysis parse error:', parseError);
+        throw new Error('Failed to parse analysis JSON');
+      }
+
+      return new Response(
+        JSON.stringify({ analysis }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (type === 'generate-document') {
       const { serviceType, serviceName, content, instructions } = params;
       
