@@ -60,7 +60,7 @@ const FlyingBees: React.FC = () => {
   };
   
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" style={{ contain: 'layout style paint' }}>
       {bees.map((bee) => {
         const path = getRandomPath(bee.x, bee.y);
         
@@ -69,14 +69,14 @@ const FlyingBees: React.FC = () => {
             key={bee.id}
             className="absolute"
             initial={{ 
-              left: `${bee.x}%`, 
-              top: `${bee.y}%`,
+              x: 0,
+              y: 0,
               opacity: 0,
               scale: 0
             }}
             animate={{
-              left: path.map(p => `${Math.min(100, Math.max(0, p.x))}%`),
-              top: path.map(p => `${Math.min(100, Math.max(0, p.y))}%`),
+              x: path.map(p => `${(p.x - bee.x)}%`),
+              y: path.map(p => `${(p.y - bee.y)}%`),
               opacity: [0, 1, 1, 1, 1, 0.5, 0],
               scale: [0, 1, 1.1, 1, 1.1, 1, 0.8],
               rotate: [-10, 10, -10, 10, -10, 10, 0]
@@ -88,7 +88,7 @@ const FlyingBees: React.FC = () => {
               repeatDelay: Math.random() * 2,
               ease: "easeInOut"
             }}
-            style={{ fontSize: bee.size }}
+            style={{ fontSize: bee.size, left: `${bee.x}%`, top: `${bee.y}%`, willChange: 'transform, opacity' }}
           >
             <div className="relative">
               <span className="drop-shadow-lg">{getBeeEmoji(bee.type)}</span>
