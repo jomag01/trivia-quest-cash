@@ -298,16 +298,16 @@ const Shop = () => {
 
   return <div className="min-h-screen bg-background pb-20 beehive-bg beehive-theme">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        {/* Top Header with Search and Cart */}
-        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border shadow-sm px-3 py-2">
+        {/* Top Header with Search and Cart - Compact */}
+        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border shadow-sm px-2 py-1.5">
           <div className="flex items-center gap-2 max-w-7xl mx-auto">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
               <Input 
                 placeholder="Search products..." 
                 value={searchQuery} 
                 onChange={e => setSearchQuery(e.target.value)} 
-                className="pl-9 pr-10 h-10 text-sm bg-muted/50 border-primary/30 focus:border-primary focus:ring-primary/20" 
+                className="pl-8 pr-9 h-9 text-sm bg-muted/50 border-primary/30 focus:border-primary focus:ring-primary/20" 
               />
               {/* Image Search Button inside input */}
               <div className="absolute right-1 top-1/2 -translate-y-1/2">
@@ -326,12 +326,12 @@ const Shop = () => {
               </div>
               {/* Search Results Dropdown */}
               {searchQuery.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto z-50">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg max-h-72 overflow-y-auto z-50">
                   {filteredProducts.length > 0 ? (
                     filteredProducts.slice(0, 8).map(product => (
                       <div 
                         key={product.id}
-                        className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer border-b border-border/50 last:border-b-0 transition-colors"
+                        className="flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer border-b border-border/50 last:border-b-0 transition-colors"
                         onClick={() => {
                           trackInteraction('view', 'product', product.id, { name: product.name, source: 'search' });
                           setDetailProduct(product);
@@ -343,116 +343,116 @@ const Shop = () => {
                           <img 
                             src={product.image_url} 
                             alt={product.name} 
-                            className="w-12 h-12 object-cover rounded-md"
+                            className="w-10 h-10 object-cover rounded"
                           />
                         ) : (
-                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
-                            <Package className="w-6 h-6 text-muted-foreground" />
+                          <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                            <Package className="w-5 h-5 text-muted-foreground" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{product.name}</p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-primary">
-                              ₱{getEffectivePrice(product).toFixed(2)}
+                          <p className="font-medium text-xs truncate">{product.name}</p>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold text-destructive">
+                              ₱{getEffectivePrice(product).toLocaleString()}
                             </span>
                             {product.promo_active && product.promo_price && (
-                              <span className="text-xs text-muted-foreground line-through">
-                                ₱{product.base_price.toFixed(2)}
+                              <span className="text-[10px] text-muted-foreground line-through">
+                                ₱{product.base_price.toLocaleString()}
                               </span>
                             )}
                           </div>
                         </div>
                         {product.promo_active && (
-                          <Badge className="text-[10px] bg-destructive text-destructive-foreground">Sale</Badge>
+                          <Badge className="text-[8px] bg-destructive text-destructive-foreground px-1">Sale</Badge>
                         )}
                       </div>
                     ))
                   ) : (
-                    <div className="p-4 text-center text-muted-foreground">
-                      <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No products found for "{searchQuery}"</p>
+                    <div className="p-3 text-center text-muted-foreground">
+                      <Search className="w-6 h-6 mx-auto mb-1 opacity-50" />
+                      <p className="text-xs">No products found</p>
                     </div>
                   )}
                   {filteredProducts.length > 8 && (
-                    <div className="p-2 text-center border-t border-border">
-                      <p className="text-xs text-muted-foreground">
-                        Showing 8 of {filteredProducts.length} results
+                    <div className="p-1.5 text-center border-t border-border">
+                      <p className="text-[10px] text-muted-foreground">
+                        +{filteredProducts.length - 8} more results
                       </p>
                     </div>
                   )}
                 </div>
               )}
             </div>
-            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => navigate("/dashboard?tab=cart")}>
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate("/dashboard?tab=cart")}>
               <ShoppingCart className="w-5 h-5 text-foreground" />
             </Button>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-3">
+        <div className="max-w-7xl mx-auto px-2">
           {/* Account Overview - Compact */}
-          <Suspense fallback={<div className="h-12" />}>
+          <Suspense fallback={<div className="h-10" />}>
             <ShopAccountOverview />
           </Suspense>
 
-          {/* Navigation Tabs */}
-          <TabsList className="w-full grid grid-cols-7 mb-3 mt-2">
-            <TabsTrigger value="shop" className="text-xs gap-1">
-              <Package className="w-3.5 h-3.5" />
+          {/* Navigation Tabs - Compact */}
+          <TabsList className="w-full grid grid-cols-7 mb-2 mt-1.5 h-auto">
+            <TabsTrigger value="shop" className="text-[10px] gap-0.5 py-1.5">
+              <Package className="w-3 h-3" />
               Shop
             </TabsTrigger>
-            <TabsTrigger value="marketplace" className="text-xs gap-1">
-              <Building className="w-3.5 h-3.5" />
+            <TabsTrigger value="marketplace" className="text-[10px] gap-0.5 py-1.5">
+              <Building className="w-3 h-3" />
               Market
             </TabsTrigger>
-            <TabsTrigger value="auction" className="text-xs gap-1">
-              <Gavel className="w-3.5 h-3.5" />
-              Auction
+            <TabsTrigger value="auction" className="text-[10px] gap-0.5 py-1.5">
+              <Gavel className="w-3 h-3" />
+              Bid
             </TabsTrigger>
-            <TabsTrigger value="food" className="text-xs gap-1">
-              <UtensilsCrossed className="w-3.5 h-3.5" />
+            <TabsTrigger value="food" className="text-[10px] gap-0.5 py-1.5">
+              <UtensilsCrossed className="w-3 h-3" />
               Food
             </TabsTrigger>
-            <TabsTrigger value="seller" className="text-xs gap-1">
-              <Store className="w-3.5 h-3.5" />
-              Seller
+            <TabsTrigger value="seller" className="text-[10px] gap-0.5 py-1.5">
+              <Store className="w-3 h-3" />
+              Sell
             </TabsTrigger>
-            <TabsTrigger value="supplier" className="text-xs gap-1">
-              <Truck className="w-3.5 h-3.5" />
-              Supplier
+            <TabsTrigger value="supplier" className="text-[10px] gap-0.5 py-1.5">
+              <Truck className="w-3 h-3" />
+              Supply
             </TabsTrigger>
-            <TabsTrigger value="cart" className="text-xs gap-1" onClick={() => navigate('/shop?tab=cart')}>
-              <ShoppingCart className="w-3.5 h-3.5" />
+            <TabsTrigger value="cart" className="text-[10px] gap-0.5 py-1.5" onClick={() => navigate('/shop?tab=cart')}>
+              <ShoppingCart className="w-3 h-3" />
               Cart
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="shop" className="space-y-3 mt-0">
-            {/* Booking Services Panel */}
+          <TabsContent value="shop" className="space-y-2 mt-0">
+            {/* Booking Services Panel - Compact */}
             <Card className="overflow-hidden border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
               <button 
                 onClick={() => setShowBookings(!showBookings)}
-                className="w-full p-3 flex items-center justify-between hover:bg-primary/5 transition-colors"
+                className="w-full p-2 flex items-center justify-between hover:bg-primary/5 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-primary/20">
-                    <CalendarCheck className="w-5 h-5 text-primary" />
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-full bg-primary/20">
+                    <CalendarCheck className="w-4 h-4 text-primary" />
                   </div>
                   <div className="text-left">
-                    <h3 className="font-semibold text-sm">Book Services</h3>
-                    <p className="text-xs text-muted-foreground">Browse and book approved services</p>
+                    <h3 className="font-semibold text-xs">Book Services</h3>
+                    <p className="text-[10px] text-muted-foreground">Browse approved services</p>
                   </div>
                 </div>
                 {showBookings ? (
-                  <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 )}
               </button>
               {showBookings && (
-                <div className="p-4 border-t border-primary/10">
-                  <Suspense fallback={<div className="h-40 animate-pulse bg-muted rounded" />}>
+                <div className="p-2 border-t border-primary/10">
+                  <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded" />}>
                     <ServicesList />
                   </Suspense>
                 </div>
@@ -461,7 +461,7 @@ const Shop = () => {
 
             {/* Promotion Slider */}
             <Suspense fallback={<AdSliderSkeleton />}>
-              <div className="-mx-3">
+              <div className="-mx-2">
                 <AdSlider />
               </div>
             </Suspense>
@@ -483,15 +483,15 @@ const Shop = () => {
               <SellerAdsSlider />
             </Suspense>
 
-            {/* Income Disclaimer */}
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-              <p className="text-[10px] text-amber-700 dark:text-amber-300 leading-relaxed">
-                <span className="font-semibold">SEC Disclaimer:</span> This is a sales-based referral rewards program. Earnings are not guaranteed and depend on individual effort, team performance, and compliance with company rules.
+            {/* Income Disclaimer - Compact */}
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded p-2">
+              <p className="text-[9px] text-amber-700 dark:text-amber-300 leading-relaxed">
+                <span className="font-semibold">SEC Disclaimer:</span> Earnings depend on effort & team performance.
               </p>
             </div>
 
-            {/* AI Product Recommendations - Main Grid (loads fast with images) */}
-            <Suspense fallback={<ProductGridSkeleton count={4} />}>
+            {/* AI Product Recommendations - Main Grid */}
+            <Suspense fallback={<ProductGridSkeleton count={6} />}>
               <AIProductRecommendations 
                 currentProductId={detailProduct?.id}
                 onProductClick={(product) => {
