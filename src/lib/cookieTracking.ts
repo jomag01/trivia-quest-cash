@@ -144,6 +144,33 @@ export const getReferrerFromCookie = (
   };
 };
 
+// Get referral code from cookie (looks up the referrer's code from their ID)
+export const getReferralCodeFromCookie = async (): Promise<string | null> => {
+  const referrerData = getReferrerFromCookie('referral');
+  
+  if (!referrerData.referrerId) {
+    // Also check affiliate cookies as fallback
+    const affData = getReferrerFromCookie('affiliate');
+    if (!affData.referrerId) return null;
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('referral_code')
+      .eq('id', affData.referrerId)
+      .maybeSingle();
+    
+    return data?.referral_code || null;
+  }
+  
+  const { data } = await supabase
+    .from('profiles')
+    .select('referral_code')
+    .eq('id', referrerData.referrerId)
+    .maybeSingle();
+  
+  return data?.referral_code || null;
+};
+
 // Mark a conversion
 export const markConversion = async (
   linkType: 'referral' | 'product' | 'affiliate' | 'live_stream',
