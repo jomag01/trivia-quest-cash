@@ -93,6 +93,7 @@ import AdRevenueSettings from "@/components/admin/AdRevenueSettings";
 import PayoutAccountsManagement from "@/components/admin/PayoutAccountsManagement";
 import BlogManagement from "@/components/admin/BlogManagement";
 import AISubscriptionManagement from "@/components/admin/AISubscriptionManagement";
+import NewsletterManagement from "@/components/admin/NewsletterManagement";
 
 interface MenuItem {
   id: string;
@@ -263,6 +264,7 @@ const Admin = () => {
         { id: "ai-settings", label: "AI Hub Settings", icon: Sparkles },
         { id: "ai-pricing", label: "AI Provider Costs", icon: DollarSign },
         { id: "blog-management", label: "Blog Management", icon: Barcode },
+        { id: "newsletter", label: "Newsletter & Email", icon: Megaphone },
       ],
     },
     {
@@ -824,6 +826,7 @@ const Admin = () => {
           {activeTab === "ai-settings" && <AISettingsManagement />}
           {activeTab === "ai-pricing" && <AIProviderPricing />}
           {activeTab === "blog-management" && <BlogManagement />}
+          {activeTab === "newsletter" && <NewsletterManagement />}
           {activeTab === "qr-payment" && <QRPaymentSettings />}
           {activeTab === "cash-deposits" && <CashDepositManagement />}
           {activeTab === "payout-accounts" && <PayoutAccountsManagement />}
