@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Cloud, Sun, CloudRain, CloudSnow, Wind, Droplets, 
   Thermometer, MapPin, RefreshCw, Loader2, CloudLightning,
@@ -352,17 +351,17 @@ const WeatherForecast = () => {
 
       {/* 10-Day Forecast */}
       <Card className="border-0 shadow-lg bg-gradient-to-br from-background to-muted/30">
-        <CardHeader className="pb-2 px-3 sm:px-6">
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <div className="p-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500">
-              <Calendar className="h-4 w-4 text-white" />
+        <CardHeader className="pb-1 sm:pb-2 px-2 sm:px-6 pt-3 sm:pt-6">
+          <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-sm sm:text-lg">
+            <div className="p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-gradient-to-r from-orange-500 to-amber-500">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
             </div>
-            10-Day Forecast
+            <span className="text-xs sm:text-base">10-Day Forecast</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-2 sm:px-6">
-          <ScrollArea className="w-full pb-2">
-            <div className="flex gap-1.5 sm:gap-2 min-w-max px-1">
+        <CardContent className="px-1 sm:px-6 pb-3 sm:pb-6">
+          <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+            <div className="flex gap-1 sm:gap-2" style={{ width: 'max-content' }}>
               {weather.daily.map((day, idx) => {
                 const dayWeather = getWeatherInfo(day.weatherCode);
                 const isToday = idx === 0;
@@ -372,37 +371,37 @@ const WeatherForecast = () => {
                   <Button
                     key={day.date}
                     variant="ghost"
-                    className={`flex flex-col items-center h-auto py-2 sm:py-3 px-2 sm:px-4 min-w-[60px] sm:min-w-[80px] rounded-xl transition-all ${
+                    className={`flex flex-col items-center h-auto py-1.5 sm:py-3 px-1.5 sm:px-4 min-w-[52px] sm:min-w-[80px] rounded-lg sm:rounded-xl transition-all ${
                       isSelected 
                         ? `bg-gradient-to-br ${dayWeather.gradient} text-white shadow-lg scale-105` 
                         : 'hover:bg-muted/50'
                     }`}
                     onClick={() => setSelectedDay(idx)}
                   >
-                    <span className={`text-[10px] sm:text-xs font-medium ${isSelected ? 'text-white/90' : ''}`}>
+                    <span className={`text-[8px] sm:text-xs font-medium ${isSelected ? 'text-white/90' : ''}`}>
                       {isToday ? 'Today' : format(new Date(day.date), 'EEE')}
                     </span>
-                    <span className={`text-[10px] sm:text-xs ${isSelected ? 'text-white/70' : 'text-muted-foreground'}`}>
+                    <span className={`text-[8px] sm:text-xs ${isSelected ? 'text-white/70' : 'text-muted-foreground'}`}>
                       {format(new Date(day.date), 'MMM d')}
                     </span>
-                    <div className={`my-1.5 sm:my-2 ${isSelected ? '' : `bg-gradient-to-br ${dayWeather.gradient} bg-clip-text text-transparent`}`}>
+                    <div className={`my-1 sm:my-2 ${isSelected ? '' : `bg-gradient-to-br ${dayWeather.gradient} bg-clip-text text-transparent`}`}>
                       {isSelected ? (
-                        <div className="text-white">{dayWeather.icon}</div>
+                        <div className="text-white [&>svg]:h-4 [&>svg]:w-4 sm:[&>svg]:h-8 sm:[&>svg]:w-8">{dayWeather.icon}</div>
                       ) : (
-                        <div className={`bg-gradient-to-br ${dayWeather.gradient} p-1.5 rounded-lg`}>
-                          <div className="text-white [&>svg]:h-5 [&>svg]:w-5 sm:[&>svg]:h-6 sm:[&>svg]:w-6">{dayWeather.icon}</div>
+                        <div className={`bg-gradient-to-br ${dayWeather.gradient} p-1 sm:p-1.5 rounded-md sm:rounded-lg`}>
+                          <div className="text-white [&>svg]:h-4 [&>svg]:w-4 sm:[&>svg]:h-6 sm:[&>svg]:w-6">{dayWeather.icon}</div>
                         </div>
                       )}
                     </div>
-                    <div className="text-xs sm:text-sm">
+                    <div className="text-[10px] sm:text-sm">
                       <span className={`font-bold ${isSelected ? 'text-white' : ''}`}>{day.tempMax}°</span>
-                      <span className={`ml-0.5 sm:ml-1 ${isSelected ? 'text-white/70' : 'text-muted-foreground'}`}>{day.tempMin}°</span>
+                      <span className={`ml-0.5 ${isSelected ? 'text-white/70' : 'text-muted-foreground'}`}>{day.tempMin}°</span>
                     </div>
                   </Button>
                 );
               })}
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
