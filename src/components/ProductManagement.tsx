@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Image as ImageIcon, PackagePlus, Download, Layers } from "lucide-react";
+import { Plus, Edit, Trash2, Image as ImageIcon, PackagePlus, Download, Layers, Eye } from "lucide-react";
 import { ProductVariantManager } from "@/components/ProductVariantManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,7 @@ interface Product {
   referral_commission_diamonds?: number;
   boosted_sales_count?: number;
   boosted_rating?: number;
+  virtual_tryon_enabled?: boolean;
 }
 
 interface ProductCategory {
@@ -114,7 +115,8 @@ export const ProductManagement = () => {
     dimensions_cm: "",
     free_shipping: false,
     boosted_sales_count: "0",
-    boosted_rating: "0"
+    boosted_rating: "0",
+    virtual_tryon_enabled: false
   });
 
   // Image form state
@@ -218,7 +220,8 @@ export const ProductManagement = () => {
       dimensions_cm: formData.dimensions_cm || null,
       free_shipping: formData.free_shipping,
       boosted_sales_count: parseInt(formData.boosted_sales_count) || 0,
-      boosted_rating: parseFloat(formData.boosted_rating) || 0
+      boosted_rating: parseFloat(formData.boosted_rating) || 0,
+      virtual_tryon_enabled: formData.virtual_tryon_enabled
     };
 
     if (editingProduct) {
@@ -405,7 +408,8 @@ export const ProductManagement = () => {
       dimensions_cm: "",
       free_shipping: false,
       boosted_sales_count: "0",
-      boosted_rating: "0"
+      boosted_rating: "0",
+      virtual_tryon_enabled: false
     });
     setEditingProduct(null);
   };
@@ -432,7 +436,8 @@ export const ProductManagement = () => {
       dimensions_cm: product.dimensions_cm || "",
       free_shipping: product.free_shipping || false,
       boosted_sales_count: product.boosted_sales_count?.toString() || "0",
-      boosted_rating: product.boosted_rating?.toString() || "0"
+      boosted_rating: product.boosted_rating?.toString() || "0",
+      virtual_tryon_enabled: product.virtual_tryon_enabled || false
     });
     setIsDialogOpen(true);
   };
@@ -837,6 +842,21 @@ export const ProductManagement = () => {
                   id="is_featured"
                   checked={formData.is_featured}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <div>
+                  <Label htmlFor="virtual_tryon_enabled" className="flex items-center gap-1">
+                    <Eye className="w-4 h-4 text-cyan-500" />
+                    Virtual Try-On
+                  </Label>
+                  <p className="text-xs text-muted-foreground">Let buyers visualize this product on themselves</p>
+                </div>
+                <Switch
+                  id="virtual_tryon_enabled"
+                  checked={formData.virtual_tryon_enabled}
+                  onCheckedChange={(checked) => setFormData({ ...formData, virtual_tryon_enabled: checked })}
                 />
               </div>
 

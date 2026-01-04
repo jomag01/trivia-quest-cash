@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings, Music, Globe, BarChart3, Share2, TrendingUp, FileText } from 'lucide-react';
+import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings, Music, Globe, BarChart3, Share2, TrendingUp, FileText, Eye } from 'lucide-react';
 import AICostCalculator from './AICostCalculator';
 import AIProviderStatus from './AIProviderStatus';
 interface CreditTier {
@@ -39,6 +39,8 @@ const AISettingsManagement = () => {
   const [smmAdsCommissionPercent, setSmmAdsCommissionPercent] = useState('10');
   const [blogContentCreditCost, setBlogContentCreditCost] = useState('15');
   const [marketAnalysisCreditCost, setMarketAnalysisCreditCost] = useState('20');
+  const [virtualTryonBuyerCredits, setVirtualTryonBuyerCredits] = useState('5');
+  const [virtualTryonSellerCredits, setVirtualTryonSellerCredits] = useState('20');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -127,6 +129,10 @@ const AISettingsManagement = () => {
           setBlogContentCreditCost(setting.value || '15');
         } else if (setting.key === 'ai_market_analysis_credit_cost') {
           setMarketAnalysisCreditCost(setting.value || '20');
+        } else if (setting.key === 'virtual_tryon_buyer_credits') {
+          setVirtualTryonBuyerCredits(setting.value || '5');
+        } else if (setting.key === 'virtual_tryon_seller_setup_credits') {
+          setVirtualTryonSellerCredits(setting.value || '20');
         }
 
         // Parse tier settings
@@ -187,6 +193,8 @@ const AISettingsManagement = () => {
         { key: 'ai_smm_ads_commission_percent', value: smmAdsCommissionPercent },
         { key: 'ai_blog_content_credit_cost', value: blogContentCreditCost },
         { key: 'ai_market_analysis_credit_cost', value: marketAnalysisCreditCost },
+        { key: 'virtual_tryon_buyer_credits', value: virtualTryonBuyerCredits },
+        { key: 'virtual_tryon_seller_setup_credits', value: virtualTryonSellerCredits },
       ];
 
       // Add all tier settings dynamically
@@ -542,6 +550,38 @@ const AISettingsManagement = () => {
                 />
                 <p className="text-xs text-muted-foreground">
                   {marketAnalysisCreditCost} credits per market analysis
+                </p>
+              </div>
+              
+              {/* Virtual Try-On Settings */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <Eye className="h-3 w-3 text-cyan-500" />
+                  Virtual Try-On (Buyer Cost)
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={virtualTryonBuyerCredits}
+                  onChange={(e) => setVirtualTryonBuyerCredits(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {virtualTryonBuyerCredits} credits per try-on (buyer pays)
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <Eye className="h-3 w-3 text-orange-500" />
+                  Virtual Try-On (Seller Setup)
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={virtualTryonSellerCredits}
+                  onChange={(e) => setVirtualTryonSellerCredits(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {virtualTryonSellerCredits} credits for seller to enable on product
                 </p>
               </div>
             </div>

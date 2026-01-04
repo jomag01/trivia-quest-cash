@@ -7430,6 +7430,7 @@ export type Database = {
           shipping_fee: number | null
           stock_quantity: number | null
           updated_at: string | null
+          virtual_tryon_enabled: boolean | null
           weight_kg: number | null
           wholesale_price: number | null
         }
@@ -7466,6 +7467,7 @@ export type Database = {
           shipping_fee?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
+          virtual_tryon_enabled?: boolean | null
           weight_kg?: number | null
           wholesale_price?: number | null
         }
@@ -7502,6 +7504,7 @@ export type Database = {
           shipping_fee?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
+          virtual_tryon_enabled?: boolean | null
           weight_kg?: number | null
           wholesale_price?: number | null
         }
@@ -10969,6 +10972,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      virtual_tryon_usage: {
+        Row: {
+          created_at: string
+          credits_used: number
+          custom_prompt: string | null
+          id: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_used?: number
+          custom_prompt?: string | null
+          id?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_used?: number
+          custom_prompt?: string | null
+          id?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       visitor_sessions: {
         Row: {
