@@ -5,17 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
   FileText, Plus, Pencil, Trash2, Eye, Loader2, Sparkles, 
-  Save, Globe, Calendar, Clock, Tag, Image, Search,
-  Newspaper, BookOpen, Star, CheckCircle, XCircle, RefreshCw
+  Save, Globe, Calendar, Clock, Tag, Search,
+  Newspaper, BookOpen, Star, CheckCircle, XCircle, RefreshCw,
+  BarChart3, TrendingUp, MousePointerClick, Target, Award,
+  Megaphone, DollarSign, Users, FileCheck, AlertTriangle, Rocket
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -47,6 +50,7 @@ interface BlogPost {
   meta_keywords: string[] | null;
   reading_time_minutes: number;
   view_count: number;
+  like_count: number;
   published_at: string | null;
   created_at: string;
   blog_categories?: BlogCategory;
@@ -59,6 +63,7 @@ const BlogManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [activeMainTab, setActiveMainTab] = useState('posts');
   
   // Editor state
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -87,6 +92,91 @@ const BlogManagement = () => {
   // AI generation state
   const [aiTopic, setAiTopic] = useState('');
   const [aiTone, setAiTone] = useState('professional');
+
+  // Analytics calculations
+  const totalViews = posts.reduce((acc, p) => acc + p.view_count, 0);
+  const totalLikes = posts.reduce((acc, p) => acc + (p.like_count || 0), 0);
+  const publishedPosts = posts.filter(p => p.status === 'published').length;
+  const avgViewsPerPost = publishedPosts > 0 ? Math.round(totalViews / publishedPosts) : 0;
+  
+  // AdSense milestones
+  const adsenseMilestones = [
+    { 
+      id: 1, 
+      title: 'Original Content', 
+      description: 'At least 15-20 high-quality, original articles (300+ words each)',
+      target: 15,
+      current: publishedPosts,
+      icon: FileCheck,
+      completed: publishedPosts >= 15
+    },
+    { 
+      id: 2, 
+      title: 'Privacy Policy', 
+      description: 'Have a visible Privacy Policy page on your site',
+      target: 1,
+      current: 1, // Assuming exists
+      icon: FileText,
+      completed: true
+    },
+    { 
+      id: 3, 
+      title: 'Terms of Service', 
+      description: 'Have a visible Terms of Service page',
+      target: 1,
+      current: 1,
+      icon: FileCheck,
+      completed: true
+    },
+    { 
+      id: 4, 
+      title: 'About Page', 
+      description: 'Create an About Us page with contact information',
+      target: 1,
+      current: 1,
+      icon: Users,
+      completed: true
+    },
+    { 
+      id: 5, 
+      title: 'Traffic Growth', 
+      description: 'Build organic traffic (recommended: 1,000+ monthly views)',
+      target: 1000,
+      current: totalViews,
+      icon: TrendingUp,
+      completed: totalViews >= 1000
+    },
+    { 
+      id: 6, 
+      title: 'Site Age', 
+      description: 'Website should be at least 3-6 months old (for some regions)',
+      target: 90,
+      current: 30, // placeholder
+      icon: Calendar,
+      completed: false
+    },
+    { 
+      id: 7, 
+      title: 'No Prohibited Content', 
+      description: 'No adult, gambling, or copyright-infringing content',
+      target: 1,
+      current: 1,
+      icon: CheckCircle,
+      completed: true
+    },
+    { 
+      id: 8, 
+      title: 'User-Friendly Navigation', 
+      description: 'Clear menu, categories, and easy-to-use site structure',
+      target: 1,
+      current: 1,
+      icon: Globe,
+      completed: true
+    }
+  ];
+
+  const completedMilestones = adsenseMilestones.filter(m => m.completed).length;
+  const adsenseProgress = Math.round((completedMilestones / adsenseMilestones.length) * 100);
 
   useEffect(() => {
     fetchData();
@@ -326,6 +416,25 @@ const BlogManagement = () => {
           </div>
         </CardHeader>
         <CardContent>
+      {/* Main Tabs */}
+      <Tabs value={activeMainTab} onValueChange={setActiveMainTab}>
+        <TabsList className="grid w-full grid-cols-4 mb-4">
+          <TabsTrigger value="posts" className="text-xs sm:text-sm">
+            <FileText className="h-4 w-4 mr-1" />Posts
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs sm:text-sm">
+            <BarChart3 className="h-4 w-4 mr-1" />Analytics
+          </TabsTrigger>
+          <TabsTrigger value="promote" className="text-xs sm:text-sm">
+            <Megaphone className="h-4 w-4 mr-1" />Promote
+          </TabsTrigger>
+          <TabsTrigger value="adsense" className="text-xs sm:text-sm">
+            <DollarSign className="h-4 w-4 mr-1" />AdSense
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Posts Tab */}
+        <TabsContent value="posts">
           {/* Filters */}
           <div className="flex flex-wrap gap-2 mb-4">
             <div className="relative flex-1 min-w-[200px]">
@@ -368,7 +477,7 @@ const BlogManagement = () => {
               <div className="text-xs text-muted-foreground">Total Posts</div>
             </div>
             <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
-              <div className="text-2xl font-bold text-green-400">{posts.filter(p => p.status === 'published').length}</div>
+              <div className="text-2xl font-bold text-green-400">{publishedPosts}</div>
               <div className="text-xs text-muted-foreground">Published</div>
             </div>
             <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-center">
@@ -376,7 +485,7 @@ const BlogManagement = () => {
               <div className="text-xs text-muted-foreground">Drafts</div>
             </div>
             <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 text-center">
-              <div className="text-2xl font-bold text-purple-400">{posts.reduce((acc, p) => acc + p.view_count, 0)}</div>
+              <div className="text-2xl font-bold text-purple-400">{totalViews}</div>
               <div className="text-xs text-muted-foreground">Total Views</div>
             </div>
           </div>
@@ -429,6 +538,317 @@ const BlogManagement = () => {
               )}
             </div>
           </ScrollArea>
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border-blue-500/30">
+              <CardContent className="p-4 text-center">
+                <Eye className="h-8 w-8 mx-auto mb-2 text-blue-400" />
+                <div className="text-3xl font-bold text-blue-400">{totalViews}</div>
+                <div className="text-xs text-muted-foreground">Total Views</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-green-500/20 to-green-600/10 border-green-500/30">
+              <CardContent className="p-4 text-center">
+                <MousePointerClick className="h-8 w-8 mx-auto mb-2 text-green-400" />
+                <div className="text-3xl font-bold text-green-400">{avgViewsPerPost}</div>
+                <div className="text-xs text-muted-foreground">Avg Views/Post</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-purple-500/30">
+              <CardContent className="p-4 text-center">
+                <Star className="h-8 w-8 mx-auto mb-2 text-purple-400" />
+                <div className="text-3xl font-bold text-purple-400">{totalLikes}</div>
+                <div className="text-xs text-muted-foreground">Total Likes</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-orange-500/30">
+              <CardContent className="p-4 text-center">
+                <FileText className="h-8 w-8 mx-auto mb-2 text-orange-400" />
+                <div className="text-3xl font-bold text-orange-400">{publishedPosts}</div>
+                <div className="text-xs text-muted-foreground">Published</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Top Performing Posts
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {posts
+                  .filter(p => p.status === 'published')
+                  .sort((a, b) => b.view_count - a.view_count)
+                  .slice(0, 5)
+                  .map((post, idx) => (
+                    <div key={post.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        idx === 0 ? 'bg-yellow-500/20 text-yellow-400' :
+                        idx === 1 ? 'bg-gray-400/20 text-gray-400' :
+                        idx === 2 ? 'bg-orange-500/20 text-orange-400' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        #{idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{post.title}</p>
+                        <p className="text-xs text-muted-foreground">{post.blog_categories?.name || 'Uncategorized'}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-primary">{post.view_count}</div>
+                        <div className="text-xs text-muted-foreground">views</div>
+                      </div>
+                    </div>
+                  ))}
+                {posts.filter(p => p.status === 'published').length === 0 && (
+                  <p className="text-center text-muted-foreground py-4">No published posts yet</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Tag className="h-5 w-5 text-primary" />
+                Category Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {categories.map(cat => {
+                  const catPosts = posts.filter(p => p.category_id === cat.id);
+                  const catViews = catPosts.reduce((acc, p) => acc + p.view_count, 0);
+                  return (
+                    <div key={cat.id} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span>{cat.name}</span>
+                        <span className="text-muted-foreground">{catPosts.length} posts · {catViews} views</span>
+                      </div>
+                      <Progress value={totalViews > 0 ? (catViews / totalViews) * 100 : 0} className="h-2" />
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Promote Tab */}
+        <TabsContent value="promote" className="space-y-4">
+          <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-purple-500/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Megaphone className="h-5 w-5 text-primary" />
+                Promote Your Blog
+              </CardTitle>
+              <CardDescription>Increase visibility and drive more traffic to your articles</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-yellow-500" />
+                    <h4 className="font-semibold">Feature Post</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Mark posts as featured to display them prominently on the blog homepage.</p>
+                  <Button size="sm" variant="outline" onClick={() => setActiveMainTab('posts')}>
+                    Manage Featured
+                  </Button>
+                </div>
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-5 w-5 text-blue-500" />
+                    <h4 className="font-semibold">SEO Optimization</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Optimize meta tags, titles, and descriptions for better search rankings.</p>
+                  <Button size="sm" variant="outline" onClick={() => setActiveMainTab('posts')}>
+                    Edit SEO
+                  </Button>
+                </div>
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Rocket className="h-5 w-5 text-purple-500" />
+                    <h4 className="font-semibold">Social Sharing</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Share your articles on social media platforms to reach more readers.</p>
+                  <Button size="sm" variant="outline">
+                    Share Posts
+                  </Button>
+                </div>
+                <div className="p-4 rounded-lg border bg-card space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-red-500" />
+                    <h4 className="font-semibold">Paid Promotion</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Boost your articles with in-app ads to reach more users.</p>
+                  <Button size="sm" variant="outline">
+                    Create Ad
+                  </Button>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-muted/50 border">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Quick Promotion Tips
+                </h4>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Use compelling headlines that create curiosity</li>
+                  <li>Include eye-catching featured images</li>
+                  <li>Post consistently (2-3 articles per week)</li>
+                  <li>Engage with readers through comments</li>
+                  <li>Cross-promote on social media platforms</li>
+                  <li>Use internal linking between related articles</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Posts Ready for Promotion</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {posts
+                  .filter(p => p.status === 'published' && !p.is_featured)
+                  .slice(0, 5)
+                  .map(post => (
+                    <div key={post.id} className="flex items-center justify-between p-2 rounded-lg border">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{post.title}</p>
+                        <p className="text-xs text-muted-foreground">{post.view_count} views</p>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={async () => {
+                          await supabase.from('blog_posts').update({ is_featured: true }).eq('id', post.id);
+                          toast.success('Post marked as featured!');
+                          fetchData();
+                        }}
+                      >
+                        <Star className="h-3 w-3 mr-1" />
+                        Feature
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* AdSense Tab */}
+        <TabsContent value="adsense" className="space-y-4">
+          <Card className="border-2 border-green-500/30 bg-gradient-to-br from-green-500/10 to-emerald-500/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-500" />
+                Google AdSense Monetization
+              </CardTitle>
+              <CardDescription>Track your progress towards AdSense approval</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Overall Progress</span>
+                  <span className="text-lg font-bold text-green-400">{completedMilestones}/{adsenseMilestones.length} Complete</span>
+                </div>
+                <Progress value={adsenseProgress} className="h-3" />
+                <p className="text-sm text-muted-foreground">
+                  {adsenseProgress >= 100 
+                    ? '🎉 You meet all the basic requirements! Apply for AdSense now.' 
+                    : `Complete ${adsenseMilestones.length - completedMilestones} more milestones to be ready for AdSense.`}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-3">
+            {adsenseMilestones.map(milestone => {
+              const IconComponent = milestone.icon;
+              const progress = Math.min(100, (milestone.current / milestone.target) * 100);
+              return (
+                <Card key={milestone.id} className={milestone.completed ? 'border-green-500/30 bg-green-500/5' : ''}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${milestone.completed ? 'bg-green-500/20' : 'bg-muted'}`}>
+                        <IconComponent className={`h-5 w-5 ${milestone.completed ? 'text-green-400' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium">{milestone.title}</h4>
+                          {milestone.completed ? (
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                              <CheckCircle className="h-3 w-3 mr-1" />Complete
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-yellow-400 border-yellow-500/30">
+                              <AlertTriangle className="h-3 w-3 mr-1" />In Progress
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">{milestone.description}</p>
+                        {!milestone.completed && milestone.target > 1 && (
+                          <div className="mt-2 space-y-1">
+                            <div className="flex justify-between text-xs">
+                              <span>Progress</span>
+                              <span>{milestone.current}/{milestone.target}</span>
+                            </div>
+                            <Progress value={progress} className="h-2" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Award className="h-5 w-5 text-primary" />
+                AdSense Best Practices
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                <div className="space-y-2">
+                  <h5 className="font-semibold text-green-400">✅ Do's</h5>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li>• Write original, valuable content</li>
+                    <li>• Update content regularly</li>
+                    <li>• Use proper heading structure</li>
+                    <li>• Optimize for mobile devices</li>
+                    <li>• Build organic traffic</li>
+                    <li>• Have clear navigation</li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <h5 className="font-semibold text-red-400">❌ Don'ts</h5>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li>• Copy content from other sites</li>
+                    <li>• Use excessive ads or pop-ups</li>
+                    <li>• Include prohibited content</li>
+                    <li>• Buy fake traffic</li>
+                    <li>• Click your own ads</li>
+                    <li>• Use misleading headlines</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
         </CardContent>
       </Card>
 
