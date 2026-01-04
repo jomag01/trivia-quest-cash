@@ -13,9 +13,18 @@ interface AICredits {
   audio_minutes_used: number;
 }
 
+interface Subscription {
+  id: string;
+  plan_type: string;
+  credits_remaining: number;
+  expires_at: string;
+  status: string;
+}
+
 export function useAICredits() {
   const { user } = useAuth();
   const [credits, setCredits] = useState<AICredits | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchCredits = useCallback(async () => {
@@ -25,6 +34,7 @@ export function useAICredits() {
     }
 
     try {
+      // Fetch legacy AI credits
       const { data, error } = await supabase
         .from('user_ai_credits')
         .select('*')
@@ -46,6 +56,19 @@ export function useAICredits() {
       } else {
         setCredits(data);
       }
+
+      // Fetch active subscription
+      const { data: subData } = await supabase
+        .from('ai_subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      setSubscription(subData);
     } catch (error) {
       console.error('Error fetching AI credits:', error);
     } finally {
@@ -57,26 +80,93 @@ export function useAICredits() {
     fetchCredits();
   }, [fetchCredits]);
 
+  // Get total available credits (subscription + legacy)
+  const getTotalCredits = useCallback((): number => {
+    const legacyCredits = credits?.total_credits || 0;
+    const subscriptionCredits = subscription?.credits_remaining || 0;
+    return legacyCredits + subscriptionCredits;
+  }, [credits, subscription]);
+
+  const hasActiveSubscription = useCallback((): boolean => {
+    return !!subscription && subscription.status === 'active';
+  }, [subscription]);
+
   const canGenerateImage = useCallback((): boolean => {
+    // Check subscription first, then legacy
+    if (subscription && subscription.credits_remaining > 0) return true;
     if (!credits) return false;
     return credits.images_available > 0;
-  }, [credits]);
+  }, [credits, subscription]);
 
   const canGenerateVideo = useCallback((minutes: number = 0.5): boolean => {
+    if (subscription && subscription.credits_remaining >= minutes * 10) return true;
     if (!credits) return false;
     return Number(credits.video_minutes_available) >= minutes;
-  }, [credits]);
+  }, [credits, subscription]);
 
   const canGenerateAudio = useCallback((minutes: number): boolean => {
+    if (subscription && subscription.credits_remaining >= minutes * 5) return true;
     if (!credits) return false;
     return Number(credits.audio_minutes_available) >= minutes;
-  }, [credits]);
+  }, [credits, subscription]);
+
+  // Deduct from subscription first, then legacy
+  const deductCredits = useCallback(async (amount: number): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      // Try subscription first
+      if (subscription && subscription.credits_remaining >= amount) {
+        const { error } = await supabase.rpc('deduct_subscription_credits', {
+          p_user_id: user.id,
+          p_credits: amount
+        });
+
+        if (!error) {
+          setSubscription(prev => prev ? {
+            ...prev,
+            credits_remaining: prev.credits_remaining - amount
+          } : null);
+          return true;
+        }
+      }
+
+      // Fall back to legacy total_credits
+      if (credits && credits.total_credits >= amount) {
+        const { error } = await supabase
+          .from('user_ai_credits')
+          .update({ total_credits: credits.total_credits - amount })
+          .eq('user_id', user.id);
+
+        if (!error) {
+          setCredits(prev => prev ? {
+            ...prev,
+            total_credits: prev.total_credits - amount
+          } : null);
+          return true;
+        }
+      }
+
+      toast.error('Insufficient credits');
+      return false;
+    } catch (error) {
+      console.error('Error deducting credits:', error);
+      return false;
+    }
+  }, [user, credits, subscription]);
 
   const deductImageCredit = useCallback(async (count: number = 1): Promise<boolean> => {
-    if (!user || !credits) return false;
+    if (!user) return false;
 
-    if (credits.images_available < count) {
-      toast.error(`Insufficient image credits. You have ${credits.images_available} remaining.`);
+    // Try subscription first
+    if (subscription && subscription.credits_remaining >= count) {
+      const result = await deductCredits(count);
+      if (result) return true;
+    }
+
+    // Fall back to legacy
+    if (!credits || credits.images_available < count) {
+      toast.error(`Insufficient image credits. You have ${credits?.images_available || 0} remaining.`);
       return false;
     }
 
@@ -103,11 +193,20 @@ export function useAICredits() {
       toast.error('Failed to deduct credits');
       return false;
     }
-  }, [user, credits]);
+  }, [user, credits, subscription, deductCredits]);
 
   const deductVideoMinutes = useCallback(async (minutes: number): Promise<boolean> => {
-    if (!user || !credits) return false;
+    if (!user) return false;
 
+    // Convert to credits (10 credits per minute) and try subscription first
+    const creditsNeeded = Math.ceil(minutes * 10);
+    if (subscription && subscription.credits_remaining >= creditsNeeded) {
+      const result = await deductCredits(creditsNeeded);
+      if (result) return true;
+    }
+
+    // Fall back to legacy
+    if (!credits) return false;
     const available = Number(credits.video_minutes_available);
     if (available < minutes) {
       toast.error(`Insufficient video minutes. You have ${available.toFixed(1)} minutes remaining.`);
@@ -137,11 +236,20 @@ export function useAICredits() {
       toast.error('Failed to deduct video minutes');
       return false;
     }
-  }, [user, credits]);
+  }, [user, credits, subscription, deductCredits]);
 
   const deductAudioMinutes = useCallback(async (minutes: number): Promise<boolean> => {
-    if (!user || !credits) return false;
+    if (!user) return false;
 
+    // Convert to credits (5 credits per minute) and try subscription first
+    const creditsNeeded = Math.ceil(minutes * 5);
+    if (subscription && subscription.credits_remaining >= creditsNeeded) {
+      const result = await deductCredits(creditsNeeded);
+      if (result) return true;
+    }
+
+    // Fall back to legacy
+    if (!credits) return false;
     const available = Number(credits.audio_minutes_available);
     if (available < minutes) {
       toast.error(`Insufficient audio minutes. You have ${available.toFixed(1)} minutes remaining.`);
@@ -171,15 +279,19 @@ export function useAICredits() {
       toast.error('Failed to deduct audio minutes');
       return false;
     }
-  }, [user, credits]);
+  }, [user, credits, subscription, deductCredits]);
 
   return {
     credits,
+    subscription,
     loading,
     refetch: fetchCredits,
+    getTotalCredits,
+    hasActiveSubscription,
     canGenerateImage,
     canGenerateVideo,
     canGenerateAudio,
+    deductCredits,
     deductImageCredit,
     deductVideoMinutes,
     deductAudioMinutes

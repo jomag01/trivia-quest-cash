@@ -6,9 +6,12 @@ import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAISubscription } from '@/hooks/useAISubscription';
+import AISubscriptionDialog from '@/components/ai/AISubscriptionDialog';
 import { 
   GitBranch, 
   Users, 
@@ -33,7 +36,8 @@ import {
   CheckCircle2,
   Gift,
   Star,
-  DollarSign
+  DollarSign,
+  Calendar
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -94,6 +98,7 @@ interface DailyEarning {
 
 export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () => void }) {
   const { user, profile } = useAuth();
+  const { subscription, hasActiveSubscription, getCreditsRemaining, getDaysUntilExpiry, refetch: refetchSubscription } = useAISubscription();
   const [binaryPosition, setBinaryPosition] = useState<BinaryPosition | null>(null);
   const [settings, setSettings] = useState<BinarySettings>({
     joinAmount: 500,
@@ -103,6 +108,12 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
     adminSafetyNet: 35,
     autoReplenishEnabled: true,
     autoReplenishPercent: 20
+  });
+  const [subscriptionSettings, setSubscriptionSettings] = useState({
+    monthlyPrice: 1390,
+    yearlyPrice: 11990,
+    monthlyCredits: 500,
+    yearlyCredits: 6000
   });
   const [tiers, setTiers] = useState<CreditTier[]>([]);
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
@@ -125,6 +136,8 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
   const [userTierIndex, setUserTierIndex] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'balance' | 'paymongo' | 'qr_bank'>('paymongo');
   const [paymongoMethod, setPaymongoMethod] = useState<'gcash' | 'paymaya' | 'card' | 'grab_pay'>('gcash');
+  const [activeTab, setActiveTab] = useState<'subscription' | 'credits'>('subscription');
+  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   
   // QR/Bank payment states
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
@@ -174,6 +187,7 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
 
       if (settingsData) {
         const newSettings = { ...settings };
+        const newSubSettings = { ...subscriptionSettings };
         let qrUrl: string | null = null;
         let bankName: string | null = null;
         let accountName: string | null = null;
@@ -187,6 +201,12 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
           if (s.key === 'binary_admin_safety_net') newSettings.adminSafetyNet = parseFloat(s.value || '35');
           if (s.key === 'binary_auto_replenish_enabled') newSettings.autoReplenishEnabled = s.value === 'true';
           if (s.key === 'binary_auto_replenish_percent') newSettings.autoReplenishPercent = parseFloat(s.value || '20');
+
+          // Subscription settings
+          if (s.key === 'ai_subscription_monthly_price') newSubSettings.monthlyPrice = parseInt(s.value || '1390');
+          if (s.key === 'ai_subscription_yearly_price') newSubSettings.yearlyPrice = parseInt(s.value || '11990');
+          if (s.key === 'ai_subscription_monthly_credits') newSubSettings.monthlyCredits = parseInt(s.value || '500');
+          if (s.key === 'ai_subscription_yearly_credits') newSubSettings.yearlyCredits = parseInt(s.value || '6000');
 
           // Credit rates
           if (s.key === 'ai_credits_per_video_minute') rates.creditsPerVideoMinute = parseFloat(s.value || '20');
@@ -217,6 +237,7 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
           }
         });
         setSettings(newSettings);
+        setSubscriptionSettings(newSubSettings);
         setTiers(tierData);
         setCreditRates(rates);
         setQrCodeUrl(qrUrl);
@@ -618,77 +639,186 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
         </DialogContent>
       </Dialog>
 
+      {/* Subscription Dialog */}
+      <AISubscriptionDialog
+        open={showSubscriptionDialog}
+        onOpenChange={setShowSubscriptionDialog}
+        onPurchaseComplete={() => {
+          fetchData();
+          refetchSubscription();
+        }}
+      />
+
       <ScrollArea className="h-[calc(100vh-200px)]">
       <div className="space-y-6 p-1">
         {/* Header */}
         <div className="text-center space-y-3">
           <div className="flex items-center justify-center gap-3">
             <div className="p-3 rounded-full bg-gradient-to-br from-purple-500 to-pink-500">
-              <Sparkles className="h-8 w-8 text-white" />
+              <Crown className="h-8 w-8 text-white" />
             </div>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent">
-            Select AI Credits to Join
+            AI Hub Subscription
           </h2>
           <p className="text-muted-foreground text-sm max-w-md mx-auto">
-            Unlock powerful AI features and start earning passive income through our affiliate network
+            Subscribe to unlock all AI features and earn passive income through our affiliate network
           </p>
         </div>
+
+        {/* Current Subscription Status */}
+        {hasActiveSubscription && (
+          <Card className="border-primary/20 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-gradient-to-br from-purple-500 to-pink-500">
+                    <Crown className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold capitalize">{subscription?.plan_type} Plan Active</p>
+                    <p className="text-sm text-muted-foreground">
+                      {getCreditsRemaining()} credits • {getDaysUntilExpiry()} days remaining
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSubscriptionDialog(true)}
+                >
+                  Top-up
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Subscription Plans */}
+        {!hasActiveSubscription && (
+          <Card className="border-primary/20">
+            <CardHeader className="text-center pb-2">
+              <CardTitle className="text-lg">Choose Your Subscription</CardTitle>
+              <CardDescription className="text-xs">
+                Subscribe to unlock AI features and join the affiliate network
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Monthly Plan */}
+                <Card 
+                  className="cursor-pointer border-2 hover:border-primary/50 transition-all"
+                  onClick={() => setShowSubscriptionDialog(true)}
+                >
+                  <CardContent className="p-4 text-center space-y-3">
+                    <div className="flex items-center justify-center gap-2">
+                      <Calendar className="h-5 w-5 text-blue-500" />
+                      <span className="font-semibold">Monthly</span>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">₱{subscriptionSettings.monthlyPrice.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">/month</p>
+                    </div>
+                    <Badge variant="secondary">{subscriptionSettings.monthlyCredits.toLocaleString()} credits</Badge>
+                    <p className="text-xs text-muted-foreground">Perfect for getting started</p>
+                  </CardContent>
+                </Card>
+
+                {/* Yearly Plan */}
+                <Card 
+                  className="cursor-pointer border-2 border-yellow-500/50 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 hover:border-yellow-500 transition-all relative"
+                  onClick={() => setShowSubscriptionDialog(true)}
+                >
+                  <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0">
+                    Best Value
+                  </Badge>
+                  <CardContent className="p-4 text-center space-y-3">
+                    <div className="flex items-center justify-center gap-2">
+                      <Star className="h-5 w-5 text-yellow-500" />
+                      <span className="font-semibold">Yearly</span>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">₱{subscriptionSettings.yearlyPrice.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">/year</p>
+                    </div>
+                    <Badge variant="default">{subscriptionSettings.yearlyCredits.toLocaleString()} credits</Badge>
+                    <p className="text-xs text-muted-foreground">All features unlocked</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Button 
+                className="w-full gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                size="lg"
+                onClick={() => setShowSubscriptionDialog(true)}
+              >
+                <Zap className="h-4 w-4" />
+                Subscribe Now
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Benefits Section */}
         <Card className="border-primary/20 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30">
           <CardContent className="p-4 sm:p-6">
             <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
               <Crown className="h-5 w-5 text-yellow-500" />
-              Benefits of Buying AI Credits
+              Subscription Benefits
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
                 <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/50">
-                  <ImageIcon className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">AI Image Generation</p>
-                  <p className="text-xs text-muted-foreground">Create stunning images with AI</p>
+                  <p className="font-medium text-sm">All AI Features</p>
+                  <p className="text-xs text-muted-foreground">Image, video, audio generation</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
                 <div className="p-2 rounded-full bg-pink-100 dark:bg-pink-900/50">
-                  <VideoIcon className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                  <Users className="h-4 w-4 text-pink-600 dark:text-pink-400" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">AI Video Creation</p>
-                  <p className="text-xs text-muted-foreground">Generate videos from text</p>
+                  <p className="font-medium text-sm">Binary Network</p>
+                  <p className="text-xs text-muted-foreground">Build your team</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
-                <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                  <Music className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/50">
+                  <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">AI Voice & Audio</p>
-                  <p className="text-xs text-muted-foreground">Text-to-speech voiceovers</p>
+                  <p className="font-medium text-sm">Earn Commissions</p>
+                  <p className="text-xs text-muted-foreground">From referrals</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
                 <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/50">
-                  <TrendingUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <RefreshCw className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">Passive Income</p>
-                  <p className="text-xs text-muted-foreground">Earn from your affiliate network</p>
+                  <p className="font-medium text-sm">Monthly Credits</p>
+                  <p className="text-xs text-muted-foreground">Added on renewal</p>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Packages Section */}
+        {/* Legacy Credit Packages (Collapsible) */}
         <Card className="border-primary/20">
-          <CardHeader className="text-center pb-2">
-            <CardTitle className="text-lg">Choose Your AI Credit Package</CardTitle>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                One-time Credit Packages
+              </CardTitle>
+              <Badge variant="outline">Legacy</Badge>
+            </div>
             <CardDescription className="text-xs">
-              Select a package to unlock AI features and join the affiliate network
+              Or purchase credits without a subscription
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
