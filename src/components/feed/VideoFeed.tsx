@@ -111,10 +111,20 @@ export default function VideoFeed({ videos, onClose }: VideoFeedProps) {
   };
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/?video=${currentVideo?.id}`;
+    const shareUrl = user 
+      ? `${window.location.origin}/?video=${currentVideo?.id}&ref=${user.id}`
+      : `${window.location.origin}/?video=${currentVideo?.id}`;
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success("Link copied!");
+      if (navigator.share) {
+        await navigator.share({
+          title: `${currentVideo?.profiles?.full_name || 'Someone'} on Triviabees`,
+          text: currentVideo?.content?.substring(0, 100) || 'Check out this video on Triviabees!',
+          url: shareUrl
+        });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Link copied!");
+      }
     } catch {
       toast.error("Failed to copy");
     }

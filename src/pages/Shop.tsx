@@ -22,6 +22,7 @@ import { useShopData } from "@/hooks/useShopData";
 import { ShopLayoutSkeleton, ProductGridSkeleton, CategorySliderSkeleton, AdSliderSkeleton } from "@/components/shop/ShopSkeletons";
 import OptimizedProductCard from "@/components/shop/OptimizedProductCard";
 import { ImageSearchButton } from "@/components/shop/ImageSearchButton";
+import { useMetaTags } from "@/hooks/useMetaTags";
 
 // Lazy load heavy components - not needed on initial render
 const SupplierApplication = lazy(() => import("@/components/shop/SupplierApplication"));
@@ -73,6 +74,19 @@ const Shop = () => {
   const [selectedStream, setSelectedStream] = useState<any>(null);
   const [minimizedStream, setMinimizedStream] = useState<any>(null);
   const [showBookings, setShowBookings] = useState(false);
+
+  // Dynamic meta tags for shop
+  const productIdFromUrl = searchParams.get('product');
+  useMetaTags({
+    title: detailProduct ? detailProduct.name : 'Shop - Triviabees Marketplace',
+    description: detailProduct 
+      ? `${detailProduct.description?.substring(0, 150) || detailProduct.name} - Shop now on Triviabees!`
+      : 'Discover amazing products, services, and auctions on Triviabees marketplace. Shop and earn rewards!',
+    image: detailProduct?.image_url,
+    url: productIdFromUrl 
+      ? `${window.location.origin}/shop?product=${productIdFromUrl}`
+      : `${window.location.origin}/shop`,
+  });
   
   const handleMinimizeStream = useCallback((stream: any) => {
     setMinimizedStream(stream);

@@ -12,6 +12,7 @@ import CommentsSheet from "@/components/feed/CommentsSheet";
 import { FeedSkeletonList, InfiniteScrollLoader } from "@/components/feed/FeedSkeletons";
 import { useFeedData } from "@/hooks/useFeedData";
 import FeedFlyingBees from "@/components/feed/FeedFlyingBees";
+import { useMetaTags } from "@/hooks/useMetaTags";
 
 // Memoized empty state - dark themed
 const EmptyFeed = memo(function EmptyFeed({ isFollowing }: { isFollowing: boolean }) {
@@ -31,6 +32,13 @@ export default function Feed() {
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
+
+  // Dynamic meta tags for feed
+  useMetaTags({
+    title: 'Social Feed - Triviabees',
+    description: 'Discover trending posts, videos, and content from the Triviabees community. Connect, share, and earn rewards!',
+    url: `${window.location.origin}/feed`,
+  });
 
   // Use optimized feed data hook
   const {
