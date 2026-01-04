@@ -30,7 +30,7 @@ const AICostCalculator = () => {
   const [markupPercent, setMarkupPercent] = useState('50'); // Markup percentage
 
   // Calculator inputs
-  const [videoMinutes, setVideoMinutes] = useState('15');
+  const [videoSeconds, setVideoSeconds] = useState('60'); // Default 60 seconds
   const [audioMinutes, setAudioMinutes] = useState('15');
   const [imageCount, setImageCount] = useState('10');
   const [researchQueries, setResearchQueries] = useState('20');
@@ -82,8 +82,13 @@ const AICostCalculator = () => {
   const calculateVideoCost = () => {
     const provider = pricing.find(p => p.id === selectedVideoProvider);
     if (!provider || !provider.video_cost_per_second) return 0;
-    const minutes = parseFloat(videoMinutes) || 0;
-    return minutes * 60 * provider.video_cost_per_second;
+    const seconds = parseFloat(videoSeconds) || 0;
+    return seconds * provider.video_cost_per_second;
+  };
+
+  const getVideoCostPerSecond = () => {
+    const provider = pricing.find(p => p.id === selectedVideoProvider);
+    return provider?.video_cost_per_second || 0;
   };
 
   const calculateAudioCost = () => {
@@ -129,13 +134,18 @@ const AICostCalculator = () => {
   const phpPerDiamond = parseFloat(diamondToPhp) || 1;
   const totalDiamonds = Math.ceil(totalWithMarkup / phpPerDiamond);
 
-  // Calculate per-minute pricing for user-friendly display
-  const videoMinutesNum = parseFloat(videoMinutes) || 1;
+  // Calculate per-second and per-minute pricing for user-friendly display
+  const videoSecondsNum = parseFloat(videoSeconds) || 1;
   const audioMinutesNum = parseFloat(audioMinutes) || 1;
   
-  const videoCostPerMinutePhp = (calculateVideoCost() * usdToPhp * (1 + markup / 100)) / videoMinutesNum;
+  // Video cost per second with markup
+  const videoCostPerSecondUsd = getVideoCostPerSecond();
+  const videoCostPerSecondPhp = videoCostPerSecondUsd * usdToPhp * (1 + markup / 100);
+  const videoCostPerMinutePhp = videoCostPerSecondPhp * 60;
+  
   const audioCostPerMinutePhp = (calculateAudioCost() * usdToPhp * (1 + markup / 100)) / audioMinutesNum;
   
+  const diamondsPerVideoSecond = Math.ceil(videoCostPerSecondPhp / phpPerDiamond * 10) / 10; // Allow decimals
   const diamondsPerVideoMinute = Math.ceil(videoCostPerMinutePhp / phpPerDiamond);
   const diamondsPerAudioMinute = Math.ceil(audioCostPerMinutePhp / phpPerDiamond);
 
@@ -160,6 +170,7 @@ const AICostCalculator = () => {
       const settings = [
         { key: 'diamond_to_php_rate', value: diamondToPhp },
         { key: 'ai_markup_percent', value: markupPercent },
+        { key: 'diamonds_per_video_second', value: diamondsPerVideoSecond.toString() },
         { key: 'diamonds_per_video_minute', value: diamondsPerVideoMinute.toString() },
         { key: 'diamonds_per_audio_minute', value: diamondsPerAudioMinute.toString() },
       ];
@@ -281,7 +292,12 @@ const AICostCalculator = () => {
             <ArrowRight className="h-3 w-3" />
             Suggested User Pricing (with {markupPercent}% markup)
           </Label>
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="p-2 bg-purple-500/10 rounded border border-purple-500/20">
+              <div className="text-purple-400 font-medium">Video/sec</div>
+              <div className="text-lg font-bold">{diamondsPerVideoSecond} 💎</div>
+              <div className="text-muted-foreground">{formatPhp(videoCostPerSecondPhp)}</div>
+            </div>
             <div className="p-2 bg-purple-500/10 rounded border border-purple-500/20">
               <div className="text-purple-400 font-medium">Video/min</div>
               <div className="text-lg font-bold">{diamondsPerVideoMinute} 💎</div>
@@ -299,19 +315,24 @@ const AICostCalculator = () => {
 
         {/* Video Cost */}
         <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
-          <div className="flex items-center gap-2">
-            <Video className="h-4 w-4 text-purple-500" />
-            <Label className="font-medium text-sm">Video Generation</Label>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Video className="h-4 w-4 text-purple-500" />
+              <Label className="font-medium text-sm">Video Generation (fal.ai)</Label>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              ${getVideoCostPerSecond().toFixed(4)}/sec
+            </span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Minutes</Label>
+              <Label className="text-xs text-muted-foreground">Seconds</Label>
               <Input
                 type="number"
                 min="0"
-                step="0.5"
-                value={videoMinutes}
-                onChange={(e) => setVideoMinutes(e.target.value)}
+                step="5"
+                value={videoSeconds}
+                onChange={(e) => setVideoSeconds(e.target.value)}
                 className="h-8"
               />
             </div>
@@ -324,16 +345,22 @@ const AICostCalculator = () => {
                 <SelectContent>
                   {videoProviders.map(p => (
                     <SelectItem key={p.id} value={p.id} className="text-xs">
-                      {p.provider_name} - {p.model_name}
+                      {p.provider_name} - {p.model_name} (${p.video_cost_per_second?.toFixed(4)}/s)
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div className="text-xs flex justify-between">
-            <span>Cost: <strong className="text-purple-500">{formatCost(calculateVideoCost())}</strong></span>
-            <span className="text-muted-foreground">{formatPhp(calculateVideoCost() * usdToPhp)}</span>
+          <div className="text-xs space-y-1">
+            <div className="flex justify-between">
+              <span>Cost for {videoSeconds}s:</span>
+              <span><strong className="text-purple-500">{formatCost(calculateVideoCost())}</strong> / {formatPhp(calculateVideoCost() * usdToPhp)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>With {markupPercent}% markup:</span>
+              <span className="font-medium">{Math.ceil(calculateVideoCost() * usdToPhp * (1 + markup / 100) / phpPerDiamond)} 💎</span>
+            </div>
           </div>
         </div>
 
