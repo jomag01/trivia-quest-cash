@@ -260,89 +260,118 @@ export default function SellerDashboard() {
           </CardContent>
         </Card>}
       {profile?.is_verified_seller && <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between"><CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" />My Products</CardTitle>
-              <Button onClick={() => {
-            setEditingProduct(null);
-            setProductForm({
-              name: "",
-              description: "",
-              wholesale_price: "",
-              stock_quantity: "",
-              category_id: "",
-              image_url: "",
-              shipping_fee: "",
-              weight_kg: "",
-              dimensions_cm: "",
-              free_shipping: false,
-              bulk_enabled: false,
-              bulk_price: "",
-              bulk_min_quantity: "10",
-              preferred_courier: "",
-              boosted_sales_count: "0",
-              boosted_rating: "0"
-            });
-            setShowProductDialog(true);
-          }}><Plus className="h-4 w-4 mr-2" />Add Product</Button>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowAdsPromo(true)}
-            className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border-purple-300 hover:border-purple-400"
-          >
-            <Megaphone className="h-4 w-4 mr-2 text-purple-500" />
-            Promote with AI Ads
-          </Button>
+          <CardHeader className="pb-3">
+            <div className="flex flex-col gap-3">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Package className="h-4 w-4 sm:h-5 sm:w-5" />
+                My Products
+              </CardTitle>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => {
+                  setEditingProduct(null);
+                  setProductForm({
+                    name: "",
+                    description: "",
+                    wholesale_price: "",
+                    stock_quantity: "",
+                    category_id: "",
+                    image_url: "",
+                    shipping_fee: "",
+                    weight_kg: "",
+                    dimensions_cm: "",
+                    free_shipping: false,
+                    bulk_enabled: false,
+                    bulk_price: "",
+                    bulk_min_quantity: "10",
+                    preferred_courier: "",
+                    boosted_sales_count: "0",
+                    boosted_rating: "0"
+                  });
+                  setShowProductDialog(true);
+                }}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Product
+                </Button>
+                <Button 
+                  size="sm"
+                  variant="outline" 
+                  onClick={() => setShowAdsPromo(true)}
+                  className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 border-purple-300 hover:border-purple-400"
+                >
+                  <Megaphone className="h-4 w-4 mr-1 text-purple-500" />
+                  Promote with AI
+                </Button>
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
-            {products.map(p => <Card key={p.id} className="mb-4"><CardContent className="pt-6">
-                <div className="flex gap-4">{p.image_url && <img src={p.image_url} alt={p.name} className="w-24 h-24 object-cover rounded" />}
-                  <div className="flex-1"><h3 className="font-semibold">{p.name}</h3>
-                    <div className="flex gap-2 my-2"><Badge variant={p.approval_status === "approved" ? "default" : p.approval_status === "rejected" ? "destructive" : "secondary"}>{p.approval_status}</Badge></div>
-                    <p className="text-sm">Wholesale: ₱{p.wholesale_price} | Stock: {p.stock_quantity}</p>
-                    <div className="flex gap-2 mt-2">
-                      <Button size="sm" variant="outline" onClick={() => {
-                        setEditingProduct(p);
-                        setProductForm({
-                          name: p.name,
-                          description: p.description,
-                          wholesale_price: p.wholesale_price.toString(),
-                          stock_quantity: p.stock_quantity?.toString() || "0",
-                          category_id: p.category_id || "",
-                          image_url: p.image_url || "",
-                          shipping_fee: p.shipping_fee?.toString() || "0",
-                          weight_kg: p.weight_kg?.toString() || "",
-                          dimensions_cm: p.dimensions_cm || "",
-                          free_shipping: p.free_shipping || false,
-                          bulk_enabled: p.bulk_enabled || false,
-                          bulk_price: p.bulk_price?.toString() || "",
-                          bulk_min_quantity: p.bulk_min_quantity?.toString() || "10",
-                          preferred_courier: p.preferred_courier || "",
-                          boosted_sales_count: p.boosted_sales_count?.toString() || "0",
-                          boosted_rating: p.boosted_rating?.toString() || "0"
-                        });
-                        setShowProductDialog(true);
-                      }}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => {
-                        setSelectedProductForVariants(p);
-                        setShowVariantsDialog(true);
-                      }} title="Manage Variants">
-                        <Layers className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={async () => {
-                        if (confirm("Delete?")) {
-                          await supabase.from("products").delete().eq("id", p.id);
-                          fetchMyProducts();
-                        }
-                      }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+          <CardContent className="space-y-3">
+            {products.map(p => (
+              <Card key={p.id} className="overflow-hidden">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex gap-3">
+                    {p.image_url && (
+                      <img 
+                        src={p.image_url} 
+                        alt={p.name} 
+                        className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded flex-shrink-0" 
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm sm:text-base truncate">{p.name}</h3>
+                      <Badge 
+                        className="mt-1 text-xs"
+                        variant={p.approval_status === "approved" ? "default" : p.approval_status === "rejected" ? "destructive" : "secondary"}
+                      >
+                        {p.approval_status}
+                      </Badge>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                        Wholesale: ₱{p.wholesale_price} | Stock: {p.stock_quantity}
+                      </p>
+                      <div className="flex gap-1.5 mt-2">
+                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => {
+                          setEditingProduct(p);
+                          setProductForm({
+                            name: p.name,
+                            description: p.description,
+                            wholesale_price: p.wholesale_price.toString(),
+                            stock_quantity: p.stock_quantity?.toString() || "0",
+                            category_id: p.category_id || "",
+                            image_url: p.image_url || "",
+                            shipping_fee: p.shipping_fee?.toString() || "0",
+                            weight_kg: p.weight_kg?.toString() || "",
+                            dimensions_cm: p.dimensions_cm || "",
+                            free_shipping: p.free_shipping || false,
+                            bulk_enabled: p.bulk_enabled || false,
+                            bulk_price: p.bulk_price?.toString() || "",
+                            bulk_min_quantity: p.bulk_min_quantity?.toString() || "10",
+                            preferred_courier: p.preferred_courier || "",
+                            boosted_sales_count: p.boosted_sales_count?.toString() || "0",
+                            boosted_rating: p.boosted_rating?.toString() || "0"
+                          });
+                          setShowProductDialog(true);
+                        }}>
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => {
+                          setSelectedProductForVariants(p);
+                          setShowVariantsDialog(true);
+                        }} title="Manage Variants">
+                          <Layers className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={async () => {
+                          if (confirm("Delete?")) {
+                            await supabase.from("products").delete().eq("id", p.id);
+                            fetchMyProducts();
+                          }
+                        }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent></Card>)}
+                </CardContent>
+              </Card>
+            ))}
             {products.length === 0 && <p className="text-center py-8 text-muted-foreground">No products yet</p>}
           </CardContent>
         </Card>}
