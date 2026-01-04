@@ -82,28 +82,36 @@ serve(async (req) => {
 <body>
   <div class="container">
     <div class="header">
-      <h1>🐝 BeeHive</h1>
+      <h1>🐝 TriviaBees</h1>
     </div>
     <div class="content">
       ${personalizedContent.split('\n').map((line: string) => `<p>${line}</p>`).join('')}
       <p style="text-align: center;">
-        <a href="${supabaseUrl.replace('/v1', '')}" class="cta-button">Start Earning Now →</a>
+        <a href="https://triviabees.com" class="cta-button">Visit TriviaBees →</a>
       </p>
     </div>
     <div class="footer">
-      <p>You're receiving this because you're part of BeeHive.</p>
-      <p><a href="#">Unsubscribe</a> | <a href="#">View in browser</a></p>
+      <p>You're receiving this because you subscribed to TriviaBees updates.</p>
+      <p>
+        <a href="mailto:support@triviabees.com?subject=Unsubscribe">Unsubscribe</a>
+        |
+        <a href="https://triviabees.com">View in browser</a>
+      </p>
     </div>
   </div>
 </body>
 </html>`;
 
-          await resend.emails.send({
-            from: "TriviaBees <support@triviabees.com>",
+          const sendResult = await resend.emails.send({
+            from: "TriviaBees <no-reply@triviabees.com>",
+            reply_to: "support@triviabees.com",
             to: [subscriber.email],
             subject: newsletter.subject,
             html: emailHtml,
+            text: personalizedContent,
           });
+
+          console.log('Resend send result:', sendResult);
 
           // Record the send
           await supabase.from('newsletter_sends').insert({
