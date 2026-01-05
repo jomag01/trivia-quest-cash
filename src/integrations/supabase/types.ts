@@ -2917,6 +2917,51 @@ export type Database = {
         }
         Relationships: []
       }
+      cookie_placement_settings: {
+        Row: {
+          capture_on: string[] | null
+          cookie_duration_days: number | null
+          cookie_name: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          placement_key: string
+          placement_name: string
+          priority: number | null
+          tracking_pages: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          capture_on?: string[] | null
+          cookie_duration_days?: number | null
+          cookie_name: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          placement_key: string
+          placement_name: string
+          priority?: number | null
+          tracking_pages?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          capture_on?: string[] | null
+          cookie_duration_days?: number | null
+          cookie_name?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          placement_key?: string
+          placement_name?: string
+          priority?: number | null
+          tracking_pages?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       credit_purchases: {
         Row: {
           admin_notes: string | null

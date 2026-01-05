@@ -309,6 +309,20 @@ const Shop = () => {
         }
       }
       
+      // 5. DATABASE FALLBACK: If no cookie/URL referrer found, use buyer's referred_by from profile
+      // This ensures commissions are ALWAYS attributed even if cookies fail
+      if (!referrerId && user?.id) {
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('referred_by')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (buyerProfile?.referred_by) {
+          referrerId = buyerProfile.referred_by;
+          console.log("Using database referred_by as fallback referrer:", referrerId);
+        }
+      }
+      
       const diamondCredits = (selectedProduct.diamond_reward || 0) * quantity;
 
       const { data: orderNumberData, error: orderNumError } = await supabase.rpc("generate_order_number");
