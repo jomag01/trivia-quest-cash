@@ -491,8 +491,13 @@ export const ProductVariantManager = ({
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => openEditDialog(variant)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openEditDialog(variant);
+                          }}
                           title="Edit Variant"
+                          type="button"
                         >
                           <Pencil className="w-4 h-4" />
                         </Button>
