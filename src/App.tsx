@@ -37,6 +37,7 @@ const Auction = lazy(() => import("./pages/Auction"));
 const Install = lazy(() => import("./pages/Install"));
 const MyOrdersPage = lazy(() => import("./components/shop/MyOrdersPage"));
 const Warehouse = lazy(() => import("./pages/Warehouse"));
+const ShareholderRegistration = lazy(() => import("./pages/ShareholderRegistration"));
 
 // Configure QueryClient with aggressive caching
 const queryClient = new QueryClient({
@@ -145,6 +146,7 @@ const App = () => (
               <Route path="/install" element={<Install />} />
               <Route path="/my-orders" element={<MyOrdersPage />} />
               <Route path="/warehouse" element={<Warehouse />} />
+              <Route path="/shareholder-registration" element={<ShareholderRegistration />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

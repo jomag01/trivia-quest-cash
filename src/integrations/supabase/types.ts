@@ -9186,10 +9186,45 @@ export type Database = {
           },
         ]
       }
+      shareholder_registration_tokens: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          token: string
+          uses_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          token?: string
+          uses_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          token?: string
+          uses_count?: number | null
+        }
+        Relationships: []
+      }
       shareholders: {
         Row: {
+          admin_signed_document_url: string | null
           approved_at: string | null
           approved_by: string | null
+          authenticated_document_url: string | null
           created_at: string | null
           email: string
           full_name: string
@@ -9208,8 +9243,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_signed_document_url?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          authenticated_document_url?: string | null
           created_at?: string | null
           email: string
           full_name: string
@@ -9228,8 +9265,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_signed_document_url?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          authenticated_document_url?: string | null
           created_at?: string | null
           email?: string
           full_name?: string
