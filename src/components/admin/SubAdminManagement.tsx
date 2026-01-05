@@ -73,6 +73,15 @@ const ADMIN_TABS = [
   { group: 'Shareholders', items: [
     { id: 'shareholders', label: 'Shareholder Management' },
   ]},
+  { group: 'System Settings', items: [
+    { id: 'homepage', label: 'Homepage Settings' },
+    { id: 'app-logo', label: 'App Logo' },
+    { id: 'legal-terms', label: 'Terms & Disclaimers' },
+    { id: 'cookie-policy', label: 'Cookie Policy' },
+    { id: 'cookie-placements', label: 'Cookie Placements' },
+    { id: 'migration', label: 'Image Migration' },
+    { id: 'system-reset', label: 'System Reset' },
+  ]},
 ];
 
 interface SubAdminManagementProps {

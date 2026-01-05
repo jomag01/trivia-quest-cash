@@ -259,6 +259,20 @@ export const CartView = () => {
           referrerId = referrerProfile.id;
         }
       }
+      
+      // DATABASE FALLBACK: If no cookie/URL referrer found, use buyer's referred_by from profile
+      // This ensures commissions are ALWAYS attributed even if cookies fail
+      if (!referrerId && !matchingReferrer && user?.id) {
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('referred_by')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (buyerProfile?.referred_by) {
+          referrerId = buyerProfile.referred_by;
+          console.log("Cart: Using database referred_by as fallback referrer:", referrerId);
+        }
+      }
 
       // Create order with live stream tracking if applicable
       const orderData: any = {

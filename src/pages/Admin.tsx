@@ -101,6 +101,7 @@ import AISubscriptionManagement from "@/components/admin/AISubscriptionManagemen
 import NewsletterManagement from "@/components/admin/NewsletterManagement";
 import SellerReferrerCommissionManagement from "@/components/admin/SellerReferrerCommissionManagement";
 import ErrorReportsManagement from "@/components/admin/ErrorReportsManagement";
+import CookiePlacementSettings from "@/components/admin/CookiePlacementSettings";
 import { Bug } from "lucide-react";
 
 interface MenuItem {
@@ -295,6 +296,7 @@ const Admin = () => {
         { id: "app-logo", label: "App Logo", icon: Image },
         { id: "legal-terms", label: "Terms & Disclaimers", icon: Shield },
         { id: "cookie-policy", label: "Cookie Policy", icon: Cookie },
+        { id: "cookie-placements", label: "Cookie Placements", icon: Cookie },
         { id: "migration", label: "Image Migration", icon: Upload },
         { id: "system-reset", label: "System Reset", icon: RotateCcw },
       ],
@@ -849,6 +851,7 @@ const Admin = () => {
           {activeTab === "food-item-rewards" && <FoodItemRewardsManagement />}
           {activeTab === "rider-management" && <RiderManagement />}
           {activeTab === "cookie-policy" && <CookiePolicyManagement />}
+          {activeTab === "cookie-placements" && <CookiePlacementSettings onBack={() => setActiveTab("sales-analytics")} />}
           {activeTab === "pos-system" && <POSSystem />}
           {activeTab === "unilevel-settings" && <DynamicUnilevelSettings onBack={() => setActiveTab("sales-analytics")} />}
           {activeTab === "ai-subscriptions" && <AISubscriptionManagement />}
