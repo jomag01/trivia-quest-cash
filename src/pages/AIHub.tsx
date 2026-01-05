@@ -17,7 +17,8 @@ import { useAISubscription } from '@/hooks/useAISubscription';
 import CreditSourceDialog from '@/components/ai/CreditSourceDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, ShoppingBag, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp, BookOpen, CloudSun, Mail } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, ShoppingBag, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp, BookOpen, CloudSun, Mail, Minimize2 } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
 import WebsiteBuilder from '@/components/ai/WebsiteBuilder';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
@@ -185,6 +186,12 @@ const AIHub = memo(() => {
   const [enhanceCreditCost] = useState(2);
   const [showManualEraser, setShowManualEraser] = useState(false);
   const [manualEraseMask, setManualEraseMask] = useState<string | null>(null);
+  
+  // Compression/Resize settings
+  const [compressionQuality, setCompressionQuality] = useState(0.8);
+  const [resizeWidth, setResizeWidth] = useState<number | null>(null);
+  const [resizeHeight, setResizeHeight] = useState<number | null>(null);
+  const [maxFileSizeMB, setMaxFileSizeMB] = useState(1);
 
   // Usage tracking
   const [imageGenerationCount, setImageGenerationCount] = useState(0);
@@ -1130,6 +1137,60 @@ const AIHub = memo(() => {
         credits: userCredits
       }).eq('id', user.id);
       fetchUserCredits();
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  // Handle image compression/resize (FREE - no credits needed)
+  const handleCompressResize = async () => {
+    if (!enhanceImage) {
+      toast.error('Please upload an image first');
+      return;
+    }
+
+    setIsEnhancing(true);
+    setEnhancedResult(null);
+
+    try {
+      // Convert base64/url to File object
+      const response = await fetch(enhanceImage);
+      const blob = await response.blob();
+      const file = new File([blob], 'image.jpg', { type: blob.type || 'image/jpeg' });
+
+      const originalSize = file.size / 1024 / 1024; // MB
+      toast.info(`Original size: ${originalSize.toFixed(2)} MB`);
+
+      const options: any = {
+        maxSizeMB: maxFileSizeMB,
+        useWebWorker: true,
+        initialQuality: compressionQuality,
+      };
+
+      // Add resize dimensions if specified
+      if (resizeWidth && resizeWidth > 0) {
+        options.maxWidthOrHeight = resizeWidth;
+      }
+      if (resizeHeight && resizeHeight > 0) {
+        options.maxWidthOrHeight = Math.max(options.maxWidthOrHeight || 0, resizeHeight);
+      }
+
+      const compressedFile = await imageCompression(file, options);
+      const compressedSize = compressedFile.size / 1024 / 1024;
+
+      // Convert back to base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setEnhancedResult(base64);
+        const reduction = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+        toast.success(`Compressed! ${originalSize.toFixed(2)} MB → ${compressedSize.toFixed(2)} MB (${reduction}% smaller)`);
+      };
+      reader.readAsDataURL(compressedFile);
+
+    } catch (error: any) {
+      console.error('Compression error:', error);
+      toast.error(error.message || 'Failed to compress image');
     } finally {
       setIsEnhancing(false);
     }
@@ -2306,6 +2367,7 @@ const AIHub = memo(() => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="compress">📦 Compress / Resize (FREE)</SelectItem>
                         <SelectItem value="enhance">✨ Enhance Quality</SelectItem>
                         <SelectItem value="remove-background">🔲 Remove Background</SelectItem>
                         <SelectItem value="change-background">🖼️ Change Background</SelectItem>
@@ -2322,6 +2384,70 @@ const AIHub = memo(() => {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {enhanceOperation === 'compress' && (
+                    <div className="space-y-4 p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>FREE - No credits needed!</span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Max File Size (MB)</Label>
+                        <Input
+                          type="number"
+                          min={0.1}
+                          max={10}
+                          step={0.1}
+                          value={maxFileSizeMB}
+                          onChange={e => setMaxFileSizeMB(Number(e.target.value))}
+                          placeholder="1"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Quality ({Math.round(compressionQuality * 100)}%)</Label>
+                        <input
+                          type="range"
+                          min={0.1}
+                          max={1}
+                          step={0.05}
+                          value={compressionQuality}
+                          onChange={e => setCompressionQuality(Number(e.target.value))}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Smaller file</span>
+                          <span>Better quality</span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Max Width (px)</Label>
+                          <Input
+                            type="number"
+                            min={100}
+                            max={4000}
+                            value={resizeWidth || ''}
+                            onChange={e => setResizeWidth(e.target.value ? Number(e.target.value) : null)}
+                            placeholder="Auto"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Max Height (px)</Label>
+                          <Input
+                            type="number"
+                            min={100}
+                            max={4000}
+                            value={resizeHeight || ''}
+                            onChange={e => setResizeHeight(e.target.value ? Number(e.target.value) : null)}
+                            placeholder="Auto"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {enhanceOperation === 'change-background' && (
                     <div className="space-y-2">
@@ -2354,7 +2480,28 @@ const AIHub = memo(() => {
                     />
                   )}
 
-                  {enhanceOperation !== 'manual-erase' && (
+                  {enhanceOperation === 'compress' && (
+                    <Button
+                      onClick={handleCompressResize}
+                      disabled={isEnhancing || !enhanceImage}
+                      className="w-full gap-2"
+                      size="lg"
+                    >
+                      {isEnhancing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Compressing...
+                        </>
+                      ) : (
+                        <>
+                          <Minimize2 className="h-4 w-4" />
+                          Compress Image (FREE)
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {enhanceOperation !== 'manual-erase' && enhanceOperation !== 'compress' && (
                     <Button
                       onClick={handleEnhanceImage}
                       disabled={isEnhancing || !enhanceImage || userCredits < enhanceCreditCost}
