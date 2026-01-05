@@ -3643,6 +3643,36 @@ export type Database = {
           },
         ]
       }
+      dynamic_unilevel_levels: {
+        Row: {
+          commission_percentage: number
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          level_name: string
+          level_number: number
+          updated_at: string | null
+        }
+        Insert: {
+          commission_percentage?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          level_name: string
+          level_number: number
+          updated_at?: string | null
+        }
+        Update: {
+          commission_percentage?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          level_name?: string
+          level_number?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       email_automations: {
         Row: {
           content: string
@@ -9109,6 +9139,116 @@ export type Database = {
           },
         ]
       }
+      shareholder_payouts: {
+        Row: {
+          created_at: string | null
+          id: string
+          net_profit_amount: number
+          notes: string | null
+          payout_amount: number
+          payout_period: string | null
+          processed_at: string | null
+          processed_by: string | null
+          shareholder_id: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          net_profit_amount: number
+          notes?: string | null
+          payout_amount: number
+          payout_period?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          shareholder_id: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          net_profit_amount?: number
+          notes?: string | null
+          payout_amount?: number
+          payout_period?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          shareholder_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shareholder_payouts_shareholder_id_fkey"
+            columns: ["shareholder_id"]
+            isOneToOne: false
+            referencedRelation: "shareholders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shareholders: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          investment_amount: number
+          notes: string | null
+          payment_method: string | null
+          payment_proof_url: string | null
+          payment_reference: string | null
+          pending_payout: number | null
+          phone: string | null
+          share_percentage: number
+          status: string | null
+          total_earnings: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          email: string
+          full_name: string
+          id?: string
+          investment_amount?: number
+          notes?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          pending_payout?: number | null
+          phone?: string | null
+          share_percentage?: number
+          status?: string | null
+          total_earnings?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          investment_amount?: number
+          notes?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          pending_payout?: number | null
+          phone?: string | null
+          share_percentage?: number
+          status?: string | null
+          total_earnings?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       shipping_zones: {
         Row: {
           base_rate: number
@@ -10162,6 +10302,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sub_admin_roles: {
+        Row: {
+          added_by: string | null
+          allowed_tabs: string[] | null
+          can_edit: boolean | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          role_name: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          allowed_tabs?: string[] | null
+          can_edit?: boolean | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          role_name?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          added_by?: string | null
+          allowed_tabs?: string[] | null
+          can_edit?: boolean | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          role_name?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       subscription_commissions: {
         Row: {
