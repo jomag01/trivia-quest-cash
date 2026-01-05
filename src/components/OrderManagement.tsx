@@ -71,7 +71,7 @@ export const OrderManagement = () => {
     try {
       const { data, error } = await supabase
         .from("order_items")
-        .select("*, products(name)")
+        .select("*, products(name), variant_id, variant_name")
         .eq("order_id", orderId);
 
       if (error) throw error;
@@ -174,6 +174,7 @@ export const OrderManagement = () => {
                 <TableHead>Customer</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Amount</TableHead>
+                <TableHead>Referrer Code</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Tracking</TableHead>
                 <TableHead>Actions</TableHead>
@@ -198,6 +199,15 @@ export const OrderManagement = () => {
                   </TableCell>
                   <TableCell className="font-semibold">
                     ₱{order.total_amount.toFixed(2)}
+                  </TableCell>
+                  <TableCell>
+                    {order.referrer_code ? (
+                      <Badge variant="outline" className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-200">
+                        {order.referrer_code}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">-</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(order.status)}>
@@ -307,12 +317,27 @@ export const OrderManagement = () => {
                 </div>
               )}
 
+              {selectedOrder.customer_notes && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <Label className="text-yellow-800">Customer Notes to Seller</Label>
+                  <p className="text-sm mt-1 text-yellow-700">{selectedOrder.customer_notes}</p>
+                </div>
+              )}
+
+              {selectedOrder.referrer_code && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Label className="text-blue-800">Referrer Code (Commission Tracking)</Label>
+                  <p className="font-mono text-sm mt-1 text-blue-700 font-semibold">{selectedOrder.referrer_code}</p>
+                </div>
+              )}
+
               <div>
                 <Label>Order Items</Label>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Product</TableHead>
+                      <TableHead>Variant</TableHead>
                       <TableHead>Quantity</TableHead>
                       <TableHead>Price</TableHead>
                       <TableHead>Subtotal</TableHead>
@@ -322,6 +347,13 @@ export const OrderManagement = () => {
                     {orderItems.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>{item.products?.name}</TableCell>
+                        <TableCell>
+                          {item.variant_name ? (
+                            <Badge variant="outline" className="text-xs">{item.variant_name}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell>₱{item.unit_price.toFixed(2)}</TableCell>
                         <TableCell>₱{item.subtotal.toFixed(2)}</TableCell>

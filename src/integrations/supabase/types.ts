@@ -6754,6 +6754,8 @@ export type Database = {
           quantity: number
           subtotal: number
           unit_price: number
+          variant_id: string | null
+          variant_name: string | null
         }
         Insert: {
           created_at?: string | null
@@ -6763,6 +6765,8 @@ export type Database = {
           quantity: number
           subtotal: number
           unit_price: number
+          variant_id?: string | null
+          variant_name?: string | null
         }
         Update: {
           created_at?: string | null
@@ -6772,6 +6776,8 @@ export type Database = {
           quantity?: number
           subtotal?: number
           unit_price?: number
+          variant_id?: string | null
+          variant_name?: string | null
         }
         Relationships: [
           {
@@ -6786,6 +6792,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -6828,6 +6841,7 @@ export type Database = {
           created_at: string | null
           customer_email: string
           customer_name: string
+          customer_notes: string | null
           customer_phone: string | null
           delivered_at: string | null
           id: string
@@ -6837,6 +6851,7 @@ export type Database = {
           order_number: string
           payment_method: string | null
           product_referrer_id: string | null
+          referrer_code: string | null
           seller_id: string | null
           shipped_at: string | null
           shipping_address: string
@@ -6853,6 +6868,7 @@ export type Database = {
           created_at?: string | null
           customer_email: string
           customer_name: string
+          customer_notes?: string | null
           customer_phone?: string | null
           delivered_at?: string | null
           id?: string
@@ -6862,6 +6878,7 @@ export type Database = {
           order_number: string
           payment_method?: string | null
           product_referrer_id?: string | null
+          referrer_code?: string | null
           seller_id?: string | null
           shipped_at?: string | null
           shipping_address: string
@@ -6878,6 +6895,7 @@ export type Database = {
           created_at?: string | null
           customer_email?: string
           customer_name?: string
+          customer_notes?: string | null
           customer_phone?: string | null
           delivered_at?: string | null
           id?: string
@@ -6887,6 +6905,7 @@ export type Database = {
           order_number?: string
           payment_method?: string | null
           product_referrer_id?: string | null
+          referrer_code?: string | null
           seller_id?: string | null
           shipped_at?: string | null
           shipping_address?: string

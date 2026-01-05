@@ -51,6 +51,8 @@ interface Order {
   tracking_number: string | null;
   courier: string | null;
   notes: string | null;
+  customer_notes: string | null;
+  referrer_code: string | null;
   items: OrderItem[];
 }
 
@@ -122,6 +124,8 @@ export default function SellerOrderProcessing() {
           tracking_number,
           courier,
           notes,
+          customer_notes,
+          referrer_code,
           seller_id
         `)
         .eq("seller_id", user.id)
@@ -454,6 +458,24 @@ export default function SellerOrderProcessing() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Customer Notes */}
+                    {order.customer_notes && (
+                      <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                        <p className="text-xs font-medium text-yellow-800 dark:text-yellow-300 mb-1">📝 Customer Notes:</p>
+                        <p className="text-sm text-yellow-700 dark:text-yellow-400">{order.customer_notes}</p>
+                      </div>
+                    )}
+
+                    {/* Referrer Code for Commission Tracking */}
+                    {order.referrer_code && (
+                      <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <span className="text-xs text-blue-600 dark:text-blue-400">Referrer:</span>
+                        <Badge variant="outline" className="font-mono text-xs bg-blue-100 text-blue-700 border-blue-300">
+                          {order.referrer_code}
+                        </Badge>
+                      </div>
+                    )}
 
                     {/* Tracking Info */}
                     {order.tracking_number && (

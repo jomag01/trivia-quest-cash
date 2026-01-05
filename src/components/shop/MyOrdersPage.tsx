@@ -54,6 +54,7 @@ interface Order {
     unit_price: number;
     subtotal: number;
     product_id: string;
+    variant_name?: string;
     products: {
       id: string;
       name: string;
@@ -130,7 +131,7 @@ export const MyOrdersPage = () => {
         const [itemsResult, reviewsResult] = await Promise.all([
           supabase
             .from("order_items")
-            .select("id, order_id, quantity, unit_price, subtotal, product_id")
+            .select("id, order_id, quantity, unit_price, subtotal, product_id, variant_name")
             .in("order_id", orderIds),
           supabase
             .from("product_reviews")
@@ -173,6 +174,7 @@ export const MyOrdersPage = () => {
             unit_price: it.unit_price,
             subtotal: it.subtotal,
             product_id: it.product_id,
+            variant_name: it.variant_name,
             products: productsById[it.product_id] || { id: it.product_id, name: "Product" },
           } as Order["order_items"][number];
 
@@ -503,6 +505,9 @@ export const MyOrdersPage = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm line-clamp-2">{item.products?.name}</p>
+                      {item.variant_name && (
+                        <p className="text-xs text-muted-foreground">{item.variant_name}</p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-1">Qty: {item.quantity}</p>
                       <p className="font-semibold text-primary mt-1">
                         ₱{item.subtotal.toFixed(2)}
