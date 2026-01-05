@@ -400,17 +400,71 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
     
     const adText = `${selectedAdForPublish.headline}\n\n${selectedAdForPublish.primaryText}\n\n${selectedAdForPublish.hashtags.join(' ')}`;
     const mediaUrl = selectedAdForPublish.generatedVideoUrl || selectedAdForPublish.generatedImageUrl;
+    const brandUrl = brandData?.url || window.location.origin;
     
+    // Try native share first for platforms that support media sharing
+    if (platform === 'native' && navigator.share) {
+      try {
+        const shareData: ShareData = {
+          title: selectedAdForPublish.headline,
+          text: adText,
+          url: brandUrl,
+        };
+        
+        // If we have media, try to share it as a file
+        if (mediaUrl) {
+          try {
+            const response = await fetch(mediaUrl);
+            const blob = await response.blob();
+            const fileName = selectedAdForPublish.generatedVideoUrl 
+              ? `${selectedAdForPublish.platform}-ad.mp4` 
+              : `${selectedAdForPublish.platform}-ad.png`;
+            const file = new File([blob], fileName, { type: blob.type });
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              shareData.files = [file];
+            }
+          } catch (e) {
+            console.log('Could not share file, falling back to URL share');
+          }
+        }
+        
+        await navigator.share(shareData);
+        toast.success('Shared successfully!');
+        setPublishDialogOpen(false);
+        return;
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') {
+          console.error('Native share failed:', e);
+        }
+      }
+    }
+    
+    // Platform-specific share URLs
     const shareUrls: Record<string, string> = {
-      facebook: `https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(adText)}`,
-      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(adText)}`,
-      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(brandData?.url || '')}`,
-      whatsapp: `https://wa.me/?text=${encodeURIComponent(adText + (mediaUrl ? '\n\n' + mediaUrl : ''))}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(brandUrl)}&quote=${encodeURIComponent(adText)}`,
+      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(adText)}&url=${encodeURIComponent(mediaUrl || brandUrl)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(brandUrl)}&summary=${encodeURIComponent(adText)}`,
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(adText + '\n\n' + (mediaUrl || brandUrl))}`,
+      tiktok: `https://www.tiktok.com/creator-center/upload`,
+      instagram: `https://www.instagram.com/`,
+      youtube: `https://studio.youtube.com/channel/UC/videos/upload`,
+      telegram: `https://t.me/share/url?url=${encodeURIComponent(mediaUrl || brandUrl)}&text=${encodeURIComponent(adText)}`,
     };
     
     if (shareUrls[platform]) {
-      window.open(shareUrls[platform], '_blank', 'width=600,height=400');
-      toast.success(`Opening ${platform} to share your ad...`);
+      // For TikTok, Instagram, YouTube - copy content to clipboard first
+      if (['tiktok', 'instagram', 'youtube'].includes(platform)) {
+        const clipboardText = `${adText}\n\n${mediaUrl || ''}`;
+        await navigator.clipboard.writeText(clipboardText);
+        toast.success(`Content copied! Opening ${platform}...`, {
+          description: 'Paste your ad text when the platform opens. Download your media first to upload it.'
+        });
+      } else {
+        toast.success(`Opening ${platform} to share your ad...`);
+      }
+      
+      window.open(shareUrls[platform], '_blank', 'width=800,height=600,scrollbars=yes');
     }
     
     setPublishDialogOpen(false);
@@ -1038,17 +1092,77 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
 
       {/* Publish Dialog */}
       <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Share2 className="h-5 w-5 text-blue-500" />
               Publish Your Ad
             </DialogTitle>
             <DialogDescription>
-              Share your ad directly to social media platforms
+              Share your ad to {selectedAdForPublish?.platform || 'social media'} and other platforms
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 pt-4">
+          
+          {/* Media Preview */}
+          {selectedAdForPublish && (selectedAdForPublish.generatedImageUrl || selectedAdForPublish.generatedVideoUrl) && (
+            <div className="rounded-lg overflow-hidden border mb-4">
+              {selectedAdForPublish.generatedVideoUrl ? (
+                <video 
+                  src={selectedAdForPublish.generatedVideoUrl} 
+                  className="w-full h-32 object-cover" 
+                  controls
+                />
+              ) : (
+                <img 
+                  src={selectedAdForPublish.generatedImageUrl} 
+                  alt="Ad preview" 
+                  className="w-full h-32 object-cover"
+                />
+              )}
+            </div>
+          )}
+
+          {/* Native Share (includes media) */}
+          {navigator.share && (
+            <Button
+              onClick={() => handleShareToSocial('native')}
+              className="w-full mb-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+            >
+              <Share2 className="h-5 w-5 mr-2" />
+              Share with Media (Recommended)
+            </Button>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* Show target platform first if it's TikTok, Instagram, or YouTube */}
+            {selectedAdForPublish?.platform === 'tiktok' && (
+              <Button
+                onClick={() => handleShareToSocial('tiktok')}
+                className="bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 hover:opacity-90 text-white col-span-2"
+              >
+                <Music2 className="h-5 w-5 mr-2" />
+                Open TikTok Creator
+              </Button>
+            )}
+            {selectedAdForPublish?.platform === 'instagram' && (
+              <Button
+                onClick={() => handleShareToSocial('instagram')}
+                className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:opacity-90 text-white col-span-2"
+              >
+                <Instagram className="h-5 w-5 mr-2" />
+                Open Instagram
+              </Button>
+            )}
+            {selectedAdForPublish?.platform === 'youtube' && (
+              <Button
+                onClick={() => handleShareToSocial('youtube')}
+                className="bg-red-600 hover:bg-red-700 text-white col-span-2"
+              >
+                <Youtube className="h-5 w-5 mr-2" />
+                Open YouTube Studio
+              </Button>
+            )}
+            
             <Button
               onClick={() => handleShareToSocial('facebook')}
               className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -1077,10 +1191,32 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
               <Send className="h-5 w-5 mr-2" />
               WhatsApp
             </Button>
+            
+            {/* Additional platforms if not already shown */}
+            {selectedAdForPublish?.platform !== 'tiktok' && (
+              <Button
+                onClick={() => handleShareToSocial('tiktok')}
+                className="bg-gradient-to-r from-pink-500 to-cyan-500 hover:opacity-90 text-white"
+              >
+                <Music2 className="h-5 w-5 mr-2" />
+                TikTok
+              </Button>
+            )}
+            <Button
+              onClick={() => handleShareToSocial('telegram')}
+              className="bg-sky-500 hover:bg-sky-600 text-white"
+            >
+              <Send className="h-5 w-5 mr-2" />
+              Telegram
+            </Button>
           </div>
-          <div className="pt-4 border-t mt-4">
+          
+          <div className="pt-4 border-t mt-4 space-y-2">
             <p className="text-sm text-muted-foreground text-center">
-              Tip: Download your ad media first, then attach it manually when the social media page opens.
+              💡 <strong>Tip:</strong> Use "Share with Media" to include your ad image/video directly.
+            </p>
+            <p className="text-xs text-muted-foreground text-center">
+              For TikTok, Instagram & YouTube: Download your media first, then upload when the platform opens.
             </p>
           </div>
         </DialogContent>

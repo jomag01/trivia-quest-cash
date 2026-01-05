@@ -37,6 +37,7 @@ import WeatherForecast from '@/components/ai/WeatherForecast';
 import EmailMarketingHub from '@/components/ai/EmailMarketingHub';
 import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
 import { ManualBrushEraser } from '@/components/ai/ManualBrushEraser';
+import GuestAITrialPopup from '@/components/ai/GuestAITrialPopup';
 import { Suspense } from 'react';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -197,6 +198,10 @@ const AIHub = memo(() => {
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   
+  // Guest trial popup state
+  const [showGuestTrialPopup, setShowGuestTrialPopup] = useState(false);
+  const [guestTrialImageUrl, setGuestTrialImageUrl] = useState<string | null>(null);
+  
   // Subscription hook
   const { 
     subscription, 
@@ -337,6 +342,37 @@ const AIHub = memo(() => {
       fetchUsageStats();
       fetchUserCredits();
     }
+  }, [user]);
+
+  // Show guest trial popup for unregistered users after 30 seconds
+  useEffect(() => {
+    if (user) return; // Don't show for logged-in users
+    
+    // Check if already shown this session
+    const alreadyShown = sessionStorage.getItem('guestTrialPopupShown');
+    if (alreadyShown) return;
+    
+    const timer = setTimeout(() => {
+      setShowGuestTrialPopup(true);
+      sessionStorage.setItem('guestTrialPopupShown', 'true');
+    }, 30000); // Show after 30 seconds
+    
+    // Also show on scroll (50% of page)
+    const handleScroll = () => {
+      const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+      if (scrollPercent > 50 && !sessionStorage.getItem('guestTrialPopupShown')) {
+        setShowGuestTrialPopup(true);
+        sessionStorage.setItem('guestTrialPopupShown', 'true');
+        window.removeEventListener('scroll', handleScroll);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, [user]);
 
   const fetchAppLogo = async () => {
@@ -2773,6 +2809,16 @@ const AIHub = memo(() => {
         onPurchaseComplete={() => {
           fetchUserCredits();
           refetchAICredits();
+        }}
+      />
+
+      {/* Guest AI Trial Popup for unregistered users */}
+      <GuestAITrialPopup
+        open={showGuestTrialPopup}
+        onOpenChange={setShowGuestTrialPopup}
+        generatedImageUrl={guestTrialImageUrl || undefined}
+        onEmailSubmitted={() => {
+          toast.success('Welcome! Check your email for exclusive AI tips.');
         }}
       />
     </div>
