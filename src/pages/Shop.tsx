@@ -36,6 +36,7 @@ const AIHealthConsultant = lazy(() => import("@/components/shop/AIHealthConsulta
 const MarketplaceListings = lazy(() => import("@/components/marketplace/MarketplaceListings"));
 const AuctionProducts = lazy(() => import("@/components/shop/AuctionProducts"));
 const SellerAdsSlider = lazy(() => import("@/components/shop/SellerAdsSlider"));
+const CompactSellerAdsSlider = lazy(() => import("@/components/shop/CompactSellerAdsSlider"));
 const SellerDashboard = lazy(() => import("./SellerDashboard"));
 const ShopAccountOverview = lazy(() => import("@/components/ShopAccountOverview"));
 
@@ -450,10 +451,18 @@ const Shop = () => {
             {/* Quick Tabs - Deals, AI Picks, etc */}
             <QuickTabs activeTab={quickTab} onTabChange={setQuickTab} />
 
-            {/* Promotion Slider - Compact */}
-            <Suspense fallback={<AdSliderSkeleton />}>
-              <AdSlider />
-            </Suspense>
+            {/* Two-Column Sliders: Promotions + Seller Ads */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Left: Promotions Slider */}
+              <Suspense fallback={<AdSliderSkeleton />}>
+                <AdSlider />
+              </Suspense>
+              
+              {/* Right: Paid Seller Ads Slider */}
+              <Suspense fallback={<AdSliderSkeleton />}>
+                <CompactSellerAdsSlider placementKey="shop_top" />
+              </Suspense>
+            </div>
 
             {/* Swipeable Category Slider - Amazon/Lazada style */}
             {categories.length > 0 ? (
