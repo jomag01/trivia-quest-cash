@@ -252,31 +252,61 @@ const Shop = () => {
       const subtotal = price * quantity;
       const totalAmount = subtotal + shippingFee;
       
-      // Get referrer info
+      // Get referrer info from multiple sources
       const referralData = localStorage.getItem('product_referrer');
       let referrerId: string | null = null;
       let referrerCode: string | null = null;
       
+      // 1. Check product-specific referrer from localStorage
       if (referralData) {
-        const { ref, productId } = JSON.parse(referralData);
-        if (productId === selectedProduct.id) {
-          referrerCode = ref;
-          // Look up referrer ID from referral code
-          const { data: referrerProfile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('referral_code', ref)
-            .maybeSingle();
-          if (referrerProfile) {
-            referrerId = referrerProfile.id;
+        try {
+          const { ref, productId } = JSON.parse(referralData);
+          if (productId === selectedProduct.id) {
+            referrerCode = ref;
+          }
+        } catch (e) {
+          console.error("Error parsing product referrer:", e);
+        }
+      }
+      
+      // 2. Check URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      if (!referrerCode) {
+        referrerCode = urlParams.get('ref') || urlParams.get('aff') || null;
+      }
+      
+      // 3. Check cookies (aff_referral_referrer and aff_affiliate_referrer)
+      if (!referrerCode) {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+          cookie = cookie.trim();
+          if (cookie.startsWith('aff_referral_referrer=')) {
+            referrerCode = decodeURIComponent(cookie.substring('aff_referral_referrer='.length));
+            break;
+          }
+          if (cookie.startsWith('aff_affiliate_referrer=')) {
+            referrerCode = decodeURIComponent(cookie.substring('aff_affiliate_referrer='.length));
+            break;
           }
         }
       }
       
-      // Also check cookie tracking for referrer code
-      const urlParams = new URLSearchParams(window.location.search);
+      // 4. Check localStorage fallback
       if (!referrerCode) {
-        referrerCode = urlParams.get('ref') || null;
+        referrerCode = localStorage.getItem('aff_referral_referrer') || 
+                       localStorage.getItem('aff_affiliate_referrer') || null;
+      }
+      
+      // Look up referrer ID from referral code
+      if (referrerCode) {
+        const { data: referrerProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('referral_code', referrerCode)
+          .maybeSingle();
+        if (referrerProfile) {
+          referrerId = referrerProfile.id;
+        }
       }
       
       const diamondCredits = (selectedProduct.diamond_reward || 0) * quantity;

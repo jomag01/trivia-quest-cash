@@ -221,9 +221,44 @@ export const CartView = () => {
       const cartProductIds = cartItems.map(item => item.product_id);
       const matchingReferrer = liveStreamReferrers.find((r: any) => cartProductIds.includes(r.product_id));
 
-      // Get referrer code from URL or localStorage
+      // Get referrer code from multiple sources
       const urlParams = new URLSearchParams(window.location.search);
-      const referrerCode = urlParams.get('ref') || localStorage.getItem('aff_referral_referrer') || null;
+      let referrerCode = urlParams.get('ref') || urlParams.get('aff') || null;
+      
+      // Check cookies if not in URL
+      if (!referrerCode) {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+          cookie = cookie.trim();
+          if (cookie.startsWith('aff_referral_referrer=')) {
+            referrerCode = decodeURIComponent(cookie.substring('aff_referral_referrer='.length));
+            break;
+          }
+          if (cookie.startsWith('aff_affiliate_referrer=')) {
+            referrerCode = decodeURIComponent(cookie.substring('aff_affiliate_referrer='.length));
+            break;
+          }
+        }
+      }
+      
+      // Fallback to localStorage
+      if (!referrerCode) {
+        referrerCode = localStorage.getItem('aff_referral_referrer') || 
+                       localStorage.getItem('aff_affiliate_referrer') || null;
+      }
+      
+      // Look up referrer ID if we have a code
+      let referrerId: string | null = null;
+      if (referrerCode && !matchingReferrer) {
+        const { data: referrerProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('referral_code', referrerCode)
+          .maybeSingle();
+        if (referrerProfile) {
+          referrerId = referrerProfile.id;
+        }
+      }
 
       // Create order with live stream tracking if applicable
       const orderData: any = {
@@ -247,6 +282,9 @@ export const CartView = () => {
         orderData.live_stream_id = matchingReferrer.stream_id;
         orderData.live_streamer_id = matchingReferrer.streamer_id;
         orderData.product_referrer_id = matchingReferrer.streamer_id;
+      } else if (referrerId) {
+        // Add general referrer if no live stream referrer
+        orderData.product_referrer_id = referrerId;
       }
 
       const { data: order, error: orderError } = await supabase
