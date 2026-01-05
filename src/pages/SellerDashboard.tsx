@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Store, Package, AlertCircle, Plus, Edit2, Trash2, Images, Layers, Megaphone, Warehouse } from "lucide-react";
+import { Loader2, Store, Package, AlertCircle, Plus, Edit2, Trash2, Images, Layers, Megaphone, Warehouse, Gavel } from "lucide-react";
 import { ProductVariantManager } from "@/components/ProductVariantManager";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ImageUploadCrop } from "@/components/ImageUploadCrop";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import AdsPromoPopup from "@/components/seller/AdsPromoPopup";
+import ConvertToAuctionDialog from "@/components/auction/ConvertToAuctionDialog";
 export default function SellerDashboard() {
   const {
     user,
@@ -31,6 +32,8 @@ export default function SellerDashboard() {
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [showVariantsDialog, setShowVariantsDialog] = useState(false);
   const [showAdsPromo, setShowAdsPromo] = useState(false);
+  const [showAuctionDialog, setShowAuctionDialog] = useState(false);
+  const [selectedProductForAuction, setSelectedProductForAuction] = useState<any>(null);
   const [selectedProductForVariants, setSelectedProductForVariants] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState({
@@ -358,6 +361,12 @@ export default function SellerDashboard() {
                         }} title="Manage Variants">
                           <Layers className="h-3.5 w-3.5" />
                         </Button>
+                        <Button size="icon" variant="outline" className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => {
+                          setSelectedProductForAuction(p);
+                          setShowAuctionDialog(true);
+                        }} title="Convert to Auction">
+                          <Gavel className="h-3.5 w-3.5" />
+                        </Button>
                         <Button size="icon" variant="outline" className="h-8 w-8" onClick={async () => {
                           if (confirm("Delete?")) {
                             await supabase.from("products").delete().eq("id", p.id);
@@ -622,5 +631,12 @@ export default function SellerDashboard() {
 
       {/* AI Ads Promo Popup */}
       <AdsPromoPopup open={showAdsPromo} onOpenChange={setShowAdsPromo} />
+
+      {/* Convert to Auction Dialog */}
+      <ConvertToAuctionDialog
+        open={showAuctionDialog}
+        onOpenChange={setShowAuctionDialog}
+        product={selectedProductForAuction}
+      />
     </div>;
 }
