@@ -94,6 +94,7 @@ import PayoutAccountsManagement from "@/components/admin/PayoutAccountsManagemen
 import BlogManagement from "@/components/admin/BlogManagement";
 import AISubscriptionManagement from "@/components/admin/AISubscriptionManagement";
 import NewsletterManagement from "@/components/admin/NewsletterManagement";
+import SellerReferrerCommissionManagement from "@/components/admin/SellerReferrerCommissionManagement";
 
 interface MenuItem {
   id: string;
@@ -179,6 +180,7 @@ const Admin = () => {
         { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
         { id: "transfers", label: "Upline Transfers", icon: Users },
         { id: "retailer-commissions", label: "Retailer Commissions", icon: Percent },
+        { id: "seller-referrer", label: "Seller Referrer Commission", icon: Users },
       ],
     },
     {
@@ -842,6 +844,7 @@ const Admin = () => {
           {activeTab === "ad-revenue-settings" && <AdRevenueSettings />}
           {activeTab === "suppliers" && <SupplierManagement />}
           {activeTab === "retailer-commissions" && <RetailerCommissionSettings />}
+          {activeTab === "seller-referrer" && <SellerReferrerCommissionManagement />}
           {activeTab === "system-reset" && <SystemResetManagement />}
           {activeTab === "purchase-notifications" && <PurchaseNotificationSettings />}
           {activeTab === "auctions" && <AuctionManagement />}

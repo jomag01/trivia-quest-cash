@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Phone, MapPin, Bike } from "lucide-react";
+import { processSellerReferrerCommission } from "@/lib/sellerReferralCommission";
 
 interface VendorOrdersProps {
   vendorId: string;
@@ -123,6 +124,21 @@ export const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
         .eq("id", orderId);
 
       if (error) throw error;
+
+      // Process seller referrer commission for food delivery when delivered
+      if (status === "delivered") {
+        // Get vendor owner_id
+        const { data: vendor } = await (supabase as any)
+          .from("food_vendors")
+          .select("owner_id")
+          .eq("id", vendorId)
+          .single();
+
+        if (vendor?.owner_id) {
+          console.log("Processing seller referrer commission for food delivery:", orderId);
+          await processSellerReferrerCommission(vendor.owner_id, orderId, order.total_amount, 'food');
+        }
+      }
 
       // If marking as "ready", notify available riders
       if (status === "ready") {

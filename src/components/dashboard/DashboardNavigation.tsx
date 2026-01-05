@@ -134,6 +134,7 @@ const navItems: NavItem[] = [
     color: "text-lime-500",
     children: [
       { id: "transactions", label: "Transactions", icon: Wallet, color: "text-lime-400" },
+      { id: "seller-earnings", label: "Seller Referral Earnings", icon: TrendingUp, color: "text-emerald-500" },
     ]
   },
   {

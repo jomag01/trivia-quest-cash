@@ -2617,6 +2617,47 @@ export type Database = {
           },
         ]
       }
+      commission_notifications: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          source_id: string | null
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          source_id?: string | null
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          source_id?: string | null
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commissions: {
         Row: {
           amount: number
@@ -7549,6 +7590,7 @@ export type Database = {
           is_admin: boolean | null
           is_creator: boolean | null
           is_paid_affiliate: boolean | null
+          is_seller: boolean | null
           is_verified: boolean | null
           is_verified_rider: boolean | null
           is_verified_seller: boolean | null
@@ -7557,7 +7599,10 @@ export type Database = {
           phone_number: string | null
           referral_code: string
           referred_by: string | null
+          seller_category: string | null
           seller_rating: number | null
+          seller_referrer_id: string | null
+          seller_registered_at: string | null
           total_reviews: number | null
           total_views: number | null
           updated_at: string
@@ -7587,6 +7632,7 @@ export type Database = {
           is_admin?: boolean | null
           is_creator?: boolean | null
           is_paid_affiliate?: boolean | null
+          is_seller?: boolean | null
           is_verified?: boolean | null
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null
@@ -7595,7 +7641,10 @@ export type Database = {
           phone_number?: string | null
           referral_code: string
           referred_by?: string | null
+          seller_category?: string | null
           seller_rating?: number | null
+          seller_referrer_id?: string | null
+          seller_registered_at?: string | null
           total_reviews?: number | null
           total_views?: number | null
           updated_at?: string
@@ -7625,6 +7674,7 @@ export type Database = {
           is_admin?: boolean | null
           is_creator?: boolean | null
           is_paid_affiliate?: boolean | null
+          is_seller?: boolean | null
           is_verified?: boolean | null
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null
@@ -7633,7 +7683,10 @@ export type Database = {
           phone_number?: string | null
           referral_code?: string
           referred_by?: string | null
+          seller_category?: string | null
           seller_rating?: number | null
+          seller_referrer_id?: string | null
+          seller_registered_at?: string | null
           total_reviews?: number | null
           total_views?: number | null
           updated_at?: string
@@ -7644,6 +7697,13 @@ export type Database = {
           {
             foreignKeyName: "profiles_referred_by_fkey"
             columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_seller_referrer_id_fkey"
+            columns: ["seller_referrer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -8469,6 +8529,114 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "ad_spend_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_referrer_commissions: {
+        Row: {
+          admin_markup_percent: number
+          category: string
+          commission_percent: number
+          created_at: string
+          id: string
+          is_active: boolean | null
+          leadership_percent: number
+          stairstep_percent: number
+          unilevel_percent: number
+          updated_at: string
+        }
+        Insert: {
+          admin_markup_percent?: number
+          category: string
+          commission_percent?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          leadership_percent?: number
+          stairstep_percent?: number
+          unilevel_percent?: number
+          updated_at?: string
+        }
+        Update: {
+          admin_markup_percent?: number
+          category?: string
+          commission_percent?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          leadership_percent?: number
+          stairstep_percent?: number
+          unilevel_percent?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seller_referrer_earnings: {
+        Row: {
+          admin_markup_amount: number
+          admin_net_profit: number
+          created_at: string
+          id: string
+          leadership_amount: number
+          order_id: string | null
+          processed_at: string | null
+          referrer_commission: number
+          referrer_id: string
+          sale_amount: number
+          seller_id: string
+          source_category: string
+          stairstep_amount: number
+          status: string | null
+          unilevel_amount: number
+        }
+        Insert: {
+          admin_markup_amount?: number
+          admin_net_profit?: number
+          created_at?: string
+          id?: string
+          leadership_amount?: number
+          order_id?: string | null
+          processed_at?: string | null
+          referrer_commission: number
+          referrer_id: string
+          sale_amount: number
+          seller_id: string
+          source_category: string
+          stairstep_amount?: number
+          status?: string | null
+          unilevel_amount?: number
+        }
+        Update: {
+          admin_markup_amount?: number
+          admin_net_profit?: number
+          created_at?: string
+          id?: string
+          leadership_amount?: number
+          order_id?: string | null
+          processed_at?: string | null
+          referrer_commission?: number
+          referrer_id?: string
+          sale_amount?: number
+          seller_id?: string
+          source_category?: string
+          stairstep_amount?: number
+          status?: string | null
+          unilevel_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_referrer_earnings_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_referrer_earnings_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
