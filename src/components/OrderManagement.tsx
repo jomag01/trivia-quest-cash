@@ -153,7 +153,7 @@ export const OrderManagement = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6 gradient-accent border-primary/20">
+      <Card className="p-6 bg-card border-border">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Package className="w-8 h-8 text-primary" />
