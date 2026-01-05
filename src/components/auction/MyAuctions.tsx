@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus, Clock, CheckCircle, XCircle, AlertCircle,
-  Eye, Gavel, DollarSign, Package, MessageSquare
+  Eye, Gavel, DollarSign, Package, MessageSquare, Pencil
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import AuctionEscrowDialog from "./AuctionEscrowDialog";
+import EditAuctionDialog from "./EditAuctionDialog";
 
 interface MyAuctionsProps {
   onCreateNew: () => void;
@@ -49,6 +50,7 @@ const MyAuctions = ({ onCreateNew }: MyAuctionsProps) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedEscrow, setSelectedEscrow] = useState<any>(null);
+  const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -202,6 +204,16 @@ const MyAuctions = ({ onCreateNew }: MyAuctionsProps) => {
 
                         {/* Actions */}
                         <div className="flex gap-2 mt-3">
+                          {(auction.status === "active" || auction.status === "pending_approval") && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditingAuction(auction)}
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                          )}
                           {auction.status === "active" && auction.bid_count === 0 && (
                             <Button
                               variant="outline"
@@ -246,6 +258,14 @@ const MyAuctions = ({ onCreateNew }: MyAuctionsProps) => {
         onOpenChange={(open) => !open && setSelectedEscrow(null)}
         onUpdate={fetchAuctions}
         isSeller
+      />
+
+      {/* Edit Auction Dialog */}
+      <EditAuctionDialog
+        auction={editingAuction}
+        open={!!editingAuction}
+        onOpenChange={(open) => !open && setEditingAuction(null)}
+        onUpdate={fetchAuctions}
       />
     </div>
   );
