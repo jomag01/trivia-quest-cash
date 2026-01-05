@@ -127,7 +127,7 @@ export function ErrorReportButton() {
         variant="ghost"
         size="icon"
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 right-4 z-40 h-10 w-10 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive shadow-lg"
+        className="fixed bottom-24 right-6 z-40 h-10 w-10 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive shadow-lg"
         title="Report a bug"
       >
         <Bug className="w-5 h-5" />

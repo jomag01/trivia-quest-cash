@@ -41,7 +41,7 @@ const SellerDashboard = lazy(() => import("./SellerDashboard"));
 const ShopAccountOverview = lazy(() => import("@/components/ShopAccountOverview"));
 
 const Shop = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { trackInteraction } = useInteractionTracking();
@@ -240,7 +240,10 @@ const Shop = () => {
       toast.error("Please login to place an order");
       return;
     }
-    if (!shippingAddress || !customerName || !customerEmail) {
+
+    const effectiveCustomerEmail = (profile?.email || user.email || customerEmail).trim();
+
+    if (!shippingAddress || !customerName || !effectiveCustomerEmail) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -251,12 +254,12 @@ const Shop = () => {
       const price = basePrice + variantAdjustment;
       const subtotal = price * quantity;
       const totalAmount = subtotal + shippingFee;
-      
+
       // Get referrer info from multiple sources
       const referralData = localStorage.getItem('product_referrer');
       let referrerId: string | null = null;
       let referrerCode: string | null = null;
-      
+
       // 1. Check product-specific referrer from localStorage
       if (referralData) {
         try {
@@ -268,13 +271,13 @@ const Shop = () => {
           console.error("Error parsing product referrer:", e);
         }
       }
-      
+
       // 2. Check URL params
       const urlParams = new URLSearchParams(window.location.search);
       if (!referrerCode) {
         referrerCode = urlParams.get('ref') || urlParams.get('aff') || null;
       }
-      
+
       // 3. Check cookies (aff_referral_referrer and aff_affiliate_referrer)
       if (!referrerCode) {
         const cookies = document.cookie.split(';');
@@ -290,13 +293,13 @@ const Shop = () => {
           }
         }
       }
-      
+
       // 4. Check localStorage fallback
       if (!referrerCode) {
-        referrerCode = localStorage.getItem('aff_referral_referrer') || 
-                       localStorage.getItem('aff_affiliate_referrer') || null;
+        referrerCode = localStorage.getItem('aff_referral_referrer') ||
+          localStorage.getItem('aff_affiliate_referrer') || null;
       }
-      
+
       // Look up referrer ID from referral code
       if (referrerCode) {
         const { data: referrerProfile } = await supabase
@@ -308,7 +311,7 @@ const Shop = () => {
           referrerId = referrerProfile.id;
         }
       }
-      
+
       // 5. DATABASE FALLBACK: If no cookie/URL referrer found, use buyer's referred_by from profile
       // This ensures commissions are ALWAYS attributed even if cookies fail
       if (!referrerId && user?.id) {
@@ -322,7 +325,19 @@ const Shop = () => {
           console.log("Using database referred_by as fallback referrer:", referrerId);
         }
       }
-      
+
+      // If we only have a referrerId (e.g. database fallback), also store the referrer_code for admin visibility
+      if (referrerId && !referrerCode) {
+        const { data: referrerProfileById } = await supabase
+          .from('profiles')
+          .select('referral_code')
+          .eq('id', referrerId)
+          .maybeSingle();
+        if (referrerProfileById?.referral_code) {
+          referrerCode = referrerProfileById.referral_code;
+        }
+      }
+
       const diamondCredits = (selectedProduct.diamond_reward || 0) * quantity;
 
       const { data: orderNumberData, error: orderNumError } = await supabase.rpc("generate_order_number");
@@ -335,7 +350,7 @@ const Shop = () => {
         shipping_fee: shippingFee,
         shipping_address: shippingAddress,
         customer_name: customerName,
-        customer_email: customerEmail,
+        customer_email: effectiveCustomerEmail,
         customer_phone: customerPhone,
         customer_notes: customerNotes || null,
         status: "pending",

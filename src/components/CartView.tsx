@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 
 export const CartView = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutDialog, setCheckoutDialog] = useState(false);
@@ -150,8 +150,10 @@ export const CartView = () => {
       toast.error("Please login to place an order");
       return;
     }
-    
-    if (!customerName || !customerEmail || !shippingAddress) {
+
+    const effectiveCustomerEmail = (profile?.email || user.email || customerEmail).trim();
+
+    if (!customerName || !effectiveCustomerEmail || !shippingAddress) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -171,12 +173,12 @@ export const CartView = () => {
     const subtotalForCod = calculateTotal();
     const totalForCod = subtotalForCod + shippingFee;
     const userBalance = userCredits + (userDiamonds * 10); // Convert diamonds to peso value
-    
+
     if (paymentMethod === "cod" && userBalance < totalForCod) {
       toast.error(
         `COD Protection: You need at least ₱${totalForCod.toFixed(2)} in credits or diamonds to use COD. ` +
-        `This protects sellers from shipping costs if orders are cancelled. ` +
-        `Your current balance: ₱${userBalance.toFixed(2)}`
+          `This protects sellers from shipping costs if orders are cancelled. ` +
+          `Your current balance: ₱${userBalance.toFixed(2)}`
       );
       return;
     }
@@ -224,7 +226,7 @@ export const CartView = () => {
       // Get referrer code from multiple sources
       const urlParams = new URLSearchParams(window.location.search);
       let referrerCode = urlParams.get('ref') || urlParams.get('aff') || null;
-      
+
       // Check cookies if not in URL
       if (!referrerCode) {
         const cookies = document.cookie.split(';');
@@ -240,13 +242,13 @@ export const CartView = () => {
           }
         }
       }
-      
+
       // Fallback to localStorage
       if (!referrerCode) {
-        referrerCode = localStorage.getItem('aff_referral_referrer') || 
-                       localStorage.getItem('aff_affiliate_referrer') || null;
+        referrerCode = localStorage.getItem('aff_referral_referrer') ||
+          localStorage.getItem('aff_affiliate_referrer') || null;
       }
-      
+
       // Look up referrer ID if we have a code
       let referrerId: string | null = null;
       if (referrerCode && !matchingReferrer) {
@@ -259,7 +261,7 @@ export const CartView = () => {
           referrerId = referrerProfile.id;
         }
       }
-      
+
       // DATABASE FALLBACK: If no cookie/URL referrer found, use buyer's referred_by from profile
       // This ensures commissions are ALWAYS attributed even if cookies fail
       if (!referrerId && !matchingReferrer && user?.id) {
@@ -274,6 +276,19 @@ export const CartView = () => {
         }
       }
 
+      // If we only have a referrerId (e.g. database fallback), also store the referrer_code for admin visibility
+      const referrerIdForCode = matchingReferrer?.streamer_id || referrerId;
+      if (referrerIdForCode && !referrerCode) {
+        const { data: refProfileById } = await supabase
+          .from('profiles')
+          .select('referral_code')
+          .eq('id', referrerIdForCode)
+          .maybeSingle();
+        if (refProfileById?.referral_code) {
+          referrerCode = refProfileById.referral_code;
+        }
+      }
+
       // Create order with live stream tracking if applicable
       const orderData: any = {
         user_id: user.id,
@@ -283,7 +298,7 @@ export const CartView = () => {
         total_diamond_credits: totalDiamondCredits,
         shipping_address: shippingAddress,
         customer_name: customerName,
-        customer_email: customerEmail,
+        customer_email: effectiveCustomerEmail,
         customer_phone: customerPhone,
         customer_notes: customerNotes || null,
         referrer_code: referrerCode,
