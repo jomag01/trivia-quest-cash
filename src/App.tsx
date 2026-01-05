@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Navigation from "./components/Navigation";
 import { parseAndTrackFromUrl } from "@/lib/cookieTracking";
+import { useDeepLinkTracking } from "@/hooks/useDeepLinkTracking";
 import { AffiliateSignupPopup } from "./components/AffiliateSignupPopup";
 import { PurchaseNotification } from "./components/PurchaseNotification";
 
@@ -58,12 +59,15 @@ const PageLoader = () => (
   </div>
 );
 
-// Cookie tracking component
+// Deep link and cookie tracking component
 const CookieTracker = () => {
   const location = useLocation();
   
+  // Use deep link tracking hook
+  useDeepLinkTracking();
+  
   useEffect(() => {
-    // Track referral links on route changes
+    // Also run legacy tracking for backwards compatibility
     parseAndTrackFromUrl();
   }, [location.search]);
   

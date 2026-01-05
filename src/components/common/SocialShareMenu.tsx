@@ -37,7 +37,7 @@ const SocialShareMenu = ({
   const [copied, setCopied] = useState(false);
   const { user } = useAuth();
 
-  const shareUrl = generateShareUrlSync(path, user?.id, params);
+  const shareUrl = generateShareUrlSync(path, user?.id, null, params);
   const shareText = description || title;
 
   const handleFacebook = () => {

@@ -20,6 +20,8 @@ export const MOBILE_CONFIG = {
   deepLinks: {
     scheme: 'triviabees',
     universalLinks: [
+      'https://triviabees.com',
+      'https://www.triviabees.com',
       'https://c5121813-07b8-4e46-89a3-8c4951e10c56.lovableproject.com',
     ],
     paths: [
@@ -28,7 +30,16 @@ export const MOBILE_CONFIG = {
       '/ai-hub/*',
       '/profile/*',
       '/auth/*',
+      '/feed/*',
+      '/auction/*',
+      '/booking/*',
+      '/food/*',
+      '/blog/*',
+      '/live/*',
+      '/campaign/*',
     ],
+    // Supported query params for tracking
+    trackingParams: ['ref', 'aff', 'src', 'cmp', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'],
   },
   
   // Safe area insets for notches and home indicators

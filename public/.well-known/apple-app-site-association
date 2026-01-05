@@ -9,7 +9,14 @@
           "/shop/*",
           "/ai-hub/*",
           "/profile/*",
-          "/auth/*"
+          "/auth/*",
+          "/feed/*",
+          "/auction/*",
+          "/booking/*",
+          "/food/*",
+          "/blog/*",
+          "/live/*",
+          "/campaign/*"
         ]
       }
     ]

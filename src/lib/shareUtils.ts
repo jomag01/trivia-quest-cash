@@ -1,24 +1,45 @@
 import { supabase } from '@/integrations/supabase/client';
+import { generateDeepLinkSync, ENTITY_PATHS } from './deepLinking';
 
 interface ShareConfig {
   title: string;
   description: string;
   path: string;
   params?: Record<string, string>;
+  entityType?: string;
+  entityId?: string;
 }
 
 /**
- * Generates a share URL with affiliate referral code embedded
+ * Generates a share URL with affiliate referral code and UTM params embedded
  */
 export const generateShareUrl = async (config: ShareConfig): Promise<string> => {
-  const { path, params = {} } = config;
+  const { path, params = {}, entityType, entityId } = config;
   const baseUrl = window.location.origin;
   
   // Get current user for affiliate link
   const { data: { user } } = await supabase.auth.getUser();
   
+  // Get user's referral code if available
+  let refCode = user?.id;
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('referral_code')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (profile?.referral_code) {
+      refCode = profile.referral_code;
+    }
+  }
+  
   // Build URL with params
   const urlParams = new URLSearchParams();
+  
+  // Add entity-specific param if provided
+  if (entityType && entityId) {
+    urlParams.set(entityType, entityId);
+  }
   
   // Add custom params
   Object.entries(params).forEach(([key, value]) => {
@@ -26,9 +47,12 @@ export const generateShareUrl = async (config: ShareConfig): Promise<string> => 
   });
   
   // Add referral code if user is logged in
-  if (user) {
-    urlParams.set('ref', user.id);
+  if (refCode) {
+    urlParams.set('ref', refCode);
   }
+  
+  // Add source tracking
+  urlParams.set('src', 'share');
   
   const queryString = urlParams.toString();
   return `${baseUrl}${path}${queryString ? `?${queryString}` : ''}`;
@@ -39,7 +63,8 @@ export const generateShareUrl = async (config: ShareConfig): Promise<string> => 
  */
 export const generateShareUrlSync = (
   path: string, 
-  userId?: string | null, 
+  userId?: string | null,
+  referralCode?: string | null,
   params?: Record<string, string>
 ): string => {
   const baseUrl = window.location.origin;
@@ -52,13 +77,39 @@ export const generateShareUrlSync = (
     });
   }
   
-  // Add referral code if user is logged in
-  if (userId) {
+  // Add referral code - prefer referral_code over user_id
+  if (referralCode) {
+    urlParams.set('ref', referralCode);
+  } else if (userId) {
     urlParams.set('ref', userId);
   }
   
+  // Add source tracking
+  urlParams.set('src', 'share');
+  
   const queryString = urlParams.toString();
   return `${baseUrl}${path}${queryString ? `?${queryString}` : ''}`;
+};
+
+/**
+ * Generate entity-specific share URL (product, auction, service, etc.)
+ */
+export const generateEntityShareUrl = (
+  entityType: string,
+  entityId: string,
+  userId?: string | null,
+  referralCode?: string | null,
+  utmParams?: { source?: string; medium?: string; campaign?: string }
+): string => {
+  const customParams: Record<string, string> = {
+    src: 'share'
+  };
+  
+  if (utmParams?.source) customParams.utm_source = utmParams.source;
+  if (utmParams?.medium) customParams.utm_medium = utmParams.medium;
+  if (utmParams?.campaign) customParams.utm_campaign = utmParams.campaign;
+  
+  return generateDeepLinkSync(entityType, entityId, userId, referralCode, customParams);
 };
 
 /**
@@ -103,6 +154,12 @@ export const shareToSocialMedia = {
     window.open(`https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}${titleParam}`, '_blank');
   },
   
+  tiktok: (url: string) => {
+    // TikTok doesn't have a direct share URL, copy to clipboard for bio links
+    navigator.clipboard.writeText(url);
+    return true;
+  },
+  
   native: async (url: string, title: string, text?: string) => {
     if (navigator.share) {
       try {
@@ -127,4 +184,12 @@ export const shareToSocialMedia = {
       return false;
     }
   }
+};
+
+/**
+ * Generate QR code URL for sharing
+ */
+export const generateQRCodeUrl = (shareUrl: string, size: number = 200): string => {
+  const encodedUrl = encodeURIComponent(shareUrl);
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodedUrl}`;
 };
