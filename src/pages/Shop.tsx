@@ -602,99 +602,113 @@ const Shop = () => {
               <AuctionProducts />
             </Suspense>
 
-            {/* Checkout Dialog */}
+            {/* Checkout Dialog - Compact for Mobile */}
             <Dialog open={checkoutDialog} onOpenChange={setCheckoutDialog}>
-              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-base">Complete Your Order</DialogTitle>
+              <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto p-4">
+                <DialogHeader className="pb-2">
+                  <DialogTitle className="text-sm">Complete Order</DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
+                <div className="space-y-2">
+                  {/* Product Summary - Compact */}
+                  <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
                     {selectedProduct?.image_url && (
-                      <img src={selectedProduct.image_url} alt="" className="w-12 h-12 object-cover rounded" />
+                      <img src={selectedProduct.image_url} alt="" className="w-10 h-10 object-cover rounded" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{selectedProduct?.name}</p>
+                      <p className="font-medium text-xs truncate">{selectedProduct?.name}</p>
                       {selectedVariant && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[10px] text-muted-foreground">
                           {selectedVariant.variant_type}: {selectedVariant.variant_value}
                         </p>
                       )}
+                    </div>
+                    <div className="text-right">
                       <p className="text-xs text-destructive font-bold">
-                        ₱{((getEffectivePrice(selectedProduct) + (selectedVariant?.price_adjustment || 0))).toFixed(2)} each
+                        ₱{((getEffectivePrice(selectedProduct) + (selectedVariant?.price_adjustment || 0))).toFixed(0)}
                       </p>
+                      <div className="flex items-center gap-1">
+                        <Label className="text-[10px]">Qty:</Label>
+                        <Input 
+                          type="number" 
+                          min="1" 
+                          max={selectedVariant?.stock_quantity || selectedProduct?.stock_quantity || 1} 
+                          value={quantity} 
+                          onChange={e => setQuantity(parseInt(e.target.value) || 1)} 
+                          className="h-6 w-12 text-xs px-1" 
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Customer Info - Compact Grid */}
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label htmlFor="quantity" className="text-xs">Qty</Label>
-                      <Input id="quantity" type="number" min="1" max={selectedVariant?.stock_quantity || selectedProduct?.stock_quantity || 1} value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} className="h-8 text-sm" />
+                      <Label htmlFor="customerName" className="text-[10px]">Name *</Label>
+                      <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-7 text-xs" required />
                     </div>
-                    <div className="flex items-end">
-                      <p className="text-sm font-bold">
-                        Subtotal: ₱{((getEffectivePrice(selectedProduct) + (selectedVariant?.price_adjustment || 0)) * quantity).toFixed(2)}
-                      </p>
+                    <div>
+                      <Label htmlFor="customerPhone" className="text-[10px]">Phone</Label>
+                      <Input id="customerPhone" type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-7 text-xs" />
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="customerName" className="text-xs">Full Name *</Label>
-                    <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-8 text-sm" required />
+                    <Label htmlFor="customerEmail" className="text-[10px]">Email *</Label>
+                    <Input id="customerEmail" type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} className="h-7 text-xs" required />
                   </div>
 
                   <div>
-                    <Label htmlFor="customerEmail" className="text-xs">Email *</Label>
-                    <Input id="customerEmail" type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} className="h-8 text-sm" required />
+                    <Label htmlFor="shippingAddress" className="text-[10px]">Address *</Label>
+                    <Textarea id="shippingAddress" value={shippingAddress} onChange={e => setShippingAddress(e.target.value)} rows={2} className="text-xs min-h-[50px]" required />
                   </div>
 
                   <div>
-                    <Label htmlFor="customerPhone" className="text-xs">Phone</Label>
-                    <Input id="customerPhone" type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-8 text-sm" />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="shippingAddress" className="text-xs">Shipping Address *</Label>
-                    <Textarea id="shippingAddress" value={shippingAddress} onChange={e => setShippingAddress(e.target.value)} rows={2} className="text-sm" required />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="customerNotes" className="text-xs">Notes to Seller (Optional)</Label>
+                    <Label htmlFor="customerNotes" className="text-[10px]">Notes (Optional)</Label>
                     <Textarea 
                       id="customerNotes" 
                       value={customerNotes} 
                       onChange={e => setCustomerNotes(e.target.value)} 
-                      rows={2} 
-                      className="text-sm" 
-                      placeholder="Special instructions, gift wrapping requests, etc."
+                      rows={1} 
+                      className="text-xs min-h-[32px]" 
+                      placeholder="Special instructions..."
                     />
                   </div>
 
-                  <ShippingCalculator productWeight={selectedProduct?.weight_kg || 1} subtotal={(getEffectivePrice(selectedProduct) + (selectedVariant?.price_adjustment || 0)) * quantity} onShippingCalculated={setShippingFee} />
+                  {/* Compact Shipping Calculator */}
+                  <ShippingCalculator 
+                    productWeight={selectedProduct?.weight_kg || 1} 
+                    subtotal={(getEffectivePrice(selectedProduct) + (selectedVariant?.price_adjustment || 0)) * quantity} 
+                    onShippingCalculated={setShippingFee} 
+                  />
 
-                  <div className="pt-2 border-t space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span>Shipping:</span>
-                      <span>₱{shippingFee.toFixed(2)}</span>
+                  {/* Order Summary - Sticky Footer Style */}
+                  <div className="pt-2 border-t bg-background sticky bottom-0">
+                    <div className="flex justify-between items-center text-xs mb-1">
+                      <span className="text-muted-foreground">Subtotal:</span>
+                      <span>₱{((getEffectivePrice(selectedProduct) + (selectedVariant?.price_adjustment || 0)) * quantity).toFixed(0)}</span>
                     </div>
-                    <div className="flex justify-between text-sm font-bold">
-                      <span>Total:</span>
-                      <span className="text-destructive">
-                        ₱{(getEffectivePrice(selectedProduct) * quantity + shippingFee).toFixed(2)}
+                    <div className="flex justify-between items-center text-xs mb-2">
+                      <span className="text-muted-foreground">Shipping:</span>
+                      <span>₱{shippingFee.toFixed(0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center font-bold">
+                      <span className="text-sm">Total:</span>
+                      <span className="text-destructive text-base">
+                        ₱{((getEffectivePrice(selectedProduct) + (selectedVariant?.price_adjustment || 0)) * quantity + shippingFee).toFixed(0)}
                       </span>
+                    </div>
+                    
+                    <div className="flex gap-2 mt-2">
+                      <Button variant="outline" onClick={() => setCheckoutDialog(false)} size="sm" className="flex-1 h-9 text-xs">
+                        Cancel
+                      </Button>
+                      <Button onClick={handleCheckout} size="sm" className="flex-1 h-9 text-xs bg-destructive hover:bg-destructive/90">
+                        Place Order
+                      </Button>
                     </div>
                   </div>
                 </div>
-
-                <DialogFooter className="gap-2">
-                  <Button variant="outline" onClick={() => setCheckoutDialog(false)} size="sm">
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCheckout} size="sm" className="bg-destructive hover:bg-destructive/90">
-                    Place Order
-                  </Button>
-                </DialogFooter>
               </DialogContent>
             </Dialog>
 

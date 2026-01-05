@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Truck } from "lucide-react";
@@ -139,11 +138,10 @@ export default function ShippingCalculator({
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center p-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center p-3 bg-muted/50 rounded">
+        <Loader2 className="h-4 w-4 animate-spin text-primary mr-2" />
+        <span className="text-xs text-muted-foreground">Loading shipping...</span>
+      </div>
     );
   }
 
@@ -157,124 +155,90 @@ export default function ShippingCalculator({
   ].filter(c => enabledCouriers.includes(c.value));
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Shipping Calculator</CardTitle>
-        <CardDescription>
-          Calculate shipping fees using zone rates or real-time courier pricing
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-2 p-2 bg-muted/30 rounded border">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium flex items-center gap-1">
+          <Truck className="h-3 w-3" />
+          Shipping
+        </p>
         {courierOptions.length > 0 && (
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-            <Truck className="h-4 w-4" />
-            <label className="text-sm font-medium cursor-pointer flex-1" htmlFor="use-courier">
-              Use Real-Time Courier Rates
-            </label>
+          <label className="text-[10px] flex items-center gap-1 cursor-pointer">
             <input
-              id="use-courier"
               type="checkbox"
               checked={useCourier}
               onChange={(e) => setUseCourier(e.target.checked)}
-              className="w-4 h-4"
+              className="w-3 h-3"
             />
-          </div>
+            Courier Rates
+          </label>
         )}
+      </div>
 
-        {useCourier && courierOptions.length > 0 ? (
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Select Courier</label>
-              <Select value={selectedCourier} onValueChange={setSelectedCourier}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose courier service" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courierOptions.map((courier) => (
-                    <SelectItem key={courier.value} value={courier.value}>
-                      {courier.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
+      {useCourier && courierOptions.length > 0 ? (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Select value={selectedCourier} onValueChange={setSelectedCourier}>
+              <SelectTrigger className="h-7 text-xs flex-1">
+                <SelectValue placeholder="Courier" />
+              </SelectTrigger>
+              <SelectContent>
+                {courierOptions.map((courier) => (
+                  <SelectItem key={courier.value} value={courier.value} className="text-xs">
+                    {courier.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button 
               onClick={calculateCourierRate}
               disabled={!selectedCourier || calculatingCourier}
-              className="w-full"
+              size="sm"
+              className="h-7 text-xs px-2"
             >
-              {calculatingCourier ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Calculating...
-                </>
-              ) : (
-                'Calculate Shipping Rate'
-              )}
+              {calculatingCourier ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Get Rate'}
             </Button>
-
-            {courierRate && (
-              <div className="space-y-2 p-4 bg-muted rounded-lg">
-                <p className="text-sm font-medium">Courier Rate Details</p>
-                <div className="text-sm space-y-1 text-muted-foreground">
-                  <p>Service: {courierRate.service_type}</p>
-                  <p>Est. Delivery: {courierRate.estimated_delivery_days} days</p>
-                  {courierRate.is_estimated && (
-                    <p className="text-amber-600">* Estimated rate (API key not configured)</p>
-                  )}
-                </div>
-                <div className="pt-2 border-t mt-2">
-                  <p className="text-lg font-semibold">
-                    Shipping Fee: ₱{courierRate.estimated_cost.toFixed(2)}
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
-        ) : (
-          <>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Select Region</label>
-              <Select value={selectedRegion} onValueChange={handleRegionSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose your region" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allRegions.map((region) => (
-                    <SelectItem key={region} value={region}>
-                      {region}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
-            {selectedZone && (
-              <div className="space-y-2 p-4 bg-muted rounded-lg">
-                <p className="text-sm font-medium">Shipping Details</p>
-                <div className="text-sm space-y-1 text-muted-foreground">
-                  <p>Zone: {selectedZone.name}</p>
-                  <p>Base Rate: ₱{selectedZone.base_rate}</p>
-                  <p>Per KG Rate: ₱{selectedZone.per_kg_rate}</p>
-                  {selectedZone.free_shipping_threshold && (
-                    <p>Free shipping on orders over ₱{selectedZone.free_shipping_threshold}</p>
-                  )}
-                </div>
-                <div className="pt-2 border-t mt-2">
-                  <p className="text-lg font-semibold">
-                    Shipping Fee: {shippingFee === 0 ? (
-                      <span className="text-green-600">FREE</span>
-                    ) : (
-                      `₱${shippingFee.toFixed(2)}`
-                    )}
-                  </p>
-                </div>
+          {courierRate && (
+            <div className="p-2 bg-background rounded text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{courierRate.service_type} ({courierRate.estimated_delivery_days}d)</span>
+                <span className="font-bold">₱{courierRate.estimated_cost.toFixed(0)}</span>
               </div>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Select value={selectedRegion} onValueChange={handleRegionSelect}>
+            <SelectTrigger className="h-7 text-xs">
+              <SelectValue placeholder="Select region" />
+            </SelectTrigger>
+            <SelectContent>
+              {allRegions.map((region) => (
+                <SelectItem key={region} value={region} className="text-xs">
+                  {region}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {selectedZone && (
+            <div className="p-2 bg-background rounded text-xs">
+              <div className="flex justify-between text-muted-foreground mb-1">
+                <span>{selectedZone.name}</span>
+                <span>₱{selectedZone.base_rate} + ₱{selectedZone.per_kg_rate}/kg</span>
+              </div>
+              <div className="flex justify-between font-medium">
+                <span>Shipping Fee:</span>
+                <span className={shippingFee === 0 ? "text-green-600" : ""}>
+                  {shippingFee === 0 ? 'FREE' : `₱${shippingFee.toFixed(0)}`}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
