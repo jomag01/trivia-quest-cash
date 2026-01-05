@@ -658,21 +658,9 @@ const Shop = () => {
           </TabsContent>
 
           <TabsContent value="auction" className="mt-2">
-            <div className="py-2">
-              <div className="flex items-center justify-between mb-3">
-                <h1 className="text-lg font-bold flex items-center gap-2">
-                  <Gavel className="w-5 h-5 text-primary" />
-                  Live Auctions
-                </h1>
-                <Button size="sm" onClick={() => navigate("/auction")} className="gap-1.5 h-8 text-xs">
-                  <Gavel className="w-3.5 h-3.5" />
-                  Auction Hub
-                </Button>
-              </div>
-              <Suspense fallback={<ProductGridSkeleton count={4} />}>
-                <AuctionProducts />
-              </Suspense>
-            </div>
+            <Suspense fallback={<ProductGridSkeleton count={4} />}>
+              <AuctionProducts />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="seller" className="mt-2">
