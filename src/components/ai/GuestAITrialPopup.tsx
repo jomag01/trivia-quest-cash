@@ -14,13 +14,19 @@ interface GuestAITrialPopupProps {
   onOpenChange: (open: boolean) => void;
   generatedImageUrl?: string;
   onEmailSubmitted?: () => void;
+  customTitle?: string;
+  customDescription?: string;
+  customCtaText?: string;
 }
 
 const GuestAITrialPopup = ({ 
   open, 
   onOpenChange, 
   generatedImageUrl,
-  onEmailSubmitted 
+  onEmailSubmitted,
+  customTitle = 'Try Our AI Services Free!',
+  customDescription = 'Experience the power of AI image & video generation',
+  customCtaText = 'Get Download Access'
 }: GuestAITrialPopupProps) => {
   const { user } = useAuth();
   const [email, setEmail] = useState('');
@@ -116,10 +122,10 @@ const GuestAITrialPopup = ({
             <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
-            Try Our AI Services Free!
+            {customTitle}
           </DialogTitle>
           <DialogDescription>
-            Experience the power of AI image & video generation
+            {customDescription}
           </DialogDescription>
         </DialogHeader>
 
@@ -186,7 +192,7 @@ const GuestAITrialPopup = ({
                 ) : (
                   <span className="flex items-center gap-2">
                     <Download className="h-4 w-4" />
-                    Get Download Access
+                    {customCtaText}
                   </span>
                 )}
               </Button>

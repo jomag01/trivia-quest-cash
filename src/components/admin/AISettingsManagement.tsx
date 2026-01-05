@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings, Music, Globe, BarChart3, Share2, TrendingUp, FileText, Eye } from 'lucide-react';
+import { Sparkles, VideoIcon, ImageIcon, Save, DollarSign, Users, Crown, Loader2, Plus, Trash2, Bell, Settings, Music, Globe, BarChart3, Share2, TrendingUp, FileText, Eye, Gift, Mail } from 'lucide-react';
 import AICostCalculator from './AICostCalculator';
 import AIProviderStatus from './AIProviderStatus';
 interface CreditTier {
@@ -41,6 +43,16 @@ const AISettingsManagement = () => {
   const [marketAnalysisCreditCost, setMarketAnalysisCreditCost] = useState('20');
   const [virtualTryonBuyerCredits, setVirtualTryonBuyerCredits] = useState('5');
   const [virtualTryonSellerCredits, setVirtualTryonSellerCredits] = useState('20');
+  
+  // Guest AI Trial Popup Settings
+  const [guestPopupEnabled, setGuestPopupEnabled] = useState(true);
+  const [guestPopupDelaySeconds, setGuestPopupDelaySeconds] = useState('30');
+  const [guestPopupScrollPercent, setGuestPopupScrollPercent] = useState('50');
+  const [guestPopupTitle, setGuestPopupTitle] = useState('Try Our AI Services Free!');
+  const [guestPopupDescription, setGuestPopupDescription] = useState('Experience the power of AI image & video generation');
+  const [guestPopupCtaText, setGuestPopupCtaText] = useState('Get Download Access');
+  const [guestPopupShowOnScroll, setGuestPopupShowOnScroll] = useState(true);
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -133,6 +145,20 @@ const AISettingsManagement = () => {
           setVirtualTryonBuyerCredits(setting.value || '5');
         } else if (setting.key === 'virtual_tryon_seller_setup_credits') {
           setVirtualTryonSellerCredits(setting.value || '20');
+        } else if (setting.key === 'ai_guest_popup_enabled') {
+          setGuestPopupEnabled(setting.value === 'true');
+        } else if (setting.key === 'ai_guest_popup_delay_seconds') {
+          setGuestPopupDelaySeconds(setting.value || '30');
+        } else if (setting.key === 'ai_guest_popup_scroll_percent') {
+          setGuestPopupScrollPercent(setting.value || '50');
+        } else if (setting.key === 'ai_guest_popup_title') {
+          setGuestPopupTitle(setting.value || 'Try Our AI Services Free!');
+        } else if (setting.key === 'ai_guest_popup_description') {
+          setGuestPopupDescription(setting.value || 'Experience the power of AI image & video generation');
+        } else if (setting.key === 'ai_guest_popup_cta_text') {
+          setGuestPopupCtaText(setting.value || 'Get Download Access');
+        } else if (setting.key === 'ai_guest_popup_show_on_scroll') {
+          setGuestPopupShowOnScroll(setting.value === 'true');
         }
 
         // Parse tier settings
@@ -195,6 +221,14 @@ const AISettingsManagement = () => {
         { key: 'ai_market_analysis_credit_cost', value: marketAnalysisCreditCost },
         { key: 'virtual_tryon_buyer_credits', value: virtualTryonBuyerCredits },
         { key: 'virtual_tryon_seller_setup_credits', value: virtualTryonSellerCredits },
+        // Guest AI Trial Popup Settings
+        { key: 'ai_guest_popup_enabled', value: guestPopupEnabled.toString() },
+        { key: 'ai_guest_popup_delay_seconds', value: guestPopupDelaySeconds },
+        { key: 'ai_guest_popup_scroll_percent', value: guestPopupScrollPercent },
+        { key: 'ai_guest_popup_title', value: guestPopupTitle },
+        { key: 'ai_guest_popup_description', value: guestPopupDescription },
+        { key: 'ai_guest_popup_cta_text', value: guestPopupCtaText },
+        { key: 'ai_guest_popup_show_on_scroll', value: guestPopupShowOnScroll.toString() },
       ];
 
       // Add all tier settings dynamically
@@ -944,6 +978,127 @@ const AISettingsManagement = () => {
                 })()}
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Guest AI Trial Popup Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="h-5 w-5 text-pink-500" />
+            Guest AI Trial Popup (Email Capture)
+          </CardTitle>
+          <CardDescription>
+            Configure the popup that appears for unregistered users to capture emails
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border">
+            <div className="space-y-1">
+              <Label className="font-medium">Enable Guest Trial Popup</Label>
+              <p className="text-xs text-muted-foreground">
+                Show popup to unregistered users in AI Hub
+              </p>
+            </div>
+            <Switch
+              checked={guestPopupEnabled}
+              onCheckedChange={setGuestPopupEnabled}
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                Delay Before Showing (seconds)
+              </Label>
+              <Input
+                type="number"
+                min="5"
+                max="300"
+                value={guestPopupDelaySeconds}
+                onChange={(e) => setGuestPopupDelaySeconds(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Time to wait before showing popup (5-300 seconds)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                Scroll Trigger (%)
+              </Label>
+              <Input
+                type="number"
+                min="10"
+                max="100"
+                value={guestPopupScrollPercent}
+                onChange={(e) => setGuestPopupScrollPercent(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Show popup after scrolling this % of page
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div className="space-y-1">
+              <Label className="font-medium text-sm">Trigger on Scroll</Label>
+              <p className="text-xs text-muted-foreground">
+                Also trigger popup when user scrolls past threshold
+              </p>
+            </div>
+            <Switch
+              checked={guestPopupShowOnScroll}
+              onCheckedChange={setGuestPopupShowOnScroll}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Popup Content
+            </h4>
+            
+            <div className="space-y-2">
+              <Label>Popup Title</Label>
+              <Input
+                value={guestPopupTitle}
+                onChange={(e) => setGuestPopupTitle(e.target.value)}
+                placeholder="Try Our AI Services Free!"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={guestPopupDescription}
+                onChange={(e) => setGuestPopupDescription(e.target.value)}
+                placeholder="Experience the power of AI image & video generation"
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>CTA Button Text</Label>
+              <Input
+                value={guestPopupCtaText}
+                onChange={(e) => setGuestPopupCtaText(e.target.value)}
+                placeholder="Get Download Access"
+              />
+            </div>
+          </div>
+
+          <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+              📧 Email Capture Strategy
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-300">
+              Captured emails are stored in Newsletter Subscribers with source "ai_trial". 
+              Use these leads for follow-up marketing campaigns in the Newsletter tab.
+            </p>
           </div>
         </CardContent>
       </Card>
