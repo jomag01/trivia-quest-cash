@@ -212,6 +212,10 @@ export const CartView = () => {
       const subtotal = calculateTotal();
       const totalAmount = subtotal + shippingFee;
 
+      const totalDiamondCredits = cartItems.reduce((total, item) => {
+        return total + ((item.products?.diamond_reward || 0) * item.quantity);
+      }, 0);
+
       // Check for live stream referrer
       const liveStreamReferrers = JSON.parse(localStorage.getItem('live_stream_referrers') || '[]');
       const cartProductIds = cartItems.map(item => item.product_id);
@@ -227,6 +231,7 @@ export const CartView = () => {
         order_number: orderNumberData,
         total_amount: totalAmount,
         shipping_fee: shippingFee,
+        total_diamond_credits: totalDiamondCredits,
         shipping_address: shippingAddress,
         customer_name: customerName,
         customer_email: customerEmail,
@@ -260,11 +265,6 @@ export const CartView = () => {
         localStorage.setItem('live_stream_referrers', JSON.stringify(updatedReferrers));
       }
 
-      // Calculate total diamond credits and create order items from cart
-      const totalDiamondCredits = cartItems.reduce((total, item) => {
-        return total + ((item.products?.diamond_reward || 0) * item.quantity);
-      }, 0);
-
       const orderItems = cartItems.map((item) => ({
         order_id: order.id,
         product_id: item.product_id,
@@ -278,14 +278,6 @@ export const CartView = () => {
         .insert(orderItems);
 
       if (itemsError) throw itemsError;
-
-      // Update order with total diamond credits
-      const { error: updateError } = await supabase
-        .from("orders")
-        .update({ total_diamond_credits: totalDiamondCredits })
-        .eq("id", order.id);
-
-      if (updateError) throw updateError;
 
       // Deduct credits or diamonds if used
       if (paymentMethod === "credits") {
@@ -332,7 +324,9 @@ export const CartView = () => {
       setPaymentMethod("");
     } catch (error: any) {
       console.error("Error creating order:", error);
-      toast.error("Failed to place order");
+      const message =
+        error?.message || error?.error_description || error?.details || "Failed to place order";
+      toast.error(message);
     }
   };
 
