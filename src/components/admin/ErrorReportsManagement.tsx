@@ -21,7 +21,9 @@ import {
   AlertTriangle,
   XCircle,
   RefreshCw,
-  ArrowLeft
+  ArrowLeft,
+  Download,
+  ClipboardCopy
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -40,6 +42,9 @@ interface ErrorReport {
   priority: string;
   admin_notes: string | null;
   created_at: string;
+  signature?: string | null;
+  occurrence_count?: number | null;
+  last_occurred_at?: string | null;
 }
 
 export default function ErrorReportsManagement() {
@@ -66,7 +71,42 @@ export default function ErrorReportsManagement() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setReports(data || []);
+
+      const list = (data || []) as ErrorReport[];
+
+      // Group similar reports so duplicates don't flood the admin list
+      // (same type + same title + same page)
+      const norm = (s: string | null | undefined) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+      const signatureOf = (r: ErrorReport) => [norm(r.error_type), norm(r.error_title), norm(r.page_url)].join("|");
+
+      const groupedMap = new Map<string, ErrorReport>();
+      for (const r of list) {
+        const sig = signatureOf(r);
+        const existing = groupedMap.get(sig);
+        if (!existing) {
+          groupedMap.set(sig, {
+            ...r,
+            signature: sig,
+            occurrence_count: 1,
+            last_occurred_at: r.created_at,
+          });
+        } else {
+          groupedMap.set(sig, {
+            ...existing,
+            occurrence_count: (existing.occurrence_count || 1) + 1,
+            last_occurred_at: existing.last_occurred_at && new Date(existing.last_occurred_at) > new Date(r.created_at)
+              ? existing.last_occurred_at
+              : r.created_at,
+          });
+        }
+      }
+
+      // Keep newest first
+      const grouped = Array.from(groupedMap.values()).sort(
+        (a, b) => new Date(b.last_occurred_at || b.created_at).getTime() - new Date(a.last_occurred_at || a.created_at).getTime()
+      );
+
+      setReports(grouped);
     } catch (error: any) {
       console.error("Error fetching reports:", error);
       toast.error("Failed to load error reports");
@@ -161,6 +201,86 @@ export default function ErrorReportsManagement() {
 
   const pendingCount = reports.filter(r => r.status === "pending").length;
 
+  const exportCsv = (items: ErrorReport[]) => {
+    const headers = [
+      "id",
+      "status",
+      "priority",
+      "error_type",
+      "error_title",
+      "user_email",
+      "page_url",
+      "created_at",
+      "screenshot_url",
+      "occurrence_count",
+      "last_occurred_at",
+    ];
+
+    const escape = (value: unknown) => {
+      const str = String(value ?? "");
+      if (/[\n\r,\"]/g.test(str)) {
+        return `\"${str.replace(/\"/g, '\"\"')}\"`;
+      }
+      return str;
+    };
+
+    const rows = items.map((r) => [
+      r.id,
+      r.status,
+      r.priority,
+      r.error_type,
+      r.error_title,
+      r.user_email ?? "",
+      r.page_url ?? "",
+      r.created_at,
+      r.screenshot_url ?? "",
+      r.occurrence_count ?? 1,
+      r.last_occurred_at ?? "",
+    ].map(escape).join(","));
+
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `error-reports-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportJson = (items: ErrorReport[]) => {
+    const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `error-reports-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const copyForLovable = async (report: ErrorReport) => {
+    const text = [
+      "Fix request (from in-app bug report):",
+      `Title: ${report.error_title}`,
+      `Type: ${report.error_type}`,
+      `Status: ${report.status} | Priority: ${report.priority}`,
+      report.occurrence_count ? `Occurrences: ${report.occurrence_count}` : null,
+      report.page_url ? `URL: ${report.page_url}` : null,
+      report.user_email ? `Reporter: ${report.user_email}` : null,
+      report.screenshot_url ? `Screenshot: ${report.screenshot_url}` : null,
+      "---",
+      report.error_description,
+    ].filter(Boolean).join("\n");
+
+    await navigator.clipboard.writeText(text);
+    toast.success("Copied for Lovable fix");
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -185,10 +305,30 @@ export default function ErrorReportsManagement() {
                 User-submitted bug reports and issues
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={fetchReports}>
-              <RefreshCw className="w-4 h-4 mr-1" />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportCsv(filteredReports)}
+                disabled={loading || filteredReports.length === 0}
+              >
+                <Download className="w-4 h-4 mr-1" />
+                CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportJson(filteredReports)}
+                disabled={loading || filteredReports.length === 0}
+              >
+                <Download className="w-4 h-4 mr-1" />
+                JSON
+              </Button>
+              <Button variant="outline" size="sm" onClick={fetchReports}>
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Refresh
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -268,7 +408,12 @@ export default function ErrorReportsManagement() {
                         </Select>
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate font-medium">
-                        {report.error_title}
+                        <span>{report.error_title}</span>
+                        {(report.occurrence_count || 1) > 1 && (
+                          <Badge variant="secondary" className="ml-2 text-[10px]">
+                            x{report.occurrence_count}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs capitalize">
@@ -394,6 +539,15 @@ export default function ErrorReportsManagement() {
             <Button variant="outline" onClick={() => setDetailOpen(false)}>
               Close
             </Button>
+            {selectedReport && (
+              <Button
+                variant="secondary"
+                onClick={() => copyForLovable(selectedReport)}
+              >
+                <ClipboardCopy className="w-4 h-4 mr-1" />
+                Copy for Fix
+              </Button>
+            )}
             <div className="flex gap-2">
               {selectedReport?.status !== "in_progress" && (
                 <Button
