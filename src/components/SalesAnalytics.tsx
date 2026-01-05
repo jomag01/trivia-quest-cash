@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, TrendingUp, DollarSign, Users, Percent, PieChart, Sparkles, GitBranch, ShoppingCart, UtensilsCrossed, Calendar, Store, Building2, Layers, Wallet } from "lucide-react";
+import { Loader2, TrendingUp, DollarSign, Users, Percent, PieChart, Sparkles, GitBranch, ShoppingCart, UtensilsCrossed, Calendar, Store, Building2, Layers, Wallet, Gavel, Megaphone, Package, Landmark } from "lucide-react";
 import { formatCurrency } from "@/lib/currencies";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -17,6 +17,9 @@ interface SalesData {
   creditCashins: number;
   diamondCashins: number;
   aiCreditPurchases: number;
+  auctionSales: number;
+  adPurchases: number;
+  supplierMarkup: number;
   
   // Commission Payouts
   unilevelPayouts: number;
@@ -24,6 +27,7 @@ interface SalesData {
   breakawayPayouts: number;
   binaryPayouts: number;
   leadershipPayouts: number;
+  sellerReferrerPayouts: number;
   totalCommissions: number;
   
   // Costs
@@ -54,11 +58,15 @@ export const SalesAnalytics = () => {
     creditCashins: 0,
     diamondCashins: 0,
     aiCreditPurchases: 0,
+    auctionSales: 0,
+    adPurchases: 0,
+    supplierMarkup: 0,
     unilevelPayouts: 0,
     stairstepPayouts: 0,
     breakawayPayouts: 0,
     binaryPayouts: 0,
     leadershipPayouts: 0,
+    sellerReferrerPayouts: 0,
     totalCommissions: 0,
     aiCreditCosts: 0,
     netProfit: 0,
@@ -147,6 +155,26 @@ export const SalesAnalytics = () => {
         .eq("status", "approved");
       const aiCreditPurchases = aiPurchases?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
+      // Fetch Auction sales (released escrows)
+      const { data: auctionEscrows } = await supabase
+        .from("auction_escrow")
+        .select("amount, platform_fee")
+        .eq("status", "released");
+      const auctionSales = auctionEscrows?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+
+      // Fetch Ad purchases (approved)
+      const { data: adRequests } = await supabase
+        .from("ad_spend_requests")
+        .select("total_budget")
+        .eq("status", "approved");
+      const adPurchases = adRequests?.reduce((sum, ad) => sum + Number(ad.total_budget), 0) || 0;
+
+      // Fetch Supplier Markup (retailer commission from supplier products)
+      const { data: supplierCommissions } = await supabase
+        .from("retailer_supplier_commissions")
+        .select("commission_amount");
+      const supplierMarkup = supplierCommissions?.reduce((sum, c) => sum + Number(c.commission_amount), 0) || 0;
+
       // Fetch commissions by type
       const { data: commissions } = await supabase
         .from("commissions")
@@ -170,6 +198,12 @@ export const SalesAnalytics = () => {
         .from("leadership_commissions")
         .select("amount");
       const leadershipPayouts = leadershipCommissions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+
+      // Fetch seller referrer commissions
+      const { data: sellerReferrerCommissions } = await supabase
+        .from("seller_referrer_earnings")
+        .select("referrer_commission");
+      const sellerReferrerPayouts = sellerReferrerCommissions?.reduce((sum, c) => sum + Number(c.referrer_commission), 0) || 0;
 
       // Fetch AI settings for cost calculation
       const { data: settingsData } = await supabase
@@ -198,8 +232,8 @@ export const SalesAnalytics = () => {
       const aiCreditAdminProfit = Math.max(0, adminKeepsTotal - aiCreditCosts);
       const aiCreditAffiliatePool = Math.max(0, aiCreditPurchases - aiCreditCosts - aiCreditAdminProfit);
 
-      const totalCommissions = unilevelPayouts + stairstepPayouts + breakawayPayouts + binaryPayouts + leadershipPayouts;
-      const totalSales = productSales + foodOrderSales + bookingSales + marketplaceSales + creditCashins + diamondCashins + aiCreditPurchases;
+      const totalCommissions = unilevelPayouts + stairstepPayouts + breakawayPayouts + binaryPayouts + leadershipPayouts + sellerReferrerPayouts;
+      const totalSales = productSales + foodOrderSales + bookingSales + marketplaceSales + creditCashins + diamondCashins + aiCreditPurchases + auctionSales + adPurchases + supplierMarkup;
       const netProfit = totalSales - totalCommissions - aiCreditCosts;
 
       setSalesData({
@@ -211,11 +245,15 @@ export const SalesAnalytics = () => {
         creditCashins,
         diamondCashins,
         aiCreditPurchases,
+        auctionSales,
+        adPurchases,
+        supplierMarkup,
         unilevelPayouts,
         stairstepPayouts,
         breakawayPayouts,
         binaryPayouts,
         leadershipPayouts,
+        sellerReferrerPayouts,
         totalCommissions,
         aiCreditCosts,
         netProfit,
@@ -247,6 +285,9 @@ export const SalesAnalytics = () => {
     { name: "Credit Cash-ins", amount: salesData.creditCashins, color: "from-amber-500 to-yellow-500", icon: <Wallet className="w-5 h-5" />, percentage: salesData.totalSales > 0 ? (salesData.creditCashins / salesData.totalSales) * 100 : 0 },
     { name: "Diamond Cash-ins", amount: salesData.diamondCashins, color: "from-cyan-500 to-blue-500", icon: <Sparkles className="w-5 h-5" />, percentage: salesData.totalSales > 0 ? (salesData.diamondCashins / salesData.totalSales) * 100 : 0 },
     { name: "AI Credits", amount: salesData.aiCreditPurchases, color: "from-violet-500 to-purple-500", icon: <GitBranch className="w-5 h-5" />, percentage: salesData.totalSales > 0 ? (salesData.aiCreditPurchases / salesData.totalSales) * 100 : 0 },
+    { name: "Auctions", amount: salesData.auctionSales, color: "from-rose-500 to-pink-500", icon: <Gavel className="w-5 h-5" />, percentage: salesData.totalSales > 0 ? (salesData.auctionSales / salesData.totalSales) * 100 : 0 },
+    { name: "Ads Purchases", amount: salesData.adPurchases, color: "from-indigo-500 to-violet-500", icon: <Megaphone className="w-5 h-5" />, percentage: salesData.totalSales > 0 ? (salesData.adPurchases / salesData.totalSales) * 100 : 0 },
+    { name: "Supplier Markup", amount: salesData.supplierMarkup, color: "from-teal-500 to-emerald-500", icon: <Package className="w-5 h-5" />, percentage: salesData.totalSales > 0 ? (salesData.supplierMarkup / salesData.totalSales) * 100 : 0 },
   ];
 
   const commissionBreakdown = [
@@ -255,6 +296,7 @@ export const SalesAnalytics = () => {
     { name: "Breakaway", amount: salesData.breakawayPayouts, color: "from-orange-500 to-red-500", percentage: salesData.totalCommissions > 0 ? (salesData.breakawayPayouts / salesData.totalCommissions) * 100 : 0 },
     { name: "Binary Affiliate", amount: salesData.binaryPayouts, color: "from-cyan-500 to-teal-500", percentage: salesData.totalCommissions > 0 ? (salesData.binaryPayouts / salesData.totalCommissions) * 100 : 0 },
     { name: "Leadership Override", amount: salesData.leadershipPayouts, color: "from-emerald-500 to-green-500", percentage: salesData.totalCommissions > 0 ? (salesData.leadershipPayouts / salesData.totalCommissions) * 100 : 0 },
+    { name: "Seller Referrer", amount: salesData.sellerReferrerPayouts, color: "from-amber-500 to-orange-500", percentage: salesData.totalCommissions > 0 ? (salesData.sellerReferrerPayouts / salesData.totalCommissions) * 100 : 0 },
   ];
 
   const profitPercentage = salesData.totalSales > 0 ? (salesData.netProfit / salesData.totalSales) * 100 : 0;
@@ -531,30 +573,46 @@ export const SalesAnalytics = () => {
                 <div className="bg-amber-500/10 p-3 rounded-lg mb-4">
                   <h5 className="font-semibold text-amber-600 mb-2 flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    Commission Deductions
+                    All Deductions Breakdown
                   </h5>
+                  
+                  {/* Commission Deductions Subsection */}
+                  <p className="text-xs font-medium text-muted-foreground mt-2 mb-1 pl-2">Commission Payouts:</p>
                   {commissionBreakdown.map((comm, index) => (
                     <div key={index} className="flex justify-between py-1.5 border-b border-amber-500/10 last:border-0 text-muted-foreground">
                       <span className="pl-4">- {comm.name}</span>
                       <span>({formatCurrency(comm.amount, "PHP")})</span>
                     </div>
                   ))}
+                  <div className="flex justify-between py-1.5 font-medium text-amber-700 border-t border-amber-500/20 mt-1">
+                    <span className="pl-2">Subtotal Commissions</span>
+                    <span>({formatCurrency(salesData.totalCommissions, "PHP")})</span>
+                  </div>
+                  
+                  {/* Operating Costs Subsection */}
+                  <p className="text-xs font-medium text-muted-foreground mt-3 mb-1 pl-2">Operating Costs:</p>
                   <div className="flex justify-between py-1.5 border-b border-amber-500/10 text-muted-foreground">
-                    <span className="pl-4">- AI Service Costs</span>
+                    <span className="pl-4">- AI Service Costs (API)</span>
                     <span>({formatCurrency(salesData.aiCreditCosts, "PHP")})</span>
                   </div>
-                  <div className="flex justify-between py-2 mt-2 font-bold text-lg border-t border-amber-500/30">
+                  <div className="flex justify-between py-1.5 font-medium text-amber-700 border-t border-amber-500/20 mt-1">
+                    <span className="pl-2">Subtotal Operating Costs</span>
+                    <span>({formatCurrency(salesData.aiCreditCosts, "PHP")})</span>
+                  </div>
+
+                  {/* Total Deductions */}
+                  <div className="flex justify-between py-2 mt-3 font-bold text-lg border-t-2 border-amber-500/50">
                     <span>Total Deductions</span>
                     <span className="text-amber-600">({formatCurrency(salesData.totalCommissions + salesData.aiCreditCosts, "PHP")})</span>
                   </div>
                 </div>
 
-                {/* Net Profit */}
+                {/* Admin Cash On Hand */}
                 <div className={`p-4 rounded-lg ${salesData.netProfit >= 0 ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20' : 'bg-gradient-to-r from-red-500/20 to-orange-500/20'}`}>
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className={`w-6 h-6 ${salesData.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
-                      <span className="font-bold text-lg">Net Profit</span>
+                      <Landmark className={`w-6 h-6 ${salesData.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
+                      <span className="font-bold text-lg">Admin Cash On Hand</span>
                     </div>
                     <div className="text-right">
                       <p className={`text-3xl font-bold ${salesData.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
@@ -565,14 +623,32 @@ export const SalesAnalytics = () => {
                       </Badge>
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Final amount after all revenue collected and deductions paid
+                  </p>
                 </div>
 
                 {/* Formula */}
                 <div className="mt-4 p-4 bg-muted/30 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-2">Net Profit Formula:</p>
-                  <p className="text-sm font-mono">
-                    {formatCurrency(salesData.totalSales, "PHP")} - {formatCurrency(salesData.totalCommissions, "PHP")} - {formatCurrency(salesData.aiCreditCosts, "PHP")} = {formatCurrency(salesData.netProfit, "PHP")}
-                  </p>
+                  <p className="text-xs text-muted-foreground mb-2">Admin Cash On Hand Formula:</p>
+                  <div className="space-y-1 text-sm font-mono">
+                    <div className="flex justify-between">
+                      <span>Total Revenue</span>
+                      <span>{formatCurrency(salesData.totalSales, "PHP")}</span>
+                    </div>
+                    <div className="flex justify-between text-amber-600">
+                      <span>- Commission Payouts</span>
+                      <span>({formatCurrency(salesData.totalCommissions, "PHP")})</span>
+                    </div>
+                    <div className="flex justify-between text-orange-600">
+                      <span>- Operating Costs</span>
+                      <span>({formatCurrency(salesData.aiCreditCosts, "PHP")})</span>
+                    </div>
+                    <div className="flex justify-between font-bold border-t pt-1 mt-1 text-emerald-600">
+                      <span>= Admin Cash On Hand</span>
+                      <span>{formatCurrency(salesData.netProfit, "PHP")}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
