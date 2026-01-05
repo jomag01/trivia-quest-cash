@@ -51,6 +51,8 @@ import { CurrencyConversionDialog } from "@/components/CurrencyConversionDialog"
 import CashWalletCard from "@/components/CashWalletCard";
 import { useHiddenTabs } from "@/hooks/useHiddenTabs";
 import SellerOrderProcessing from "@/components/dashboard/SellerOrderProcessing";
+import { CommissionEarningsCard } from "@/components/dashboard/CommissionEarningsCard";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -531,6 +533,9 @@ const Dashboard = () => {
         {/* Affiliate Rank Card - Full Width */}
         <AffiliateRankCard />
 
+        {/* Seller Referral Earnings */}
+        <CommissionEarningsCard />
+
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Referral Network */}
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
@@ -802,6 +807,19 @@ const Dashboard = () => {
 
       <TabsContent value="transactions">
         <RecentTransactions />
+      </TabsContent>
+
+      <TabsContent value="seller-earnings">
+        <Card className="p-6">
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-emerald-500" />
+            Seller Referral Earnings
+          </h3>
+          <p className="text-muted-foreground mb-6">
+            Track your recurring commissions from sellers you've referred. You earn a commission every time they make a sale!
+          </p>
+          <CommissionEarningsCard />
+        </Card>
       </TabsContent>
 
       <TabsContent value="ai-research">

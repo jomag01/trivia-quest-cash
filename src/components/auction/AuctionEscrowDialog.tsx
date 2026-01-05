@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import AuctionChatDialog from "./AuctionChatDialog";
+import { processSellerReferrerCommission } from "@/lib/sellerReferralCommission";
 
 interface Escrow {
   id: string;
@@ -193,6 +194,12 @@ const AuctionEscrowDialog = ({
         .eq("id", escrow.id);
 
       if (error) throw error;
+
+      // Process seller referrer commission for auction sale
+      if (escrow.seller_id && escrow.amount) {
+        console.log("Processing seller referrer commission for auction delivery:", escrow.auction_id);
+        await processSellerReferrerCommission(escrow.seller_id, escrow.auction_id, escrow.amount, 'auctions');
+      }
 
       toast.success("Delivery confirmed! Funds will be released to seller.");
       onUpdate();

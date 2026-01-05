@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
+import { processSellerReferrerCommission } from "@/lib/sellerReferralCommission";
 
 import { 
   Package, 
@@ -162,7 +163,7 @@ export default function SellerOrderProcessing() {
 
   // Update order status mutation
   const updateStatus = useMutation({
-    mutationFn: async ({ orderId, status, notes }: { orderId: string; status: string; notes?: string }) => {
+    mutationFn: async ({ orderId, status, notes, totalAmount }: { orderId: string; status: string; notes?: string; totalAmount?: number }) => {
       // Update order status
       const { error: orderError } = await supabase
         .from("orders")
@@ -184,6 +185,12 @@ export default function SellerOrderProcessing() {
           updated_by: user?.id
         });
       if (historyError) console.error("Failed to add status history:", historyError);
+
+      // Process seller referrer commission when order is delivered
+      if (status === "delivered" && user?.id && totalAmount) {
+        console.log("Processing seller referrer commission for delivered order:", orderId);
+        await processSellerReferrerCommission(user.id, orderId, totalAmount, 'products');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["seller-orders"] });
@@ -511,7 +518,11 @@ export default function SellerOrderProcessing() {
                     {/* Status Update */}
                     <Select
                       value={order.status}
-                      onValueChange={(value) => updateStatus.mutate({ orderId: order.id, status: value })}
+                      onValueChange={(value) => updateStatus.mutate({ 
+                        orderId: order.id, 
+                        status: value,
+                        totalAmount: order.total_amount 
+                      })}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue />
