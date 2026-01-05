@@ -36,6 +36,7 @@ import MarketAnalysis from '@/components/ai/MarketAnalysis';
 import WeatherForecast from '@/components/ai/WeatherForecast';
 import EmailMarketingHub from '@/components/ai/EmailMarketingHub';
 import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
+import { ManualBrushEraser } from '@/components/ai/ManualBrushEraser';
 import { Suspense } from 'react';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -181,6 +182,8 @@ const AIHub = memo(() => {
   const [newBackgroundPrompt, setNewBackgroundPrompt] = useState('');
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [enhanceCreditCost] = useState(2);
+  const [showManualEraser, setShowManualEraser] = useState(false);
+  const [manualEraseMask, setManualEraseMask] = useState<string | null>(null);
 
   // Usage tracking
   const [imageGenerationCount, setImageGenerationCount] = useState(0);
@@ -985,6 +988,65 @@ const AIHub = memo(() => {
     } catch (error: any) {
       console.error('Enhancement error:', error);
       toast.error(error.message || 'Failed to enhance image');
+      await supabase.from('profiles').update({
+        credits: userCredits
+      }).eq('id', user.id);
+      fetchUserCredits();
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const handleManualEraseComplete = async (imageData: string, maskData: string) => {
+    if (!user) {
+      toast.error('Please login to use manual erase');
+      return;
+    }
+
+    const hasAIImageCredits = aiCredits && aiCredits.images_available >= enhanceCreditCost;
+    
+    if (!hasAIImageCredits && userCredits < enhanceCreditCost) {
+      toast.error(`You need AI image credits or at least ${enhanceCreditCost} credits to erase`);
+      setShowBuyCredits(true);
+      return;
+    }
+
+    setShowManualEraser(false);
+    setIsEnhancing(true);
+    setEnhancedResult(null);
+    setManualEraseMask(maskData);
+
+    try {
+      const deducted = await deductCredits(enhanceCreditCost, 'image');
+      if (!deducted) {
+        toast.error('Failed to deduct credits');
+        return;
+      }
+
+      toast.info('Processing manual erase...');
+
+      const { data, error } = await supabase.functions.invoke('enhance-image', {
+        body: {
+          imageUrl: imageData,
+          operation: 'manual-erase',
+          maskData: maskData
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.imageUrl) {
+        setEnhancedResult(data.imageUrl);
+        await trackGeneration('image-enhance', enhanceCreditCost);
+        toast.success('Manual erase completed!');
+      } else if (data?.error) {
+        throw new Error(data.error);
+      } else {
+        throw new Error('No result returned');
+      }
+    } catch (error: any) {
+      console.error('Manual erase error:', error);
+      toast.error(error.message || 'Failed to complete manual erase');
       await supabase.from('profiles').update({
         credits: userCredits
       }).eq('id', user.id);
@@ -2177,6 +2239,7 @@ const AIHub = memo(() => {
                         <SelectItem value="erase-objects">🗑️ Erase Unwanted Objects</SelectItem>
                         <SelectItem value="remove-reflections">✨ Remove Reflections</SelectItem>
                         <SelectItem value="remove-watermark">💧 Remove Watermark</SelectItem>
+                        <SelectItem value="manual-erase">🖌️ Manual Brush Erase</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -2193,24 +2256,52 @@ const AIHub = memo(() => {
                     </div>
                   )}
 
-                  <Button
-                    onClick={handleEnhanceImage}
-                    disabled={isEnhancing || !enhanceImage || userCredits < enhanceCreditCost}
-                    className="w-full gap-2"
-                    size="lg"
-                  >
-                    {isEnhancing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        Enhance Image ({enhanceCreditCost} credits)
-                      </>
-                    )}
-                  </Button>
+                  {enhanceOperation === 'manual-erase' && enhanceImage && !showManualEraser && (
+                    <Button
+                      onClick={() => setShowManualEraser(true)}
+                      variant="outline"
+                      className="w-full gap-2"
+                    >
+                      <Eraser className="h-4 w-4" />
+                      Open Brush Tool
+                    </Button>
+                  )}
+
+                  {enhanceOperation === 'manual-erase' && showManualEraser && enhanceImage && (
+                    <ManualBrushEraser
+                      imageUrl={enhanceImage}
+                      onComplete={handleManualEraseComplete}
+                      onCancel={() => setShowManualEraser(false)}
+                    />
+                  )}
+
+                  {enhanceOperation !== 'manual-erase' && (
+                    <Button
+                      onClick={handleEnhanceImage}
+                      disabled={isEnhancing || !enhanceImage || userCredits < enhanceCreditCost}
+                      className="w-full gap-2"
+                      size="lg"
+                    >
+                      {isEnhancing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4" />
+                          Enhance Image ({enhanceCreditCost} credits)
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {isEnhancing && enhanceOperation === 'manual-erase' && (
+                    <div className="flex items-center justify-center gap-2 py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">Processing your manual erase...</span>
+                    </div>
+                  )}
 
                   {enhancedResult && (
                     <div className="space-y-2">

@@ -17,7 +17,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured')
     }
 
-    const { imageUrl, operation, newBackground } = await req.json()
+    const { imageUrl, operation, newBackground, maskData } = await req.json()
 
     if (!imageUrl) {
       return new Response(
@@ -28,7 +28,7 @@ serve(async (req) => {
 
     if (!operation) {
       return new Response(
-        JSON.stringify({ error: 'Operation is required (enhance, remove-bg, change-bg, restore)' }),
+        JSON.stringify({ error: 'Operation is required (enhance, remove-bg, change-bg, restore, manual-erase)' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
@@ -83,11 +83,39 @@ serve(async (req) => {
       case 'remove-watermark':
         prompt = 'Remove any watermarks, logos, text overlays, or stamps from this image. Reconstruct the underlying image content naturally so the result looks seamless and professional.'
         break
+      case 'manual-erase':
+        // For manual erase, the maskData contains areas to erase (white = erase, black = keep)
+        prompt = 'I am providing you with two images: the first is the original image, and the second is a mask. In the mask, white/bright areas indicate what needs to be REMOVED or ERASED from the original image. Remove those marked areas completely and fill them in naturally with the surrounding background, maintaining seamless texture, color, and lighting. The result should look like those areas were never there. Keep everything in the dark/black areas of the mask unchanged.'
+        break
       default:
         return new Response(
-          JSON.stringify({ error: 'Invalid operation. Use: enhance, remove-bg, change-bg, restore, upscale, colorize, fix-lighting, denoise, erase-people, erase-objects, remove-reflections, or remove-watermark' }),
+          JSON.stringify({ error: 'Invalid operation. Use: enhance, remove-bg, change-bg, restore, upscale, colorize, fix-lighting, denoise, erase-people, erase-objects, remove-reflections, remove-watermark, or manual-erase' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
+    }
+
+    // Build content array for the message
+    const contentArray: any[] = [
+      {
+        type: 'text',
+        text: prompt
+      },
+      {
+        type: 'image_url',
+        image_url: {
+          url: imageUrl
+        }
+      }
+    ]
+
+    // For manual-erase, add the mask as a second image
+    if (operation === 'manual-erase' && maskData) {
+      contentArray.push({
+        type: 'image_url',
+        image_url: {
+          url: maskData
+        }
+      })
     }
 
     // Call Lovable AI with image editing capability
@@ -102,18 +130,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: prompt
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: imageUrl
-                }
-              }
-            ]
+            content: contentArray
           }
         ],
         modalities: ['image', 'text']
