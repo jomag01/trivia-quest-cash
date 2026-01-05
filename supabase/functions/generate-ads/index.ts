@@ -96,41 +96,21 @@ You understand each platform's unique requirements, character limits, and best p
 
 IMPORTANT: Respond ONLY with valid JSON array, no markdown, no code blocks.`;
 
-    const userPrompt = `Create unique, engaging ads for a brand with the following details:
+    // Trim content to reduce prompt size for faster generation
+    const trimmedContent = brandData.content?.substring(0, 500) || '';
+    
+    const userPrompt = `Create ads for this brand:
+Brand: ${brandData.title}
+URL: ${brandData.url}
+Description: ${brandData.description?.substring(0, 200) || ''}
+${trimmedContent ? `Summary: ${trimmedContent}` : ''}
+${brandData.branding?.tagline ? `Tagline: ${brandData.branding.tagline}` : ''}
 
-BRAND INFORMATION:
-- Website: ${brandData.url}
-- Brand Name: ${brandData.title}
-- Description: ${brandData.description}
-- Content Summary: ${brandData.content?.substring(0, 2000) || 'Not available'}
-${brandData.branding ? `- Brand Colors: ${JSON.stringify(brandData.branding.colors || [])}` : ''}
-${brandData.branding?.tagline ? `- Tagline: ${brandData.branding.tagline}` : ''}
+Platforms: ${platforms.join(', ')}
 
-Create ONE unique ad for each of these platforms:
-${platformPrompts.join('\n')}
+For EACH platform, return JSON with: platform, headline (max 40 chars), primaryText (max 125 chars), description (max 30 chars), callToAction, hashtags (array of 5), imagePrompt (detailed visual description).
 
-For EACH ad, provide:
-1. headline: Attention-grabbing headline
-2. primaryText: Main ad copy/body text
-3. description: Short supporting description
-4. callToAction: Clear CTA button text (e.g., "Shop Now", "Learn More", "Sign Up")
-5. hashtags: Array of 3-7 relevant hashtags (with # prefix)
-6. imagePrompt: Detailed prompt for AI image generation that would create a perfect ad visual for this brand
-
-Return a JSON array with objects containing: platform, headline, primaryText, description, callToAction, hashtags (array), imagePrompt
-
-Example format:
-[
-  {
-    "platform": "facebook",
-    "headline": "Transform Your Space Today",
-    "primaryText": "Discover the secret to stunning home decor...",
-    "description": "Shop our collection",
-    "callToAction": "Shop Now",
-    "hashtags": ["#homedecor", "#interiordesign"],
-    "imagePrompt": "Modern living room with elegant furniture..."
-  }
-]`;
+Return ONLY a valid JSON array, no markdown.`;
 
     console.log('Generating ads for platforms:', platforms);
 
@@ -141,7 +121,7 @@ Example format:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-flash-lite',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
