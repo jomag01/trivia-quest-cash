@@ -26,6 +26,7 @@ export const CartView = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerNotes, setCustomerNotes] = useState("");
   const [shippingFee] = useState(50);
   const [paymentMethod, setPaymentMethod] = useState<string>("");
   const [userCredits, setUserCredits] = useState(0);
@@ -211,6 +212,10 @@ export const CartView = () => {
       const cartProductIds = cartItems.map(item => item.product_id);
       const matchingReferrer = liveStreamReferrers.find((r: any) => cartProductIds.includes(r.product_id));
 
+      // Get referrer code from URL or localStorage
+      const urlParams = new URLSearchParams(window.location.search);
+      const referrerCode = urlParams.get('ref') || localStorage.getItem('aff_referral_referrer') || null;
+
       // Create order with live stream tracking if applicable
       const orderData: any = {
         user_id: user?.id,
@@ -221,6 +226,8 @@ export const CartView = () => {
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: customerPhone,
+        customer_notes: customerNotes || null,
+        referrer_code: referrerCode,
         status: "pending",
         payment_method: paymentMethod,
       };
@@ -316,6 +323,7 @@ export const CartView = () => {
       setCustomerName("");
       setCustomerEmail("");
       setCustomerPhone("");
+      setCustomerNotes("");
       setPaymentMethod("");
     } catch (error: any) {
       console.error("Error creating order:", error);
@@ -539,7 +547,16 @@ export const CartView = () => {
               />
             </div>
 
-            {/* Payment Method Selection */}
+            <div>
+              <Label htmlFor="customerNotes">Notes to Seller (Optional)</Label>
+              <Textarea
+                id="customerNotes"
+                value={customerNotes}
+                onChange={(e) => setCustomerNotes(e.target.value)}
+                rows={2}
+                placeholder="Special instructions, gift wrapping requests, etc."
+              />
+            </div>
             <div>
               <Label htmlFor="paymentMethod">
                 Payment Method <span className="text-red-500">*</span>

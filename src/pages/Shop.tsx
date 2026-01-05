@@ -63,11 +63,13 @@ const Shop = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [checkoutDialog, setCheckoutDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
   const [shippingAddress, setShippingAddress] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerNotes, setCustomerNotes] = useState("");
   const [shippingFee, setShippingFee] = useState(50);
   const [detailDialog, setDetailDialog] = useState(false);
   const [detailProduct, setDetailProduct] = useState<any>(null);
@@ -211,9 +213,11 @@ const Shop = () => {
     return result;
   }, [products, selectedCategory, searchQuery, quickTab]);
 
-  const handleBuyNow = useCallback((product: any) => {
+  const handleBuyNow = useCallback((product: any, variant?: any) => {
     setSelectedProduct(product);
+    setSelectedVariant(variant || null);
     setQuantity(1);
+    setCustomerNotes("");
     setCheckoutDialog(true);
   }, []);
 
@@ -237,19 +241,43 @@ const Shop = () => {
       return;
     }
     try {
-      const price = selectedProduct.promo_active && selectedProduct.promo_price ? selectedProduct.promo_price : selectedProduct.base_price;
+      // Calculate price with variant adjustment if applicable
+      let basePrice = selectedProduct.promo_active && selectedProduct.promo_price ? selectedProduct.promo_price : selectedProduct.base_price;
+      const variantAdjustment = selectedVariant?.price_adjustment || 0;
+      const price = basePrice + variantAdjustment;
       const subtotal = price * quantity;
       const totalAmount = subtotal + shippingFee;
+      
+      // Get referrer info
       const referralData = localStorage.getItem('product_referrer');
       let referrerId: string | null = null;
+      let referrerCode: string | null = null;
+      
       if (referralData) {
         const { ref, productId } = JSON.parse(referralData);
         if (productId === selectedProduct.id) {
-          referrerId = ref;
+          referrerCode = ref;
+          // Look up referrer ID from referral code
+          const { data: referrerProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('referral_code', ref)
+            .maybeSingle();
+          if (referrerProfile) {
+            referrerId = referrerProfile.id;
+          }
         }
       }
+      
+      // Also check cookie tracking for referrer code
+      const urlParams = new URLSearchParams(window.location.search);
+      if (!referrerCode) {
+        referrerCode = urlParams.get('ref') || null;
+      }
+      
       const { data: orderNumberData, error: orderNumError } = await supabase.rpc("generate_order_number");
       if (orderNumError) throw orderNumError;
+      
       const { data: order, error: orderError } = await supabase.from("orders").insert({
         user_id: user?.id || null,
         order_number: orderNumberData,
@@ -259,23 +287,38 @@ const Shop = () => {
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: customerPhone,
+        customer_notes: customerNotes || null,
         status: "pending",
-        product_referrer_id: referrerId
+        product_referrer_id: referrerId,
+        referrer_code: referrerCode
       }).select().single();
       if (orderError) throw orderError;
+      
       const diamondCredits = (selectedProduct.diamond_reward || 0) * quantity;
-      const { error: itemError } = await supabase.from("order_items").insert({
+      
+      // Create order item with variant info
+      const orderItemData: any = {
         order_id: order.id,
         product_id: selectedProduct.id,
         quantity: quantity,
         unit_price: price,
         subtotal: subtotal
-      });
+      };
+      
+      // Add variant info if selected
+      if (selectedVariant) {
+        orderItemData.variant_id = selectedVariant.id;
+        orderItemData.variant_name = `${selectedVariant.variant_type}: ${selectedVariant.variant_value}`;
+      }
+      
+      const { error: itemError } = await supabase.from("order_items").insert(orderItemData);
       if (itemError) throw itemError;
+      
       const { error: updateError } = await supabase.from("orders").update({
         total_diamond_credits: diamondCredits
       }).eq("id", order.id);
       if (updateError) throw updateError;
+      
       if (referrerId && selectedProduct.referral_commission_diamonds > 0) {
         const { error: referralError } = await supabase.from("product_referrals").insert({
           product_id: selectedProduct.id,
@@ -305,15 +348,17 @@ const Shop = () => {
       toast.success("Order placed successfully! Order #" + orderNumberData);
       setCheckoutDialog(false);
       setSelectedProduct(null);
+      setSelectedVariant(null);
       setShippingAddress("");
       setCustomerName("");
       setCustomerEmail("");
       setCustomerPhone("");
+      setCustomerNotes("");
     } catch (error: any) {
       console.error("Error creating order:", error);
       toast.error("Failed to place order");
     }
-  }, [selectedProduct, shippingAddress, customerName, customerEmail, customerPhone, quantity, shippingFee, user]);
+  }, [selectedProduct, selectedVariant, shippingAddress, customerName, customerEmail, customerPhone, customerNotes, quantity, shippingFee, user]);
 
   // Show skeleton immediately while loading
   if (loading) {
@@ -569,8 +614,13 @@ const Shop = () => {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{selectedProduct?.name}</p>
+                      {selectedVariant && (
+                        <p className="text-xs text-muted-foreground">
+                          {selectedVariant.variant_type}: {selectedVariant.variant_value}
+                        </p>
+                      )}
                       <p className="text-xs text-destructive font-bold">
-                        ₱{getEffectivePrice(selectedProduct).toFixed(2)} each
+                        ₱{((getEffectivePrice(selectedProduct) + (selectedVariant?.price_adjustment || 0))).toFixed(2)} each
                       </p>
                     </div>
                   </div>
@@ -578,11 +628,11 @@ const Shop = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="quantity" className="text-xs">Qty</Label>
-                      <Input id="quantity" type="number" min="1" max={selectedProduct?.stock_quantity || 1} value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} className="h-8 text-sm" />
+                      <Input id="quantity" type="number" min="1" max={selectedVariant?.stock_quantity || selectedProduct?.stock_quantity || 1} value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} className="h-8 text-sm" />
                     </div>
                     <div className="flex items-end">
                       <p className="text-sm font-bold">
-                        Subtotal: ₱{(getEffectivePrice(selectedProduct) * quantity).toFixed(2)}
+                        Subtotal: ₱{((getEffectivePrice(selectedProduct) + (selectedVariant?.price_adjustment || 0)) * quantity).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -607,7 +657,19 @@ const Shop = () => {
                     <Textarea id="shippingAddress" value={shippingAddress} onChange={e => setShippingAddress(e.target.value)} rows={2} className="text-sm" required />
                   </div>
 
-                  <ShippingCalculator productWeight={selectedProduct?.weight_kg || 1} subtotal={getEffectivePrice(selectedProduct) * quantity} onShippingCalculated={setShippingFee} />
+                  <div>
+                    <Label htmlFor="customerNotes" className="text-xs">Notes to Seller (Optional)</Label>
+                    <Textarea 
+                      id="customerNotes" 
+                      value={customerNotes} 
+                      onChange={e => setCustomerNotes(e.target.value)} 
+                      rows={2} 
+                      className="text-sm" 
+                      placeholder="Special instructions, gift wrapping requests, etc."
+                    />
+                  </div>
+
+                  <ShippingCalculator productWeight={selectedProduct?.weight_kg || 1} subtotal={(getEffectivePrice(selectedProduct) + (selectedVariant?.price_adjustment || 0)) * quantity} onShippingCalculated={setShippingFee} />
 
                   <div className="pt-2 border-t space-y-1">
                     <div className="flex justify-between text-xs">
