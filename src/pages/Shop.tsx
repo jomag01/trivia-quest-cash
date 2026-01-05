@@ -279,9 +279,11 @@ const Shop = () => {
         referrerCode = urlParams.get('ref') || null;
       }
       
+      const diamondCredits = (selectedProduct.diamond_reward || 0) * quantity;
+
       const { data: orderNumberData, error: orderNumError } = await supabase.rpc("generate_order_number");
       if (orderNumError) throw orderNumError;
-      
+
       const { data: order, error: orderError } = await supabase.from("orders").insert({
         user_id: user.id,
         order_number: orderNumberData,
@@ -294,12 +296,11 @@ const Shop = () => {
         customer_notes: customerNotes || null,
         status: "pending",
         product_referrer_id: referrerId,
-        referrer_code: referrerCode
+        referrer_code: referrerCode,
+        total_diamond_credits: diamondCredits,
       }).select().single();
       if (orderError) throw orderError;
-      
-      const diamondCredits = (selectedProduct.diamond_reward || 0) * quantity;
-      
+
       // Create order item with variant info
       const orderItemData: any = {
         order_id: order.id,
@@ -308,20 +309,15 @@ const Shop = () => {
         unit_price: price,
         subtotal: subtotal
       };
-      
+
       // Add variant info if selected
       if (selectedVariant) {
         orderItemData.variant_id = selectedVariant.id;
         orderItemData.variant_name = `${selectedVariant.variant_type}: ${selectedVariant.variant_value}`;
       }
-      
+
       const { error: itemError } = await supabase.from("order_items").insert(orderItemData);
       if (itemError) throw itemError;
-      
-      const { error: updateError } = await supabase.from("orders").update({
-        total_diamond_credits: diamondCredits
-      }).eq("id", order.id);
-      if (updateError) throw updateError;
       
       if (referrerId && selectedProduct.referral_commission_diamonds > 0) {
         const { error: referralError } = await supabase.from("product_referrals").insert({
@@ -360,7 +356,9 @@ const Shop = () => {
       setCustomerNotes("");
     } catch (error: any) {
       console.error("Error creating order:", error);
-      toast.error("Failed to place order");
+      const message =
+        error?.message || error?.error_description || error?.details || "Failed to place order";
+      toast.error(message);
     }
   }, [selectedProduct, selectedVariant, shippingAddress, customerName, customerEmail, customerPhone, customerNotes, quantity, shippingFee, user]);
 
