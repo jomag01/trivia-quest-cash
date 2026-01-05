@@ -88,7 +88,33 @@ const AuctionProducts = () => {
   }
 
   if (auctions.length === 0) {
-    return null;
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-lg flex items-center gap-2">
+            <Gavel className="w-5 h-5 text-primary" />
+            Live Auctions
+          </h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary gap-1"
+            onClick={() => navigate("/auction")}
+          >
+            Auction Hub
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
+        <Card className="p-6 text-center">
+          <Gavel className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm mb-3">No active auctions right now</p>
+          <Button size="sm" onClick={() => navigate("/auction")} className="gap-2">
+            <Gavel className="w-4 h-4" />
+            Browse Auction Hub
+          </Button>
+        </Card>
+      </div>
+    );
   }
 
   return (
