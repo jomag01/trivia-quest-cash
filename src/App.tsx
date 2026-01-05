@@ -10,6 +10,7 @@ import { parseAndTrackFromUrl } from "@/lib/cookieTracking";
 import { useDeepLinkTracking } from "@/hooks/useDeepLinkTracking";
 import { AffiliateSignupPopup } from "./components/AffiliateSignupPopup";
 import { PurchaseNotification } from "./components/PurchaseNotification";
+import { ErrorReportButton } from "./components/ErrorReportButton";
 
 // Lazy load all pages for code splitting
 const AIHub = lazy(() => import("./pages/AIHub"));
@@ -121,6 +122,7 @@ const App = () => (
           <Navigation />
           <AffiliateSignupPopup />
           <PurchaseNotification />
+          <ErrorReportButton />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<AIHub />} />

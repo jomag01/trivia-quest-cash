@@ -52,6 +52,11 @@ const ADMIN_TABS = [
     { id: 'retailer-commissions', label: 'Retailer Commissions' },
     { id: 'seller-referrer', label: 'Seller Referrer' },
   ]},
+  { group: 'Administration', items: [
+    { id: 'shareholders', label: 'Shareholders' },
+    { id: 'sub-admins', label: 'Sub-Admins' },
+    { id: 'error-reports', label: 'Error Reports' },
+  ]},
   { group: 'E-Commerce', items: [
     { id: 'product-categories', label: 'Product Categories' },
     { id: 'marketplace-categories', label: 'Marketplace Categories' },

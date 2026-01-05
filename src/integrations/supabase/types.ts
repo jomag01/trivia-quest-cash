@@ -3877,6 +3877,69 @@ export type Database = {
         }
         Relationships: []
       }
+      error_reports: {
+        Row: {
+          admin_notes: string | null
+          browser_info: string | null
+          console_logs: Json | null
+          created_at: string
+          device_info: string | null
+          error_description: string
+          error_title: string
+          error_type: string
+          id: string
+          page_url: string | null
+          priority: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          screenshot_url: string | null
+          status: string
+          updated_at: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          browser_info?: string | null
+          console_logs?: Json | null
+          created_at?: string
+          device_info?: string | null
+          error_description: string
+          error_title: string
+          error_type?: string
+          id?: string
+          page_url?: string | null
+          priority?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          screenshot_url?: string | null
+          status?: string
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          browser_info?: string | null
+          console_logs?: Json | null
+          created_at?: string
+          device_info?: string | null
+          error_description?: string
+          error_title?: string
+          error_type?: string
+          id?: string
+          page_url?: string | null
+          priority?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          screenshot_url?: string | null
+          status?: string
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       file_uploads: {
         Row: {
           base64_data: string | null

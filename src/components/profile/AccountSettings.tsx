@@ -23,7 +23,10 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  X
+  X,
+  Lock,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { PayoutAccountsSettings } from "./PayoutAccountsSettings";
@@ -58,6 +61,15 @@ export function AccountSettings() {
   const [emailChanging, setEmailChanging] = useState(false);
   const [pendingEmailRequest, setPendingEmailRequest] = useState<EmailChangeRequest | null>(null);
   const [loadingEmailRequest, setLoadingEmailRequest] = useState(true);
+
+  // Password change state
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordChanging, setPasswordChanging] = useState(false);
 
   // Load profile data
   useEffect(() => {
@@ -245,6 +257,43 @@ export function AccountSettings() {
     } catch (error: any) {
       console.error("Error cancelling email request:", error);
       toast.error("Failed to cancel request");
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword.trim()) {
+      toast.error("Please enter a new password");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    setPasswordChanging(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+
+      toast.success("Password changed successfully!");
+      setShowPasswordDialog(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      toast.error(error.message || "Failed to change password");
+    } finally {
+      setPasswordChanging(false);
     }
   };
 
@@ -456,6 +505,29 @@ export function AccountSettings() {
         </CardContent>
       </Card>
 
+      {/* Password Settings Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="w-5 h-5" />
+            Password
+          </CardTitle>
+          <CardDescription>
+            Change your account password
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowPasswordDialog(true)}
+            className="gap-2"
+          >
+            <Lock className="w-4 h-4" />
+            Change Password
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Payout Accounts Card */}
       <PayoutAccountsSettings />
 
@@ -519,6 +591,92 @@ export function AccountSettings() {
             <Button onClick={handleRequestEmailChange} disabled={emailChanging}>
               {emailChanging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Request Email Change
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Change Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5" />
+              Change Password
+            </DialogTitle>
+            <DialogDescription>
+              Enter your new password. Make sure it's at least 6 characters long.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showNewPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
+
+            {newPassword && confirmPassword && newPassword !== confirmPassword && (
+              <Alert variant="destructive" className="py-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Passwords do not match
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {newPassword && newPassword.length < 6 && (
+              <Alert variant="destructive" className="py-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Password must be at least 6 characters
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => {
+              setShowPasswordDialog(false);
+              setNewPassword("");
+              setConfirmPassword("");
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleChangePassword} 
+              disabled={passwordChanging || newPassword.length < 6 || newPassword !== confirmPassword}
+            >
+              {passwordChanging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Change Password
             </Button>
           </DialogFooter>
         </DialogContent>

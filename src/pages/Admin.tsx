@@ -100,6 +100,8 @@ import BlogManagement from "@/components/admin/BlogManagement";
 import AISubscriptionManagement from "@/components/admin/AISubscriptionManagement";
 import NewsletterManagement from "@/components/admin/NewsletterManagement";
 import SellerReferrerCommissionManagement from "@/components/admin/SellerReferrerCommissionManagement";
+import ErrorReportsManagement from "@/components/admin/ErrorReportsManagement";
+import { Bug } from "lucide-react";
 
 interface MenuItem {
   id: string;
@@ -281,6 +283,7 @@ const Admin = () => {
       items: [
         { id: "shareholders", label: "Shareholders", icon: PiggyBank },
         { id: "sub-admins", label: "Sub-Admins", icon: UserCog },
+        { id: "error-reports", label: "Error Reports", icon: Bug },
       ],
     },
     {
@@ -875,6 +878,7 @@ const Admin = () => {
           {activeTab === "legal-terms" && <LegalTermsManagement />}
           {activeTab === "shareholders" && <ShareholderManagement onBack={() => setActiveTab("sales-analytics")} />}
           {activeTab === "sub-admins" && <SubAdminManagement onBack={() => setActiveTab("sales-analytics")} />}
+          {activeTab === "error-reports" && <ErrorReportsManagement />}
           {activeTab === "warehouse" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
