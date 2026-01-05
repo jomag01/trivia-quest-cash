@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Image as ImageIcon, PackagePlus, Download, Layers, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, Image as ImageIcon, PackagePlus, Download, Layers, Eye, Sparkles, Loader2, User } from "lucide-react";
 import { ProductVariantManager } from "@/components/ProductVariantManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +41,12 @@ interface Product {
   boosted_sales_count?: number;
   boosted_rating?: number;
   virtual_tryon_enabled?: boolean;
+  seller_id?: string;
+  profiles?: {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+  };
 }
 
 interface ProductCategory {
@@ -123,6 +129,11 @@ export const ProductManagement = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [isPrimary, setIsPrimary] = useState(false);
   const [imageType, setImageType] = useState<"static" | "hover" | "gallery">("gallery");
+  
+  // AI Description Generator state
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [aiDescriptionCost, setAiDescriptionCost] = useState(5);
+  
   // Variant form state
   const [variantForm, setVariantForm] = useState({
     variant_type: "size" as 'size' | 'color' | 'weight',
@@ -135,7 +146,19 @@ export const ProductManagement = () => {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchAIDescriptionCost();
   }, []);
+
+  const fetchAIDescriptionCost = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'ai_product_description_cost')
+      .single();
+    if (data?.value) {
+      setAiDescriptionCost(parseInt(data.value) || 5);
+    }
+  };
 
   const fetchCategories = async () => {
     const { data, error } = await supabase
@@ -155,7 +178,14 @@ export const ProductManagement = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("products")
-      .select("*")
+      .select(`
+        *,
+        profiles!products_seller_id_fkey (
+          id,
+          full_name,
+          email
+        )
+      `)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -194,6 +224,74 @@ export const ProductManagement = () => {
       console.error(error);
     } else {
       setImages(data || []);
+    }
+  };
+
+  const generateAIDescription = async () => {
+    if (!formData.image_url) {
+      toast.error("Please upload a product image first");
+      return;
+    }
+    
+    if (!user) {
+      toast.error("Please log in to use AI features");
+      return;
+    }
+
+    setGeneratingDescription(true);
+    
+    try {
+      // Check user's AI credits
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+      
+      const currentCredits = profile?.credits || 0;
+      
+      if (currentCredits < aiDescriptionCost) {
+        toast.error(`Not enough credits. You need ${aiDescriptionCost} credits. You have ${currentCredits}.`);
+        setGeneratingDescription(false);
+        return;
+      }
+
+      // Call AI to generate description
+      const { data, error } = await supabase.functions.invoke('ai-generate', {
+        body: {
+          type: 'product_description',
+          imageUrl: formData.image_url,
+          productName: formData.name || 'Product'
+        }
+      });
+
+      if (error) throw error;
+
+      // Deduct credits
+      await supabase
+        .from('profiles')
+        .update({ credits: currentCredits - aiDescriptionCost })
+        .eq('id', user.id);
+
+      // Log credit usage
+      await supabase.from('ai_generations').insert({
+        user_id: user.id,
+        generation_type: 'product_description',
+        credits_used: aiDescriptionCost,
+        prompt: `Product description for: ${formData.name || 'Product'}`
+      });
+
+      if (data?.description) {
+        setFormData({ ...formData, description: data.description });
+        toast.success(`Description generated! (${aiDescriptionCost} credits used)`);
+      } else {
+        throw new Error('No description returned');
+      }
+    } catch (error) {
+      console.error('AI description error:', error);
+      toast.error("Failed to generate description");
+    } finally {
+      setGeneratingDescription(false);
     }
   };
 
@@ -567,13 +665,31 @@ export const ProductManagement = () => {
                   />
                 </div>
                 <div className="col-span-2">
-                  <Label htmlFor="description">Description</Label>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="description">Description</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={generateAIDescription}
+                      disabled={generatingDescription || !formData.image_url}
+                      className="gap-1.5 text-xs h-7"
+                    >
+                      {generatingDescription ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3" />
+                      )}
+                      AI Generate ({aiDescriptionCost} cr)
+                    </Button>
+                  </div>
                   <Textarea
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={2}
+                    rows={3}
                     required
+                    placeholder={formData.image_url ? "Click 'AI Generate' to auto-create description from image" : "Upload an image first to use AI description"}
                   />
                 </div>
                 <div>
@@ -982,6 +1098,7 @@ export const ProductManagement = () => {
                 />
               </TableHead>
               <TableHead>Name</TableHead>
+              <TableHead>Seller</TableHead>
               <TableHead>Base Price</TableHead>
               <TableHead>💎 Diamonds</TableHead>
               <TableHead>Commission</TableHead>
@@ -1001,6 +1118,14 @@ export const ProductManagement = () => {
                   />
                 </TableCell>
                 <TableCell className="font-medium">{product.name}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5 text-sm">
+                    <User className="w-3 h-3 text-muted-foreground" />
+                    <span className="truncate max-w-[120px]">
+                      {product.profiles?.full_name || product.profiles?.email || 'Admin'}
+                    </span>
+                  </div>
+                </TableCell>
                 <TableCell>₱{product.base_price.toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className="bg-primary/10">
