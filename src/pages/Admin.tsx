@@ -21,7 +21,10 @@ import {
   Users,
   LogOut,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  ArrowLeft,
+  PiggyBank,
+  UserCog
 } from "lucide-react";
 import {
   Dialog,
@@ -43,7 +46,7 @@ import { ImageMigrationTool } from "@/components/ImageMigrationTool";
 import StairStepManagement from "@/components/StairStepManagement";
 import { TreasureHuntManagement } from "@/components/TreasureHuntManagement";
 import TreasureAdminSettings from "@/components/TreasureAdminSettings";
-import UnilevelCommissionSettings from "@/components/UnilevelCommissionSettings";
+import DynamicUnilevelSettings from "@/components/admin/DynamicUnilevelSettings";
 import { UplineTransferManagement } from "@/components/UplineTransferManagement";
 import { ShippingZoneManagement } from "@/components/ShippingZoneManagement";
 import { BulkShippingManagement } from "@/components/BulkShippingManagement";
@@ -83,6 +86,8 @@ import MemberActivationManagement from "@/components/admin/MemberActivationManag
 import { PurchaseNotificationSettings } from "@/components/admin/PurchaseNotificationSettings";
 import AuctionManagement from "@/components/admin/AuctionManagement";
 import LegalTermsManagement from "@/components/admin/LegalTermsManagement";
+import ShareholderManagement from "@/components/admin/ShareholderManagement";
+import SubAdminManagement from "@/components/admin/SubAdminManagement";
 import { cn } from "@/lib/utils";
 import { BarChart3, Gavel } from "lucide-react";
 import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
@@ -267,6 +272,15 @@ const Admin = () => {
         { id: "ai-pricing", label: "AI Provider Costs", icon: DollarSign },
         { id: "blog-management", label: "Blog Management", icon: Barcode },
         { id: "newsletter", label: "Newsletter & Email", icon: Megaphone },
+      ],
+    },
+    {
+      id: "administration",
+      label: "Administration",
+      icon: Shield,
+      items: [
+        { id: "shareholders", label: "Shareholders", icon: PiggyBank },
+        { id: "sub-admins", label: "Sub-Admins", icon: UserCog },
       ],
     },
     {
@@ -658,6 +672,16 @@ const Admin = () => {
             >
               <Menu className="w-4 h-4" />
             </Button>
+            {/* Back Arrow for all tabs */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setActiveTab("sales-analytics")}
+              title="Back to main menu"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
             <Shield className="w-5 h-5 text-primary hidden lg:block" />
             <h1 className="text-lg lg:text-xl font-bold text-gradient-gold flex-1 truncate">
               {allMenuItems.find(item => item.id === activeTab)?.label || "Admin Panel"}
@@ -823,7 +847,7 @@ const Admin = () => {
           {activeTab === "rider-management" && <RiderManagement />}
           {activeTab === "cookie-policy" && <CookiePolicyManagement />}
           {activeTab === "pos-system" && <POSSystem />}
-          {activeTab === "unilevel-settings" && <UnilevelCommissionSettings />}
+          {activeTab === "unilevel-settings" && <DynamicUnilevelSettings onBack={() => setActiveTab("sales-analytics")} />}
           {activeTab === "ai-subscriptions" && <AISubscriptionManagement />}
           {activeTab === "ai-settings" && <AISettingsManagement />}
           {activeTab === "ai-pricing" && <AIProviderPricing />}
@@ -849,6 +873,8 @@ const Admin = () => {
           {activeTab === "purchase-notifications" && <PurchaseNotificationSettings />}
           {activeTab === "auctions" && <AuctionManagement />}
           {activeTab === "legal-terms" && <LegalTermsManagement />}
+          {activeTab === "shareholders" && <ShareholderManagement onBack={() => setActiveTab("sales-analytics")} />}
+          {activeTab === "sub-admins" && <SubAdminManagement onBack={() => setActiveTab("sales-analytics")} />}
           {activeTab === "warehouse" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
