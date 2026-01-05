@@ -102,47 +102,48 @@ const EditAuctionDialog = ({ auction, open, onOpenChange, onUpdate }: EditAuctio
     e.preventDefault();
     if (!auction) return;
 
-    // Prevent editing certain fields if there are bids
-    if (auction.bid_count > 0) {
-      const { error } = await supabase
-        .from("auctions")
-        .update({
-          title: formData.title,
-          description: formData.description,
-          images: formData.images,
-          shipping_fee: formData.shipping_fee,
-        })
-        .eq("id", auction.id);
+    setLoading(true);
 
-      if (error) {
-        toast.error("Failed to update auction");
-        return;
-      }
-    } else {
-      const { error } = await supabase
-        .from("auctions")
-        .update({
-          title: formData.title,
-          description: formData.description,
-          images: formData.images,
+    try {
+      let updateData: any = {
+        title: formData.title,
+        description: formData.description,
+        images: formData.images,
+        shipping_fee: formData.shipping_fee || 0,
+      };
+
+      // Add additional fields only if no bids exist
+      if (auction.bid_count === 0) {
+        updateData = {
+          ...updateData,
           starting_bid: formData.starting_bid,
           reserve_price: formData.reserve_price || null,
           buy_now_price: formData.buy_now_price || null,
           condition: formData.condition,
-          shipping_fee: formData.shipping_fee,
           ends_at: new Date(formData.ends_at).toISOString(),
-        })
+        };
+      }
+
+      const { error } = await supabase
+        .from("auctions")
+        .update(updateData)
         .eq("id", auction.id);
 
       if (error) {
-        toast.error("Failed to update auction");
+        console.error("Update error:", error);
+        toast.error(`Failed to update auction: ${error.message}`);
         return;
       }
-    }
 
-    toast.success("Auction updated successfully");
-    onUpdate();
-    onOpenChange(false);
+      toast.success("Auction updated successfully");
+      onUpdate();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error("Update error:", error);
+      toast.error(`Failed to update auction: ${error.message || "Unknown error"}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const hasBids = auction?.bid_count && auction.bid_count > 0;

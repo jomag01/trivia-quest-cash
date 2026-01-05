@@ -22,10 +22,11 @@ import {
 } from "@/components/ui/select";
 import {
   CreditCard, Package, Truck, CheckCircle, AlertTriangle,
-  Upload, Loader2, Shield, Clock, DollarSign
+  Upload, Loader2, Shield, Clock, DollarSign, MessageCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import AuctionChatDialog from "./AuctionChatDialog";
 
 interface Escrow {
   id: string;
@@ -51,6 +52,7 @@ interface Escrow {
 
 interface AuctionEscrowDialogProps {
   escrow: Escrow | null;
+  auctionTitle?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate: () => void;
@@ -78,6 +80,7 @@ const COURIERS = [
 
 const AuctionEscrowDialog = ({
   escrow,
+  auctionTitle = "Auction Item",
   open,
   onOpenChange,
   onUpdate,
@@ -91,10 +94,12 @@ const AuctionEscrowDialog = ({
   const [trackingNumber, setTrackingNumber] = useState("");
   const [courier, setCourier] = useState("");
   const [disputeReason, setDisputeReason] = useState("");
+  const [showChat, setShowChat] = useState(false);
 
   if (!escrow) return null;
 
   const currentStepIndex = STATUS_STEPS.findIndex(s => s.key === escrow.status);
+  const isChatEnabled = ["paid", "shipped", "delivered", "released"].includes(escrow.status);
 
   const handlePayment = async () => {
     if (!paymentMethod || !paymentReference) {
@@ -228,14 +233,27 @@ const AuctionEscrowDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-amber-500" />
-            Escrow Payment
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-amber-500" />
+                Escrow Payment
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowChat(true)}
+                className={isChatEnabled ? "" : "opacity-50"}
+                disabled={!isChatEnabled}
+              >
+                <MessageCircle className="h-4 w-4 mr-1" />
+                Chat
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
 
         <div className="space-y-6">
           {/* Status Progress */}
@@ -442,6 +460,14 @@ const AuctionEscrowDialog = ({
         </div>
       </DialogContent>
     </Dialog>
+
+    <AuctionChatDialog
+      escrow={escrow}
+      auctionTitle={auctionTitle}
+      open={showChat}
+      onOpenChange={setShowChat}
+    />
+  </>
   );
 };
 
