@@ -85,6 +85,12 @@ serve(async (req) => {
         break
       case 'manual-erase':
         // For manual erase, the maskData contains areas to erase (white = erase, black = keep)
+        if (!maskData) {
+          return new Response(
+            JSON.stringify({ error: 'Mask data is required for manual-erase operation. Please paint over the areas you want to remove.' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          )
+        }
         prompt = 'I am providing you with two images: the first is the original image, and the second is a mask. In the mask, white/bright areas indicate what needs to be REMOVED or ERASED from the original image. Remove those marked areas completely and fill them in naturally with the surrounding background, maintaining seamless texture, color, and lighting. The result should look like those areas were never there. Keep everything in the dark/black areas of the mask unchanged.'
         break
       default:
@@ -118,6 +124,12 @@ serve(async (req) => {
       })
     }
 
+    // Use faster model for simpler operations, better model for complex ones
+    const useComplexModel = operation === 'manual-erase' || operation === 'change-bg' || operation === 'change-background';
+    const model = useComplexModel ? 'google/gemini-2.5-flash-image-preview' : 'google/gemini-2.5-flash-lite';
+    
+    console.log(`Using model: ${model} for operation: ${operation}`)
+
     // Call Lovable AI with image editing capability
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -126,7 +138,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
+        model: model,
         messages: [
           {
             role: 'user',
