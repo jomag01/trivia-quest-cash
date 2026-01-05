@@ -39,7 +39,7 @@ const EditAuctionDialog = ({ auction, open, onOpenChange, onUpdate }: EditAuctio
     starting_bid: 0,
     reserve_price: 0,
     buy_now_price: 0,
-    condition: "good",
+    condition: "used",
     shipping_fee: 0,
     ends_at: "",
     images: [] as string[],
@@ -271,9 +271,9 @@ const EditAuctionDialog = ({ auction, open, onOpenChange, onUpdate }: EditAuctio
                 <SelectContent>
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="like_new">Like New</SelectItem>
-                  <SelectItem value="excellent">Excellent</SelectItem>
-                  <SelectItem value="good">Good</SelectItem>
-                  <SelectItem value="fair">Fair</SelectItem>
+                  <SelectItem value="used">Used</SelectItem>
+                  <SelectItem value="vintage">Vintage</SelectItem>
+                  <SelectItem value="antique">Antique</SelectItem>
                 </SelectContent>
               </Select>
             </div>
