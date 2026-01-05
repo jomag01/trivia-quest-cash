@@ -124,9 +124,9 @@ serve(async (req) => {
       })
     }
 
-    // Use faster model for simpler operations, better model for complex ones
-    const useComplexModel = operation === 'manual-erase' || operation === 'change-bg' || operation === 'change-background';
-    const model = useComplexModel ? 'google/gemini-2.5-flash-image-preview' : 'google/gemini-2.5-flash-lite';
+    // Use image generation model for all image editing operations
+    // google/gemini-2.5-flash-image-preview supports global regions for image editing
+    const model = 'google/gemini-2.5-flash-image-preview';
     
     console.log(`Using model: ${model} for operation: ${operation}`)
 
@@ -165,6 +165,18 @@ serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 402 }
         )
       }
+      
+      // Check for geo-restriction error
+      if (response.status === 400 && errorText.includes('not available in your country')) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Image processing is temporarily unavailable in your region. Please try again later or contact support.',
+            code: 'GEO_RESTRICTED'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+        )
+      }
+      
       throw new Error(`AI gateway error: ${response.status}`)
     }
 
