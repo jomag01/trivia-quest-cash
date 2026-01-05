@@ -494,10 +494,13 @@ const AuctionDetailDialog = ({ auction, open, onOpenChange }: AuctionDetailDialo
                       <p className="text-xl font-bold text-green-500">
                         ₱{auction.buy_now_price.toLocaleString()}
                       </p>
+                      {auction.bid_count > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">Bidding has started</p>
+                      )}
                     </div>
                     <Button
                       onClick={handleBuyNow}
-                      disabled={isOwner || submitting}
+                      disabled={isOwner || submitting || auction.bid_count > 0}
                       className="bg-green-500 hover:bg-green-600"
                     >
                       <Zap className="h-4 w-4 mr-2" />
