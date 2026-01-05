@@ -17,13 +17,15 @@ import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import ProviderChat from "@/components/chat/ProviderChat";
 import { EditListingDialog } from "@/components/marketplace/EditListingDialog";
 import { PromoteToSliderDialog } from "@/components/seller/PromoteToSliderDialog";
+import { useGeolocation, calculateDistance } from "@/hooks/useGeolocation";
 import { 
   Home, Car, Package, Hotel, BedDouble, Building, 
   Plus, Search, Heart, Eye, MapPin, Calendar,
   Phone, Mail, DollarSign, Clock, Star, Filter,
   ChevronLeft, ChevronRight, Lock, AlertCircle,
   Sparkles, Image as ImageIcon, X, Loader2, Upload,
-  Grid, List, SlidersHorizontal, ArrowUpDown, Edit2, Megaphone
+  Grid, List, SlidersHorizontal, ArrowUpDown, Edit2, Megaphone,
+  Navigation, LocateFixed
 } from "lucide-react";
 
 type MarketplaceCategory = 'property_sale' | 'vehicle_sale' | 'secondhand_items' | 'property_rent' | 'room_rent' | 'hotel_staycation';
@@ -63,6 +65,9 @@ interface MarketplaceListing {
   contact_email: string | null;
   contact_phone: string | null;
   listing_fee_paid: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
+  distance_km?: number; // Calculated client-side
   seller_profile?: {
     username: string;
     avatar_url: string | null;
@@ -110,7 +115,11 @@ const MarketplaceListings = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchDebounce, setSearchDebounce] = useState('');
-  const [sortBy, setSortBy] = useState<'newest' | 'price_low' | 'price_high' | 'popular'>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'price_low' | 'price_high' | 'popular' | 'nearby'>('newest');
+  
+  // Geolocation for nearby listings
+  const userLocation = useGeolocation();
+  const [locationName, setLocationName] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
@@ -150,6 +159,9 @@ const MarketplaceListings = () => {
     images: [] as string[],
     contact_email: '',
     contact_phone: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
+    useCurrentLocation: false,
   });
 
   // Inquiry form state
@@ -179,7 +191,7 @@ const MarketplaceListings = () => {
     setCurrentPage(0);
     setHasMore(true);
     fetchListings(0, true);
-  }, [selectedCategory, searchDebounce, sortBy]);
+  }, [selectedCategory, searchDebounce, sortBy, userLocation.latitude, userLocation.longitude]);
 
   useEffect(() => {
     if (user) {
@@ -189,6 +201,15 @@ const MarketplaceListings = () => {
       setCheckingEligibility(false);
     }
   }, [user]);
+
+  // Reverse geocode to get location name
+  useEffect(() => {
+    if (userLocation.latitude && userLocation.longitude && !userLocation.loading) {
+      // Use a simple approach - just show coordinates or a generic "Near you"
+      // For production, you'd want to use a geocoding API
+      setLocationName("Near you");
+    }
+  }, [userLocation.latitude, userLocation.longitude, userLocation.loading]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -292,12 +313,11 @@ const MarketplaceListings = () => {
         setTotalCount(count || 0);
       }
 
-      // Build query with pagination
+      // Build query with pagination - now includes latitude and longitude
       let query = supabase
         .from('marketplace_listings')
-        .select('id, seller_id, category, title, price, price_type, currency, city, province, thumbnail_url, images, condition, status, views_count, is_featured, bedrooms, bathrooms, area_sqm, brand, model, year, mileage, created_at')
-        .eq('status', 'active')
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        .select('id, seller_id, category, title, price, price_type, currency, city, province, thumbnail_url, images, condition, status, views_count, is_featured, bedrooms, bathrooms, area_sqm, brand, model, year, mileage, created_at, latitude, longitude')
+        .eq('status', 'active');
 
       if (selectedCategory !== 'all') {
         query = query.eq('category', selectedCategory as any);
@@ -307,44 +327,88 @@ const MarketplaceListings = () => {
         query = query.or(`title.ilike.%${searchDebounce}%,description.ilike.%${searchDebounce}%,city.ilike.%${searchDebounce}%,location.ilike.%${searchDebounce}%`);
       }
 
-      // Apply sorting
-      switch (sortBy) {
-        case 'price_low':
-          query = query.order('price', { ascending: true });
-          break;
-        case 'price_high':
-          query = query.order('price', { ascending: false });
-          break;
-        case 'popular':
-          query = query.order('views_count', { ascending: false });
-          break;
-        default:
-          query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
+      // Apply sorting (for nearby, we sort client-side after calculating distance)
+      if (sortBy !== 'nearby') {
+        switch (sortBy) {
+          case 'price_low':
+            query = query.order('price', { ascending: true });
+            break;
+          case 'price_high':
+            query = query.order('price', { ascending: false });
+            break;
+          case 'popular':
+            query = query.order('views_count', { ascending: false });
+            break;
+          default:
+            query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
+        }
+        query = query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      } else {
+        // For nearby sorting, fetch more to sort client-side, then paginate
+        query = query.order('created_at', { ascending: false });
       }
 
       const { data, error } = await query;
       if (error) throw error;
 
-      const newListings = (data || []).map(listing => ({
-        ...listing,
-        images: listing.images || [],
-        amenities: [],
-        specifications: {},
-        description: null,
-        location: null,
-        fuel_type: null,
-        transmission: null,
-        min_stay_nights: null,
-        max_guests: null,
-      })) as MarketplaceListing[];
+      let processedListings = (data || []).map(listing => {
+        const listingWithDefaults = {
+          ...listing,
+          images: listing.images || [],
+          amenities: [],
+          specifications: {},
+          description: null,
+          location: null,
+          fuel_type: null,
+          transmission: null,
+          min_stay_nights: null,
+          max_guests: null,
+          distance_km: undefined as number | undefined,
+        };
+
+        // Calculate distance if user location and listing location are available
+        if (
+          userLocation.latitude &&
+          userLocation.longitude &&
+          listing.latitude &&
+          listing.longitude
+        ) {
+          listingWithDefaults.distance_km = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            listing.latitude,
+            listing.longitude
+          );
+        }
+
+        return listingWithDefaults;
+      }) as MarketplaceListing[];
+
+      // Sort by distance if "nearby" is selected
+      if (sortBy === 'nearby') {
+        processedListings = processedListings.sort((a, b) => {
+          // Items with distance come first, sorted by distance
+          if (a.distance_km !== undefined && b.distance_km !== undefined) {
+            return a.distance_km - b.distance_km;
+          }
+          // Items without distance go to the end
+          if (a.distance_km !== undefined) return -1;
+          if (b.distance_km !== undefined) return 1;
+          return 0;
+        });
+        // Apply pagination client-side for nearby
+        const start = page * PAGE_SIZE;
+        const end = start + PAGE_SIZE;
+        processedListings = processedListings.slice(start, end);
+      }
 
       if (reset) {
-        setListings(newListings);
+        setListings(processedListings);
       } else {
-        setListings(prev => [...prev, ...newListings]);
+        setListings(prev => [...prev, ...processedListings]);
       }
       
-      setHasMore(newListings.length === PAGE_SIZE);
+      setHasMore(processedListings.length === PAGE_SIZE);
       setCurrentPage(page);
     } catch (error) {
       console.error('Error fetching listings:', error);
@@ -419,6 +483,14 @@ const MarketplaceListings = () => {
     }
 
     try {
+      // Use current location if enabled
+      const lat = newListing.useCurrentLocation && userLocation.latitude 
+        ? userLocation.latitude 
+        : newListing.latitude;
+      const lng = newListing.useCurrentLocation && userLocation.longitude 
+        ? userLocation.longitude 
+        : newListing.longitude;
+
       const listingData: any = {
         seller_id: user.id,
         category: newListing.category,
@@ -436,8 +508,10 @@ const MarketplaceListings = () => {
         status: 'active',
         contact_email: newListing.contact_email || null,
         contact_phone: newListing.contact_phone || null,
-        listing_fee_paid: hasFreeListingAccess, // Auto-mark as paid if user has 150+ diamonds
+        listing_fee_paid: hasFreeListingAccess,
         referrer_id: user.id,
+        latitude: lat,
+        longitude: lng,
       };
 
       // Add category-specific fields
@@ -545,6 +619,9 @@ const MarketplaceListings = () => {
       images: [],
       contact_email: '',
       contact_phone: '',
+      latitude: null,
+      longitude: null,
+      useCurrentLocation: false,
     });
   };
 
@@ -774,29 +851,63 @@ const MarketplaceListings = () => {
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
-      {/* Search & Sort */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search 200K+ listings..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+      {/* Location Status & Search & Sort */}
+      <div className="flex flex-col gap-2">
+        {/* Location indicator */}
+        {userLocation.latitude && userLocation.longitude && !userLocation.loading && (
+          <div className="flex items-center gap-2 text-sm">
+            <Badge variant="outline" className="gap-1 text-primary border-primary">
+              <LocateFixed className="w-3 h-3" />
+              {locationName || 'Location enabled'}
+            </Badge>
+            {sortBy === 'nearby' && (
+              <span className="text-xs text-muted-foreground">Showing nearest items first</span>
+            )}
+          </div>
+        )}
+        {userLocation.loading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Getting your location...
+          </div>
+        )}
+        {userLocation.error && !userLocation.loading && (
+          <div className="flex items-center gap-2 text-xs text-amber-600">
+            <AlertCircle className="w-3 h-3" />
+            {userLocation.error}
+          </div>
+        )}
+        
+        {/* Search & Sort */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search 200K+ listings..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+            <SelectTrigger className="w-[140px]">
+              <ArrowUpDown className="w-4 h-4 mr-1" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="nearby" disabled={!userLocation.latitude}>
+                <span className="flex items-center gap-1">
+                  <Navigation className="w-3 h-3" />
+                  Nearby
+                </span>
+              </SelectItem>
+              <SelectItem value="price_low">Price: Low</SelectItem>
+              <SelectItem value="price_high">Price: High</SelectItem>
+              <SelectItem value="popular">Most Viewed</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-          <SelectTrigger className="w-[140px]">
-            <ArrowUpDown className="w-4 h-4 mr-1" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="price_low">Price: Low</SelectItem>
-            <SelectItem value="price_high">Price: High</SelectItem>
-            <SelectItem value="popular">Most Viewed</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Stats */}
@@ -882,12 +993,19 @@ const MarketplaceListings = () => {
                 <CardContent className="p-3">
                   <h3 className="font-semibold text-sm line-clamp-2 mb-1">{listing.title}</h3>
                   
-                  {listing.location && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                      <MapPin className="w-3 h-3" />
-                      <span className="truncate">{listing.city || listing.location}</span>
-                    </div>
-                  )}
+                  {/* Location with distance */}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                    <MapPin className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{listing.city || listing.province || 'Location not set'}</span>
+                    {listing.distance_km !== undefined && (
+                      <Badge variant="outline" className="ml-auto text-[10px] px-1 py-0 h-4 gap-0.5 text-primary border-primary/50">
+                        <Navigation className="w-2.5 h-2.5" />
+                        {listing.distance_km < 1 
+                          ? `${Math.round(listing.distance_km * 1000)}m` 
+                          : `${listing.distance_km.toFixed(1)}km`}
+                      </Badge>
+                    )}
+                  </div>
 
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-primary">
@@ -1032,30 +1150,87 @@ const MarketplaceListings = () => {
             </div>
 
             {/* Location */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label>City</Label>
-                <Input
-                  placeholder="City"
-                  value={newListing.city}
-                  onChange={e => setNewListing(prev => ({ ...prev, city: e.target.value }))}
-                />
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>City</Label>
+                  <Input
+                    placeholder="City"
+                    value={newListing.city}
+                    onChange={e => setNewListing(prev => ({ ...prev, city: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Province</Label>
+                  <Input
+                    placeholder="Province"
+                    value={newListing.province}
+                    onChange={e => setNewListing(prev => ({ ...prev, province: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Detailed Location</Label>
+                  <Input
+                    placeholder="Address/Area"
+                    value={newListing.location}
+                    onChange={e => setNewListing(prev => ({ ...prev, location: e.target.value }))}
+                  />
+                </div>
               </div>
-              <div>
-                <Label>Province</Label>
-                <Input
-                  placeholder="Province"
-                  value={newListing.province}
-                  onChange={e => setNewListing(prev => ({ ...prev, province: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Detailed Location</Label>
-                <Input
-                  placeholder="Address/Area"
-                  value={newListing.location}
-                  onChange={e => setNewListing(prev => ({ ...prev, location: e.target.value }))}
-                />
+              
+              {/* GPS Location Toggle */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <LocateFixed className="w-4 h-4 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">Use GPS Location</p>
+                      <p className="text-xs text-muted-foreground">
+                        Enable buyers to find your listing by distance
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={newListing.useCurrentLocation ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      if (!userLocation.latitude || !userLocation.longitude) {
+                        toast.error('Location not available. Please enable location services.');
+                        return;
+                      }
+                      setNewListing(prev => ({ 
+                        ...prev, 
+                        useCurrentLocation: !prev.useCurrentLocation 
+                      }));
+                    }}
+                    disabled={userLocation.loading}
+                    className="gap-1"
+                  >
+                    {userLocation.loading ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Getting...
+                      </>
+                    ) : newListing.useCurrentLocation ? (
+                      <>
+                        <Navigation className="w-3 h-3" />
+                        Enabled
+                      </>
+                    ) : (
+                      <>
+                        <Navigation className="w-3 h-3" />
+                        Enable
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {newListing.useCurrentLocation && userLocation.latitude && (
+                  <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                    <LocateFixed className="w-3 h-3" />
+                    Location captured: {userLocation.latitude.toFixed(4)}, {userLocation.longitude?.toFixed(4)}
+                  </p>
+                )}
               </div>
             </div>
 

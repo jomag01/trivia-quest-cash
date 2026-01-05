@@ -5841,9 +5841,11 @@ export type Database = {
           inquiries_count: number | null
           is_boosted: boolean | null
           is_featured: boolean | null
+          latitude: number | null
           listing_fee_paid: boolean | null
           listing_fee_paid_at: string | null
           location: string | null
+          longitude: number | null
           max_guests: number | null
           mileage: number | null
           min_stay_nights: number | null
@@ -5895,9 +5897,11 @@ export type Database = {
           inquiries_count?: number | null
           is_boosted?: boolean | null
           is_featured?: boolean | null
+          latitude?: number | null
           listing_fee_paid?: boolean | null
           listing_fee_paid_at?: string | null
           location?: string | null
+          longitude?: number | null
           max_guests?: number | null
           mileage?: number | null
           min_stay_nights?: number | null
@@ -5949,9 +5953,11 @@ export type Database = {
           inquiries_count?: number | null
           is_boosted?: boolean | null
           is_featured?: boolean | null
+          latitude?: number | null
           listing_fee_paid?: boolean | null
           listing_fee_paid_at?: string | null
           location?: string | null
+          longitude?: number | null
           max_guests?: number | null
           mileage?: number | null
           min_stay_nights?: number | null
