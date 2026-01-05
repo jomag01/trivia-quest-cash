@@ -236,6 +236,10 @@ const Shop = () => {
 
   const handleCheckout = useCallback(async () => {
     if (!selectedProduct) return;
+    if (!user?.id) {
+      toast.error("Please login to place an order");
+      return;
+    }
     if (!shippingAddress || !customerName || !customerEmail) {
       toast.error("Please fill in all required fields");
       return;
@@ -279,7 +283,7 @@ const Shop = () => {
       if (orderNumError) throw orderNumError;
       
       const { data: order, error: orderError } = await supabase.from("orders").insert({
-        user_id: user?.id || null,
+        user_id: user.id,
         order_number: orderNumberData,
         total_amount: totalAmount,
         shipping_fee: shippingFee,
