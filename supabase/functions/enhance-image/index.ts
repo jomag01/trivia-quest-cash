@@ -42,9 +42,11 @@ serve(async (req) => {
         prompt = 'Enhance this image: improve clarity, sharpness, color balance, and overall quality. Make it look professional and high-resolution while preserving the original content and composition.'
         break
       case 'remove-bg':
+      case 'remove-background':
         prompt = 'Remove the background from this image completely, leaving only the main subject with a transparent or clean white background. Focus on precise edge detection around the subject.'
         break
       case 'change-bg':
+      case 'change-background':
         if (!newBackground) {
           return new Response(
             JSON.stringify({ error: 'New background description is required for change-bg operation' }),
@@ -66,11 +68,24 @@ serve(async (req) => {
         prompt = 'Fix the lighting in this image: correct exposure, balance highlights and shadows, remove harsh lighting artifacts, and create natural, even illumination.'
         break
       case 'denoise':
+      case 'remove-noise':
         prompt = 'Remove noise and grain from this image while preserving important details and textures. Create a clean, smooth result suitable for printing or professional use.'
+        break
+      case 'erase-people':
+        prompt = 'Remove ALL people, pedestrians, and passersby from this image. Keep the main subject if they are clearly the focus of the photo. Fill in the removed areas naturally with the surrounding background, maintaining seamless texture and lighting. The result should look like the scene was photographed without any people present.'
+        break
+      case 'erase-objects':
+        prompt = 'Remove unwanted objects, clutter, and distractions from this image. Keep the main subject intact. Fill in removed areas naturally with surrounding background textures and patterns. Create a clean, professional result.'
+        break
+      case 'remove-reflections':
+        prompt = 'Remove unwanted reflections, glare, and lens flares from this image. Fix glass reflections, water reflections, and shiny surface reflections while preserving the natural look of the scene. Keep the main subject clear and visible.'
+        break
+      case 'remove-watermark':
+        prompt = 'Remove any watermarks, logos, text overlays, or stamps from this image. Reconstruct the underlying image content naturally so the result looks seamless and professional.'
         break
       default:
         return new Response(
-          JSON.stringify({ error: 'Invalid operation. Use: enhance, remove-bg, change-bg, restore, upscale, colorize, fix-lighting, or denoise' }),
+          JSON.stringify({ error: 'Invalid operation. Use: enhance, remove-bg, change-bg, restore, upscale, colorize, fix-lighting, denoise, erase-people, erase-objects, remove-reflections, or remove-watermark' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
     }

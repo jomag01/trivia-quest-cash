@@ -2173,6 +2173,10 @@ const AIHub = memo(() => {
                         <SelectItem value="colorize">🎨 Colorize (B&W to Color)</SelectItem>
                         <SelectItem value="fix-lighting">💡 Fix Lighting</SelectItem>
                         <SelectItem value="remove-noise">🔇 Remove Noise</SelectItem>
+                        <SelectItem value="erase-people">🚶 Erase People/Passersby</SelectItem>
+                        <SelectItem value="erase-objects">🗑️ Erase Unwanted Objects</SelectItem>
+                        <SelectItem value="remove-reflections">✨ Remove Reflections</SelectItem>
+                        <SelectItem value="remove-watermark">💧 Remove Watermark</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
