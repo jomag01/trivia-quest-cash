@@ -220,7 +220,7 @@ serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    const { type, prompt, imageUrl, videoUrl, referenceImage, userId, skipCache } = await req.json();
+    const { type, prompt, imageUrl, videoUrl, referenceImage, userId, skipCache, productName } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -604,6 +604,79 @@ Return JSON with "recommendations" (product IDs) and "reason" (short user-friend
         
         throw new Error('Failed to generate website code');
       }
+
+    } else if (type === 'product_description') {
+      // AI Product Description Generator based on product image
+      if (!imageUrl) {
+        return new Response(JSON.stringify({ error: "Product image URL is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const finalProductName = productName || 'Product';
+
+      const response = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{
+            role: "user",
+            content: [
+              { 
+                type: "text", 
+                text: `You are an expert e-commerce copywriter. Analyze this product image and write a compelling, SEO-friendly product description.
+
+Product Name: ${finalProductName}
+
+Write a product description that:
+1. Highlights key features visible in the image
+2. Uses persuasive language to encourage purchase
+3. Is between 80-150 words
+4. Includes relevant details about materials, quality, or use cases
+5. Is formatted in a clean, readable way
+
+Only provide the description text, no headings or labels.`
+              },
+              { type: "image_url", image_url: { url: imageUrl } }
+            ]
+          }]
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Product description error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits depleted. Please add more credits." }), {
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`Product description generation failed: ${errorText}`);
+      }
+
+      const data = await response.json();
+      const description = data.choices?.[0]?.message?.content;
+      
+      if (!description) {
+        throw new Error("No description generated");
+      }
+
+      return new Response(JSON.stringify({ description: description.trim() }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
 
     } else {
       throw new Error(`Unknown type: ${type}`);

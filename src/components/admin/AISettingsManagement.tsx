@@ -41,6 +41,7 @@ const AISettingsManagement = () => {
   const [smmAdsCommissionPercent, setSmmAdsCommissionPercent] = useState('10');
   const [blogContentCreditCost, setBlogContentCreditCost] = useState('15');
   const [marketAnalysisCreditCost, setMarketAnalysisCreditCost] = useState('20');
+  const [productDescriptionCreditCost, setProductDescriptionCreditCost] = useState('5');
   const [virtualTryonBuyerCredits, setVirtualTryonBuyerCredits] = useState('5');
   const [virtualTryonSellerCredits, setVirtualTryonSellerCredits] = useState('20');
   
@@ -141,6 +142,8 @@ const AISettingsManagement = () => {
           setBlogContentCreditCost(setting.value || '15');
         } else if (setting.key === 'ai_market_analysis_credit_cost') {
           setMarketAnalysisCreditCost(setting.value || '20');
+        } else if (setting.key === 'ai_product_description_cost') {
+          setProductDescriptionCreditCost(setting.value || '5');
         } else if (setting.key === 'virtual_tryon_buyer_credits') {
           setVirtualTryonBuyerCredits(setting.value || '5');
         } else if (setting.key === 'virtual_tryon_seller_setup_credits') {
@@ -219,6 +222,7 @@ const AISettingsManagement = () => {
         { key: 'ai_smm_ads_commission_percent', value: smmAdsCommissionPercent },
         { key: 'ai_blog_content_credit_cost', value: blogContentCreditCost },
         { key: 'ai_market_analysis_credit_cost', value: marketAnalysisCreditCost },
+        { key: 'ai_product_description_cost', value: productDescriptionCreditCost },
         { key: 'virtual_tryon_buyer_credits', value: virtualTryonBuyerCredits },
         { key: 'virtual_tryon_seller_setup_credits', value: virtualTryonSellerCredits },
         // Guest AI Trial Popup Settings
@@ -584,6 +588,23 @@ const AISettingsManagement = () => {
                 />
                 <p className="text-xs text-muted-foreground">
                   {marketAnalysisCreditCost} credits per market analysis
+                </p>
+              </div>
+              
+              {/* AI Product Description */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs">
+                  <FileText className="h-3 w-3 text-amber-500" />
+                  AI Product Description (per generation)
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={productDescriptionCreditCost}
+                  onChange={(e) => setProductDescriptionCreditCost(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {productDescriptionCreditCost} credits per AI product description
                 </p>
               </div>
               
