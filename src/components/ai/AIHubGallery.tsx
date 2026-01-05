@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Plus, Mic, ArrowUp, Sparkles, Clock, Film, ImageIcon, Crown, Search, ShoppingCart, DollarSign, Cpu } from 'lucide-react';
+import { Play, Plus, Mic, ArrowUp, Sparkles, Clock, Film, ImageIcon, Crown, Search, ShoppingCart, DollarSign, Cpu, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import FlyingBees from './FlyingBees';
 
@@ -63,6 +63,7 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
   const [videoDuration, setVideoDuration] = useState('5');
   const [generationType, setGenerationType] = useState<'image' | 'video' | 'research'>('video');
   const [showFloatingInput, setShowFloatingInput] = useState(false);
+  const [isInputHidden, setIsInputHidden] = useState(false);
   const galleryRef = useRef<HTMLDivElement>(null);
 
   // Track scroll to show/hide floating input
@@ -262,13 +263,30 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
         </div>
       </div>
 
-      {/* Floating Input Bar - Always visible at bottom */}
+      {/* Floating Input Bar - Slidable to the right */}
       <div className={cn(
-        "fixed bottom-20 md:bottom-6 left-0 right-0 z-50 px-3 md:px-4 transition-all duration-300",
-        showFloatingInput ? "translate-y-0 opacity-100" : "translate-y-0 opacity-100"
+        "fixed bottom-20 md:bottom-6 left-0 right-0 z-50 px-3 md:px-4 transition-all duration-300 ease-in-out",
+        isInputHidden ? "translate-x-[calc(100%-48px)]" : "translate-x-0"
       )}>
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-gradient-to-r from-amber-50/98 via-orange-50/98 to-yellow-50/98 dark:from-amber-950/98 dark:via-orange-950/98 dark:to-yellow-950/98 backdrop-blur-xl border-2 border-amber-500/30 rounded-2xl shadow-2xl shadow-amber-500/20 p-2 md:p-3">
+        <div className="max-w-2xl mx-auto relative">
+          {/* Slide Toggle Handle */}
+          <button
+            onClick={() => setIsInputHidden(!isInputHidden)}
+            className={cn(
+              "absolute top-1/2 -translate-y-1/2 z-10 h-12 w-6 flex items-center justify-center",
+              "bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-l-lg shadow-lg",
+              "transition-all duration-300 hover:from-amber-600 hover:to-orange-600",
+              isInputHidden ? "-left-6" : "-left-3"
+            )}
+            aria-label={isInputHidden ? "Show input" : "Hide input"}
+          >
+            {isInputHidden ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+          
+          <div className={cn(
+            "bg-gradient-to-r from-amber-50/98 via-orange-50/98 to-yellow-50/98 dark:from-amber-950/98 dark:via-orange-950/98 dark:to-yellow-950/98 backdrop-blur-xl border-2 border-amber-500/30 rounded-2xl shadow-2xl shadow-amber-500/20 p-2 md:p-3 transition-opacity duration-300",
+            isInputHidden && "opacity-50"
+          )}>
             {/* Type Toggle */}
             <div className="flex items-center gap-1.5 md:gap-2 mb-2 md:mb-3 overflow-x-auto scrollbar-hide">
               <Button
