@@ -146,6 +146,11 @@ export const CartView = () => {
   };
 
   const handleCheckout = async () => {
+    if (!user?.id) {
+      toast.error("Please login to place an order");
+      return;
+    }
+    
     if (!customerName || !customerEmail || !shippingAddress) {
       toast.error("Please fill in all required fields");
       return;
@@ -218,7 +223,7 @@ export const CartView = () => {
 
       // Create order with live stream tracking if applicable
       const orderData: any = {
-        user_id: user?.id,
+        user_id: user.id,
         order_number: orderNumberData,
         total_amount: totalAmount,
         shipping_fee: shippingFee,
