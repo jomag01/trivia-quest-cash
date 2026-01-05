@@ -5,10 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Image as ImageIcon } from "lucide-react";
+import { Trash2, Plus, Image as ImageIcon, Pencil, X, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageUploadCrop } from "@/components/ImageUploadCrop";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface ProductVariant {
   id: string;
@@ -59,9 +60,19 @@ export const ProductVariantManager = ({
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [uploadingImageFor, setUploadingImageFor] = useState<string | null>(null);
+  const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null);
 
   const [formData, setFormData] = useState({
     variant_type: 'size' as 'size' | 'color' | 'weight',
+    variant_value: '',
+    price_adjustment: '0',
+    stock_quantity: '0',
+    sku: '',
+    image_url: '',
+    hex_color: '',
+  });
+
+  const [editFormData, setEditFormData] = useState({
     variant_value: '',
     price_adjustment: '0',
     stock_quantity: '0',
@@ -158,6 +169,45 @@ export const ProductVariantManager = ({
 
     toast.success("Variant image updated");
     setUploadingImageFor(null);
+    fetchVariants();
+    onVariantsChange?.();
+  };
+
+  const openEditDialog = (variant: ProductVariant) => {
+    setEditingVariant(variant);
+    setEditFormData({
+      variant_value: variant.variant_value,
+      price_adjustment: String(variant.price_adjustment || 0),
+      stock_quantity: String(variant.stock_quantity || 0),
+      sku: variant.sku || '',
+      image_url: variant.image_url || '',
+      hex_color: variant.hex_color || '',
+    });
+  };
+
+  const handleUpdateVariant = async () => {
+    if (!editingVariant) return;
+    
+    const { error } = await supabase
+      .from("product_variants")
+      .update({
+        variant_value: editFormData.variant_value.trim(),
+        price_adjustment: parseFloat(editFormData.price_adjustment) || 0,
+        stock_quantity: parseInt(editFormData.stock_quantity) || 0,
+        sku: editFormData.sku || null,
+        image_url: editFormData.image_url || null,
+        hex_color: editingVariant.variant_type === 'color' ? editFormData.hex_color || null : null,
+      })
+      .eq("id", editingVariant.id);
+
+    if (error) {
+      toast.error("Failed to update variant");
+      console.error(error);
+      return;
+    }
+
+    toast.success("Variant updated successfully");
+    setEditingVariant(null);
     fetchVariants();
     onVariantsChange?.();
   };
@@ -441,6 +491,14 @@ export const ProductVariantManager = ({
                         <Button
                           size="sm"
                           variant="ghost"
+                          onClick={() => openEditDialog(variant)}
+                          title="Edit Variant"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => setUploadingImageFor(variant.id)}
                           title="Upload Image"
                         >
@@ -463,6 +521,98 @@ export const ProductVariantManager = ({
           </div>
         </div>
       ))}
+
+      {/* Edit Variant Dialog */}
+      <Dialog open={!!editingVariant} onOpenChange={(open) => !open && setEditingVariant(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Variant: {editingVariant?.variant_value}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label>Variant Value</Label>
+              <Input
+                value={editFormData.variant_value}
+                onChange={(e) => setEditFormData({ ...editFormData, variant_value: e.target.value })}
+                placeholder="e.g., Large, Red, 500g"
+              />
+            </div>
+
+            {editingVariant?.variant_type === 'color' && (
+              <div>
+                <Label>Color (Hex)</Label>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="color"
+                    value={editFormData.hex_color || '#000000'}
+                    onChange={(e) => setEditFormData({ ...editFormData, hex_color: e.target.value })}
+                    className="w-12 h-10 p-1 border"
+                  />
+                  <Input
+                    value={editFormData.hex_color}
+                    onChange={(e) => setEditFormData({ ...editFormData, hex_color: e.target.value })}
+                    placeholder="#FF0000"
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Price Adjustment (₱)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editFormData.price_adjustment}
+                  onChange={(e) => setEditFormData({ ...editFormData, price_adjustment: e.target.value })}
+                  placeholder="0"
+                />
+                <p className="text-xs text-muted-foreground mt-1">+ or - from base</p>
+              </div>
+              <div>
+                <Label>Stock Quantity</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editFormData.stock_quantity}
+                  onChange={(e) => setEditFormData({ ...editFormData, stock_quantity: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>SKU (Optional)</Label>
+              <Input
+                value={editFormData.sku}
+                onChange={(e) => setEditFormData({ ...editFormData, sku: e.target.value })}
+                placeholder="SKU-001"
+              />
+            </div>
+
+            <div>
+              <Label>Variant Image</Label>
+              <ImageUploadCrop
+                currentImage={editFormData.image_url}
+                onImageUploaded={(url) => setEditFormData({ ...editFormData, image_url: url })}
+                maxSizeKB={500}
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" onClick={() => setEditingVariant(null)}>
+                <X className="w-4 h-4 mr-1" />
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateVariant}>
+                <Save className="w-4 h-4 mr-1" />
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
