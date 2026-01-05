@@ -353,6 +353,57 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_attributions: {
+        Row: {
+          affiliate_id: string
+          attributed_at: string | null
+          attribution_type: string | null
+          campaign_id: string | null
+          commission: number | null
+          created_at: string | null
+          id: string
+          medium: string | null
+          metadata: Json | null
+          order_id: string | null
+          referrer_id: string | null
+          revenue: number | null
+          source: string | null
+          user_id: string | null
+        }
+        Insert: {
+          affiliate_id: string
+          attributed_at?: string | null
+          attribution_type?: string | null
+          campaign_id?: string | null
+          commission?: number | null
+          created_at?: string | null
+          id?: string
+          medium?: string | null
+          metadata?: Json | null
+          order_id?: string | null
+          referrer_id?: string | null
+          revenue?: number | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          affiliate_id?: string
+          attributed_at?: string | null
+          attribution_type?: string | null
+          campaign_id?: string | null
+          commission?: number | null
+          created_at?: string | null
+          id?: string
+          medium?: string | null
+          metadata?: Json | null
+          order_id?: string | null
+          referrer_id?: string | null
+          revenue?: number | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       affiliate_current_rank: {
         Row: {
           admin_activated: boolean | null
@@ -2323,6 +2374,45 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_metrics: {
+        Row: {
+          campaign_id: string
+          clicks: number | null
+          commission_paid: number | null
+          conversions: number | null
+          created_at: string | null
+          date: string | null
+          id: string
+          revenue: number | null
+          unique_visitors: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id: string
+          clicks?: number | null
+          commission_paid?: number | null
+          conversions?: number | null
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          revenue?: number | null
+          unique_visitors?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          clicks?: number | null
+          commission_paid?: number | null
+          conversions?: number | null
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          revenue?: number | null
+          unique_visitors?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       cart: {
         Row: {
           created_at: string | null
@@ -3013,6 +3103,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      deep_link_configs: {
+        Row: {
+          created_at: string | null
+          entity_type: string
+          id: string
+          is_active: boolean | null
+          path_pattern: string
+          preload_metadata: boolean | null
+          requires_auth: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_type: string
+          id?: string
+          is_active?: boolean | null
+          path_pattern: string
+          preload_metadata?: boolean | null
+          requires_auth?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean | null
+          path_pattern?: string
+          preload_metadata?: boolean | null
+          requires_auth?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       delivery_assignments: {
         Row: {
@@ -5191,48 +5314,81 @@ export type Database = {
       }
       link_tracking: {
         Row: {
+          city: string | null
+          cmp: string | null
           conversion_type: string | null
           converted: boolean | null
           converted_at: string | null
+          country: string | null
           created_at: string
+          device_fingerprint: string | null
           expires_at: string
           id: string
           ip_hash: string | null
           link_type: string
+          platform: string | null
           referrer_id: string | null
           source_url: string | null
+          src: string | null
           target_id: string | null
           user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
           visitor_id: string
         }
         Insert: {
+          city?: string | null
+          cmp?: string | null
           conversion_type?: string | null
           converted?: boolean | null
           converted_at?: string | null
+          country?: string | null
           created_at?: string
+          device_fingerprint?: string | null
           expires_at: string
           id?: string
           ip_hash?: string | null
           link_type: string
+          platform?: string | null
           referrer_id?: string | null
           source_url?: string | null
+          src?: string | null
           target_id?: string | null
           user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           visitor_id: string
         }
         Update: {
+          city?: string | null
+          cmp?: string | null
           conversion_type?: string | null
           converted?: boolean | null
           converted_at?: string | null
+          country?: string | null
           created_at?: string
+          device_fingerprint?: string | null
           expires_at?: string
           id?: string
           ip_hash?: string | null
           link_type?: string
+          platform?: string | null
           referrer_id?: string | null
           source_url?: string | null
+          src?: string | null
           target_id?: string | null
           user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           visitor_id?: string
         }
         Relationships: [

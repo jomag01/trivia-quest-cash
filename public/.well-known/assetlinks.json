@@ -8,5 +8,15 @@
         "YOUR_SHA256_FINGERPRINT_HERE"
       ]
     }
+  },
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.lovable.c512181307b84e4689a38c4951e10c56",
+      "sha256_cert_fingerprints": [
+        "YOUR_SHA256_FINGERPRINT_HERE"
+      ]
+    }
   }
 ]
