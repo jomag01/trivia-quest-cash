@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -27,7 +28,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package, Eye, Edit, Truck } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Package, Eye, Edit, Truck, Trash2, CheckSquare, Settings2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -38,6 +49,10 @@ export const OrderManagement = () => {
   const [viewDialog, setViewDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const [orderItems, setOrderItems] = useState<any[]>([]);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [bulkActionDialog, setBulkActionDialog] = useState(false);
+  const [bulkDeleteDialog, setBulkDeleteDialog] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState("processing");
   const [editForm, setEditForm] = useState({
     status: "",
     tracking_number: "",
@@ -126,6 +141,74 @@ export const OrderManagement = () => {
     }
   };
 
+  // Bulk selection handlers
+  const toggleSelectOrder = (orderId: string) => {
+    setSelectedOrderIds(prev => 
+      prev.includes(orderId) 
+        ? prev.filter(id => id !== orderId)
+        : [...prev, orderId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedOrderIds.length === orders.length) {
+      setSelectedOrderIds([]);
+    } else {
+      setSelectedOrderIds(orders.map(o => o.id));
+    }
+  };
+
+  const handleBulkStatusUpdate = async () => {
+    if (selectedOrderIds.length === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ status: bulkStatus })
+        .in("id", selectedOrderIds);
+
+      if (error) throw error;
+
+      toast.success(`${selectedOrderIds.length} orders updated to ${bulkStatus}`);
+      setBulkActionDialog(false);
+      setSelectedOrderIds([]);
+      fetchOrders();
+    } catch (error: any) {
+      console.error("Error bulk updating orders:", error);
+      toast.error("Failed to update orders");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedOrderIds.length === 0) return;
+
+    try {
+      // First delete order items
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .delete()
+        .in("order_id", selectedOrderIds);
+
+      if (itemsError) throw itemsError;
+
+      // Then delete orders
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .in("id", selectedOrderIds);
+
+      if (error) throw error;
+
+      toast.success(`${selectedOrderIds.length} orders deleted`);
+      setBulkDeleteDialog(false);
+      setSelectedOrderIds([]);
+      fetchOrders();
+    } catch (error: any) {
+      console.error("Error bulk deleting orders:", error);
+      toast.error("Failed to delete orders");
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
@@ -154,7 +237,7 @@ export const OrderManagement = () => {
   return (
     <div className="space-y-6">
       <Card className="p-6 bg-card border-border">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <Package className="w-8 h-8 text-primary" />
             <div>
@@ -164,12 +247,43 @@ export const OrderManagement = () => {
               </p>
             </div>
           </div>
+          
+          {/* Bulk Actions */}
+          {selectedOrderIds.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary" className="px-3 py-1">
+                {selectedOrderIds.length} selected
+              </Badge>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setBulkActionDialog(true)}
+              >
+                <Settings2 className="w-4 h-4 mr-1" />
+                Bulk Update Status
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setBulkDeleteDialog(true)}
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Delete Selected
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={selectedOrderIds.length === orders.length && orders.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead>Order #</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Date</TableHead>
@@ -182,7 +296,13 @@ export const OrderManagement = () => {
             </TableHeader>
             <TableBody>
               {orders.map((order) => (
-                <TableRow key={order.id}>
+                <TableRow key={order.id} className={selectedOrderIds.includes(order.id) ? "bg-muted/50" : ""}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedOrderIds.includes(order.id)}
+                      onCheckedChange={() => toggleSelectOrder(order.id)}
+                    />
+                  </TableCell>
                   <TableCell className="font-mono text-sm">
                     {order.order_number}
                   </TableCell>
@@ -513,6 +633,67 @@ export const OrderManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Status Update Dialog */}
+      <Dialog open={bulkActionDialog} onOpenChange={setBulkActionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bulk Update Status</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Update status for {selectedOrderIds.length} selected orders
+            </p>
+            <div>
+              <Label>New Status</Label>
+              <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="shipped">Shipped</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkActionDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleBulkStatusUpdate}>
+              <CheckSquare className="w-4 h-4 mr-2" />
+              Update {selectedOrderIds.length} Orders
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteDialog} onOpenChange={setBulkDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedOrderIds.length} Orders?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the selected orders and their items. 
+              This action cannot be undone. Use this for test orders only.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Orders
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
