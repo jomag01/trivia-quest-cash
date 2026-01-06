@@ -38,9 +38,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Package, Eye, Edit, Truck, Trash2, CheckSquare, Settings2 } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Package, Eye, Edit, Truck, Trash2, CheckSquare, Settings2, ChevronDown, Users, TrendingUp, Crown, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface CommissionRecipient {
+  id: string;
+  user_id: string;
+  commission_type: string;
+  amount: number;
+  level: number | null;
+  hold_status: string | null;
+  profile?: {
+    full_name: string | null;
+    email: string;
+    referral_code: string | null;
+  };
+}
 
 export const OrderManagement = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -53,6 +72,8 @@ export const OrderManagement = () => {
   const [bulkActionDialog, setBulkActionDialog] = useState(false);
   const [bulkDeleteDialog, setBulkDeleteDialog] = useState(false);
   const [bulkStatus, setBulkStatus] = useState("processing");
+  const [orderCommissions, setOrderCommissions] = useState<CommissionRecipient[]>([]);
+  const [expandedCommissions, setExpandedCommissions] = useState<Record<string, boolean>>({});
   const [editForm, setEditForm] = useState({
     status: "",
     tracking_number: "",
