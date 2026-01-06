@@ -39,6 +39,7 @@ const SellerAdsSlider = lazy(() => import("@/components/shop/SellerAdsSlider"));
 const CompactSellerAdsSlider = lazy(() => import("@/components/shop/CompactSellerAdsSlider"));
 const SellerDashboard = lazy(() => import("./SellerDashboard"));
 const ShopAccountOverview = lazy(() => import("@/components/ShopAccountOverview"));
+const AdminProductRecommendationPopup = lazy(() => import("@/components/shop/AdminProductRecommendationPopup"));
 
 const Shop = () => {
   const { user, profile } = useAuth();
@@ -594,6 +595,11 @@ const Shop = () => {
                 currentProductId={detailProduct?.id}
                 onProductClick={handleProductClick}
               />
+            </Suspense>
+
+            {/* Admin Product Recommendation Popup for Affiliates */}
+            <Suspense fallback={null}>
+              <AdminProductRecommendationPopup onProductClick={handleProductClick} />
             </Suspense>
 
             {/* Booking Services - Collapsible */}
