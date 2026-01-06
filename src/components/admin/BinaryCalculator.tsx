@@ -146,7 +146,7 @@ export default function BinaryCalculator() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calculator className="h-5 w-5" />
-              AI Bees Cycle Calculator
+              AI Beehives Cycle Calculator
             </CardTitle>
             <CardDescription>
               Calculate potential earnings based on team structure. Fixed cycle volume: ₱11,960 per leg.

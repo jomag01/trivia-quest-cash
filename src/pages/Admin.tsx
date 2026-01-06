@@ -181,9 +181,9 @@ const Admin = () => {
       icon: Network,
       items: [
         { id: "member-activation", label: "Member Activation", icon: UserCheck },
-        { id: "binary-system", label: "AI Bees Match System", icon: GitBranch },
-        { id: "binary-accounting", label: "AI Bees Accounting", icon: BarChart3 },
-        { id: "binary-calculator", label: "AI Bees Calculator", icon: Calculator },
+        { id: "binary-system", label: "AI Beehives System", icon: GitBranch },
+        { id: "binary-accounting", label: "AI Beehives Accounting", icon: BarChart3 },
+        { id: "binary-calculator", label: "AI Beehives Calculator", icon: Calculator },
         { id: "unilevel-settings", label: "Unilevel Network", icon: Users },
         { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
         { id: "transfers", label: "Upline Transfers", icon: Users },

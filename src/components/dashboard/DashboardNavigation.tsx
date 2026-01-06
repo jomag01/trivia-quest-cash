@@ -64,19 +64,19 @@ const navItems: NavItem[] = [
     icon: Network,
     color: "text-emerald-500",
     children: [
-      { id: "network", label: "Genealogy Tree", icon: Users, color: "text-emerald-400" },
+      { id: "network", label: "Beehives Tree", icon: Users, color: "text-emerald-400" },
       { id: "leadership", label: "Leadership Tree", icon: Crown, color: "text-amber-500" },
       { id: "stair-step", label: "Stair Step Tree", icon: TrendingUp, color: "text-purple-500" },
     ]
   },
   {
     id: "binary",
-    label: "AI Bees Match",
+    label: "AI Beehives",
     icon: GitBranch,
     color: "text-cyan-500",
-    requiresBinary: true, // Only show when user is in binary network
+    requiresBinary: true, // Only show when user is in AI Beehives
     children: [
-      { id: "binary-earnings", label: "AI Bees Earnings", icon: TrendingUp, color: "text-cyan-400", requiresBinary: true },
+      { id: "binary-earnings", label: "AI Beehives Earnings", icon: TrendingUp, color: "text-cyan-400", requiresBinary: true },
     ]
   },
   { 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,9 +38,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Package, Eye, Edit, Truck, Trash2, CheckSquare, Settings2 } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Package, Eye, Edit, Truck, Trash2, CheckSquare, Settings2, ChevronDown, Users, TrendingUp, Crown, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface CommissionRecipient {
+  id: string;
+  user_id: string;
+  commission_type: string;
+  amount: number;
+  level: number | null;
+  hold_status: string | null;
+  profile?: {
+    full_name: string | null;
+    email: string;
+    referral_code: string | null;
+  };
+}
 
 export const OrderManagement = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -53,6 +72,8 @@ export const OrderManagement = () => {
   const [bulkActionDialog, setBulkActionDialog] = useState(false);
   const [bulkDeleteDialog, setBulkDeleteDialog] = useState(false);
   const [bulkStatus, setBulkStatus] = useState("processing");
+  const [orderCommissions, setOrderCommissions] = useState<CommissionRecipient[]>([]);
+  const [expandedCommissions, setExpandedCommissions] = useState<Record<string, boolean>>({});
   const [editForm, setEditForm] = useState({
     status: "",
     tracking_number: "",
@@ -93,6 +114,80 @@ export const OrderManagement = () => {
       setOrderItems(data || []);
     } catch (error: any) {
       console.error("Error fetching order items:", error);
+    }
+  };
+
+  const fetchOrderCommissions = async (orderId: string) => {
+    try {
+      // Fetch commissions for this order
+      const { data: commissions, error } = await supabase
+        .from("commissions")
+        .select("id, user_id, commission_type, amount, level, hold_status")
+        .eq("related_order_id", orderId);
+
+      if (error) throw error;
+
+      if (commissions && commissions.length > 0) {
+        // Fetch profiles for all recipients
+        const userIds = [...new Set(commissions.map(c => c.user_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, referral_code")
+          .in("id", userIds);
+
+        const commissionsWithProfiles = commissions.map(c => ({
+          ...c,
+          profile: profiles?.find(p => p.id === c.user_id)
+        }));
+
+        setOrderCommissions(commissionsWithProfiles);
+      } else {
+        setOrderCommissions([]);
+      }
+    } catch (error: any) {
+      console.error("Error fetching order commissions:", error);
+      setOrderCommissions([]);
+    }
+  };
+
+  const toggleCommissionExpand = (orderId: string) => {
+    setExpandedCommissions(prev => ({
+      ...prev,
+      [orderId]: !prev[orderId]
+    }));
+    
+    if (!expandedCommissions[orderId]) {
+      fetchOrderCommissions(orderId);
+    }
+  };
+
+  const getCommissionTypeIcon = (type: string) => {
+    switch (type) {
+      case 'unilevel':
+        return <Users className="w-4 h-4 text-blue-500" />;
+      case 'stairstep':
+        return <TrendingUp className="w-4 h-4 text-purple-500" />;
+      case 'leadership':
+        return <Crown className="w-4 h-4 text-amber-500" />;
+      case 'seller_referrer':
+        return <DollarSign className="w-4 h-4 text-green-500" />;
+      default:
+        return <DollarSign className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getCommissionTypeColor = (type: string) => {
+    switch (type) {
+      case 'unilevel':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'stairstep':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'leadership':
+        return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'seller_referrer':
+        return 'bg-green-100 text-green-700 border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
@@ -302,72 +397,170 @@ export const OrderManagement = () => {
             </TableHeader>
             <TableBody>
               {orders.map((order) => (
-                <TableRow key={order.id} className={selectedOrderIds.includes(order.id) ? "bg-muted/50" : ""}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedOrderIds.includes(order.id)}
-                      onCheckedChange={() => toggleSelectOrder(order.id)}
-                    />
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {order.order_number}
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-semibold">{order.customer_name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {order.customer_email}
+                <Fragment key={order.id}>
+                  <TableRow className={selectedOrderIds.includes(order.id) ? "bg-muted/50" : ""}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedOrderIds.includes(order.id)}
+                        onCheckedChange={() => toggleSelectOrder(order.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {order.order_number}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-semibold">{order.customer_name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {order.customer_email}
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(order.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="font-semibold">
-                    ₱{order.total_amount.toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    {order.referrer_code ? (
-                      <Badge variant="outline" className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-200">
-                        {order.referrer_code}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(order.status)}>
-                      {order.status.toUpperCase()}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {order.tracking_number ? (
-                      <span className="font-mono text-xs">
-                        {order.tracking_number}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewOrder(order)}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditOrder(order)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      ₱{order.total_amount.toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      {order.referrer_code ? (
+                        <Badge variant="outline" className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          {order.referrer_code}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getStatusColor(order.status)}>
+                          {order.status.replace('_', ' ').toUpperCase()}
+                        </Badge>
+                        {(order.status === 'delivered' || order.status === 'redelivered') && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => toggleCommissionExpand(order.id)}
+                          >
+                            <ChevronDown className={`w-3 h-3 transition-transform ${expandedCommissions[order.id] ? 'rotate-180' : ''}`} />
+                            Commissions
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {order.tracking_number ? (
+                        <span className="font-mono text-xs">
+                          {order.tracking_number}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewOrder(order)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditOrder(order)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  
+                  {/* Commission Breakdown Row */}
+                  {expandedCommissions[order.id] && (order.status === 'delivered' || order.status === 'redelivered') && (
+                    <TableRow className="bg-muted/30">
+                      <TableCell colSpan={9} className="py-3">
+                        <div className="px-4">
+                          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-green-600" />
+                            Commission Distribution for Order #{order.order_number}
+                          </h4>
+                          
+                          {orderCommissions.length > 0 ? (
+                            <div className="grid gap-2">
+                              {/* Group by commission type */}
+                              {['unilevel', 'stairstep', 'leadership', 'seller_referrer'].map(type => {
+                                const typeCommissions = orderCommissions.filter(c => c.commission_type === type);
+                                if (typeCommissions.length === 0) return null;
+                                
+                                const totalAmount = typeCommissions.reduce((sum, c) => sum + Number(c.amount), 0);
+                                
+                                return (
+                                  <Collapsible key={type} className="border rounded-lg overflow-hidden">
+                                    <CollapsibleTrigger className={`w-full flex items-center justify-between p-3 hover:bg-muted/50 ${getCommissionTypeColor(type)}`}>
+                                      <div className="flex items-center gap-2">
+                                        {getCommissionTypeIcon(type)}
+                                        <span className="font-medium capitalize">
+                                          {type === 'seller_referrer' ? 'Seller Referrer' : type}
+                                        </span>
+                                        <Badge variant="secondary" className="text-xs">
+                                          {typeCommissions.length} recipient{typeCommissions.length > 1 ? 's' : ''}
+                                        </Badge>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-bold">₱{totalAmount.toFixed(2)}</span>
+                                        <ChevronDown className="w-4 h-4" />
+                                      </div>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="bg-background">
+                                      <div className="divide-y">
+                                        {typeCommissions.map(c => (
+                                          <div key={c.id} className="flex items-center justify-between p-3 text-sm">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">
+                                                {c.profile?.full_name?.charAt(0) || c.profile?.email?.charAt(0) || '?'}
+                                              </div>
+                                              <div>
+                                                <p className="font-medium">{c.profile?.full_name || 'Unknown User'}</p>
+                                                <p className="text-xs text-muted-foreground">{c.profile?.email}</p>
+                                                {c.profile?.referral_code && (
+                                                  <p className="text-xs font-mono text-primary">{c.profile.referral_code}</p>
+                                                )}
+                                              </div>
+                                              {c.level && (
+                                                <Badge variant="outline" className="text-xs">
+                                                  Level {c.level}
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            <div className="text-right">
+                                              <p className="font-bold text-green-600">₱{Number(c.amount).toFixed(2)}</p>
+                                              {c.hold_status && c.hold_status !== 'released' && (
+                                                <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
+                                                  {c.hold_status}
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </CollapsibleContent>
+                                  </Collapsible>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground py-2">
+                              No commissions recorded for this order yet.
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
               ))}
             </TableBody>
           </Table>
