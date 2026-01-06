@@ -461,14 +461,14 @@ export default function BinaryAccountsManager() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
-              <CardTitle>Binary Accounts</CardTitle>
+              <CardTitle>AI Bees Accounts</CardTitle>
             </div>
             <Badge variant="secondary">
               {accounts.length} / {maxAccounts} Accounts
             </Badge>
           </div>
           <CardDescription>
-            Manage your multiple binary accounts to maximize earning potential. 
+            Manage your multiple AI Bees accounts to maximize earning potential. 
             Each account can earn up to ₱10,000 per day.
           </CardDescription>
         </CardHeader>
@@ -476,9 +476,9 @@ export default function BinaryAccountsManager() {
           {accounts.length === 0 ? (
             <div className="text-center py-8">
               <GitBranch className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Binary Accounts Yet</h3>
+              <h3 className="text-lg font-semibold mb-2">No AI Bees Accounts Yet</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Purchase AI credits or a binary product package to create your first binary account.
+                Purchase AI credits or an AI Bees product package to create your first AI Bees account.
               </p>
             </div>
           ) : (
@@ -594,8 +594,8 @@ export default function BinaryAccountsManager() {
                 <div>
                   <h4 className="font-semibold text-sm">How to unlock new accounts:</h4>
                   <ul className="text-xs text-muted-foreground mt-2 space-y-1">
-                    <li>• Purchase an AI Credit Package in the AI Hub</li>
-                    <li>• Or purchase a Binary Product Package in the Shop</li>
+                    <li>• Purchase an AI Credit Package in AIhives</li>
+                    <li>• Or purchase an AI Bees Product Package in the Shop</li>
                     <li>• Wait for admin approval</li>
                     <li>• Once approved, you can create a new account</li>
                   </ul>
@@ -614,7 +614,7 @@ export default function BinaryAccountsManager() {
               }}
               className="bg-gradient-to-r from-blue-500 to-purple-500"
             >
-              Go to AI Hub
+              Go to AIhives
             </Button>
             <Button 
               onClick={() => {
@@ -633,9 +633,9 @@ export default function BinaryAccountsManager() {
       <Dialog open={showPlacementDialog} onOpenChange={setShowPlacementDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create New Binary Account</DialogTitle>
+            <DialogTitle>Create New AI Bees Account</DialogTitle>
             <DialogDescription>
-              Configure and place Account #{pendingAccountNumber} in your binary tree.
+              Configure and place Account #{pendingAccountNumber} in your AI Bees tree.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
@@ -813,7 +813,7 @@ export default function BinaryAccountsManager() {
                   <div className="text-center py-6 text-muted-foreground">
                     <UserPlus className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No downlines available for placement.</p>
-                    <p className="text-xs mt-1">Refer new members to your binary network first.</p>
+                    <p className="text-xs mt-1">Refer new members to your AI Bees network first.</p>
                   </div>
                 ) : (
                   <>

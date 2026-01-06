@@ -20,7 +20,7 @@ const Navigation = () => {
           }`}
         >
           <Sparkles className="w-5 h-5" />
-          <span className="text-[9px] font-medium">AI Hub</span>
+          <span className="text-[9px] font-medium">AIhives</span>
         </Link>
 
         {/* Shop - Independent page */}

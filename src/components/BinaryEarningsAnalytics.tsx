@@ -189,9 +189,9 @@ export default function BinaryEarningsAnalytics({ onCashOut }: BinaryEarningsAna
               <GitBranch className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold mb-2">Join the Binary Network</h2>
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">Join AI Bees Match</h2>
               <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto">
-                You're not yet enrolled in the Binary Affiliate Program. Purchase an AI Package to unlock binary commissions and start earning!
+                You're not yet enrolled in the AI Bees Affiliate Program. Purchase an AI Package to unlock AI Bees commissions and start earning!
               </p>
             </div>
             
@@ -203,7 +203,7 @@ export default function BinaryEarningsAnalytics({ onCashOut }: BinaryEarningsAna
               </div>
               <div className="p-4 bg-background/50 rounded-lg border">
                 <GitBranch className="w-6 h-6 text-purple-500 mx-auto mb-2" />
-                <h4 className="font-semibold text-sm">Binary Earnings</h4>
+                <h4 className="font-semibold text-sm">AI Bees Earnings</h4>
                 <p className="text-xs text-muted-foreground">Earn from your network</p>
               </div>
               <div className="p-4 bg-background/50 rounded-lg border">
@@ -293,7 +293,7 @@ export default function BinaryEarningsAnalytics({ onCashOut }: BinaryEarningsAna
             </Badge>
           </div>
           <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-500">₱{totalEarnings.toFixed(2)}</div>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Total Binary Earnings</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">Total AI Bees Earnings</p>
         </Card>
 
         <Card className="p-3 sm:p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
@@ -339,7 +339,7 @@ export default function BinaryEarningsAnalytics({ onCashOut }: BinaryEarningsAna
       <Card className="p-4 sm:p-6">
         <h3 className="font-bold mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
           <GitBranch className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-          Binary Leg Volumes
+          AI Bees Leg Volumes
         </h3>
         <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
           <div className="space-y-2 sm:space-y-3">
@@ -413,13 +413,13 @@ export default function BinaryEarningsAnalytics({ onCashOut }: BinaryEarningsAna
       <Card className="p-4 sm:p-6">
         <h3 className="font-bold mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
           <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-          Recent Binary Commissions
+          Recent AI Bees Commissions
         </h3>
         {earnings.length === 0 ? (
           <div className="text-center py-6 sm:py-8 text-muted-foreground">
             <GitBranch className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-50" />
-            <p className="text-sm sm:text-base">No binary commissions yet</p>
-            <p className="text-xs sm:text-sm">Start building your binary network!</p>
+            <p className="text-sm sm:text-base">No AI Bees commissions yet</p>
+            <p className="text-xs sm:text-sm">Start building your AI Bees network!</p>
           </div>
         ) : (
           <div className="space-y-2 sm:space-y-3 max-h-[300px] sm:max-h-[400px] overflow-y-auto">

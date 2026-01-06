@@ -120,7 +120,7 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
             </div>
             <div className="animate-float">
               <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent drop-shadow-sm">
-                TriviaBees AI Hub
+                TriviaBees AIhives
               </h1>
             </div>
             <div className="animate-bounce" style={{ animationDelay: '0.3s' }}>

@@ -43,9 +43,9 @@ const ADMIN_TABS = [
   ]},
   { group: 'MLM & Network', items: [
     { id: 'member-activation', label: 'Member Activation' },
-    { id: 'binary-system', label: 'Binary MLM System' },
-    { id: 'binary-accounting', label: 'Binary Accounting' },
-    { id: 'binary-calculator', label: 'Binary Calculator' },
+    { id: 'binary-system', label: 'AI Bees Match System' },
+    { id: 'binary-accounting', label: 'AI Bees Accounting' },
+    { id: 'binary-calculator', label: 'AI Bees Calculator' },
     { id: 'unilevel-settings', label: 'Unilevel Network' },
     { id: 'stair-step', label: 'Stair Step MLM' },
     { id: 'transfers', label: 'Upline Transfers' },

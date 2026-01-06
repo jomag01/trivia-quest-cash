@@ -232,9 +232,9 @@ export const AppPresentationGenerator = () => {
         align: "center"
       });
 
-      // Slide 10: AI Hub Features
+      // Slide 10: AIhives Features
       slide = pptx.addSlide();
-      slide.addText("AI Hub - Create Content", {
+      slide.addText("AIhives - Create Content", {
         x: 0.5, y: 0.5, w: 9, h: 0.8,
         fontSize: 32, bold: true, color: "F59E0B"
       });

@@ -181,9 +181,9 @@ const Admin = () => {
       icon: Network,
       items: [
         { id: "member-activation", label: "Member Activation", icon: UserCheck },
-        { id: "binary-system", label: "Binary MLM System", icon: GitBranch },
-        { id: "binary-accounting", label: "Binary Accounting", icon: BarChart3 },
-        { id: "binary-calculator", label: "Binary Calculator", icon: Calculator },
+        { id: "binary-system", label: "AI Bees Match System", icon: GitBranch },
+        { id: "binary-accounting", label: "AI Bees Accounting", icon: BarChart3 },
+        { id: "binary-calculator", label: "AI Bees Calculator", icon: Calculator },
         { id: "unilevel-settings", label: "Unilevel Network", icon: Users },
         { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
         { id: "transfers", label: "Upline Transfers", icon: Users },
@@ -267,11 +267,11 @@ const Admin = () => {
     },
     {
       id: "ai",
-      label: "AI Hub",
+      label: "AIhives",
       icon: Sparkles,
       items: [
         { id: "ai-subscriptions", label: "AI Subscriptions", icon: Crown },
-        { id: "ai-settings", label: "AI Hub Settings", icon: Sparkles },
+        { id: "ai-settings", label: "AIhives Settings", icon: Sparkles },
         { id: "ai-pricing", label: "AI Provider Costs", icon: DollarSign },
         { id: "blog-management", label: "Blog Management", icon: Barcode },
         { id: "newsletter", label: "Newsletter & Email", icon: Megaphone },
