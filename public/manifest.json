@@ -91,7 +91,7 @@
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
-      "name": "AI Hub",
+      "name": "AIhives",
       "short_name": "AI",
       "description": "Access AI tools",
       "url": "/ai-hub",

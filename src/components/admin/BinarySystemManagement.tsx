@@ -846,7 +846,7 @@ export default function BinarySystemManagement() {
                 </div>
               ) : (
                 <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
-                  <p className="text-amber-700 dark:text-amber-400">⚠️ No AI credit tiers configured. Please set up tiers in AI Hub Settings first.</p>
+                  <p className="text-amber-700 dark:text-amber-400">⚠️ No AI credit tiers configured. Please set up tiers in AIhives Settings first.</p>
                 </div>
               )}
             </div>

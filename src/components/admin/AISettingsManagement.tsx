@@ -342,7 +342,7 @@ const AISettingsManagement = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                AI Hub Basic Settings
+                AIhives Basic Settings
               </CardTitle>
               <CardDescription>
                 Configure free limits and base credit costs
@@ -1019,7 +1019,7 @@ const AISettingsManagement = () => {
             <div className="space-y-1">
               <Label className="font-medium">Enable Guest Trial Popup</Label>
               <p className="text-xs text-muted-foreground">
-                Show popup to unregistered users in AI Hub
+                Show popup to unregistered users in AIhives
               </p>
             </div>
             <Switch

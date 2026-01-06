@@ -44,7 +44,7 @@ export default function FloatingActions({ showScrollTop = true, onPostCreated }:
       {/* X-style Create Post FAB */}
       {user && <CreatePostFAB onPostCreated={onPostCreated} />}
 
-      {/* AI Hub button */}
+      {/* AIhives button */}
       {user && (
         <Button
           onClick={() => navigate('/ai-hub')}

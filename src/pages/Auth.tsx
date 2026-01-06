@@ -291,13 +291,13 @@ const Auth = () => {
             <span className="text-5xl animate-bounce" style={{ animationDelay: '0.3s' }}>🐝</span>
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-500 bg-clip-text text-transparent mb-2">
-            {isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Join the Hive"}
+            {isForgotPassword ? "Reset Password" : isLogin ? "Welcome to AIhives" : "Join the Hive"}
           </h1>
           <p className="text-muted-foreground">
             {isForgotPassword 
               ? "Enter your email to receive reset instructions" 
               : isLogin 
-                ? "🐝 Buzz into your TriviaBees account" 
+                ? "🐝 Login to AIhives" 
                 : "🍯 Create your account and start earning honey"}
           </p>
         </div>
@@ -599,7 +599,7 @@ const Auth = () => {
             className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg shadow-amber-500/25" 
             disabled={loading || (!isLogin && !acceptedTerms)}
           >
-            {loading ? "Please wait..." : isLogin ? "🐝 Login to Hive" : "🍯 Join the Hive"}
+            {loading ? "Please wait..." : isLogin ? "🐝 Login to AIhives" : "🍯 Join the Hive"}
           </Button>
 
           {isLogin && (

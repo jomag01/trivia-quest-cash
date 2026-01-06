@@ -52,16 +52,16 @@ export const ALL_SYSTEM_TABS: Record<string, SystemCategory> = {
       },
       { 
         id: 'dashboard-binary', 
-        label: 'Binary Network',
+        label: 'AI Bees Match',
         components: [
-          { id: 'dashboard-binary-tree', label: 'Binary Tree View' },
+          { id: 'dashboard-binary-tree', label: 'AI Bees Tree View' },
           { id: 'dashboard-binary-volume', label: 'Volume Tracking' },
           { id: 'dashboard-binary-pending', label: 'Pending Placements' },
         ]
       },
       { 
         id: 'dashboard-binary-earnings', 
-        label: 'Binary Earnings',
+        label: 'AI Bees Earnings',
         components: [
           { id: 'dashboard-binary-earnings-chart', label: 'Earnings Chart' },
           { id: 'dashboard-binary-earnings-history', label: 'Commission History' },
@@ -150,7 +150,7 @@ export const ALL_SYSTEM_TABS: Record<string, SystemCategory> = {
     ]
   },
   aiHub: {
-    label: 'AI Hub Tabs',
+    label: 'AIhives Tabs',
     tabs: [
       { 
         id: 'aihub-home', 
@@ -165,7 +165,7 @@ export const ALL_SYSTEM_TABS: Record<string, SystemCategory> = {
         id: 'aihub-affiliate', 
         label: 'Affiliate',
         components: [
-          { id: 'aihub-affiliate-tree', label: 'Binary Tree' },
+          { id: 'aihub-affiliate-tree', label: 'AI Bees Tree' },
           { id: 'aihub-affiliate-earnings', label: 'Earnings Overview' },
         ]
       },

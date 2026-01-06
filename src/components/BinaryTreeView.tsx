@@ -441,9 +441,9 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
               <GitBranch className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold mb-2">Join the Binary Network</h2>
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">Join AI Bees Match</h2>
               <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto">
-                You're not yet enrolled in the Binary Affiliate Program. Purchase an AI Package to activate your position and start building your network!
+                You're not yet enrolled in the AI Bees Affiliate Program. Purchase an AI Package to activate your position and start building your network!
               </p>
             </div>
             
@@ -599,8 +599,8 @@ export default function BinaryTreeView({ userId }: BinaryTreeViewProps) {
                 <GitBranch className="w-6 h-6" />
               </div>
               <div>
-                <CardTitle className="text-lg sm:text-xl">Binary Network Tree</CardTitle>
-                <p className="text-white/80 text-sm">Your binary placement structure</p>
+                <CardTitle className="text-lg sm:text-xl">AI Bees Network Tree</CardTitle>
+                <p className="text-white/80 text-sm">Your AI Bees placement structure</p>
               </div>
             </div>
 

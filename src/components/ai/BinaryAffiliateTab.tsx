@@ -659,7 +659,7 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
             </div>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent">
-            AI Hub Subscription
+            AIhives Subscription
           </h2>
           <p className="text-muted-foreground text-sm max-w-md mx-auto">
             Subscribe to unlock all AI features and earn passive income through our affiliate network

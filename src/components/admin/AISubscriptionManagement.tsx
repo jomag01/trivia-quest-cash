@@ -481,7 +481,7 @@ export default function AISubscriptionManagement() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mb-4">
-                Combination package with AI credits + Ads promotion. Buyers are entered into the Binary Network.
+                Combination package with AI credits + Ads promotion. Buyers are entered into AI Bees Match.
               </p>
               <div className="grid gap-4 md:grid-cols-5">
                 <div className="space-y-1">

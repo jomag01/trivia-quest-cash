@@ -1337,10 +1337,10 @@ const AIHub = memo(() => {
               <span className="text-5xl animate-bounce" style={{ animationDelay: '0.3s' }}>🐝</span>
             </div>
             <CardTitle className="text-2xl bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-500 bg-clip-text text-transparent">
-              Welcome to AI Hub
+              Welcome to AIhives
             </CardTitle>
             <CardDescription>
-              🍯 Create stunning images, videos, and music with AI. Buzz into your account to get started!
+              🍯 Create stunning images, videos, and music with AI. Login to AIhives to get started!
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

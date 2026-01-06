@@ -106,7 +106,7 @@ const AICreditsDisplay = () => {
       <Card className="border-border/50 bg-gradient-to-br from-primary/10 to-purple-500/10">
         <CardContent className="p-4 text-center">
           <Crown className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
-          <p className="text-sm font-medium">Subscribe to AI Hub</p>
+          <p className="text-sm font-medium">Subscribe to AIhives</p>
           <p className="text-xs text-muted-foreground mt-1">
             Get AI credits for images, videos & more
           </p>
