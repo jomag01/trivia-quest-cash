@@ -127,10 +127,19 @@ export function ErrorReportButton() {
         variant="ghost"
         size="icon"
         onClick={() => setOpen(true)}
-        className="fixed bottom-36 right-4 z-40 h-10 w-10 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive shadow-lg"
+        className="fixed bottom-36 right-1 z-40 h-10 w-10 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive shadow-lg animate-[float_4s_ease-in-out_infinite]"
         title="Report a bug"
+        style={{
+          animation: 'float 4s ease-in-out infinite',
+        }}
       >
         <Bug className="w-5 h-5" />
+        <style>{`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+          }
+        `}</style>
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>

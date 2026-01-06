@@ -219,6 +219,12 @@ export const OrderManagement = () => {
         return "bg-purple-500";
       case "delivered":
         return "bg-green-500";
+      case "return_faulty":
+        return "bg-red-400";
+      case "reshipped":
+        return "bg-cyan-500";
+      case "redelivered":
+        return "bg-emerald-500";
       case "cancelled":
         return "bg-red-500";
       default:
@@ -540,6 +546,9 @@ export const OrderManagement = () => {
                     <SelectItem value="processing">Processing</SelectItem>
                     <SelectItem value="shipped">Shipped</SelectItem>
                     <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="return_faulty">Return (Faulty)</SelectItem>
+                    <SelectItem value="reshipped">Reshipped</SelectItem>
+                    <SelectItem value="redelivered">Redelivered</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
@@ -655,6 +664,9 @@ export const OrderManagement = () => {
                   <SelectItem value="processing">Processing</SelectItem>
                   <SelectItem value="shipped">Shipped</SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="return_faulty">Return (Faulty)</SelectItem>
+                  <SelectItem value="reshipped">Reshipped</SelectItem>
+                  <SelectItem value="redelivered">Redelivered</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>

@@ -84,6 +84,9 @@ const ORDER_STATUSES = [
   { value: "shipped", label: "Shipped", color: "bg-indigo-500" },
   { value: "out_for_delivery", label: "Out for Delivery", color: "bg-orange-500" },
   { value: "delivered", label: "Delivered", color: "bg-green-500" },
+  { value: "return_faulty", label: "Return (Faulty)", color: "bg-red-400" },
+  { value: "reshipped", label: "Reshipped", color: "bg-cyan-500" },
+  { value: "redelivered", label: "Redelivered", color: "bg-emerald-500" },
   { value: "cancelled", label: "Cancelled", color: "bg-red-500" }
 ];
 
@@ -168,14 +171,31 @@ export default function SellerOrderProcessing() {
   // Update order status mutation
   const updateStatus = useMutation({
     mutationFn: async ({ orderId, status, notes, totalAmount }: { orderId: string; status: string; notes?: string; totalAmount?: number }) => {
+      const updateData: any = { 
+        status,
+        ...(status === "shipped" && { shipped_at: new Date().toISOString() }),
+        ...(status === "delivered" && { delivered_at: new Date().toISOString() }),
+      };
+
+      // Handle return/refund status - put commission on hold
+      if (status === "return_faulty") {
+        const holdUntil = new Date();
+        holdUntil.setDate(holdUntil.getDate() + 15); // 15 days hold period
+        updateData.commission_status = 'on_hold';
+        updateData.commission_hold_until = holdUntil.toISOString();
+        updateData.return_requested_at = new Date().toISOString();
+      }
+
+      // Handle reship/redeliver - release commission hold
+      if (status === "redelivered") {
+        updateData.commission_status = 'released';
+        updateData.commission_hold_until = null;
+      }
+
       // Update order status
       const { error: orderError } = await supabase
         .from("orders")
-        .update({ 
-          status,
-          ...(status === "shipped" && { shipped_at: new Date().toISOString() }),
-          ...(status === "delivered" && { delivered_at: new Date().toISOString() })
-        })
+        .update(updateData)
         .eq("id", orderId);
       if (orderError) throw orderError;
 
@@ -190,8 +210,8 @@ export default function SellerOrderProcessing() {
         });
       if (historyError) console.error("Failed to add status history:", historyError);
 
-      // Process seller referrer commission when order is delivered
-      if (status === "delivered" && user?.id && totalAmount) {
+      // Process seller referrer commission when order is delivered or redelivered
+      if ((status === "delivered" || status === "redelivered") && user?.id && totalAmount) {
         console.log("Processing seller referrer commission for delivered order:", orderId);
         await processSellerReferrerCommission(user.id, orderId, totalAmount, 'products');
       }

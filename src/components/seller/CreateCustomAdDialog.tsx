@@ -92,8 +92,27 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
     target_age_min: 18,
     target_age_max: 65,
     target_gender: 'all',
-    payment_method: 'diamonds' as 'diamonds' | 'ewallet' | 'bank',
+    payment_method: 'diamonds' as 'diamonds' | 'ai_credits' | 'ewallet' | 'bank',
     payment_reference: '',
+  });
+
+  // Fetch user AI credits
+  const { data: userAiCredits = 0 } = useQuery({
+    queryKey: ['user-ai-credits', user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { data, error } = await supabase
+        .from('ai_subscriptions')
+        .select('credits_remaining')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('expires_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) return 0;
+      return data?.credits_remaining || 0;
+    },
+    enabled: !!user && open,
   });
 
   // Fetch pricing tiers
@@ -175,6 +194,7 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
     : (formData.custom_daily_budget * formData.custom_duration_days);
   
   const canAffordDiamonds = userDiamonds >= totalCost;
+  const canAffordAiCredits = userAiCredits >= totalCost;
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -238,6 +258,9 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
       if (formData.payment_method === 'diamonds' && !canAffordDiamonds) {
         throw new Error('Insufficient diamonds');
       }
+      if (formData.payment_method === 'ai_credits' && !canAffordAiCredits) {
+        throw new Error('Insufficient AI credits');
+      }
 
       setUploading(true);
 
@@ -263,8 +286,8 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + durationDays);
 
-      // If payment is NOT diamonds, create an ad spend request for admin approval
-      if (formData.payment_method !== 'diamonds') {
+      // If payment is ewallet or bank, create an ad spend request for admin approval
+      if (formData.payment_method === 'ewallet' || formData.payment_method === 'bank') {
         const { error: requestError } = await supabase.from('ad_spend_requests').insert({
           seller_id: user.id,
           ad_title: formData.title,
@@ -293,8 +316,8 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
         return { type: 'request' };
       }
 
-      // Pay with diamonds - create ad directly
-      const { data: adData, error: adError } = await supabase.from('seller_custom_ads').insert({
+      // Pay with diamonds or AI credits - create ad directly
+      const paymentData: any = {
         seller_id: user.id,
         title: formData.title,
         description: formData.description || null,
@@ -308,7 +331,6 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
         target_age_min: formData.target_age_min,
         target_age_max: formData.target_age_max,
         target_gender: formData.target_gender,
-        diamonds_paid: totalCost,
         max_impressions: formData.budget_type === 'tier' ? (selectedTier?.impressions_included || 0) : Math.floor(totalCost * 100),
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
@@ -317,18 +339,47 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
         custom_daily_budget: formData.budget_type === 'custom' ? formData.custom_daily_budget : null,
         custom_duration_days: formData.budget_type === 'custom' ? formData.custom_duration_days : null,
         total_budget: totalCost,
-        payment_method: 'diamonds',
-      }).select('id').single();
+        payment_method: formData.payment_method,
+      };
+
+      if (formData.payment_method === 'diamonds') {
+        paymentData.diamonds_paid = totalCost;
+      } else if (formData.payment_method === 'ai_credits') {
+        paymentData.ai_credits_paid = totalCost;
+      }
+
+      const { data: adData, error: adError } = await supabase.from('seller_custom_ads').insert(paymentData).select('id').single();
 
       if (adError) throw adError;
 
-      // Deduct diamonds
-      const { error: deductError } = await supabase
-        .from('profiles')
-        .update({ diamonds: userDiamonds - totalCost })
-        .eq('id', user.id);
+      // Deduct the currency
+      if (formData.payment_method === 'diamonds') {
+        const { error: deductError } = await supabase
+          .from('profiles')
+          .update({ diamonds: userDiamonds - totalCost })
+          .eq('id', user.id);
 
-      if (deductError) throw deductError;
+        if (deductError) throw deductError;
+      } else if (formData.payment_method === 'ai_credits') {
+        // Deduct AI credits from active subscription
+        const { data: subscription } = await supabase
+          .from('ai_subscriptions')
+          .select('id, credits_remaining')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .order('expires_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (subscription) {
+          const { error: deductError } = await supabase
+            .from('ai_subscriptions')
+            .update({ credits_remaining: subscription.credits_remaining - totalCost })
+            .eq('id', subscription.id);
+
+          if (deductError) throw deductError;
+        }
+      }
 
       // Distribute ad revenue to commission pools (admin profit, unilevel, stairstep, leadership)
       if (adData?.id) {
@@ -757,6 +808,23 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
                     </div>
                   </Label>
 
+                  {/* AI Credits Payment */}
+                  <Label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    formData.payment_method === 'ai_credits' ? 'border-purple-500 bg-purple-50' : 'hover:border-purple-300'
+                  }`}>
+                    <RadioGroupItem value="ai_credits" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🤖</span>
+                      <div>
+                        <p className="font-medium">Pay with AI Credits</p>
+                        <p className="text-xs text-muted-foreground">
+                          Your balance: 🤖 {userAiCredits.toLocaleString()} credits
+                          {!canAffordAiCredits && <span className="text-destructive ml-2">(Insufficient)</span>}
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+
                   {/* E-Wallet Payment */}
                   <Label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
                     formData.payment_method === 'ewallet' ? 'border-green-500 bg-green-50' : 'hover:border-green-300'
@@ -926,7 +994,8 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
                 !formData.title || 
                 (formData.budget_type === 'tier' && !formData.pricing_tier_id) ||
                 (formData.payment_method === 'diamonds' && !canAffordDiamonds) || 
-                (formData.payment_method !== 'diamonds' && !formData.payment_reference) ||
+                (formData.payment_method === 'ai_credits' && !canAffordAiCredits) ||
+                ((formData.payment_method === 'ewallet' || formData.payment_method === 'bank') && !formData.payment_reference) ||
                 uploading || 
                 submitMutation.isPending
               }
@@ -939,6 +1008,8 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
                 </>
               ) : formData.payment_method === 'diamonds' ? (
                 `Create Ad (${totalCost} 💎)`
+              ) : formData.payment_method === 'ai_credits' ? (
+                `Create Ad (${totalCost} 🤖)`
               ) : (
                 'Submit for Approval'
               )}
