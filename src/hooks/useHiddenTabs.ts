@@ -315,8 +315,43 @@ export const ALL_SYSTEM_TABS: Record<string, SystemCategory> = {
   }
 };
 
+// Tabs restricted for users who are on hold (not verified)
+export const HOLD_RESTRICTED_TABS = [
+  'dashboard-network',
+  'dashboard-affiliate',
+  'dashboard-binary',
+  'dashboard-binary-earnings',
+  'dashboard-advertising',
+  'dashboard-transactions',
+  'dashboard-ai-research',
+  'dashboard-ai-chat',
+  'dashboard-ai-credits',
+  'dashboard-supplier-products',
+  'dashboard-my-listings',
+  'aihub-affiliate',
+  'aihub-research',
+  'aihub-chat',
+  'aihub-business',
+  'aihub-text-to-image',
+  'aihub-text-to-video',
+  'aihub-text-to-music',
+  'aihub-enhance',
+  'aihub-image-to-text',
+  'aihub-video-to-text',
+  'aihub-content-creator',
+  'aihub-video-editor',
+  'aihub-web-scraper',
+  'aihub-website-builder',
+  'aihub-creator-analytics',
+  'aihub-social-media',
+  'shop-marketplace',
+  'shop-seller',
+  'shop-supplier',
+  'shop-booking'
+];
+
 export function useHiddenTabs() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -330,17 +365,28 @@ export function useHiddenTabs() {
         .maybeSingle();
 
       if (error) throw error;
-      // Only set hidden tabs if data exists for this specific user
-      // If no entry exists, user has no hidden tabs (all visible)
-      setHiddenTabs(data?.hidden_tabs || []);
+      
+      // Get user-specific hidden tabs
+      let userHiddenTabs = data?.hidden_tabs || [];
+      
+      // If user is on hold, add restricted tabs
+      if (profile?.is_on_hold) {
+        userHiddenTabs = [...new Set([...userHiddenTabs, ...HOLD_RESTRICTED_TABS])];
+      }
+      
+      setHiddenTabs(userHiddenTabs);
     } catch (error) {
       console.error('Error fetching hidden tabs:', error);
-      // On error, default to empty (all tabs visible)
-      setHiddenTabs([]);
+      // On error, still apply hold restrictions if applicable
+      if (profile?.is_on_hold) {
+        setHiddenTabs(HOLD_RESTRICTED_TABS);
+      } else {
+        setHiddenTabs([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [profile?.is_on_hold]);
 
   useEffect(() => {
     // Reset state when user changes
@@ -352,7 +398,7 @@ export function useHiddenTabs() {
     }
 
     fetchHiddenTabs(user.id);
-  }, [user?.id, fetchHiddenTabs]);
+  }, [user?.id, fetchHiddenTabs, profile?.is_on_hold]);
 
   const isTabHidden = useCallback((tabId: string): boolean => {
     return hiddenTabs.includes(tabId);

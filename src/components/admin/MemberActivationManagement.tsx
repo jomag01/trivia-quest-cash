@@ -49,6 +49,8 @@ interface SearchResult {
   is_paid_affiliate: boolean;
   ai_features_unlocked: boolean;
   marketplace_activated: boolean;
+  is_on_hold: boolean;
+  is_verified_user: boolean;
   diamonds: number;
   referral_code: string;
   referral_count: number;
@@ -107,7 +109,7 @@ export default function MemberActivationManagement() {
     try {
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, is_verified, is_paid_affiliate, ai_features_unlocked, marketplace_activated, diamonds, referral_code, created_at')
+        .select('id, email, full_name, is_verified, is_paid_affiliate, ai_features_unlocked, marketplace_activated, is_on_hold, is_verified_user, diamonds, referral_code, created_at')
         .or(`email.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%,referral_code.ilike.%${searchQuery}%`)
         .limit(20);
 
@@ -153,6 +155,8 @@ export default function MemberActivationManagement() {
         ...p,
         ai_features_unlocked: (p as any).ai_features_unlocked || false,
         marketplace_activated: (p as any).marketplace_activated || false,
+        is_on_hold: (p as any).is_on_hold ?? true,
+        is_verified_user: (p as any).is_verified_user || false,
         referral_count: referralCountMap.get(p.id) || 0,
         affiliate_status: affiliateMap.get(p.id) || null,
         binary_status: binaryMap.get(p.id) ? {
@@ -379,6 +383,30 @@ export default function MemberActivationManagement() {
     }
   };
 
+  const handleToggleHold = async (userId: string, currentHoldStatus: boolean) => {
+    setActivating(userId);
+    try {
+      const newStatus = !currentHoldStatus;
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_on_hold: newStatus,
+          is_verified_user: !newStatus 
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast.success(newStatus ? 'User account put on hold' : 'User account activated (unhold)');
+      handleSearch();
+    } catch (error) {
+      console.error('Hold toggle error:', error);
+      toast.error('Failed to toggle hold status');
+    } finally {
+      setActivating(null);
+    }
+  };
+
   const getAffiliateRequirements = (result: SearchResult) => {
     const hasDiamonds = result.diamonds >= 150;
     const hasReferrals = result.referral_count >= 2;
@@ -424,6 +452,28 @@ export default function MemberActivationManagement() {
           
           {/* Status Badges */}
           <div className="flex flex-wrap gap-1.5">
+            {/* Hold Status Badge */}
+            {result.is_on_hold ? (
+              <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5">
+                On Hold
+              </Badge>
+            ) : (
+              <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-[10px] px-1.5 py-0.5">
+                Active
+              </Badge>
+            )}
+
+            {/* Payment Status */}
+            {result.binary_status?.has_deferred_payment && !result.binary_status?.admin_activated ? (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 text-amber-600 border-amber-400">
+                Unpaid
+              </Badge>
+            ) : result.binary_status && !result.binary_status.has_deferred_payment ? (
+              <Badge className="bg-gradient-to-r from-green-500 to-teal-500 text-white text-[10px] px-1.5 py-0.5">
+                Paid
+              </Badge>
+            ) : null}
+
             {result.ai_features_unlocked || result.is_paid_affiliate ? (
               <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] px-1.5 py-0.5">
                 <Sparkles className="h-2.5 w-2.5 mr-0.5" />
@@ -490,6 +540,18 @@ export default function MemberActivationManagement() {
         {/* Actions */}
         <div className="p-2 border-t border-border/30 bg-muted/20">
           <div className="grid grid-cols-2 gap-1.5">
+            {/* Hold/Unhold Button */}
+            <Button
+              size="sm"
+              variant={result.is_on_hold ? "default" : "secondary"}
+              onClick={() => handleToggleHold(result.id, result.is_on_hold)}
+              disabled={isActivating}
+              className={`h-7 text-[10px] ${result.is_on_hold ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600' : ''}`}
+            >
+              {isActivating ? <Loader2 className="h-3 w-3 animate-spin" /> : result.is_on_hold ? <Unlock className="h-3 w-3 mr-1" /> : <Lock className="h-3 w-3 mr-1" />}
+              {result.is_on_hold ? 'Unhold' : 'Hold'}
+            </Button>
+            
             {!(result.affiliate_status?.is_fixed || result.affiliate_status?.admin_activated) && (
               <Button
                 size="sm"
