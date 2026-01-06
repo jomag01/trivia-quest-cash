@@ -156,7 +156,7 @@ export const AffiliateSignupPopup = () => {
               </div>
               <div className="flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
                 <Users className="h-4 w-4 text-purple-500" />
-                <span className="text-xs font-medium">Binary Network</span>
+                <span className="text-xs font-medium">AIcommerce</span>
               </div>
               <div className="flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20">
                 <DollarSign className="h-4 w-4 text-green-500" />
