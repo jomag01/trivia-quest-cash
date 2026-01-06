@@ -397,7 +397,7 @@ export const OrderManagement = () => {
             </TableHeader>
             <TableBody>
               {orders.map((order) => (
-                <>
+                <Fragment key={order.id}>
                   <TableRow key={order.id} className={selectedOrderIds.includes(order.id) ? "bg-muted/50" : ""}>
                     <TableCell>
                       <Checkbox
