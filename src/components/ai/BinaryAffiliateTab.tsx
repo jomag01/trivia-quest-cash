@@ -781,7 +781,7 @@ export default function BinaryAffiliateTab({ onBuyCredits }: { onBuyCredits: () 
                   <Users className="h-4 w-4 text-pink-600 dark:text-pink-400" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">Binary Network</p>
+                  <p className="font-medium text-sm">AI Beehives</p>
                   <p className="text-xs text-muted-foreground">Build your team</p>
                 </div>
               </div>

@@ -689,7 +689,7 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
                       </div>
                       <div>
                         <h4 className="font-bold">AI + Ads Combo Package</h4>
-                        <p className="text-sm text-muted-foreground">AI credits + Ads promotion with Binary Network entry</p>
+                        <p className="text-sm text-muted-foreground">AI credits + Ads promotion with AI Beehives entry</p>
                       </div>
                     </div>
 
@@ -713,7 +713,7 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold">₱{settings.adsPackagePrice.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">+ Binary Network Entry</p>
+                        <p className="text-xs text-muted-foreground">+ AI Beehives Entry</p>
                       </div>
                     </div>
 
@@ -728,7 +728,7 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="h-4 w-4 text-green-500" />
-                        Automatic entry to Binary Network for commissions
+                        Automatic entry to AI Beehives for commissions
                       </li>
                     </ul>
                   </div>

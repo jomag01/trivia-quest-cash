@@ -1224,10 +1224,10 @@ export default function BinarySystemManagement() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              Binary Product Packages
+              AI Beehives Product Packages
             </CardTitle>
             <CardDescription>
-              Products that qualify for binary network entry (₱11,960 cycle volume)
+              Products that qualify for AI Beehives entry (₱11,960 cycle volume)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

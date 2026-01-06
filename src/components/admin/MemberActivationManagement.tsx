@@ -469,7 +469,7 @@ export default function MemberActivationManagement() {
             Member Activation
           </CardTitle>
           <CardDescription className="text-xs">
-            Activate members as affiliates or add to binary network
+            Activate members as affiliates or add to AI Beehives
           </CardDescription>
         </CardHeader>
         
