@@ -61,7 +61,7 @@ export const ALL_SYSTEM_TABS: Record<string, SystemCategory> = {
       },
       { 
         id: 'dashboard-binary-earnings', 
-        label: 'AI Bees Earnings',
+        label: 'AI Beehives Earnings',
         components: [
           { id: 'dashboard-binary-earnings-chart', label: 'Earnings Chart' },
           { id: 'dashboard-binary-earnings-history', label: 'Commission History' },
@@ -165,7 +165,7 @@ export const ALL_SYSTEM_TABS: Record<string, SystemCategory> = {
         id: 'aihub-affiliate', 
         label: 'Affiliate',
         components: [
-          { id: 'aihub-affiliate-tree', label: 'AI Bees Tree' },
+          { id: 'aihub-affiliate-tree', label: 'AI Beehives Tree' },
           { id: 'aihub-affiliate-earnings', label: 'Earnings Overview' },
         ]
       },

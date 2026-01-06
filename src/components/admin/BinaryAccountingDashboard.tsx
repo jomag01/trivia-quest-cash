@@ -290,8 +290,8 @@ export default function BinaryAccountingDashboard() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-lg sm:text-2xl font-bold">AI Bees Accounting</h2>
-            <p className="text-muted-foreground text-xs sm:text-sm">Complete financial overview of the AI Bees system</p>
+            <h2 className="text-lg sm:text-2xl font-bold">AI Beehives Accounting</h2>
+            <p className="text-muted-foreground text-xs sm:text-sm">Complete financial overview of the AI Beehives system</p>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <Select value={dateRange} onValueChange={(v) => setDateRange(v as typeof dateRange)}>
@@ -425,7 +425,7 @@ export default function BinaryAccountingDashboard() {
               Money Flow Breakdown
             </CardTitle>
             <CardDescription>
-              Where every peso goes in the AI Bees system
+              Where every peso goes in the AI Beehives system
             </CardDescription>
           </CardHeader>
           <CardContent>

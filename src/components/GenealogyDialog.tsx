@@ -165,7 +165,7 @@ export const GenealogyDialog = ({ open, onOpenChange, level, userId }: Genealogy
                       </div>
                     </div>
 
-                    {/* Genealogy Tree Indicator */}
+                    {/* Beehives Tree Indicator */}
                     {index < members.length - 1 && (
                       <div className="ml-6 mt-2 h-4 border-l-2 border-dashed border-muted-foreground/30" />
                     )}
