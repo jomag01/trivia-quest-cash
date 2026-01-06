@@ -36,8 +36,14 @@ import {
   Wallet,
   UserPlus,
   ShoppingCart,
-  AlertCircle
+  AlertCircle,
+  Edit,
+  Calendar,
+  Hexagon,
+  Crown,
+  CreditCard
 } from "lucide-react";
+import { useBeehiveTiers } from "@/hooks/useBeehiveTiers";
 
 interface BinaryAccount {
   id: string;
@@ -50,6 +56,10 @@ interface BinaryAccount {
   parent_id: string | null;
   placement_leg: 'left' | 'right' | null;
   created_at: string;
+  has_deferred_payment?: boolean;
+  deferred_amount?: number;
+  deferred_plan_type?: string;
+  admin_activated?: boolean;
 }
 
 interface DownlineAccount {
@@ -74,8 +84,21 @@ interface AvailablePackage {
 
 type PlacementMode = 'own' | 'downline';
 
+const PLAN_ICONS: Record<string, React.ReactNode> = {
+  monthly: <Calendar className="h-4 w-4 text-blue-500" />,
+  biannual: <Hexagon className="h-4 w-4 text-purple-500" />,
+  yearly: <Crown className="h-4 w-4 text-yellow-500" />
+};
+
+const PLAN_LABELS: Record<string, string> = {
+  monthly: 'Monthly',
+  biannual: '6-Month',
+  yearly: 'Yearly'
+};
+
 export default function BinaryAccountsManager() {
   const { user } = useAuth();
+  const { tiers, loading: tiersLoading } = useBeehiveTiers();
   const [accounts, setAccounts] = useState<BinaryAccount[]>([]);
   const [downlines, setDownlines] = useState<DownlineAccount[]>([]);
   const [availablePackages, setAvailablePackages] = useState<AvailablePackage[]>([]);
@@ -93,6 +116,13 @@ export default function BinaryAccountsManager() {
   const [accountName, setAccountName] = useState("");
   const [pendingAccountNumber, setPendingAccountNumber] = useState<number | null>(null);
   const [placing, setPlacing] = useState(false);
+  
+  // Edit account state
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<BinaryAccount | null>(null);
+  const [editAccountName, setEditAccountName] = useState("");
+  const [editPlanType, setEditPlanType] = useState<string>("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -220,12 +250,17 @@ export default function BinaryAccountsManager() {
   };
 
   const fetchDownlines = async () => {
-    if (!user) return;
+    if (!user || accounts.length === 0) return;
     
     try {
       setLoadingDownlines(true);
       
-      // Get all downlines in the user's network (users sponsored by the current user)
+      // Get ALL users in the network under the main account (recursive downline tree)
+      // This includes users sponsored by the current user AND their downlines
+      const mainAccount = accounts.find(a => a.account_number === 1);
+      if (!mainAccount) return;
+
+      // Get all binary network users with available spots (left or right empty)
       const { data, error } = await supabase
         .from("binary_network")
         .select(`
@@ -233,16 +268,24 @@ export default function BinaryAccountsManager() {
           user_id,
           account_number,
           left_child_id,
-          right_child_id
+          right_child_id,
+          parent_id
         `)
-        .eq("sponsor_id", accounts[0]?.id)
+        .or(`left_child_id.is.null,right_child_id.is.null`)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
       
+      // Filter to only include users in this user's network
+      // For now, include all users that have available spots except the current user's accounts
+      const eligibleDownlines = (data || []).filter(d => 
+        d.user_id !== user.id && // Not the current user's accounts
+        (d.left_child_id === null || d.right_child_id === null) // Has available spot
+      );
+
       // Fetch profile info for each downline
       const downlinesWithProfiles: DownlineAccount[] = [];
-      for (const downline of data || []) {
+      for (const downline of eligibleDownlines) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("full_name, email")
@@ -432,6 +475,44 @@ export default function BinaryAccountsManager() {
     }
   };
 
+  const handleEditAccount = (account: BinaryAccount) => {
+    setEditingAccount(account);
+    setEditAccountName(account.account_name || `Account #${account.account_number}`);
+    setEditPlanType(account.deferred_plan_type || 'monthly');
+    setShowEditDialog(true);
+  };
+
+  const saveAccountEdit = async () => {
+    if (!editingAccount) return;
+    
+    setSaving(true);
+    try {
+      const selectedTier = tiers.find(t => t.plan_type === editPlanType);
+      const deferredAmount = selectedTier?.price || 0;
+
+      const { error } = await supabase
+        .from('binary_network')
+        .update({
+          account_name: editAccountName,
+          deferred_plan_type: editPlanType,
+          deferred_amount: deferredAmount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingAccount.id);
+
+      if (error) throw error;
+
+      toast.success('Account updated successfully');
+      setShowEditDialog(false);
+      fetchAccounts();
+    } catch (error: any) {
+      console.error('Error updating account:', error);
+      toast.error('Failed to update account');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const getAvailableLegs = (downline: DownlineAccount) => {
     const available: ('left' | 'right')[] = [];
     if (!downline.left_child_id) available.push('left');
@@ -495,43 +576,61 @@ export default function BinaryAccountsManager() {
                       </span>
                     </div>
                     <div>
-                    <h4 className="font-semibold">
-                      {account.account_name || `Account #${account.account_number}`}
-                      {account.account_number === 1 && (
-                        <Badge className="ml-2 text-xs" variant="default">Main</Badge>
-                      )}
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      #{account.account_number} • Created {new Date(account.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <div className="flex items-center gap-1 text-blue-500">
-                      <ArrowLeft className="h-4 w-4" />
-                      <span className="font-semibold">
-                        ₱{account.left_volume?.toLocaleString() || 0}
-                      </span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">Left</span>
-                  </div>
-                    <div className="text-center">
-                      <div className="flex items-center gap-1 text-green-500">
-                        <span className="font-semibold">
-                          ₱{account.right_volume?.toLocaleString() || 0}
-                        </span>
-                        <ArrowRight className="h-4 w-4" />
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold">
+                          {account.account_name || `Account #${account.account_number}`}
+                        </h4>
+                        {account.account_number === 1 && (
+                          <Badge className="text-xs" variant="default">Main</Badge>
+                        )}
+                        {account.has_deferred_payment && (
+                          <Badge variant="outline" className="text-xs text-amber-600 border-amber-400">
+                            <CreditCard className="h-3 w-3 mr-1" />
+                            Deferred
+                          </Badge>
+                        )}
+                        {account.deferred_plan_type && PLAN_ICONS[account.deferred_plan_type]}
                       </div>
-                      <span className="text-xs text-muted-foreground">Right</span>
+                      <p className="text-sm text-muted-foreground">
+                        #{account.account_number} • {account.deferred_plan_type && PLAN_LABELS[account.deferred_plan_type]} • {new Date(account.created_at).toLocaleDateString()}
+                      </p>
                     </div>
-                    <div className="text-center">
-                      <div className="flex items-center gap-1 text-primary">
-                        <Wallet className="h-4 w-4" />
-                        <span className="font-semibold">{account.total_cycles || 0}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="text-center">
+                        <div className="flex items-center gap-1 text-blue-500">
+                          <ArrowLeft className="h-4 w-4" />
+                          <span className="font-semibold">
+                            ₱{account.left_volume?.toLocaleString() || 0}
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">Left</span>
                       </div>
-                      <span className="text-xs text-muted-foreground">Cycles</span>
+                      <div className="text-center">
+                        <div className="flex items-center gap-1 text-green-500">
+                          <span className="font-semibold">
+                            ₱{account.right_volume?.toLocaleString() || 0}
+                          </span>
+                          <ArrowRight className="h-4 w-4" />
+                        </div>
+                        <span className="text-xs text-muted-foreground">Right</span>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center gap-1 text-primary">
+                          <Wallet className="h-4 w-4" />
+                          <span className="font-semibold">{account.total_cycles || 0}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">Cycles</span>
+                      </div>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleEditAccount(account)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -548,7 +647,7 @@ export default function BinaryAccountsManager() {
                     <div className="text-left">
                       <p className="font-semibold">Create Account #{nextAccountNumber}</p>
                       <p className="text-xs text-muted-foreground">
-                        Purchase AI credits or product package to unlock
+                        Select a package tier to unlock
                       </p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -963,6 +1062,70 @@ export default function BinaryAccountsManager() {
               ) : (
                 'Create Account'
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Account Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-primary" />
+              Edit Account
+            </DialogTitle>
+            <DialogDescription>
+              Update account name and package tier
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label>Account Name</Label>
+              <Input
+                value={editAccountName}
+                onChange={e => setEditAccountName(e.target.value)}
+                placeholder="Enter account name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Package Tier</Label>
+              <div className="grid gap-2">
+                {tiers.map(tier => (
+                  <div
+                    key={tier.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                      editPlanType === tier.plan_type
+                        ? 'border-primary bg-primary/5'
+                        : 'hover:border-primary/50'
+                    }`}
+                    onClick={() => setEditPlanType(tier.plan_type)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {PLAN_ICONS[tier.plan_type]}
+                      <div>
+                        <p className="font-medium text-sm">{tier.tier_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {tier.credits_included.toLocaleString()} credits • ₱{tier.daily_cap.toLocaleString()}/day cap
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold">₱{tier.price.toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveAccountEdit} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>

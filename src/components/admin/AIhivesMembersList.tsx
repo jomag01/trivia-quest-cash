@@ -172,6 +172,26 @@ export default function AIhivesMembersList() {
       const planLabel = PLAN_LABELS[member.subscription.plan_type] || member.subscription.plan_type;
       return { label: `Paid - ${planLabel}`, variant: 'default' as const, color: 'bg-green-500' };
     }
+    if (member.admin_activated) {
+      return { label: 'Admin Activated', variant: 'outline' as const, color: 'text-blue-600 border-blue-400' };
+    }
+    return { label: 'Inactive', variant: 'secondary' as const, color: '' };
+  };
+
+  const getMemberStatus = (member: BeehiveMember) => {
+    // If admin_activated, they are approved even if deferred
+    if (member.admin_activated && !member.has_deferred_payment) {
+      return { label: 'Approved', variant: 'default' as const, color: 'bg-blue-500' };
+    }
+    if (member.subscription?.status === 'active') {
+      return { label: 'Active', variant: 'default' as const, color: 'bg-green-500' };
+    }
+    if (member.has_deferred_payment && member.admin_activated) {
+      return { label: 'Deferred (Active)', variant: 'outline' as const, color: 'text-amber-600 border-amber-400' };
+    }
+    if (member.has_deferred_payment && !member.admin_activated) {
+      return { label: 'Pending Approval', variant: 'outline' as const, color: 'text-red-600 border-red-400' };
+    }
     return { label: 'Inactive', variant: 'secondary' as const, color: '' };
   };
 
@@ -256,11 +276,11 @@ export default function AIhivesMembersList() {
             <p className="text-[10px] text-muted-foreground">Deferred</p>
           </div>
           <div className="p-2 rounded bg-green-500/10 text-center">
-            <p className="text-lg font-bold text-green-600">{members.filter(m => m.subscription && !m.has_deferred_payment).length}</p>
+            <p className="text-lg font-bold text-green-600">{members.filter(m => (m.subscription && !m.has_deferred_payment) || (m.admin_activated && !m.has_deferred_payment)).length}</p>
             <p className="text-[10px] text-muted-foreground">Paid</p>
           </div>
           <div className="p-2 rounded bg-red-500/10 text-center">
-            <p className="text-lg font-bold text-red-600">{members.filter(m => !m.subscription && !m.has_deferred_payment).length}</p>
+            <p className="text-lg font-bold text-red-600">{members.filter(m => !m.subscription && !m.has_deferred_payment && !m.admin_activated).length}</p>
             <p className="text-[10px] text-muted-foreground">Inactive</p>
           </div>
         </div>
@@ -317,16 +337,14 @@ export default function AIhivesMembersList() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {member.subscription?.status === 'active' ? (
-                        <Badge variant="default" className="text-[10px] bg-green-500">Active</Badge>
-                      ) : member.has_deferred_payment ? (
-                        <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-400">
-                          <Clock className="h-2.5 w-2.5 mr-0.5" />
-                          Pending
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-[10px]">Inactive</Badge>
-                      )}
+                      {(() => {
+                        const status = getMemberStatus(member);
+                        return (
+                          <Badge variant={status.variant} className={`text-[10px] ${status.color}`}>
+                            {status.label}
+                          </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {format(new Date(member.created_at), 'MMM d, yyyy')}
