@@ -52,6 +52,7 @@ import CashWalletCard from "@/components/CashWalletCard";
 import { useHiddenTabs } from "@/hooks/useHiddenTabs";
 import SellerOrderProcessing from "@/components/dashboard/SellerOrderProcessing";
 import { CommissionEarningsCard } from "@/components/dashboard/CommissionEarningsCard";
+import { CommissionNotificationsCard } from "@/components/dashboard/CommissionNotificationsCard";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -532,6 +533,9 @@ const Dashboard = () => {
 
         {/* Affiliate Rank Card - Full Width */}
         <AffiliateRankCard />
+
+        {/* Commission Notifications with Origin Breakdown */}
+        <CommissionNotificationsCard />
 
         {/* Seller Referral Earnings */}
         <CommissionEarningsCard />

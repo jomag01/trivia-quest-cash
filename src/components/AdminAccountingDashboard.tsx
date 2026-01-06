@@ -342,11 +342,9 @@ export default function AdminAccountingDashboard() {
           </CardTitle>
           <CardDescription>
             Configure how referral commission diamonds are distributed among affiliate networks.
-            {totalPercentage !== 100 && (
-              <span className="text-destructive font-medium ml-2">
-                (Total: {totalPercentage}% - should equal 100%)
-              </span>
-            )}
+            <span className="text-muted-foreground font-medium ml-2">
+              (Total: {totalPercentage}% - remaining {Math.max(0, 100 - totalPercentage)}% retained by admin)
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
