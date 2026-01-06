@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,11 @@ import {
   ArrowRight,
   Percent,
   RefreshCw,
-  Info
+  Info,
+  Calendar,
+  Hexagon,
+  Crown,
+  Loader2
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -32,33 +36,75 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useBeehiveTiers, BeehiveTier } from '@/hooks/useBeehiveTiers';
 
 interface CalculatorInputs {
   leftLegUsers: number;
   rightLegUsers: number;
+  selectedTierId: string;
   tierPrice: number;
   aiCostPercent: number;
   adminProfitPercent: number;
   directReferralPercent: number;
   cycleCommissionPercent: number;
   dailyCap: number;
+  cycleVolume: number;
 }
 
+const PLAN_ICONS: Record<string, React.ReactNode> = {
+  monthly: <Calendar className="h-4 w-4 text-blue-500" />,
+  biannual: <Hexagon className="h-4 w-4 text-purple-500" />,
+  yearly: <Crown className="h-4 w-4 text-yellow-500" />
+};
+
 export default function BinaryCalculator() {
+  const { tiers, loading: tiersLoading } = useBeehiveTiers();
   const [inputs, setInputs] = useState<CalculatorInputs>({
     leftLegUsers: 4,
     rightLegUsers: 4,
+    selectedTierId: '',
     tierPrice: 2990,
     aiCostPercent: 30,
     adminProfitPercent: 10,
     directReferralPercent: 5,
     cycleCommissionPercent: 10,
-    dailyCap: 50000
+    dailyCap: 50000,
+    cycleVolume: 11960
   });
 
-  const CYCLE_VOLUME = 11960; // Fixed: ₱11,960 per leg to cycle
+  // When tiers load, select the first one
+  useEffect(() => {
+    if (tiers.length > 0 && !inputs.selectedTierId) {
+      const firstTier = tiers[0];
+      setInputs(prev => ({
+        ...prev,
+        selectedTierId: firstTier.id,
+        tierPrice: firstTier.price,
+        dailyCap: firstTier.daily_cap,
+        cycleCommissionPercent: firstTier.cycle_commission_percent,
+        cycleVolume: firstTier.cycle_volume
+      }));
+    }
+  }, [tiers]);
+
+  const handleTierChange = (tierId: string) => {
+    const tier = tiers.find(t => t.id === tierId);
+    if (tier) {
+      setInputs(prev => ({
+        ...prev,
+        selectedTierId: tierId,
+        tierPrice: tier.price,
+        dailyCap: tier.daily_cap,
+        cycleCommissionPercent: tier.cycle_commission_percent,
+        cycleVolume: tier.cycle_volume
+      }));
+    }
+  };
+
+  const selectedTier = tiers.find(t => t.id === inputs.selectedTierId);
 
   const calculateResults = () => {
+    const CYCLE_VOLUME = inputs.cycleVolume;
     const leftLegVolume = inputs.leftLegUsers * inputs.tierPrice;
     const rightLegVolume = inputs.rightLegUsers * inputs.tierPrice;
     const weakerLeg = Math.min(leftLegVolume, rightLegVolume);
@@ -116,7 +162,8 @@ export default function BinaryCalculator() {
       actualCommission,
       commissionLost,
       totalPurchaseVolume,
-      adminEarnings
+      adminEarnings,
+      cycleVolume: CYCLE_VOLUME
     };
   };
 
@@ -139,6 +186,16 @@ export default function BinaryCalculator() {
     }));
   };
 
+  if (tiersLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <ScrollArea className="h-[calc(100vh-120px)]">
       <div className="space-y-6 p-1">
@@ -149,10 +206,51 @@ export default function BinaryCalculator() {
               AI Beehives Cycle Calculator
             </CardTitle>
             <CardDescription>
-              Calculate potential earnings based on team structure. Fixed cycle volume: ₱11,960 per leg.
+              Calculate potential earnings based on team structure and selected tier.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Tier Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Select Subscription Tier</Label>
+              <Select value={inputs.selectedTierId} onValueChange={handleTierChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tiers.map(tier => (
+                    <SelectItem key={tier.id} value={tier.id}>
+                      <div className="flex items-center gap-2">
+                        {PLAN_ICONS[tier.plan_type]}
+                        <span>{tier.tier_name}</span>
+                        <span className="text-muted-foreground">- ₱{tier.price.toLocaleString()}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedTier && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mt-2">
+                  <div className="p-2 rounded bg-muted/50">
+                    <span className="text-muted-foreground">Daily Cap:</span>
+                    <span className="ml-1 font-medium">₱{selectedTier.daily_cap.toLocaleString()}</span>
+                  </div>
+                  <div className="p-2 rounded bg-muted/50">
+                    <span className="text-muted-foreground">Cycle Vol:</span>
+                    <span className="ml-1 font-medium">₱{selectedTier.cycle_volume.toLocaleString()}</span>
+                  </div>
+                  <div className="p-2 rounded bg-muted/50">
+                    <span className="text-muted-foreground">Commission:</span>
+                    <span className="ml-1 font-medium">{selectedTier.cycle_commission_percent}%</span>
+                  </div>
+                  <div className="p-2 rounded bg-muted/50">
+                    <span className="text-muted-foreground">Credits:</span>
+                    <span className="ml-1 font-medium">{selectedTier.credits_included.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Preset Scenarios */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Quick Scenarios</Label>
@@ -347,17 +445,17 @@ export default function BinaryCalculator() {
                 </div>
                 <div className="flex justify-between">
                   <span>Volume per Cycle (per leg):</span>
-                  <span className="font-medium">₱{CYCLE_VOLUME.toLocaleString()}</span>
+                  <span className="font-medium">₱{results.cycleVolume.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Cycles: {results.weakerLeg.toLocaleString()} ÷ {CYCLE_VOLUME.toLocaleString()} =</span>
+                  <span>Cycles: {results.weakerLeg.toLocaleString()} ÷ {results.cycleVolume.toLocaleString()} =</span>
                   <span className="font-medium">{results.cyclesCompleted} cycles</span>
                 </div>
 
                 <Separator className="my-2" />
 
                 <div className="flex justify-between">
-                  <span>Matched Volume ({results.cyclesCompleted} × ₱{CYCLE_VOLUME.toLocaleString()} × 2):</span>
+                  <span>Matched Volume ({results.cyclesCompleted} × ₱{results.cycleVolume.toLocaleString()} × 2):</span>
                   <span className="font-medium">₱{results.totalMatchedVolume.toLocaleString()}</span>
                 </div>
 
@@ -431,12 +529,12 @@ export default function BinaryCalculator() {
 
             {/* Cycle Examples Info */}
             <div className="p-4 rounded-lg bg-muted/50 text-sm">
-              <h5 className="font-medium mb-2">💡 Cycle Matching Examples (₱11,960 per leg)</h5>
+              <h5 className="font-medium mb-2">💡 Cycle Matching Examples (₱{inputs.cycleVolume.toLocaleString()} per leg)</h5>
               <ul className="space-y-1 text-muted-foreground">
-                <li>• 4 users × ₱2,990 = ₱11,960 ✓</li>
-                <li>• 2 users × ₱5,990 = ₱11,980 ✓ (₱20 carried over)</li>
-                <li>• 1 user × ₱11,960 = ₱11,960 ✓</li>
-                <li>• Mixed: Any combination totaling ≥₱11,960</li>
+                <li>• Volume per leg must reach ₱{inputs.cycleVolume.toLocaleString()} to complete 1 cycle</li>
+                <li>• Cycles are matched from the weaker leg</li>
+                <li>• Remaining volume carries over to the next cycle</li>
+                <li>• Daily earnings are capped at ₱{inputs.dailyCap.toLocaleString()} for this tier</li>
               </ul>
             </div>
           </CardContent>

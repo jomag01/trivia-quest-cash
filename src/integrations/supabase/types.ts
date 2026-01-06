@@ -667,6 +667,9 @@ export type Database = {
           description: string | null
           feature_key: string
           feature_name: string
+          hidden_for_biannual: boolean | null
+          hidden_for_monthly: boolean | null
+          hidden_for_yearly: boolean | null
           id: string
           is_hidden: boolean
           updated_at: string
@@ -676,6 +679,9 @@ export type Database = {
           description?: string | null
           feature_key: string
           feature_name: string
+          hidden_for_biannual?: boolean | null
+          hidden_for_monthly?: boolean | null
+          hidden_for_yearly?: boolean | null
           id?: string
           is_hidden?: boolean
           updated_at?: string
@@ -685,6 +691,9 @@ export type Database = {
           description?: string | null
           feature_key?: string
           feature_name?: string
+          hidden_for_biannual?: boolean | null
+          hidden_for_monthly?: boolean | null
+          hidden_for_yearly?: boolean | null
           id?: string
           is_hidden?: boolean
           updated_at?: string
@@ -1678,6 +1687,107 @@ export type Database = {
             columns: ["subscriber_id"]
             isOneToOne: false
             referencedRelation: "newsletter_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      beehive_tiers: {
+        Row: {
+          binary_volume: number
+          created_at: string
+          credits_included: number
+          cycle_commission_percent: number
+          cycle_volume: number
+          daily_cap: number
+          display_order: number
+          id: string
+          is_active: boolean
+          left_volume_required: number
+          plan_type: string
+          price: number
+          right_volume_required: number
+          tier_name: string
+          updated_at: string
+        }
+        Insert: {
+          binary_volume?: number
+          created_at?: string
+          credits_included?: number
+          cycle_commission_percent?: number
+          cycle_volume?: number
+          daily_cap?: number
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          left_volume_required?: number
+          plan_type: string
+          price?: number
+          right_volume_required?: number
+          tier_name: string
+          updated_at?: string
+        }
+        Update: {
+          binary_volume?: number
+          created_at?: string
+          credits_included?: number
+          cycle_commission_percent?: number
+          cycle_volume?: number
+          daily_cap?: number
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          left_volume_required?: number
+          plan_type?: string
+          price?: number
+          right_volume_required?: number
+          tier_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      beehive_volume_rules: {
+        Row: {
+          commission_multiplier: number
+          created_at: string
+          id: string
+          is_active: boolean
+          left_volume_min: number
+          max_daily_cycles: number | null
+          right_volume_min: number
+          rule_name: string
+          tier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          commission_multiplier?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          left_volume_min?: number
+          max_daily_cycles?: number | null
+          right_volume_min?: number
+          rule_name: string
+          tier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          commission_multiplier?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          left_volume_min?: number
+          max_daily_cycles?: number | null
+          right_volume_min?: number
+          rule_name?: string
+          tier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beehive_volume_rules_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "beehive_tiers"
             referencedColumns: ["id"]
           },
         ]
