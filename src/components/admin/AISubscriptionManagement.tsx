@@ -60,6 +60,14 @@ export default function AISubscriptionManagement() {
   const [binaryVolumeMonthly, setBinaryVolumeMonthly] = useState('1390');
   const [binaryVolumeYearly, setBinaryVolumeYearly] = useState('11990');
 
+  // Ads Package settings
+  const [adsPackagePrice, setAdsPackagePrice] = useState('2500');
+  const [adsPackageCredits, setAdsPackageCredits] = useState('300');
+  const [adsPackageImpressions, setAdsPackageImpressions] = useState('10000');
+  const [adsPackageDays, setAdsPackageDays] = useState('30');
+  const [adsPackageBinaryVolume, setAdsPackageBinaryVolume] = useState('2500');
+  const [adsPackageEnabled, setAdsPackageEnabled] = useState(true);
+
   // Feature restrictions
   const [restrictions, setRestrictions] = useState<FeatureRestriction[]>([]);
   
@@ -99,6 +107,13 @@ export default function AISubscriptionManagement() {
         if (s.key === 'ai_topup_leadership_percent') setTopupLeadershipPercent(s.value || '5');
         if (s.key === 'ai_subscription_binary_volume_monthly') setBinaryVolumeMonthly(s.value || '1390');
         if (s.key === 'ai_subscription_binary_volume_yearly') setBinaryVolumeYearly(s.value || '11990');
+        // Ads Package settings
+        if (s.key === 'ads_package_price') setAdsPackagePrice(s.value || '2500');
+        if (s.key === 'ads_package_credits') setAdsPackageCredits(s.value || '300');
+        if (s.key === 'ads_package_impressions') setAdsPackageImpressions(s.value || '10000');
+        if (s.key === 'ads_package_days') setAdsPackageDays(s.value || '30');
+        if (s.key === 'ads_package_binary_volume') setAdsPackageBinaryVolume(s.value || '2500');
+        if (s.key === 'ads_package_enabled') setAdsPackageEnabled(s.value === 'true');
       });
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -157,6 +172,13 @@ export default function AISubscriptionManagement() {
         { key: 'ai_topup_leadership_percent', value: topupLeadershipPercent },
         { key: 'ai_subscription_binary_volume_monthly', value: binaryVolumeMonthly },
         { key: 'ai_subscription_binary_volume_yearly', value: binaryVolumeYearly },
+        // Ads Package settings
+        { key: 'ads_package_price', value: adsPackagePrice },
+        { key: 'ads_package_credits', value: adsPackageCredits },
+        { key: 'ads_package_impressions', value: adsPackageImpressions },
+        { key: 'ads_package_days', value: adsPackageDays },
+        { key: 'ads_package_binary_volume', value: adsPackageBinaryVolume },
+        { key: 'ads_package_enabled', value: adsPackageEnabled ? 'true' : 'false' },
       ];
 
       for (const update of updates) {
@@ -442,6 +464,45 @@ export default function AISubscriptionManagement() {
                     <Label className="text-xs">Binary Volume</Label>
                     <Input type="number" value={binaryVolumeYearly} onChange={e => setBinaryVolumeYearly(e.target.value)} />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Ads Package Settings */}
+            <div className="border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-medium flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-orange-500" />
+                  AI + Ads Combo Package
+                </h4>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs">Enabled</Label>
+                  <Switch checked={adsPackageEnabled} onCheckedChange={setAdsPackageEnabled} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Combination package with AI credits + Ads promotion. Buyers are entered into the Binary Network.
+              </p>
+              <div className="grid gap-4 md:grid-cols-5">
+                <div className="space-y-1">
+                  <Label className="text-xs">Price (₱)</Label>
+                  <Input type="number" value={adsPackagePrice} onChange={e => setAdsPackagePrice(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">AI Credits</Label>
+                  <Input type="number" value={adsPackageCredits} onChange={e => setAdsPackageCredits(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Ad Impressions</Label>
+                  <Input type="number" value={adsPackageImpressions} onChange={e => setAdsPackageImpressions(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Duration (Days)</Label>
+                  <Input type="number" value={adsPackageDays} onChange={e => setAdsPackageDays(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Binary Volume</Label>
+                  <Input type="number" value={adsPackageBinaryVolume} onChange={e => setAdsPackageBinaryVolume(e.target.value)} />
                 </div>
               </div>
             </div>
