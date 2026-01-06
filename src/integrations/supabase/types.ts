@@ -2713,6 +2713,8 @@ export type Database = {
       commission_notifications: {
         Row: {
           amount: number
+          commission_id: string | null
+          commission_type: string | null
           created_at: string
           id: string
           is_read: boolean | null
@@ -2723,6 +2725,8 @@ export type Database = {
         }
         Insert: {
           amount: number
+          commission_id?: string | null
+          commission_type?: string | null
           created_at?: string
           id?: string
           is_read?: boolean | null
@@ -2733,6 +2737,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          commission_id?: string | null
+          commission_type?: string | null
           created_at?: string
           id?: string
           is_read?: boolean | null

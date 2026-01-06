@@ -689,72 +689,7 @@ export default function BinarySystemManagement() {
               </Button>
             </div>
 
-            <Separator />
-
-            {/* Upgrade Commission Settings */}
-            <div className="space-y-4">
-              <h4 className="font-medium flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Tier Upgrade Commission Distribution
-              </h4>
-              <p className="text-xs text-muted-foreground">
-                When users upgrade to a higher tier, the upgrade amount (minus AI cost and admin profit) is distributed to unilevel, stair-step, and leadership commissions.
-              </p>
-              <div className="p-4 rounded-lg border bg-primary/5 space-y-3">
-                <p className="text-sm font-medium">Commission Distribution for Upgrades:</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="upgradeUnilevel">Unilevel (%)</Label>
-                    <Input
-                      id="upgradeUnilevel"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={settings.upgradeUnilevelPercent}
-                      onChange={(e) => setSettings({ ...settings, upgradeUnilevelPercent: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="upgradeStairstep">Stair-Step (%)</Label>
-                    <Input
-                      id="upgradeStairstep"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={settings.upgradeStairstepPercent}
-                      onChange={(e) => setSettings({ ...settings, upgradeStairstepPercent: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="upgradeLeadership">Leadership (%)</Label>
-                    <Input
-                      id="upgradeLeadership"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={settings.upgradeLeadershipPercent}
-                      onChange={(e) => setSettings({ ...settings, upgradeLeadershipPercent: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-                </div>
-                <div className="p-3 rounded bg-muted/50 text-xs">
-                  <p className="font-medium mb-1">Example Upgrade Calculation:</p>
-                  <p className="text-muted-foreground">
-                    Upgrade from Tier 1 (₱{creditTiers[0]?.price || 500}) to Tier 2 (₱{creditTiers[1]?.price || 1000}):<br/>
-                    • Upgrade Amount: ₱{(creditTiers[1]?.price || 1000) - (creditTiers[0]?.price || 500)}<br/>
-                    • AI Cost (deducted): ₱{(creditTiers[1]?.cost || 0) - (creditTiers[0]?.cost || 0)}<br/>
-                    • Admin Profit ({settings.adminSafetyNet}%): ₱{(((creditTiers[1]?.price || 1000) - (creditTiers[0]?.price || 500)) * settings.adminSafetyNet / 100).toFixed(2)}<br/>
-                    • Remaining for Commissions: Distributed to Unilevel ({settings.upgradeUnilevelPercent}%), Stair-Step ({settings.upgradeStairstepPercent}%), Leadership ({settings.upgradeLeadershipPercent}%)
-                  </p>
-                </div>
-              </div>
-              <Button onClick={saveUpgradeCommissionSettings} disabled={saving === 'Upgrade Commission'} size="sm" className="gap-2 mt-2">
-                {saving === 'Upgrade Commission' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save Upgrade Commission Settings
-              </Button>
-            </div>
-
-            <Separator />
+            {/* Note: Tier Upgrade Commission feature has been removed */}
 
             {/* AI Credit Tier Integration */}
             <div className="space-y-4">

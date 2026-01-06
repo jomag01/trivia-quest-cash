@@ -556,9 +556,9 @@ export default function AISubscriptionManagement() {
                   <Input type="number" value={topupLeadershipPercent} onChange={e => setTopupLeadershipPercent(e.target.value)} />
                 </div>
               </div>
-              {totalCommission !== 100 && (
-                <p className="text-xs text-destructive mt-2">Total must equal 100%</p>
-              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                Total: {totalCommission}% (remaining {Math.max(0, 100 - totalCommission)}% retained by admin)
+              </p>
             </div>
           </CardContent>
         </Card>
