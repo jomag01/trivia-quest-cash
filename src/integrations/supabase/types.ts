@@ -189,6 +189,7 @@ export type Database = {
           ad_description: string | null
           ad_title: string
           admin_notes: string | null
+          ai_credits_paid: number | null
           approved_at: string | null
           approved_by: string | null
           budget_type: string
@@ -219,6 +220,7 @@ export type Database = {
           ad_description?: string | null
           ad_title: string
           admin_notes?: string | null
+          ai_credits_paid?: number | null
           approved_at?: string | null
           approved_by?: string | null
           budget_type?: string
@@ -249,6 +251,7 @@ export type Database = {
           ad_description?: string | null
           ad_title?: string
           admin_notes?: string | null
+          ai_credits_paid?: number | null
           approved_at?: string | null
           approved_by?: string | null
           budget_type?: string
@@ -2754,10 +2757,16 @@ export type Database = {
           commission_type: string
           created_at: string
           from_user_id: string
+          hold_reason: string | null
+          hold_status: string | null
+          hold_until: string | null
           id: string
           level: number
           notes: string | null
+          payout_type: string | null
           purchase_id: string | null
+          related_order_id: string | null
+          scheduled_payout_date: string | null
           user_id: string
         }
         Insert: {
@@ -2765,10 +2774,16 @@ export type Database = {
           commission_type: string
           created_at?: string
           from_user_id: string
+          hold_reason?: string | null
+          hold_status?: string | null
+          hold_until?: string | null
           id?: string
           level: number
           notes?: string | null
+          payout_type?: string | null
           purchase_id?: string | null
+          related_order_id?: string | null
+          scheduled_payout_date?: string | null
           user_id: string
         }
         Update: {
@@ -2776,10 +2791,16 @@ export type Database = {
           commission_type?: string
           created_at?: string
           from_user_id?: string
+          hold_reason?: string | null
+          hold_status?: string | null
+          hold_until?: string | null
           id?: string
           level?: number
           notes?: string | null
+          payout_type?: string | null
           purchase_id?: string | null
+          related_order_id?: string | null
+          scheduled_payout_date?: string | null
           user_id?: string
         }
         Relationships: [
@@ -6945,6 +6966,8 @@ export type Database = {
       }
       orders: {
         Row: {
+          commission_hold_until: string | null
+          commission_status: string | null
           courier: string | null
           created_at: string | null
           customer_email: string
@@ -6960,6 +6983,8 @@ export type Database = {
           payment_method: string | null
           product_referrer_id: string | null
           referrer_code: string | null
+          return_reason: string | null
+          return_requested_at: string | null
           seller_id: string | null
           shipped_at: string | null
           shipping_address: string
@@ -6972,6 +6997,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          commission_hold_until?: string | null
+          commission_status?: string | null
           courier?: string | null
           created_at?: string | null
           customer_email: string
@@ -6987,6 +7014,8 @@ export type Database = {
           payment_method?: string | null
           product_referrer_id?: string | null
           referrer_code?: string | null
+          return_reason?: string | null
+          return_requested_at?: string | null
           seller_id?: string | null
           shipped_at?: string | null
           shipping_address: string
@@ -6999,6 +7028,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          commission_hold_until?: string | null
+          commission_status?: string | null
           courier?: string | null
           created_at?: string | null
           customer_email?: string
@@ -7014,6 +7045,8 @@ export type Database = {
           payment_method?: string | null
           product_referrer_id?: string | null
           referrer_code?: string | null
+          return_reason?: string | null
+          return_requested_at?: string | null
           seller_id?: string | null
           shipped_at?: string | null
           shipping_address?: string
@@ -8728,6 +8761,7 @@ export type Database = {
       seller_custom_ads: {
         Row: {
           admin_notes: string | null
+          ai_credits_paid: number | null
           budget_type: string | null
           clicks: number | null
           created_at: string | null
@@ -8762,6 +8796,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          ai_credits_paid?: number | null
           budget_type?: string | null
           clicks?: number | null
           created_at?: string | null
@@ -8796,6 +8831,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          ai_credits_paid?: number | null
           budget_type?: string | null
           clicks?: number | null
           created_at?: string | null
@@ -8896,12 +8932,16 @@ export type Database = {
           admin_markup_amount: number
           admin_net_profit: number
           created_at: string
+          hold_reason: string | null
+          hold_status: string | null
+          hold_until: string | null
           id: string
           leadership_amount: number
           order_id: string | null
           processed_at: string | null
           referrer_commission: number
           referrer_id: string
+          released_at: string | null
           sale_amount: number
           seller_id: string
           source_category: string
@@ -8913,12 +8953,16 @@ export type Database = {
           admin_markup_amount?: number
           admin_net_profit?: number
           created_at?: string
+          hold_reason?: string | null
+          hold_status?: string | null
+          hold_until?: string | null
           id?: string
           leadership_amount?: number
           order_id?: string | null
           processed_at?: string | null
           referrer_commission: number
           referrer_id: string
+          released_at?: string | null
           sale_amount: number
           seller_id: string
           source_category: string
@@ -8930,12 +8974,16 @@ export type Database = {
           admin_markup_amount?: number
           admin_net_profit?: number
           created_at?: string
+          hold_reason?: string | null
+          hold_status?: string | null
+          hold_until?: string | null
           id?: string
           leadership_amount?: number
           order_id?: string | null
           processed_at?: string | null
           referrer_commission?: number
           referrer_id?: string
+          released_at?: string | null
           sale_amount?: number
           seller_id?: string
           source_category?: string
