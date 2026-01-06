@@ -31,6 +31,7 @@ export const CartView = () => {
   const [paymentMethod, setPaymentMethod] = useState<string>("");
   const [userCredits, setUserCredits] = useState(0);
   const [userDiamonds, setUserDiamonds] = useState(0);
+  const [cashWalletBalance, setCashWalletBalance] = useState(0);
   const [isVerified, setIsVerified] = useState(false);
   const [checkingVerification, setCheckingVerification] = useState(true);
 
@@ -76,6 +77,19 @@ export const CartView = () => {
       }
 
       setUserDiamonds(wallet?.diamonds || 0);
+
+      // Fetch cash wallet balance
+      const { data: cashWallet, error: cashWalletError } = await supabase
+        .from("cash_wallets")
+        .select("balance")
+        .eq("user_id", user?.id)
+        .maybeSingle();
+
+      if (cashWalletError && cashWalletError.code !== "PGRST116") {
+        console.error("Error fetching cash wallet:", cashWalletError);
+      }
+
+      setCashWalletBalance(cashWallet?.balance || 0);
     } catch (error: any) {
       console.error("Error fetching user data:", error);
     } finally {
@@ -202,6 +216,12 @@ export const CartView = () => {
         toast.error("Diamond payments require amounts in multiples of ₱10");
         return;
       }
+    }
+
+    // Validate cash wallet payment
+    if (paymentMethod === "cash_wallet" && cashWalletBalance < totalAmount) {
+      toast.error(`Insufficient cash wallet balance. You need ₱${totalAmount} but have ₱${cashWalletBalance.toFixed(2)}`);
+      return;
     }
 
     try {
@@ -361,6 +381,27 @@ export const CartView = () => {
           .eq("user_id", user?.id);
 
         if (diamondsError) throw diamondsError;
+      } else if (paymentMethod === "cash_wallet") {
+        // Deduct from cash wallet and log transaction
+        const newBalance = cashWalletBalance - totalAmount;
+        const { error: cashError } = await supabase
+          .from("cash_wallets")
+          .update({ balance: newBalance })
+          .eq("user_id", user?.id);
+
+        if (cashError) throw cashError;
+
+        // Log the transaction
+        await supabase.from("cash_transactions").insert({
+          user_id: user.id,
+          amount: -totalAmount,
+          balance_before: cashWalletBalance,
+          balance_after: newBalance,
+          transaction_type: "purchase",
+          description: `Shop order payment - Order #${orderNumberData}`,
+          reference_type: "order",
+          reference_id: order.id
+        });
       }
 
       // Clear cart
@@ -377,6 +418,8 @@ export const CartView = () => {
             ? `₱${totalAmount} deducted from credits`
             : paymentMethod === "diamonds"
             ? `${diamondsRequired} diamonds deducted`
+            : paymentMethod === "cash_wallet"
+            ? `₱${totalAmount.toFixed(2)} deducted from Cash Wallet`
             : ""
         }`
       );
@@ -433,6 +476,20 @@ export const CartView = () => {
       methods.push({
         value: "diamonds",
         label: `Pay with Diamonds (Need: ${diamondsRequired}, Available: ${userDiamonds})`,
+      });
+    }
+
+    // Cash Wallet payment option
+    if (cashWalletBalance >= totalAmount) {
+      methods.push({
+        value: "cash_wallet",
+        label: `Pay with Cash Wallet (Available: ₱${cashWalletBalance.toFixed(2)})`,
+      });
+    } else if (cashWalletBalance > 0) {
+      methods.push({
+        value: "cash_wallet_disabled",
+        label: `Cash Wallet unavailable (Need ₱${totalAmount.toFixed(0)}, have ₱${cashWalletBalance.toFixed(2)})`,
+        disabled: true
       });
     }
 

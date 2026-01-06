@@ -18,7 +18,7 @@ interface AISubscriptionDialogProps {
 }
 
 interface SubscriptionPlan {
-  type: 'monthly' | 'yearly';
+  type: 'monthly' | 'yearly' | 'ads_package';
   price: number;
   credits: number;
   savings: number;
@@ -28,8 +28,8 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
-  const [activeTab, setActiveTab] = useState<'subscription' | 'topup'>('subscription');
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly' | 'ads_package'>('monthly');
+  const [activeTab, setActiveTab] = useState<'subscription' | 'topup' | 'ads_package'>('subscription');
   const [paymentMethod, setPaymentMethod] = useState<'paymongo' | 'qrcode'>('paymongo');
   const [paymongoMethod, setPaymongoMethod] = useState<'gcash' | 'paymaya' | 'card'>('gcash');
   const [referenceNumber, setReferenceNumber] = useState('');
@@ -44,7 +44,13 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
     monthlyCredits: 500,
     yearlyCredits: 6000,
     topupPricePerCredit: 3,
-    topupMinCredits: 100
+    topupMinCredits: 100,
+    // Ads Package settings
+    adsPackagePrice: 2500,
+    adsPackageCredits: 300,
+    adsPackageImpressions: 10000,
+    adsPackageDays: 30,
+    adsPackageEnabled: true
   });
 
   useEffect(() => {
@@ -60,7 +66,7 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
       const { data } = await supabase
         .from('app_settings')
         .select('key, value')
-        .or('key.like.ai_subscription_%,key.like.payment_%');
+        .or('key.like.ai_subscription_%,key.like.payment_%,key.like.ads_package_%');
 
       data?.forEach(setting => {
         if (setting.key === 'ai_subscription_monthly_price') {
@@ -83,6 +89,16 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
           setBankDetails(prev => ({ ...prev, accountNumber: setting.value || '' }));
         } else if (setting.key === 'payment_bank_name') {
           setBankDetails(prev => ({ ...prev, bankName: setting.value || '' }));
+        } else if (setting.key === 'ads_package_price') {
+          setSettings(prev => ({ ...prev, adsPackagePrice: parseInt(setting.value || '2500') }));
+        } else if (setting.key === 'ads_package_credits') {
+          setSettings(prev => ({ ...prev, adsPackageCredits: parseInt(setting.value || '300') }));
+        } else if (setting.key === 'ads_package_impressions') {
+          setSettings(prev => ({ ...prev, adsPackageImpressions: parseInt(setting.value || '10000') }));
+        } else if (setting.key === 'ads_package_days') {
+          setSettings(prev => ({ ...prev, adsPackageDays: parseInt(setting.value || '30') }));
+        } else if (setting.key === 'ads_package_enabled') {
+          setSettings(prev => ({ ...prev, adsPackageEnabled: setting.value === 'true' }));
         }
       });
     } catch (error) {
@@ -275,6 +291,68 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
     }
   };
 
+  const handleAdsPackagePurchase = async () => {
+    if (!user) {
+      toast.error('Please login to purchase');
+      return;
+    }
+
+    setPurchasing(true);
+    try {
+      if (paymentMethod === 'qrcode') {
+        if (!referenceNumber.trim()) {
+          toast.error('Please enter your payment reference number');
+          setPurchasing(false);
+          return;
+        }
+
+        // Create pending ads package purchase
+        const { error } = await supabase.from('binary_ai_purchases').insert({
+          user_id: user.id,
+          amount: settings.adsPackagePrice,
+          credits_received: settings.adsPackageCredits,
+          images_allocated: settings.adsPackageImpressions,
+          status: 'pending',
+          is_first_purchase: true
+        });
+
+        if (error) throw error;
+
+        toast.success('AI + Ads Package request submitted! Awaiting admin approval.');
+        setReferenceNumber('');
+        onPurchaseComplete?.();
+        onOpenChange(false);
+      } else {
+        // PayMongo payment
+        const { data, error } = await supabase.functions.invoke('create-payment', {
+          body: {
+            amount: settings.adsPackagePrice,
+            paymentMethod: paymongoMethod,
+            description: `AI + Ads Combo Package`,
+            metadata: {
+              user_id: user.id,
+              purchase_type: 'ads_package',
+              credits: settings.adsPackageCredits,
+              impressions: settings.adsPackageImpressions,
+              days: settings.adsPackageDays
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        if (data?.checkout_url) {
+          window.location.href = data.checkout_url;
+        }
+      }
+    } catch (error: any) {
+      console.error('Ads package error:', error);
+      toast.error(error.message || 'Failed to process purchase');
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
@@ -310,15 +388,21 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
         ) : (
           <div className="p-6">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="subscription" className="gap-2">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsTrigger value="subscription" className="gap-2 text-xs">
                   <Calendar className="h-4 w-4" />
                   {currentSubscription ? 'Renew' : 'Subscribe'}
                 </TabsTrigger>
-                <TabsTrigger value="topup" className="gap-2" disabled={!currentSubscription}>
+                <TabsTrigger value="topup" className="gap-2 text-xs" disabled={!currentSubscription}>
                   <Plus className="h-4 w-4" />
-                  Top-up Credits
+                  Top-up
                 </TabsTrigger>
+                {settings.adsPackageEnabled && (
+                  <TabsTrigger value="ads_package" className="gap-2 text-xs">
+                    <Zap className="h-4 w-4" />
+                    AI + Ads
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="subscription" className="space-y-6">
@@ -594,6 +678,133 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
                   </>
                 )}
               </TabsContent>
+
+              {/* Ads Package Tab */}
+              {settings.adsPackageEnabled && (
+                <TabsContent value="ads_package" className="space-y-6">
+                  <div className="p-4 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-lg border border-orange-500/20">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-orange-500/20 rounded-lg">
+                        <Zap className="h-6 w-6 text-orange-500" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold">AI + Ads Combo Package</h4>
+                        <p className="text-sm text-muted-foreground">AI credits + Ads promotion with Binary Network entry</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="p-3 bg-background/50 rounded-lg text-center">
+                        <Sparkles className="h-5 w-5 mx-auto mb-1 text-purple-500" />
+                        <p className="text-lg font-bold">{settings.adsPackageCredits.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">AI Credits</p>
+                      </div>
+                      <div className="p-3 bg-background/50 rounded-lg text-center">
+                        <Star className="h-5 w-5 mx-auto mb-1 text-yellow-500" />
+                        <p className="text-lg font-bold">{settings.adsPackageImpressions.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Ad Impressions</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg mb-4">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm">Duration: {settings.adsPackageDays} days</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold">₱{settings.adsPackagePrice.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">+ Binary Network Entry</p>
+                      </div>
+                    </div>
+
+                    <ul className="space-y-2 text-sm mb-4">
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500" />
+                        Use AI credits for content creation
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500" />
+                        Promote your products/services inside TriviaBees
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500" />
+                        Automatic entry to Binary Network for commissions
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Payment Method */}
+                  <div className="space-y-4">
+                    <Label>Payment Method</Label>
+                    <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Label
+                          htmlFor="paymongo-ads"
+                          className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer ${
+                            paymentMethod === 'paymongo' ? 'border-orange-500 bg-orange-500/10' : 'border-border'
+                          }`}
+                        >
+                          <RadioGroupItem value="paymongo" id="paymongo-ads" />
+                          <CreditCard className="h-4 w-4" />
+                          <span className="text-sm">Online Payment</span>
+                        </Label>
+                        <Label
+                          htmlFor="qrcode-ads"
+                          className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer ${
+                            paymentMethod === 'qrcode' ? 'border-orange-500 bg-orange-500/10' : 'border-border'
+                          }`}
+                        >
+                          <RadioGroupItem value="qrcode" id="qrcode-ads" />
+                          <QrCode className="h-4 w-4" />
+                          <span className="text-sm">QR/Bank</span>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {paymentMethod === 'qrcode' && (
+                    <div className="space-y-4">
+                      {qrCodeUrl && (
+                        <div className="flex justify-center">
+                          <img src={qrCodeUrl} alt="Payment QR" className="w-48 h-48 rounded-lg" />
+                        </div>
+                      )}
+                      
+                      {bankDetails.bankName && (
+                        <div className="space-y-2 p-4 bg-muted rounded-lg">
+                          <div className="flex justify-between items-center pt-2 border-t">
+                            <span className="text-sm font-medium">Amount to Pay</span>
+                            <span className="font-bold text-lg">₱{settings.adsPackagePrice.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label>Payment Reference Number</Label>
+                        <Input
+                          placeholder="Enter reference number after payment"
+                          value={referenceNumber}
+                          onChange={(e) => setReferenceNumber(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    className="w-full gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+                    size="lg"
+                    onClick={handleAdsPackagePurchase}
+                    disabled={purchasing}
+                  >
+                    {purchasing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Zap className="h-4 w-4" />
+                    )}
+                    Buy AI + Ads Package
+                  </Button>
+                </TabsContent>
+              )}
             </Tabs>
           </div>
         )}
