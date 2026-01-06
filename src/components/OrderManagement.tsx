@@ -117,6 +117,80 @@ export const OrderManagement = () => {
     }
   };
 
+  const fetchOrderCommissions = async (orderId: string) => {
+    try {
+      // Fetch commissions for this order
+      const { data: commissions, error } = await supabase
+        .from("commissions")
+        .select("id, user_id, commission_type, amount, level, hold_status")
+        .eq("related_order_id", orderId);
+
+      if (error) throw error;
+
+      if (commissions && commissions.length > 0) {
+        // Fetch profiles for all recipients
+        const userIds = [...new Set(commissions.map(c => c.user_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, referral_code")
+          .in("id", userIds);
+
+        const commissionsWithProfiles = commissions.map(c => ({
+          ...c,
+          profile: profiles?.find(p => p.id === c.user_id)
+        }));
+
+        setOrderCommissions(commissionsWithProfiles);
+      } else {
+        setOrderCommissions([]);
+      }
+    } catch (error: any) {
+      console.error("Error fetching order commissions:", error);
+      setOrderCommissions([]);
+    }
+  };
+
+  const toggleCommissionExpand = (orderId: string) => {
+    setExpandedCommissions(prev => ({
+      ...prev,
+      [orderId]: !prev[orderId]
+    }));
+    
+    if (!expandedCommissions[orderId]) {
+      fetchOrderCommissions(orderId);
+    }
+  };
+
+  const getCommissionTypeIcon = (type: string) => {
+    switch (type) {
+      case 'unilevel':
+        return <Users className="w-4 h-4 text-blue-500" />;
+      case 'stairstep':
+        return <TrendingUp className="w-4 h-4 text-purple-500" />;
+      case 'leadership':
+        return <Crown className="w-4 h-4 text-amber-500" />;
+      case 'seller_referrer':
+        return <DollarSign className="w-4 h-4 text-green-500" />;
+      default:
+        return <DollarSign className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getCommissionTypeColor = (type: string) => {
+    switch (type) {
+      case 'unilevel':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'stairstep':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'leadership':
+        return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'seller_referrer':
+        return 'bg-green-100 text-green-700 border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
   const handleViewOrder = async (order: any) => {
     setSelectedOrder(order);
     await fetchOrderItems(order.id);
