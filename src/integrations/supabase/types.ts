@@ -2093,6 +2093,7 @@ export type Database = {
           created_at: string | null
           deferred_amount: number | null
           deferred_paid_amount: number | null
+          deferred_plan_type: string | null
           has_deferred_payment: boolean | null
           id: string
           joined_at: string | null
@@ -2116,6 +2117,7 @@ export type Database = {
           created_at?: string | null
           deferred_amount?: number | null
           deferred_paid_amount?: number | null
+          deferred_plan_type?: string | null
           has_deferred_payment?: boolean | null
           id?: string
           joined_at?: string | null
@@ -2139,6 +2141,7 @@ export type Database = {
           created_at?: string | null
           deferred_amount?: number | null
           deferred_paid_amount?: number | null
+          deferred_plan_type?: string | null
           has_deferred_payment?: boolean | null
           id?: string
           joined_at?: string | null

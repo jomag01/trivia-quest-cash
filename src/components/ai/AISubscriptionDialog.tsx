@@ -18,17 +18,18 @@ interface AISubscriptionDialogProps {
 }
 
 interface SubscriptionPlan {
-  type: 'monthly' | 'yearly' | 'ads_package';
+  type: 'monthly' | 'biannual' | 'yearly' | 'ads_package';
   price: number;
   credits: number;
   savings: number;
+  label: string;
 }
 
 export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseComplete }: AISubscriptionDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly' | 'ads_package'>('monthly');
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'biannual' | 'yearly' | 'ads_package'>('monthly');
   const [activeTab, setActiveTab] = useState<'subscription' | 'topup' | 'ads_package'>('subscription');
   const [paymentMethod, setPaymentMethod] = useState<'paymongo' | 'qrcode'>('paymongo');
   const [paymongoMethod, setPaymongoMethod] = useState<'gcash' | 'paymaya' | 'card'>('gcash');
@@ -40,8 +41,10 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [settings, setSettings] = useState({
     monthlyPrice: 1390,
+    biannualPrice: 6990,
     yearlyPrice: 11990,
     monthlyCredits: 500,
+    biannualCredits: 3500,
     yearlyCredits: 6000,
     topupPricePerCredit: 3,
     topupMinCredits: 100,
@@ -71,10 +74,14 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
       data?.forEach(setting => {
         if (setting.key === 'ai_subscription_monthly_price') {
           setSettings(prev => ({ ...prev, monthlyPrice: parseInt(setting.value || '1390') }));
+        } else if (setting.key === 'ai_subscription_biannual_price') {
+          setSettings(prev => ({ ...prev, biannualPrice: parseInt(setting.value || '6990') }));
         } else if (setting.key === 'ai_subscription_yearly_price') {
           setSettings(prev => ({ ...prev, yearlyPrice: parseInt(setting.value || '11990') }));
         } else if (setting.key === 'ai_subscription_monthly_credits') {
           setSettings(prev => ({ ...prev, monthlyCredits: parseInt(setting.value || '500') }));
+        } else if (setting.key === 'ai_subscription_biannual_credits') {
+          setSettings(prev => ({ ...prev, biannualCredits: parseInt(setting.value || '3500') }));
         } else if (setting.key === 'ai_subscription_yearly_credits') {
           setSettings(prev => ({ ...prev, yearlyCredits: parseInt(setting.value || '6000') }));
         } else if (setting.key === 'ai_topup_price_per_credit') {
@@ -132,13 +139,22 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
       type: 'monthly',
       price: settings.monthlyPrice,
       credits: settings.monthlyCredits,
-      savings: 0
+      savings: 0,
+      label: 'Monthly'
+    },
+    {
+      type: 'biannual',
+      price: settings.biannualPrice,
+      credits: settings.biannualCredits,
+      savings: Math.round(((settings.monthlyPrice * 6) - settings.biannualPrice) / (settings.monthlyPrice * 6) * 100),
+      label: '6 Months'
     },
     {
       type: 'yearly',
       price: settings.yearlyPrice,
       credits: settings.yearlyCredits,
-      savings: Math.round(((settings.monthlyPrice * 12) - settings.yearlyPrice) / (settings.monthlyPrice * 12) * 100)
+      savings: Math.round(((settings.monthlyPrice * 12) - settings.yearlyPrice) / (settings.monthlyPrice * 12) * 100),
+      label: 'Yearly'
     }
   ];
 
@@ -163,6 +179,8 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
         // Create pending subscription
         const expiresAt = selectedPlan === 'monthly' 
           ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          : selectedPlan === 'biannual'
+          ? new Date(Date.now() + 180 * 24 * 60 * 60 * 1000)
           : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
         const { error } = await supabase.from('ai_subscriptions').insert({
@@ -407,46 +425,59 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
 
               <TabsContent value="subscription" className="space-y-6">
                 {/* Plan Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {plans.map((plan) => (
                     <div
                       key={plan.type}
                       onClick={() => setSelectedPlan(plan.type)}
-                      className={`relative cursor-pointer rounded-xl p-5 border-2 transition-all ${
+                      className={`relative cursor-pointer rounded-xl p-4 border-2 transition-all ${
                         selectedPlan === plan.type
-                          ? 'border-purple-500 bg-purple-500/10 shadow-lg'
-                          : 'border-border hover:border-purple-400/50'
+                          ? plan.type === 'yearly' 
+                            ? 'border-yellow-500 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 shadow-lg'
+                            : plan.type === 'biannual'
+                            ? 'border-purple-500 bg-gradient-to-br from-purple-500/10 to-pink-500/10 shadow-lg'
+                            : 'border-blue-500 bg-blue-500/10 shadow-lg'
+                          : 'border-border hover:border-primary/50'
                       }`}
                     >
-                      {plan.savings > 0 && (
-                        <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0">
+                      {plan.type === 'yearly' && (
+                        <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 text-xs">
+                          Best Value
+                        </Badge>
+                      )}
+                      {plan.savings > 0 && plan.type !== 'yearly' && (
+                        <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 text-xs">
                           Save {plan.savings}%
                         </Badge>
                       )}
 
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-2">
                         {plan.type === 'yearly' ? (
-                          <Star className="h-5 w-5 text-yellow-500" />
+                          <Star className="h-4 w-4 text-yellow-500" />
+                        ) : plan.type === 'biannual' ? (
+                          <Zap className="h-4 w-4 text-purple-500" />
                         ) : (
-                          <Calendar className="h-5 w-5 text-blue-500" />
+                          <Calendar className="h-4 w-4 text-blue-500" />
                         )}
-                        <span className="font-bold capitalize">{plan.type}</span>
-                        {selectedPlan === plan.type && <Check className="h-5 w-5 ml-auto text-purple-500" />}
+                        <span className="font-bold text-sm">{plan.label}</span>
+                        {selectedPlan === plan.type && <Check className="h-4 w-4 ml-auto text-primary" />}
                       </div>
 
-                      <div className="mb-3">
-                        <span className="text-2xl font-bold">₱{plan.price.toLocaleString()}</span>
-                        <span className="text-muted-foreground">/{plan.type === 'monthly' ? 'mo' : 'yr'}</span>
+                      <div className="mb-2">
+                        <span className="text-xl font-bold">₱{plan.price.toLocaleString()}</span>
+                        <span className="text-muted-foreground text-xs">
+                          /{plan.type === 'monthly' ? 'month' : plan.type === 'biannual' ? '6mo' : 'year'}
+                        </span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-sm">
-                        <Sparkles className="h-4 w-4 text-purple-500" />
+                      <div className="flex items-center gap-1 text-xs">
+                        <Sparkles className="h-3 w-3 text-purple-500" />
                         <span>{plan.credits.toLocaleString()} credits</span>
                       </div>
 
                       {plan.type === 'yearly' && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          All AI features unlocked
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          All features unlocked
                         </p>
                       )}
                     </div>
