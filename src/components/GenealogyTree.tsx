@@ -364,7 +364,7 @@ export const GenealogyTree = ({ userId }: GenealogyTreeProps) => {
                 <Users className="w-6 h-6" />
               </div>
               <div>
-                <CardTitle className="text-lg sm:text-xl">Network Genealogy</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">Beehives Tree</CardTitle>
                 <p className="text-white/80 text-sm">{totalMembers} members in your network</p>
               </div>
             </div>

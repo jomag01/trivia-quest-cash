@@ -661,7 +661,7 @@ const Dashboard = () => {
         <Tabs defaultValue="tree" className="w-full">
           <TabsList className="grid w-full grid-cols-5 mb-4">
             <TabsTrigger value="tree">Network</TabsTrigger>
-            <TabsTrigger value="binary">Binary</TabsTrigger>
+            <TabsTrigger value="binary">AI Beehives</TabsTrigger>
             <TabsTrigger value="stairstep">Stair-Step</TabsTrigger>
             <TabsTrigger value="leadership">Leadership</TabsTrigger>
             <TabsTrigger value="accounts">Accounts</TabsTrigger>

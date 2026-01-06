@@ -45,16 +45,16 @@ export const ALL_SYSTEM_TABS: Record<string, SystemCategory> = {
         id: 'dashboard-affiliate', 
         label: 'Affiliate Tree',
         components: [
-          { id: 'dashboard-affiliate-tree', label: 'Genealogy Tree' },
+          { id: 'dashboard-affiliate-tree', label: 'Beehives Tree' },
           { id: 'dashboard-affiliate-rank', label: 'Rank Progress' },
           { id: 'dashboard-affiliate-earnings', label: 'Earnings Summary' },
         ]
       },
       { 
         id: 'dashboard-binary', 
-        label: 'AI Bees Match',
+        label: 'AI Beehives',
         components: [
-          { id: 'dashboard-binary-tree', label: 'AI Bees Tree View' },
+          { id: 'dashboard-binary-tree', label: 'AI Beehives Tree View' },
           { id: 'dashboard-binary-volume', label: 'Volume Tracking' },
           { id: 'dashboard-binary-pending', label: 'Pending Placements' },
         ]
