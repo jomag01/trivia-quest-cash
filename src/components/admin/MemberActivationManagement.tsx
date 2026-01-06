@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -21,12 +22,24 @@ import {
   Lock,
   Unlock,
   Store,
-  Star
+  Star,
+  Calendar,
+  Hexagon,
+  Crown,
+  Edit
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { TabVisibilityManager } from './TabVisibilityManager';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useBeehiveTiers } from '@/hooks/useBeehiveTiers';
 
 interface SearchResult {
   id: string;
@@ -50,16 +63,39 @@ interface SearchResult {
     admin_activated: boolean;
     has_deferred_payment: boolean;
     deferred_amount: number;
+    deferred_plan_type: string | null;
   } | null;
 }
 
+const PLAN_LABELS: Record<string, string> = {
+  monthly: 'Monthly',
+  biannual: '6-Month',
+  yearly: 'Yearly'
+};
+
+const PLAN_ICONS: Record<string, React.ReactNode> = {
+  monthly: <Calendar className="h-3 w-3 text-blue-500" />,
+  biannual: <Hexagon className="h-3 w-3 text-purple-500" />,
+  yearly: <Crown className="h-3 w-3 text-yellow-500" />
+};
+
 export default function MemberActivationManagement() {
   const { user } = useAuth();
+  const { tiers } = useBeehiveTiers();
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [activating, setActivating] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [tabVisibilityUser, setTabVisibilityUser] = useState<{ id: string; name: string } | null>(null);
+  
+  // Deferred plan editor state
+  const [editingDeferredUser, setEditingDeferredUser] = useState<SearchResult | null>(null);
+  const [selectedDeferredPlan, setSelectedDeferredPlan] = useState<string>('monthly');
+  const [savingDeferred, setSavingDeferred] = useState(false);
+  
+  // Binary add with plan selection
+  const [addingBinaryUser, setAddingBinaryUser] = useState<SearchResult | null>(null);
+  const [selectedNewPlan, setSelectedNewPlan] = useState<string>('monthly');
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -106,11 +142,12 @@ export default function MemberActivationManagement() {
 
       const { data: binaryStatus } = await supabase
         .from('binary_network')
-        .select('id, user_id, admin_activated, has_deferred_payment, deferred_amount')
+        .select('id, user_id, admin_activated, has_deferred_payment, deferred_amount, deferred_plan_type')
         .in('user_id', userIds)
         .eq('account_number', 1);
 
-      const binaryMap = new Map(binaryStatus?.map(b => [b.user_id, b]) || []);
+      const binaryData = binaryStatus as any[] | null;
+      const binaryMap = new Map(binaryData?.map(b => [b.user_id, b]) || []);
 
       const resultsWithDetails: SearchResult[] = profiles.map(p => ({
         ...p,
@@ -122,7 +159,8 @@ export default function MemberActivationManagement() {
           id: binaryMap.get(p.id)!.id,
           admin_activated: binaryMap.get(p.id)!.admin_activated || false,
           has_deferred_payment: binaryMap.get(p.id)!.has_deferred_payment || false,
-          deferred_amount: binaryMap.get(p.id)!.deferred_amount || 0
+          deferred_amount: binaryMap.get(p.id)!.deferred_amount || 0,
+          deferred_plan_type: binaryMap.get(p.id)!.deferred_plan_type || null
         } : null
       }));
 
@@ -196,7 +234,7 @@ export default function MemberActivationManagement() {
     }
   };
 
-  const handleAddToBinaryWithDeferred = async (userId: string, deferredAmount: number = 2990) => {
+  const handleAddToBinaryWithDeferred = async (userId: string, planType: string, deferredAmount: number) => {
     if (!user) return;
     
     setActivating(userId);
@@ -216,7 +254,8 @@ export default function MemberActivationManagement() {
             admin_activated_by: user.id,
             has_deferred_payment: true,
             deferred_amount: deferredAmount,
-            deferred_paid_amount: 0
+            deferred_paid_amount: 0,
+            deferred_plan_type: planType
           })
           .eq('id', existing.id);
 
@@ -236,13 +275,15 @@ export default function MemberActivationManagement() {
             admin_activated_by: user.id,
             has_deferred_payment: true,
             deferred_amount: deferredAmount,
-            deferred_paid_amount: 0
+            deferred_paid_amount: 0,
+            deferred_plan_type: planType
           });
 
         if (error) throw error;
       }
 
-      toast.success(`User added to binary network with ₱${deferredAmount.toLocaleString()} deferred payment`);
+      toast.success(`User added to AI Beehives as ${PLAN_LABELS[planType]} (₱${deferredAmount.toLocaleString()} deferred)`);
+      setAddingBinaryUser(null);
       handleSearch();
     } catch (error) {
       console.error('Binary activation error:', error);
@@ -250,6 +291,52 @@ export default function MemberActivationManagement() {
     } finally {
       setActivating(null);
     }
+  };
+
+  const handleUpdateDeferredPlan = async () => {
+    if (!user || !editingDeferredUser?.binary_status) return;
+    
+    setSavingDeferred(true);
+    try {
+      const selectedTier = tiers.find(t => t.plan_type === selectedDeferredPlan);
+      const newAmount = selectedTier?.price || 1390;
+
+      const { error } = await supabase
+        .from('binary_network')
+        .update({
+          deferred_plan_type: selectedDeferredPlan,
+          deferred_amount: newAmount
+        })
+        .eq('id', editingDeferredUser.binary_status.id);
+
+      if (error) throw error;
+
+      toast.success(`Deferred plan updated to ${PLAN_LABELS[selectedDeferredPlan]} (₱${newAmount.toLocaleString()})`);
+      setEditingDeferredUser(null);
+      handleSearch();
+    } catch (error) {
+      console.error('Update deferred plan error:', error);
+      toast.error('Failed to update deferred plan');
+    } finally {
+      setSavingDeferred(false);
+    }
+  };
+
+  const openEditDeferredPlan = (result: SearchResult) => {
+    setEditingDeferredUser(result);
+    setSelectedDeferredPlan(result.binary_status?.deferred_plan_type || 'monthly');
+  };
+
+  const openAddBinaryDialog = (result: SearchResult) => {
+    setAddingBinaryUser(result);
+    setSelectedNewPlan('monthly');
+  };
+
+  const handleConfirmAddBinary = () => {
+    if (!addingBinaryUser) return;
+    const selectedTier = tiers.find(t => t.plan_type === selectedNewPlan);
+    const amount = selectedTier?.price || 1390;
+    handleAddToBinaryWithDeferred(addingBinaryUser.id, selectedNewPlan, amount);
   };
 
   const handleToggleAIFeatures = async (userId: string, currentStatus: boolean) => {
@@ -389,9 +476,14 @@ export default function MemberActivationManagement() {
           </div>
           
           {result.binary_status?.has_deferred_payment && (
-            <p className="text-[10px] text-amber-600 font-medium">
-              Owes: ₱{(result.binary_status.deferred_amount || 0).toLocaleString()}
-            </p>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                {PLAN_ICONS[result.binary_status.deferred_plan_type || 'monthly']}
+                <span className="text-[10px] text-amber-600 font-medium">
+                  {PLAN_LABELS[result.binary_status.deferred_plan_type || 'monthly']} - Owes: ₱{(result.binary_status.deferred_amount || 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
           )}
         </div>
         
@@ -414,12 +506,24 @@ export default function MemberActivationManagement() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleAddToBinaryWithDeferred(result.id)}
+                onClick={() => openAddBinaryDialog(result)}
                 disabled={isActivating}
                 className="h-7 text-[10px] border-blue-400 text-blue-600 hover:bg-blue-50"
               >
                 {isActivating ? <Loader2 className="h-3 w-3 animate-spin" /> : <GitBranch className="h-3 w-3 mr-1" />}
                 Binary
+              </Button>
+            )}
+            
+            {result.binary_status?.has_deferred_payment && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => openEditDeferredPlan(result)}
+                className="h-7 text-[10px] border-amber-400 text-amber-600 hover:bg-amber-50"
+              >
+                <Edit className="h-3 w-3 mr-1" />
+                Edit Plan
               </Button>
             )}
             
@@ -528,6 +632,128 @@ export default function MemberActivationManagement() {
               onSaved={() => setTabVisibilityUser(null)}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Deferred Plan Dialog */}
+      <Dialog 
+        open={!!editingDeferredUser} 
+        onOpenChange={(open) => !open && setEditingDeferredUser(null)}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Edit className="h-4 w-4" />
+              Edit Deferred Plan
+            </DialogTitle>
+          </DialogHeader>
+          {editingDeferredUser && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="font-medium text-sm">{editingDeferredUser.full_name || 'Unknown'}</p>
+                <p className="text-xs text-muted-foreground">{editingDeferredUser.email}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-400">
+                    Current: {PLAN_LABELS[editingDeferredUser.binary_status?.deferred_plan_type || 'monthly']}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    ₱{(editingDeferredUser.binary_status?.deferred_amount || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Select New Plan</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {tiers.map(tier => (
+                    <div
+                      key={tier.id}
+                      onClick={() => setSelectedDeferredPlan(tier.plan_type)}
+                      className={`cursor-pointer p-3 rounded-lg border-2 text-center transition-all ${
+                        selectedDeferredPlan === tier.plan_type
+                          ? tier.plan_type === 'yearly'
+                            ? 'border-yellow-500 bg-yellow-500/10'
+                            : tier.plan_type === 'biannual'
+                            ? 'border-purple-500 bg-purple-500/10'
+                            : 'border-blue-500 bg-blue-500/10'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <div className="flex justify-center mb-1">
+                        {PLAN_ICONS[tier.plan_type]}
+                      </div>
+                      <p className="text-xs font-medium">{PLAN_LABELS[tier.plan_type]}</p>
+                      <p className="text-sm font-bold">₱{tier.price.toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingDeferredUser(null)}>Cancel</Button>
+            <Button onClick={handleUpdateDeferredPlan} disabled={savingDeferred}>
+              {savingDeferred ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add to Binary Dialog */}
+      <Dialog 
+        open={!!addingBinaryUser} 
+        onOpenChange={(open) => !open && setAddingBinaryUser(null)}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <GitBranch className="h-4 w-4" />
+              Add to AI Beehives
+            </DialogTitle>
+          </DialogHeader>
+          {addingBinaryUser && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="font-medium text-sm">{addingBinaryUser.full_name || 'Unknown'}</p>
+                <p className="text-xs text-muted-foreground">{addingBinaryUser.email}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Select Deferred Plan</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {tiers.map(tier => (
+                    <div
+                      key={tier.id}
+                      onClick={() => setSelectedNewPlan(tier.plan_type)}
+                      className={`cursor-pointer p-3 rounded-lg border-2 text-center transition-all ${
+                        selectedNewPlan === tier.plan_type
+                          ? tier.plan_type === 'yearly'
+                            ? 'border-yellow-500 bg-yellow-500/10'
+                            : tier.plan_type === 'biannual'
+                            ? 'border-purple-500 bg-purple-500/10'
+                            : 'border-blue-500 bg-blue-500/10'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <div className="flex justify-center mb-1">
+                        {PLAN_ICONS[tier.plan_type]}
+                      </div>
+                      <p className="text-xs font-medium">{PLAN_LABELS[tier.plan_type]}</p>
+                      <p className="text-sm font-bold">₱{tier.price.toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddingBinaryUser(null)}>Cancel</Button>
+            <Button onClick={handleConfirmAddBinary} disabled={activating === addingBinaryUser?.id}>
+              {activating === addingBinaryUser?.id ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Add as Deferred
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
