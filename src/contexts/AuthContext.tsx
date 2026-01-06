@@ -22,6 +22,8 @@ interface Profile {
   website?: string | null;
   birthday?: string | null;
   phone_number?: string | null;
+  is_on_hold?: boolean;
+  is_verified_user?: boolean;
 }
 
 type UserRole = 'admin' | 'user';

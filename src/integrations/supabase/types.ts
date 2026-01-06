@@ -2091,6 +2091,8 @@ export type Database = {
           admin_activated_at: string | null
           admin_activated_by: string | null
           created_at: string | null
+          default_placement_user_id: string | null
+          default_placement_username: string | null
           deferred_amount: number | null
           deferred_paid_amount: number | null
           deferred_plan_type: string | null
@@ -2115,6 +2117,8 @@ export type Database = {
           admin_activated_at?: string | null
           admin_activated_by?: string | null
           created_at?: string | null
+          default_placement_user_id?: string | null
+          default_placement_username?: string | null
           deferred_amount?: number | null
           deferred_paid_amount?: number | null
           deferred_plan_type?: string | null
@@ -2139,6 +2143,8 @@ export type Database = {
           admin_activated_at?: string | null
           admin_activated_by?: string | null
           created_at?: string | null
+          default_placement_user_id?: string | null
+          default_placement_username?: string | null
           deferred_amount?: number | null
           deferred_paid_amount?: number | null
           deferred_plan_type?: string | null
@@ -2157,6 +2163,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "binary_network_default_placement_user_id_fkey"
+            columns: ["default_placement_user_id"]
+            isOneToOne: false
+            referencedRelation: "binary_network"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "binary_network_left_child_id_fkey"
             columns: ["left_child_id"]
@@ -8053,11 +8066,13 @@ export type Database = {
           id: string
           is_admin: boolean | null
           is_creator: boolean | null
+          is_on_hold: boolean | null
           is_paid_affiliate: boolean | null
           is_seller: boolean | null
           is_verified: boolean | null
           is_verified_rider: boolean | null
           is_verified_seller: boolean | null
+          is_verified_user: boolean | null
           location: string | null
           marketplace_activated: boolean | null
           phone_number: string | null
@@ -8095,11 +8110,13 @@ export type Database = {
           id: string
           is_admin?: boolean | null
           is_creator?: boolean | null
+          is_on_hold?: boolean | null
           is_paid_affiliate?: boolean | null
           is_seller?: boolean | null
           is_verified?: boolean | null
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null
+          is_verified_user?: boolean | null
           location?: string | null
           marketplace_activated?: boolean | null
           phone_number?: string | null
@@ -8137,11 +8154,13 @@ export type Database = {
           id?: string
           is_admin?: boolean | null
           is_creator?: boolean | null
+          is_on_hold?: boolean | null
           is_paid_affiliate?: boolean | null
           is_seller?: boolean | null
           is_verified?: boolean | null
           is_verified_rider?: boolean | null
           is_verified_seller?: boolean | null
+          is_verified_user?: boolean | null
           location?: string | null
           marketplace_activated?: boolean | null
           phone_number?: string | null

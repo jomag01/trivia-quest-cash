@@ -41,7 +41,10 @@ import {
   Calendar,
   Hexagon,
   Crown,
-  CreditCard
+  CreditCard,
+  Settings,
+  Search,
+  Target
 } from "lucide-react";
 import { useBeehiveTiers } from "@/hooks/useBeehiveTiers";
 
@@ -60,6 +63,8 @@ interface BinaryAccount {
   deferred_amount?: number;
   deferred_plan_type?: string;
   admin_activated?: boolean;
+  default_placement_user_id?: string;
+  default_placement_username?: string;
 }
 
 interface DownlineAccount {
@@ -123,6 +128,13 @@ export default function BinaryAccountsManager() {
   const [editAccountName, setEditAccountName] = useState("");
   const [editPlanType, setEditPlanType] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  
+  // Default placement state
+  const [defaultPlacementUsername, setDefaultPlacementUsername] = useState("");
+  const [showPlacementSettings, setShowPlacementSettings] = useState(false);
+  const [searchingPlacement, setSearchingPlacement] = useState(false);
+  const [placementSearchResults, setPlacementSearchResults] = useState<DownlineAccount[]>([]);
+  const [selectedDefaultPlacement, setSelectedDefaultPlacement] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -513,6 +525,92 @@ export default function BinaryAccountsManager() {
     }
   };
 
+  // Search for placement target
+  const searchPlacementTarget = async (searchTerm: string) => {
+    if (!searchTerm.trim() || !user) {
+      setPlacementSearchResults([]);
+      return;
+    }
+    
+    setSearchingPlacement(true);
+    try {
+      // Search profiles by name or email
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+        .limit(10);
+
+      if (profileError) throw profileError;
+
+      // Get binary network entries for these users
+      const userIds = profiles?.map(p => p.id) || [];
+      const { data: networkEntries, error: networkError } = await supabase
+        .from('binary_network')
+        .select('id, user_id, account_number, left_child_id, right_child_id')
+        .in('user_id', userIds)
+        .or('left_child_id.is.null,right_child_id.is.null');
+
+      if (networkError) throw networkError;
+
+      // Map results
+      const results: DownlineAccount[] = (networkEntries || []).map(entry => {
+        const profile = profiles?.find(p => p.id === entry.user_id);
+        return {
+          ...entry,
+          profile: profile ? { full_name: profile.full_name, email: profile.email } : undefined
+        };
+      }).filter(r => r.left_child_id === null || r.right_child_id === null);
+
+      setPlacementSearchResults(results);
+    } catch (error) {
+      console.error('Error searching placement target:', error);
+      toast.error('Failed to search');
+    } finally {
+      setSearchingPlacement(false);
+    }
+  };
+
+  // Save default placement setting
+  const saveDefaultPlacement = async (account: BinaryAccount) => {
+    if (!selectedDefaultPlacement) {
+      toast.error('Please select a placement target');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const selectedTarget = placementSearchResults.find(r => r.id === selectedDefaultPlacement);
+      
+      // Check if target has left leg available
+      if (selectedTarget && selectedTarget.left_child_id !== null && selectedTarget.right_child_id !== null) {
+        toast.error('This user has no available placement spots');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('binary_network')
+        .update({
+          default_placement_user_id: selectedDefaultPlacement,
+          default_placement_username: selectedTarget?.profile?.full_name || selectedTarget?.profile?.email || 'Unknown'
+        })
+        .eq('id', account.id);
+
+      if (error) throw error;
+
+      toast.success('Default placement saved! Next referral will be placed under ' + (selectedTarget?.profile?.full_name || 'selected user'));
+      setShowPlacementSettings(false);
+      setSelectedDefaultPlacement(null);
+      setPlacementSearchResults([]);
+      fetchAccounts();
+    } catch (error) {
+      console.error('Error saving default placement:', error);
+      toast.error('Failed to save placement settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const getAvailableLegs = (downline: DownlineAccount) => {
     const available: ('left' | 'right')[] = [];
     if (!downline.left_child_id) available.push('left');
@@ -594,6 +692,12 @@ export default function BinaryAccountsManager() {
                       <p className="text-sm text-muted-foreground">
                         #{account.account_number} • {account.deferred_plan_type && PLAN_LABELS[account.deferred_plan_type]} • {new Date(account.created_at).toLocaleDateString()}
                       </p>
+                      {account.default_placement_username && (
+                        <p className="text-xs text-primary flex items-center gap-1 mt-1">
+                          <Target className="h-3 w-3" />
+                          Default placement: {account.default_placement_username}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -624,6 +728,19 @@ export default function BinaryAccountsManager() {
                         <span className="text-xs text-muted-foreground">Cycles</span>
                       </div>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingAccount(account);
+                        setShowPlacementSettings(true);
+                        setDefaultPlacementUsername(account.default_placement_username || '');
+                        setSelectedDefaultPlacement(account.default_placement_user_id || null);
+                      }}
+                      title="Set default placement"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -1126,6 +1243,115 @@ export default function BinaryAccountsManager() {
             <Button onClick={saveAccountEdit} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Default Placement Settings Dialog */}
+      <Dialog open={showPlacementSettings} onOpenChange={setShowPlacementSettings}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              Default Placement Target
+            </DialogTitle>
+            <DialogDescription>
+              Set where your next referral will be automatically placed. The system will check if left leg is available first.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {editingAccount?.default_placement_username && (
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <p className="text-sm font-medium">Current target: {editingAccount.default_placement_username}</p>
+                <p className="text-xs text-muted-foreground">Next referral will be placed under this user's left leg if available</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Search for user</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={defaultPlacementUsername}
+                  onChange={e => setDefaultPlacementUsername(e.target.value)}
+                  placeholder="Enter name or email..."
+                  onKeyDown={(e) => e.key === 'Enter' && searchPlacementTarget(defaultPlacementUsername)}
+                />
+                <Button 
+                  onClick={() => searchPlacementTarget(defaultPlacementUsername)}
+                  disabled={searchingPlacement}
+                  size="sm"
+                >
+                  {searchingPlacement ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {placementSearchResults.length > 0 && (
+              <div className="space-y-2">
+                <Label>Select placement target</Label>
+                <ScrollArea className="h-48 border rounded-lg p-2">
+                  <div className="space-y-2">
+                    {placementSearchResults.map(result => {
+                      const hasLeftSpot = result.left_child_id === null;
+                      const hasRightSpot = result.right_child_id === null;
+                      return (
+                        <div
+                          key={result.id}
+                          onClick={() => setSelectedDefaultPlacement(result.id)}
+                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                            selectedDefaultPlacement === result.id
+                              ? 'border-primary bg-primary/5'
+                              : 'hover:border-primary/50'
+                          }`}
+                        >
+                          <p className="font-medium text-sm">{result.profile?.full_name || result.profile?.email || 'Unknown'}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant={hasLeftSpot ? 'default' : 'secondary'} className="text-xs">
+                              <ArrowLeft className="h-3 w-3 mr-1" />
+                              Left: {hasLeftSpot ? 'Available' : 'Filled'}
+                            </Badge>
+                            <Badge variant={hasRightSpot ? 'default' : 'secondary'} className="text-xs">
+                              <ArrowRight className="h-3 w-3 mr-1" />
+                              Right: {hasRightSpot ? 'Available' : 'Filled'}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
+                <div className="text-xs text-muted-foreground">
+                  <p className="font-medium text-amber-600 mb-1">How auto-placement works:</p>
+                  <ul className="space-y-1">
+                    <li>• System checks if target has left leg available</li>
+                    <li>• If available, places referral on left</li>
+                    <li>• If left is filled, you'll be prompted to choose right or another user</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowPlacementSettings(false);
+              setPlacementSearchResults([]);
+              setSelectedDefaultPlacement(null);
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => editingAccount && saveDefaultPlacement(editingAccount)} 
+              disabled={saving || !selectedDefaultPlacement}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Placement
             </Button>
           </DialogFooter>
         </DialogContent>
