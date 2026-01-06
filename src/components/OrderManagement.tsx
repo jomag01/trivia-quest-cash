@@ -560,7 +560,7 @@ export const OrderManagement = () => {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               ))}
             </TableBody>
           </Table>
