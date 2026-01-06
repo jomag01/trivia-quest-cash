@@ -9,8 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Crown, Save, Loader2, Check, X, Calendar, Users, DollarSign, Sparkles, Settings, Eye, EyeOff, BarChart3 } from 'lucide-react';
+import { Crown, Save, Loader2, Check, X, Calendar, Users, DollarSign, Sparkles, Settings, Eye, EyeOff, BarChart3, Hexagon, Layers } from 'lucide-react';
 import { format } from 'date-fns';
+import BeehiveTierManager from './BeehiveTierManager';
+import ServiceVisibilityManager from './ServiceVisibilityManager';
 
 interface FeatureRestriction {
   id: string;
@@ -43,12 +45,14 @@ interface PendingTopup {
 export default function AISubscriptionManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('settings');
+  const [activeTab, setActiveTab] = useState('tiers');
   
   // Settings state
   const [monthlyPrice, setMonthlyPrice] = useState('1390');
+  const [biannualPrice, setBiannualPrice] = useState('6990');
   const [yearlyPrice, setYearlyPrice] = useState('11990');
   const [monthlyCredits, setMonthlyCredits] = useState('500');
+  const [biannualCredits, setBiannualCredits] = useState('3500');
   const [yearlyCredits, setYearlyCredits] = useState('6000');
   const [topupPricePerCredit, setTopupPricePerCredit] = useState('3');
   const [topupMinCredits, setTopupMinCredits] = useState('100');
@@ -58,6 +62,7 @@ export default function AISubscriptionManagement() {
   const [topupStairstepPercent, setTopupStairstepPercent] = useState('15');
   const [topupLeadershipPercent, setTopupLeadershipPercent] = useState('5');
   const [binaryVolumeMonthly, setBinaryVolumeMonthly] = useState('1390');
+  const [binaryVolumeBiannual, setBinaryVolumeBiannual] = useState('6990');
   const [binaryVolumeYearly, setBinaryVolumeYearly] = useState('11990');
 
   // Ads Package settings
@@ -95,8 +100,10 @@ export default function AISubscriptionManagement() {
 
       data?.forEach(s => {
         if (s.key === 'ai_subscription_monthly_price') setMonthlyPrice(s.value || '1390');
+        if (s.key === 'ai_subscription_biannual_price') setBiannualPrice(s.value || '6990');
         if (s.key === 'ai_subscription_yearly_price') setYearlyPrice(s.value || '11990');
         if (s.key === 'ai_subscription_monthly_credits') setMonthlyCredits(s.value || '500');
+        if (s.key === 'ai_subscription_biannual_credits') setBiannualCredits(s.value || '3500');
         if (s.key === 'ai_subscription_yearly_credits') setYearlyCredits(s.value || '6000');
         if (s.key === 'ai_topup_price_per_credit') setTopupPricePerCredit(s.value || '3');
         if (s.key === 'ai_topup_min_credits') setTopupMinCredits(s.value || '100');
@@ -106,6 +113,7 @@ export default function AISubscriptionManagement() {
         if (s.key === 'ai_topup_stairstep_percent') setTopupStairstepPercent(s.value || '15');
         if (s.key === 'ai_topup_leadership_percent') setTopupLeadershipPercent(s.value || '5');
         if (s.key === 'ai_subscription_binary_volume_monthly') setBinaryVolumeMonthly(s.value || '1390');
+        if (s.key === 'ai_subscription_binary_volume_biannual') setBinaryVolumeBiannual(s.value || '6990');
         if (s.key === 'ai_subscription_binary_volume_yearly') setBinaryVolumeYearly(s.value || '11990');
         // Ads Package settings
         if (s.key === 'ads_package_price') setAdsPackagePrice(s.value || '2500');
@@ -160,8 +168,10 @@ export default function AISubscriptionManagement() {
     try {
       const updates = [
         { key: 'ai_subscription_monthly_price', value: monthlyPrice },
+        { key: 'ai_subscription_biannual_price', value: biannualPrice },
         { key: 'ai_subscription_yearly_price', value: yearlyPrice },
         { key: 'ai_subscription_monthly_credits', value: monthlyCredits },
+        { key: 'ai_subscription_biannual_credits', value: biannualCredits },
         { key: 'ai_subscription_yearly_credits', value: yearlyCredits },
         { key: 'ai_topup_price_per_credit', value: topupPricePerCredit },
         { key: 'ai_topup_min_credits', value: topupMinCredits },
@@ -171,6 +181,7 @@ export default function AISubscriptionManagement() {
         { key: 'ai_topup_stairstep_percent', value: topupStairstepPercent },
         { key: 'ai_topup_leadership_percent', value: topupLeadershipPercent },
         { key: 'ai_subscription_binary_volume_monthly', value: binaryVolumeMonthly },
+        { key: 'ai_subscription_binary_volume_biannual', value: binaryVolumeBiannual },
         { key: 'ai_subscription_binary_volume_yearly', value: binaryVolumeYearly },
         // Ads Package settings
         { key: 'ads_package_price', value: adsPackagePrice },
@@ -217,9 +228,13 @@ export default function AISubscriptionManagement() {
     try {
       const credits = sub.plan_type === 'monthly' 
         ? parseInt(monthlyCredits) 
+        : sub.plan_type === 'biannual'
+        ? parseInt(biannualCredits)
         : parseInt(yearlyCredits);
       const binaryVolume = sub.plan_type === 'monthly'
         ? parseFloat(binaryVolumeMonthly)
+        : sub.plan_type === 'biannual'
+        ? parseFloat(binaryVolumeBiannual)
         : parseFloat(binaryVolumeYearly);
 
       // Update subscription to active
@@ -386,14 +401,18 @@ export default function AISubscriptionManagement() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-5">
+        <TabsTrigger value="tiers" className="gap-1 text-xs">
+          <Layers className="h-3 w-3" />
+          Tiers
+        </TabsTrigger>
+        <TabsTrigger value="visibility" className="gap-1 text-xs">
+          <EyeOff className="h-3 w-3" />
+          Visibility
+        </TabsTrigger>
         <TabsTrigger value="settings" className="gap-1 text-xs">
           <Settings className="h-3 w-3" />
           Settings
-        </TabsTrigger>
-        <TabsTrigger value="restrictions" className="gap-1 text-xs">
-          <EyeOff className="h-3 w-3" />
-          Monthly Limits
         </TabsTrigger>
         <TabsTrigger value="subscriptions" className="gap-1 text-xs">
           <Crown className="h-3 w-3" />
@@ -404,6 +423,16 @@ export default function AISubscriptionManagement() {
           Top-ups ({pendingTopups.length})
         </TabsTrigger>
       </TabsList>
+
+      {/* Tier Management Tab */}
+      <TabsContent value="tiers">
+        <BeehiveTierManager />
+      </TabsContent>
+
+      {/* Service Visibility Tab */}
+      <TabsContent value="visibility">
+        <ServiceVisibilityManager />
+      </TabsContent>
 
       <TabsContent value="settings">
         <Card>
@@ -424,7 +453,7 @@ export default function AISubscriptionManagement() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Subscription Plans */}
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-3">
               <div className="space-y-4 p-4 border rounded-lg">
                 <h4 className="font-medium flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-blue-500" />
@@ -442,6 +471,27 @@ export default function AISubscriptionManagement() {
                   <div className="space-y-1">
                     <Label className="text-xs">Binary Volume</Label>
                     <Input type="number" value={binaryVolumeMonthly} onChange={e => setBinaryVolumeMonthly(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 p-4 border rounded-lg bg-gradient-to-br from-purple-500/5 to-pink-500/5">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Hexagon className="h-4 w-4 text-purple-500" />
+                  6-Month Plan
+                </h4>
+                <div className="grid gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Price (₱)</Label>
+                    <Input type="number" value={biannualPrice} onChange={e => setBiannualPrice(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Credits Included</Label>
+                    <Input type="number" value={biannualCredits} onChange={e => setBiannualCredits(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Binary Volume</Label>
+                    <Input type="number" value={binaryVolumeBiannual} onChange={e => setBinaryVolumeBiannual(e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -559,41 +609,6 @@ export default function AISubscriptionManagement() {
               <p className="text-xs text-muted-foreground mt-2">
                 Total: {totalCommission}% (remaining {Math.max(0, 100 - totalCommission)}% retained by admin)
               </p>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="restrictions">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <EyeOff className="h-5 w-5 text-primary" />
-              Monthly Subscriber Restrictions
-            </CardTitle>
-            <CardDescription>
-              Hide specific AI features from monthly subscribers. Yearly subscribers have full access.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {restrictions.map((r) => (
-                <div key={r.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{r.feature_name}</p>
-                    <p className="text-xs text-muted-foreground">{r.description}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={r.is_hidden ? 'destructive' : 'secondary'}>
-                      {r.is_hidden ? 'Hidden' : 'Visible'}
-                    </Badge>
-                    <Switch
-                      checked={r.is_hidden}
-                      onCheckedChange={() => toggleRestriction(r.id, r.is_hidden)}
-                    />
-                  </div>
-                </div>
-              ))}
             </div>
           </CardContent>
         </Card>
