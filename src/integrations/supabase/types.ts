@@ -13161,6 +13161,15 @@ export type Database = {
         Args: { p_ad_id: string; p_seller_id: string; p_total_amount: number }
         Returns: undefined
       }
+      distribute_beesmate_premium_commission: {
+        Args: {
+          p_amount: number
+          p_subscription_id: string
+          p_tier_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       distribute_leadership_breakaway: {
         Args: {
           p_order_id?: string
@@ -13210,6 +13219,15 @@ export type Database = {
             }
             Returns: undefined
           }
+      generate_aspn_sales_points: {
+        Args: {
+          p_amount: number
+          p_source_id: string
+          p_source_type: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       generate_order_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       get_ai_subscription_type: { Args: { p_user_id: string }; Returns: string }

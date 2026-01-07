@@ -7,3 +7,8 @@ export { ChatMateBusinessNetworking } from "./ChatMateBusinessNetworking";
 export { ChatMatePremiumVisibility } from "./ChatMatePremiumVisibility";
 export { ChatMateAICoach } from "./ChatMateAICoach";
 export { ChatMateTermsSafety } from "./ChatMateTermsSafety";
+export { BeesMateProfileGallery } from "./BeesMateProfileGallery";
+export { BeesMatePremiumUpgrade } from "./BeesMatePremiumUpgrade";
+export { BeesMateReferralDashboard } from "./BeesMateReferralDashboard";
+export { BeesMateShopShowcase } from "./BeesMateShopShowcase";
+export { ASPNUserDashboard } from "./ASPNUserDashboard";

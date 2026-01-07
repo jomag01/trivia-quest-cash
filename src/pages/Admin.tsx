@@ -99,8 +99,10 @@ import SellerReferrerCommissionManagement from "@/components/admin/SellerReferre
 import ErrorReportsManagement from "@/components/admin/ErrorReportsManagement";
 import CookiePlacementSettings from "@/components/admin/CookiePlacementSettings";
 import MarketingSystemManagement from "@/components/admin/MarketingSystemManagement";
-import { Bug, Heart } from "lucide-react";
+import { Bug, Heart, Award, Coins } from "lucide-react";
 import ChatMateModeration from "@/components/admin/ChatMateModeration";
+import { BeesMatePremiumManagement } from "@/components/admin/BeesMatePremiumManagement";
+import { ASPNManagement } from "@/components/admin/ASPNManagement";
 
 interface MenuItem {
   id: string;
@@ -280,6 +282,8 @@ const Admin = () => {
         { id: "shareholders", label: "Shareholders", icon: PiggyBank },
         { id: "sub-admins", label: "Sub-Admins", icon: UserCog },
         { id: "beesmate-moderation", label: "BeesMate Moderation", icon: Heart },
+        { id: "beesmate-premium", label: "BeesMate Premium", icon: Crown },
+        { id: "aspn-management", label: "ASPN Rewards", icon: Award },
         { id: "marketing-systems", label: "Marketing Systems", icon: Settings },
         { id: "error-reports", label: "Error Reports", icon: Bug },
       ],
@@ -876,6 +880,8 @@ const Admin = () => {
           {activeTab === "sub-admins" && <SubAdminManagement onBack={() => setActiveTab("sales-analytics")} />}
           {activeTab === "marketing-systems" && <MarketingSystemManagement />}
           {activeTab === "beesmate-moderation" && <ChatMateModeration />}
+          {activeTab === "beesmate-premium" && <BeesMatePremiumManagement />}
+          {activeTab === "aspn-management" && <ASPNManagement />}
           {activeTab === "error-reports" && <ErrorReportsManagement />}
           {activeTab === "warehouse" && (
             <div className="space-y-4">
