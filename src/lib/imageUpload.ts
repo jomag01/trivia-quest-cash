@@ -159,18 +159,19 @@ export async function uploadImage(
             message: `Uploading... (attempt ${attempt})`,
           });
 
+          // Direct upload without bucket metadata check
           const { error: uploadError } = await supabase.storage
             .from(bucket)
             .upload(fullPath, compressed, { 
               upsert: true,
               contentType: 'image/webp',
+              cacheControl: '3600',
             });
 
           if (!uploadError) {
-            // Success! Get public URL
-            const { data: { publicUrl } } = supabase.storage
-              .from(bucket)
-              .getPublicUrl(fullPath);
+            // Success! Get public URL directly without getBucket call
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${fullPath}`;
 
             onProgress?.({
               progress: 100,
