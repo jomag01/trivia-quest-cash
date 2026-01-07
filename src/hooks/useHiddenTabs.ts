@@ -50,23 +50,6 @@ export const ALL_SYSTEM_TABS: Record<string, SystemCategory> = {
           { id: 'dashboard-affiliate-earnings', label: 'Earnings Summary' },
         ]
       },
-      { 
-        id: 'dashboard-binary', 
-        label: 'AI Beehives',
-        components: [
-          { id: 'dashboard-binary-tree', label: 'AI Beehives Tree View' },
-          { id: 'dashboard-binary-volume', label: 'Volume Tracking' },
-          { id: 'dashboard-binary-pending', label: 'Pending Placements' },
-        ]
-      },
-      { 
-        id: 'dashboard-binary-earnings', 
-        label: 'AI Beehives Earnings',
-        components: [
-          { id: 'dashboard-binary-earnings-chart', label: 'Earnings Chart' },
-          { id: 'dashboard-binary-earnings-history', label: 'Commission History' },
-        ]
-      },
       { id: 'dashboard-calculator', label: 'Calculator' },
       { 
         id: 'dashboard-notifications', 

@@ -38,13 +38,9 @@ import DeepResearchAssistant from "@/components/ai/DeepResearchAssistant";
 import AdvancedChatAssistant from "@/components/ai/AdvancedChatAssistant";
 import AICreditsTracker from "@/components/AICreditsTracker";
 import { AppPresentationGenerator } from "@/components/AppPresentationGenerator";
-import BinaryEarningsAnalytics from "@/components/BinaryEarningsAnalytics";
-import BinaryTreeView from "@/components/BinaryTreeView";
-import BinaryPendingPlacements from "@/components/BinaryPendingPlacements";
 import ProviderInbox from "@/components/chat/ProviderInbox";
 import { AccountSettings } from "@/components/profile/AccountSettings";
 import PromotionalAdsGallery from "@/components/PromotionalAdsGallery";
-import BinaryAccountsManager from "@/components/BinaryAccountsManager";
 import { StairStepTree } from "@/components/StairStepTree";
 import { LeadershipTree } from "@/components/LeadershipTree";
 import { CurrencyConversionDialog } from "@/components/CurrencyConversionDialog";
@@ -663,20 +659,14 @@ const Dashboard = () => {
 
       <TabsContent value="network" className="space-y-6">
         <Tabs defaultValue="tree" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-4">
-            <TabsTrigger value="tree">Network</TabsTrigger>
-            <TabsTrigger value="binary">AI Beehives</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="tree">Affiliate Network</TabsTrigger>
             <TabsTrigger value="stairstep">Stair-Step</TabsTrigger>
             <TabsTrigger value="leadership">Leadership</TabsTrigger>
-            <TabsTrigger value="accounts">Accounts</TabsTrigger>
           </TabsList>
           <TabsContent value="tree" className="space-y-6">
-            <BinaryPendingPlacements userId={user?.id || ''} />
             <GenealogyTree userId={user?.id || ''} />
             <UplineTransferRequest />
-          </TabsContent>
-          <TabsContent value="binary" className="space-y-6">
-            <BinaryTreeView userId={user?.id || ''} />
           </TabsContent>
           <TabsContent value="stairstep" className="space-y-6">
             <StairStepTree userId={user?.id || ''} />
@@ -684,14 +674,7 @@ const Dashboard = () => {
           <TabsContent value="leadership" className="space-y-6">
             <LeadershipTree userId={user?.id || ''} />
           </TabsContent>
-          <TabsContent value="accounts">
-            <BinaryAccountsManager />
-          </TabsContent>
         </Tabs>
-      </TabsContent>
-
-      <TabsContent value="binary-earnings" className="space-y-6">
-        <BinaryEarningsAnalytics onCashOut={() => setShowCashOut(true)} />
       </TabsContent>
 
       <TabsContent value="calculator" className="space-y-6">
