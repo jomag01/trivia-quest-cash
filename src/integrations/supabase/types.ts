@@ -2700,6 +2700,59 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_matches: {
+        Row: {
+          created_at: string | null
+          icebreaker_message: string | null
+          id: string
+          match_reason: string | null
+          match_score: number | null
+          room_id: string | null
+          status: string | null
+          updated_at: string | null
+          user_a: string
+          user_a_action: string | null
+          user_b: string
+          user_b_action: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          icebreaker_message?: string | null
+          id?: string
+          match_reason?: string | null
+          match_score?: number | null
+          room_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_a: string
+          user_a_action?: string | null
+          user_b: string
+          user_b_action?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          icebreaker_message?: string | null
+          id?: string
+          match_reason?: string | null
+          match_score?: number | null
+          room_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_a?: string
+          user_a_action?: string | null
+          user_b?: string
+          user_b_action?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_matches_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chatmate_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_response_ratings: {
         Row: {
           conversation_id: string
@@ -2734,6 +2787,179 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "provider_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatmate_ai_behavior_logs: {
+        Row: {
+          action_taken: string | null
+          confidence: number | null
+          created_at: string | null
+          id: string
+          message_content: string | null
+          room_id: string | null
+          signal_type: string
+          user_id: string
+        }
+        Insert: {
+          action_taken?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          message_content?: string | null
+          room_id?: string | null
+          signal_type: string
+          user_id: string
+        }
+        Update: {
+          action_taken?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          message_content?: string | null
+          room_id?: string | null
+          signal_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatmate_ai_behavior_logs_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chatmate_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatmate_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_ai_generated: boolean | null
+          is_read: boolean | null
+          message: string
+          message_type: string | null
+          room_id: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_ai_generated?: boolean | null
+          is_read?: boolean | null
+          message: string
+          message_type?: string | null
+          room_id: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_ai_generated?: boolean | null
+          is_read?: boolean | null
+          message?: string
+          message_type?: string | null
+          room_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatmate_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chatmate_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatmate_reports: {
+        Row: {
+          admin_notes: string | null
+          auto_action: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          reason: string
+          reported_user_id: string
+          reporter_user_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          room_id: string | null
+          severity: number | null
+          status: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          auto_action?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reason: string
+          reported_user_id: string
+          reporter_user_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          room_id?: string | null
+          severity?: number | null
+          status?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          auto_action?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reason?: string
+          reported_user_id?: string
+          reporter_user_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          room_id?: string | null
+          severity?: number | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatmate_reports_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chatmate_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatmate_rooms: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_message_at: string | null
+          match_id: string | null
+          participant_ids: string[]
+          room_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          match_id?: string | null
+          participant_ids?: string[]
+          room_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          match_id?: string | null
+          participant_ids?: string[]
+          room_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatmate_rooms_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "chat_matches"
             referencedColumns: ["id"]
           },
         ]
@@ -8101,6 +8327,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_admin: boolean | null
+          is_chat_enabled: boolean | null
           is_creator: boolean | null
           is_on_hold: boolean | null
           is_paid_affiliate: boolean | null
@@ -8120,6 +8347,7 @@ export type Database = {
           seller_registered_at: string | null
           total_reviews: number | null
           total_views: number | null
+          trust_score: number | null
           updated_at: string
           username: string | null
           website: string | null
@@ -8145,6 +8373,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_admin?: boolean | null
+          is_chat_enabled?: boolean | null
           is_creator?: boolean | null
           is_on_hold?: boolean | null
           is_paid_affiliate?: boolean | null
@@ -8164,6 +8393,7 @@ export type Database = {
           seller_registered_at?: string | null
           total_reviews?: number | null
           total_views?: number | null
+          trust_score?: number | null
           updated_at?: string
           username?: string | null
           website?: string | null
@@ -8189,6 +8419,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
+          is_chat_enabled?: boolean | null
           is_creator?: boolean | null
           is_on_hold?: boolean | null
           is_paid_affiliate?: boolean | null
@@ -8208,6 +8439,7 @@ export type Database = {
           seller_registered_at?: string | null
           total_reviews?: number | null
           total_views?: number | null
+          trust_score?: number | null
           updated_at?: string
           username?: string | null
           website?: string | null
@@ -11705,6 +11937,75 @@ export type Database = {
           target_id?: string
           target_type?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_interests: {
+        Row: {
+          created_at: string | null
+          id: string
+          interest_tag: string
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          interest_tag: string
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          interest_tag?: string
+          user_id?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      user_personality_profiles: {
+        Row: {
+          ai_personality_vector: Json | null
+          communication_style: string | null
+          conversation_depth: string | null
+          created_at: string | null
+          id: string
+          is_visible: boolean | null
+          languages: string[] | null
+          last_active_at: string | null
+          looking_for: string[] | null
+          tone_preference: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_personality_vector?: Json | null
+          communication_style?: string | null
+          conversation_depth?: string | null
+          created_at?: string | null
+          id?: string
+          is_visible?: boolean | null
+          languages?: string[] | null
+          last_active_at?: string | null
+          looking_for?: string[] | null
+          tone_preference?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_personality_vector?: Json | null
+          communication_style?: string | null
+          conversation_depth?: string | null
+          created_at?: string | null
+          id?: string
+          is_visible?: boolean | null
+          languages?: string[] | null
+          last_active_at?: string | null
+          looking_for?: string[] | null
+          tone_preference?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
