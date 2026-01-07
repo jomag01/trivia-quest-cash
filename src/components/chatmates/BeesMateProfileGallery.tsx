@@ -5,12 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { 
   Plus, Trash2, Wand2, Star, Crown, Lock,
   Sparkles, Palette, Camera, ImageIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { 
+  validateImage, 
+  uploadImage, 
+  UploadProgress 
+} from "@/lib/imageUpload";
 
 interface ProfileImage {
   id: string;
@@ -34,6 +40,7 @@ export function BeesMateProfileGallery({ userSubscription, onUpgradeClick }: Bee
   const [images, setImages] = useState<ProfileImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [enhancing, setEnhancing] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<ProfileImage | null>(null);
   const [enhanceDialogOpen, setEnhanceDialogOpen] = useState(false);
@@ -65,46 +72,29 @@ export function BeesMateProfileGallery({ userSubscription, onUpgradeClick }: Bee
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user || !e.target.files?.length) return;
     const file = e.target.files[0];
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
-      return;
-    }
-
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB');
+    
+    // Validate file
+    const validation = validateImage(file, 'profile');
+    if (!validation.valid) {
+      toast.error(validation.error);
       return;
     }
 
     setUploading(true);
+    setUploadProgress({ progress: 0, status: 'uploading', message: 'Starting...' });
+    
     try {
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      // Try beesmate-profiles bucket first, fallback to avatars
-      let bucketName = 'beesmate-profiles';
-      let uploadResult = await supabase.storage
-        .from(bucketName)
-        .upload(fileName, file, { upsert: true });
+      const result = await uploadImage(file, user.id, 'profile', {
+        onProgress: setUploadProgress,
+      });
 
-      // If beesmate-profiles fails, try avatars bucket
-      if (uploadResult.error) {
-        console.log('beesmate-profiles bucket error, trying avatars:', uploadResult.error);
-        bucketName = 'avatars';
-        uploadResult = await supabase.storage
-          .from(bucketName)
-          .upload(fileName, file, { upsert: true });
+      if (!result.success) {
+        throw new Error(result.error || 'Upload failed');
       }
-
-      if (uploadResult.error) throw uploadResult.error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(fileName);
 
       const { error: insertError } = await supabase.from('beesmate_profile_images').insert({
         user_id: user.id,
-        image_url: publicUrl,
+        image_url: result.publicUrl,
         is_primary: images.length === 0,
         display_order: images.length
       });
@@ -115,9 +105,10 @@ export function BeesMateProfileGallery({ userSubscription, onUpgradeClick }: Bee
       fetchImages();
     } catch (error: any) {
       console.error('Error uploading image:', error);
-      toast.error(error?.message || 'Failed to upload image');
+      toast.error(error?.message || 'Failed to upload image. Tap to retry.');
     } finally {
       setUploading(false);
+      setTimeout(() => setUploadProgress(null), 2000);
     }
   };
 
@@ -274,9 +265,20 @@ export function BeesMateProfileGallery({ userSubscription, onUpgradeClick }: Bee
                   animate={{ opacity: 1 }}
                   className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
                 >
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                  <input 
+                    type="file" 
+                    accept="image/jpeg,image/png,image/webp" 
+                    className="hidden" 
+                    onChange={handleImageUpload} 
+                    disabled={uploading} 
+                  />
                   {uploading ? (
-                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                      {uploadProgress && (
+                        <span className="text-xs text-muted-foreground">{uploadProgress.progress}%</span>
+                      )}
+                    </div>
                   ) : (
                     <>
                       <Plus className="w-6 h-6 text-muted-foreground" />

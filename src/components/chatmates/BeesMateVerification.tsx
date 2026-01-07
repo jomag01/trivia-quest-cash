@@ -4,12 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { 
   ShieldCheck, Upload, Camera, AlertCircle, CheckCircle2, 
   Clock, X, FileText, User
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { 
+  validateImage, 
+  uploadVerificationImage, 
+  UploadProgress 
+} from "@/lib/imageUpload";
 
 interface VerificationStatus {
   id: string;
@@ -27,6 +33,7 @@ export function BeesMateVerification({ onVerificationChange }: BeesMateVerificat
   const [verification, setVerification] = useState<VerificationStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [idFile, setIdFile] = useState<File | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
@@ -58,18 +65,32 @@ export function BeesMateVerification({ onVerificationChange }: BeesMateVerificat
 
   const handleIdUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setIdFile(file);
-      setIdPreview(URL.createObjectURL(file));
+    if (!file) return;
+
+    // Validate before accepting
+    const validation = validateImage(file, 'verification');
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
     }
+
+    setIdFile(file);
+    setIdPreview(URL.createObjectURL(file));
   };
 
   const handleSelfieUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelfieFile(file);
-      setSelfiePreview(URL.createObjectURL(file));
+    if (!file) return;
+
+    // Validate before accepting
+    const validation = validateImage(file, 'verification');
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
     }
+
+    setSelfieFile(file);
+    setSelfiePreview(URL.createObjectURL(file));
   };
 
   const submitVerification = async () => {
@@ -79,44 +100,45 @@ export function BeesMateVerification({ onVerificationChange }: BeesMateVerificat
     }
 
     setUploading(true);
+    setUploadProgress({ progress: 0, status: 'uploading', message: 'Starting...' });
+    
     try {
       // Upload ID document
-      const idExt = idFile.name.split('.').pop();
-      const idFileName = `verifications/${user.id}/id_${Date.now()}.${idExt}`;
-      
-      const { error: idUploadError } = await supabase.storage
-        .from('beesmate-profiles')
-        .upload(idFileName, idFile);
+      const idResult = await uploadVerificationImage(
+        idFile, 
+        user.id, 
+        'id',
+        setUploadProgress
+      );
 
-      if (idUploadError) throw idUploadError;
-
-      const { data: { publicUrl: idUrl } } = supabase.storage
-        .from('beesmate-profiles')
-        .getPublicUrl(idFileName);
+      if (!idResult.success) {
+        throw new Error(idResult.error || 'Failed to upload ID');
+      }
 
       let selfieUrl = null;
       if (selfieFile) {
-        const selfieExt = selfieFile.name.split('.').pop();
-        const selfieFileName = `verifications/${user.id}/selfie_${Date.now()}.${selfieExt}`;
+        setUploadProgress({ progress: 50, status: 'uploading', message: 'Uploading selfie...' });
         
-        const { error: selfieUploadError } = await supabase.storage
-          .from('beesmate-profiles')
-          .upload(selfieFileName, selfieFile);
+        const selfieResult = await uploadVerificationImage(
+          selfieFile,
+          user.id,
+          'selfie',
+          setUploadProgress
+        );
 
-        if (selfieUploadError) throw selfieUploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('beesmate-profiles')
-          .getPublicUrl(selfieFileName);
-        selfieUrl = publicUrl;
+        if (selfieResult.success) {
+          selfieUrl = selfieResult.publicUrl;
+        }
       }
+
+      setUploadProgress({ progress: 90, status: 'uploading', message: 'Saving...' });
 
       // Submit verification
       const { error: insertError } = await supabase
         .from('beesmate_verifications')
         .upsert({
           user_id: user.id,
-          id_document_url: idUrl,
+          id_document_url: idResult.publicUrl,
           selfie_url: selfieUrl,
           verification_status: 'pending',
           submitted_at: new Date().toISOString()
@@ -124,17 +146,21 @@ export function BeesMateVerification({ onVerificationChange }: BeesMateVerificat
 
       if (insertError) throw insertError;
 
+      setUploadProgress({ progress: 100, status: 'complete', message: 'Success!' });
       toast.success('Verification submitted! We\'ll review it within 24-48 hours.');
+      
       fetchVerification();
       setIdFile(null);
       setSelfieFile(null);
       setIdPreview(null);
       setSelfiePreview(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting verification:', error);
-      toast.error('Failed to submit verification');
+      setUploadProgress({ progress: 0, status: 'error', message: 'Upload failed' });
+      toast.error(error.message || 'Failed to submit verification. Tap to retry.');
     } finally {
       setUploading(false);
+      setTimeout(() => setUploadProgress(null), 2000);
     }
   };
 
@@ -342,6 +368,15 @@ export function BeesMateVerification({ onVerificationChange }: BeesMateVerificat
             </label>
           )}
         </div>
+
+        {uploadProgress && (
+          <div className="space-y-2">
+            <Progress value={uploadProgress.progress} className="h-2" />
+            <p className="text-xs text-center text-muted-foreground">
+              {uploadProgress.message}
+            </p>
+          </div>
+        )}
 
         <Button 
           className="w-full bg-gradient-to-r from-green-500 to-emerald-600"
