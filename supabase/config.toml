@@ -116,3 +116,6 @@ verify_jwt = false
 
 [functions.sync-newsletter-subscribers]
 verify_jwt = false
+
+[functions.chatmate-icebreaker]
+verify_jwt = false

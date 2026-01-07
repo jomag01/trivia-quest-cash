@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Sparkles, Gamepad2, ShoppingBag, MessageCircle, User } from "lucide-react";
+import { Sparkles, Gamepad2, ShoppingBag, MessageCircle, User, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddToHomeScreenButton } from "@/components/AddToHomeScreenButton";
 
@@ -43,6 +43,17 @@ const Navigation = () => {
         >
           <Gamepad2 className="w-5 h-5" />
           <span className="text-[9px] font-medium">Games</span>
+        </Link>
+
+        {/* Chat Mates - Interest-based connections */}
+        <Link
+          to="/chat-mates"
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-2 relative ${
+            isActive("/chat-mates") ? "text-primary" : "text-muted-foreground"
+          }`}
+        >
+          <Heart className="w-5 h-5" />
+          <span className="text-[9px] font-medium">ChatMate</span>
         </Link>
 
         {/* Messages - Seller/Buyer Communication */}
