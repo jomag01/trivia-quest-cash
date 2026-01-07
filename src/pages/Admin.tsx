@@ -279,7 +279,7 @@ const Admin = () => {
       items: [
         { id: "shareholders", label: "Shareholders", icon: PiggyBank },
         { id: "sub-admins", label: "Sub-Admins", icon: UserCog },
-        { id: "chatmate-moderation", label: "Chat Mate Moderation", icon: Heart },
+        { id: "beesmate-moderation", label: "BeesMate Moderation", icon: Heart },
         { id: "marketing-systems", label: "Marketing Systems", icon: Settings },
         { id: "error-reports", label: "Error Reports", icon: Bug },
       ],
@@ -875,7 +875,7 @@ const Admin = () => {
           {activeTab === "shareholders" && <ShareholderManagement onBack={() => setActiveTab("sales-analytics")} />}
           {activeTab === "sub-admins" && <SubAdminManagement onBack={() => setActiveTab("sales-analytics")} />}
           {activeTab === "marketing-systems" && <MarketingSystemManagement />}
-          {activeTab === "chatmate-moderation" && <ChatMateModeration />}
+          {activeTab === "beesmate-moderation" && <ChatMateModeration />}
           {activeTab === "error-reports" && <ErrorReportsManagement />}
           {activeTab === "warehouse" && (
             <div className="space-y-4">

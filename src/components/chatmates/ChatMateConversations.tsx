@@ -219,7 +219,7 @@ export function ChatMateConversations({ showOnlyMatches, onOpenChat }: ChatMateC
           </h3>
           <p className="text-muted-foreground">
             {showOnlyMatches 
-              ? "Start discovering people to find your chat mates!"
+              ? "Start discovering people to find your bees mates!"
               : "When you match with someone, your chats will appear here."
             }
           </p>
