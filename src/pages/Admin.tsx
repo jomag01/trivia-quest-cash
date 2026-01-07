@@ -72,11 +72,7 @@ import AppLogoManagement from "@/components/admin/AppLogoManagement";
 import SystemResetManagement from "@/components/admin/SystemResetManagement";
 import AISettingsManagement from "@/components/admin/AISettingsManagement";
 import AIProviderPricing from "@/components/admin/AIProviderPricing";
-import BinarySystemManagement from "@/components/admin/BinarySystemManagement";
-import BinaryAccountingDashboard from "@/components/admin/BinaryAccountingDashboard";
-import BinaryCalculator from "@/components/admin/BinaryCalculator";
 import QRPaymentSettings from "@/components/admin/QRPaymentSettings";
-import BinaryAIPurchaseManagement from "@/components/admin/BinaryAIPurchaseManagement";
 import MarketplaceCategoryManagement from "@/components/admin/MarketplaceCategoryManagement";
 import MarketplaceSettingsManagement from "@/components/admin/MarketplaceSettingsManagement";
 import SupplierManagement from "@/components/admin/SupplierManagement";
@@ -183,9 +179,6 @@ const Admin = () => {
       icon: Network,
       items: [
         { id: "member-activation", label: "Member Activation", icon: UserCheck },
-        { id: "binary-system", label: "AI Beehives System", icon: GitBranch },
-        { id: "binary-accounting", label: "AI Beehives Accounting", icon: BarChart3 },
-        { id: "binary-calculator", label: "AI Beehives Calculator", icon: Calculator },
         { id: "unilevel-settings", label: "Unilevel Network", icon: Users },
         { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
         { id: "transfers", label: "Upline Transfers", icon: Users },
@@ -867,10 +860,6 @@ const Admin = () => {
           {activeTab === "cash-deposits" && <CashDepositManagement />}
           {activeTab === "payout-accounts" && <PayoutAccountsManagement />}
           {activeTab === "member-activation" && <MemberActivationManagement />}
-          {activeTab === "binary-system" && <BinarySystemManagement />}
-          {activeTab === "binary-accounting" && <BinaryAccountingDashboard />}
-          {activeTab === "binary-calculator" && <BinaryCalculator />}
-          {activeTab === "ai-packages" && <BinaryAIPurchaseManagement />}
           {activeTab === "marketplace-categories" && <MarketplaceCategoryManagement />}
           {activeTab === "marketplace-settings" && <MarketplaceSettingsManagement />}
           {activeTab === "listing-features" && <ListingFeaturesManagement />}

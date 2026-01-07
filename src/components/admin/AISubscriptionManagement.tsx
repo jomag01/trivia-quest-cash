@@ -11,9 +11,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Crown, Save, Loader2, Check, X, Calendar, Users, DollarSign, Sparkles, Settings, Eye, EyeOff, BarChart3, Hexagon, Layers, List } from 'lucide-react';
 import { format } from 'date-fns';
-import BeehiveTierManager from './BeehiveTierManager';
 import ServiceVisibilityManager from './ServiceVisibilityManager';
-import AIhivesMembersList from './AIhivesMembersList';
 
 interface FeatureRestriction {
   id: string;
@@ -402,15 +400,7 @@ export default function AISubscriptionManagement() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-      <TabsList className="grid w-full grid-cols-6">
-        <TabsTrigger value="tiers" className="gap-1 text-xs">
-          <Layers className="h-3 w-3" />
-          Tiers
-        </TabsTrigger>
-        <TabsTrigger value="members" className="gap-1 text-xs">
-          <List className="h-3 w-3" />
-          Members
-        </TabsTrigger>
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="visibility" className="gap-1 text-xs">
           <EyeOff className="h-3 w-3" />
           Visibility
@@ -428,16 +418,6 @@ export default function AISubscriptionManagement() {
           Top-ups ({pendingTopups.length})
         </TabsTrigger>
       </TabsList>
-
-      {/* Tier Management Tab */}
-      <TabsContent value="tiers">
-        <BeehiveTierManager />
-      </TabsContent>
-
-      {/* Members Master List Tab */}
-      <TabsContent value="members">
-        <AIhivesMembersList />
-      </TabsContent>
 
       {/* Service Visibility Tab */}
       <TabsContent value="visibility">
