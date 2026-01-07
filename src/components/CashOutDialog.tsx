@@ -69,8 +69,8 @@ export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultS
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch all commission types
-      const [unilevelResult, stairstepResult, leadershipResult, binaryResult, diamondsResult, diamondPriceResult] = await Promise.all([
+      // Fetch all commission types (excluding binary - removed from system)
+      const [unilevelResult, stairstepResult, leadershipResult, diamondsResult, diamondPriceResult] = await Promise.all([
         // Unilevel commissions
         supabase
           .from("commissions")
@@ -91,12 +91,6 @@ export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultS
           .select("amount")
           .eq("upline_id", user.id),
         
-        // Binary commissions
-        supabase
-          .from("binary_commissions")
-          .select("amount")
-          .eq("user_id", user.id),
-        
         // Diamond balance
         supabase
           .from("treasure_wallet")
@@ -115,7 +109,6 @@ export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultS
       const unilevelTotal = (unilevelResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
       const stairstepTotal = (stairstepResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
       const leadershipTotal = (leadershipResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
-      const binaryTotal = (binaryResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
       
       const diamonds = diamondsResult.data?.diamonds || 0;
       const basePrice = diamondPriceResult.data?.setting_value ? parseFloat(diamondPriceResult.data.setting_value) : 10;
@@ -124,13 +117,13 @@ export const CashOutDialog = ({ open, onOpenChange, initialBalance = 0, defaultS
       setTotalDiamonds(diamonds);
       setDiamondPrice(basePrice);
       
-      const totalEarnings = unilevelTotal + stairstepTotal + leadershipTotal + binaryTotal + diamondValue;
+      const totalEarnings = unilevelTotal + stairstepTotal + leadershipTotal + diamondValue;
       
       setEarnings({
         unilevel: unilevelTotal,
         stairstep: stairstepTotal,
         leadership: leadershipTotal,
-        binary: binaryTotal,
+        binary: 0,
         diamonds: diamondValue,
         total: totalEarnings
       });
@@ -298,7 +291,6 @@ Total: ₱${earnings.total.toFixed(2)}
     { label: "Unilevel", value: earnings.unilevel, icon: Users, color: "text-blue-500" },
     { label: "Stairstep", value: earnings.stairstep, icon: TrendingUp, color: "text-green-500" },
     { label: "Leadership", value: earnings.leadership, icon: Award, color: "text-purple-500" },
-    { label: "Binary", value: earnings.binary, icon: GitBranch, color: "text-orange-500" },
     { label: "Diamonds", value: earnings.diamonds, icon: Diamond, color: "text-cyan-500", subtext: `${totalDiamonds.toLocaleString()} 💎` },
   ];
 

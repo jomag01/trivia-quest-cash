@@ -230,11 +230,6 @@ export default function AISubscriptionManagement() {
         : sub.plan_type === 'biannual'
         ? parseInt(biannualCredits)
         : parseInt(yearlyCredits);
-      const binaryVolume = sub.plan_type === 'monthly'
-        ? parseFloat(binaryVolumeMonthly)
-        : sub.plan_type === 'biannual'
-        ? parseFloat(binaryVolumeBiannual)
-        : parseFloat(binaryVolumeYearly);
 
       // Update subscription to active
       await supabase
@@ -242,7 +237,6 @@ export default function AISubscriptionManagement() {
         .update({
           status: 'active',
           credits_remaining: credits,
-          binary_volume_added: true,
           updated_at: new Date().toISOString()
         })
         .eq('id', sub.id);
@@ -255,38 +249,9 @@ export default function AISubscriptionManagement() {
         amount_paid: sub.amount_paid,
         credits_granted: credits,
         action: 'purchase',
-        binary_volume_added: binaryVolume,
         payment_method: 'qrcode',
         payment_reference: sub.payment_reference
       });
-
-      // Add binary volume if user is in binary network
-      const { data: binaryNode } = await supabase
-        .from('binary_network')
-        .select('id, parent_id, placement_leg, left_volume, right_volume')
-        .eq('user_id', sub.user_id)
-        .maybeSingle();
-
-      if (binaryNode && binaryNode.parent_id) {
-        // Get parent node and update volume
-        const { data: parentNode } = await supabase
-          .from('binary_network')
-          .select('id, left_volume, right_volume')
-          .eq('id', binaryNode.parent_id)
-          .single();
-
-        if (parentNode) {
-          const volumeColumn = binaryNode.placement_leg === 'left' ? 'left_volume' : 'right_volume';
-          const currentVolume = binaryNode.placement_leg === 'left' 
-            ? (parentNode.left_volume || 0) 
-            : (parentNode.right_volume || 0);
-          
-          await supabase
-            .from('binary_network')
-            .update({ [volumeColumn]: currentVolume + binaryVolume })
-            .eq('id', binaryNode.parent_id);
-        }
-      }
 
       toast.success('Subscription approved');
       fetchPending();

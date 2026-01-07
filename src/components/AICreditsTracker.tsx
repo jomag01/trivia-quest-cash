@@ -92,14 +92,23 @@ export default function AICreditsTracker() {
     if (!user) return;
     try {
       const { data, error } = await supabase
-        .from('binary_ai_purchases')
+        .from('ai_credit_topups')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPendingPurchases(data || []);
+      setPendingPurchases((data || []).map(d => ({
+        id: d.id,
+        amount: d.amount,
+        credits_received: d.credits_purchased,
+        images_allocated: 0,
+        video_minutes_allocated: 0,
+        audio_minutes_allocated: 0,
+        status: d.status,
+        created_at: d.created_at
+      })));
     } catch (error) {
       console.error('Error fetching pending purchases:', error);
     }

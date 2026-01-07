@@ -325,13 +325,12 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
         }
 
         // Create pending ads package purchase
-        const { error } = await supabase.from('binary_ai_purchases').insert({
+        const { error } = await supabase.from('ai_credit_topups').insert({
           user_id: user.id,
           amount: settings.adsPackagePrice,
-          credits_received: settings.adsPackageCredits,
-          images_allocated: settings.adsPackageImpressions,
-          status: 'pending',
-          is_first_purchase: true
+          credits_purchased: settings.adsPackageCredits,
+          payment_method: 'qrcode',
+          status: 'pending'
         });
 
         if (error) throw error;

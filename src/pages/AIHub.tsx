@@ -23,7 +23,7 @@ import WebsiteBuilder from '@/components/ai/WebsiteBuilder';
 import BusinessSolutions from '@/components/ai/BusinessSolutions';
 import DeepResearchAssistant from '@/components/ai/DeepResearchAssistant';
 import AdvancedChatAssistant from '@/components/ai/AdvancedChatAssistant';
-import BinaryAffiliateTab from '@/components/ai/BinaryAffiliateTab';
+// BinaryAffiliateTab removed - binary system discontinued
 import AIHubGallery from '@/components/ai/AIHubGallery';
 import WebsiteScraper from '@/components/ai/WebsiteScraper';
 import CreatorAnalytics from '@/components/ai/CreatorAnalytics';
@@ -1647,10 +1647,10 @@ const AIHub = memo(() => {
             />
           )}
 
-          {/* Binary Affiliate Tab */}
+          {/* Affiliate Tab - Binary system removed */}
           {activeTab === 'affiliate' && (
-            <div className="p-4 md:p-6">
-              <BinaryAffiliateTab onBuyCredits={() => setShowBuyCredits(true)} />
+            <div className="p-4 md:p-6 text-center text-muted-foreground">
+              <p>Affiliate earnings are now tracked through Unilevel, Stairstep, and Leadership systems.</p>
             </div>
           )}
 
