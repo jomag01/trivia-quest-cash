@@ -5952,6 +5952,42 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_systems: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_enabled: boolean | null
+          system_key: string
+          system_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          system_key: string
+          system_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          system_key?: string
+          system_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       marketplace_categories: {
         Row: {
           color: string
