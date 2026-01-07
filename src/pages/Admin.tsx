@@ -103,7 +103,8 @@ import SellerReferrerCommissionManagement from "@/components/admin/SellerReferre
 import ErrorReportsManagement from "@/components/admin/ErrorReportsManagement";
 import CookiePlacementSettings from "@/components/admin/CookiePlacementSettings";
 import MarketingSystemManagement from "@/components/admin/MarketingSystemManagement";
-import { Bug } from "lucide-react";
+import { Bug, Heart } from "lucide-react";
+import ChatMateModeration from "@/components/admin/ChatMateModeration";
 
 interface MenuItem {
   id: string;
@@ -285,6 +286,7 @@ const Admin = () => {
       items: [
         { id: "shareholders", label: "Shareholders", icon: PiggyBank },
         { id: "sub-admins", label: "Sub-Admins", icon: UserCog },
+        { id: "chatmate-moderation", label: "Chat Mate Moderation", icon: Heart },
         { id: "marketing-systems", label: "Marketing Systems", icon: Settings },
         { id: "error-reports", label: "Error Reports", icon: Bug },
       ],
@@ -884,6 +886,7 @@ const Admin = () => {
           {activeTab === "shareholders" && <ShareholderManagement onBack={() => setActiveTab("sales-analytics")} />}
           {activeTab === "sub-admins" && <SubAdminManagement onBack={() => setActiveTab("sales-analytics")} />}
           {activeTab === "marketing-systems" && <MarketingSystemManagement />}
+          {activeTab === "chatmate-moderation" && <ChatMateModeration />}
           {activeTab === "error-reports" && <ErrorReportsManagement />}
           {activeTab === "warehouse" && (
             <div className="space-y-4">
