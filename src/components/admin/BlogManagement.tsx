@@ -19,7 +19,7 @@ import {
   Newspaper, BookOpen, Star, CheckCircle, XCircle, RefreshCw,
   BarChart3, TrendingUp, MousePointerClick, Target, Award,
   Megaphone, DollarSign, Users, FileCheck, AlertTriangle, Rocket,
-  Link2, ExternalLink, Copy
+  Link2, ExternalLink, Copy, FolderPlus, Image, Palette, Wand2
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -105,6 +105,20 @@ const BlogManagement = () => {
   // AI generation state
   const [aiTopic, setAiTopic] = useState('');
   const [aiTone, setAiTone] = useState('professional');
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [aiImagePrompt, setAiImagePrompt] = useState('');
+
+  // Category management state
+  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    icon: '',
+    color: '#6366f1'
+  });
+  const [editingCategory, setEditingCategory] = useState<BlogCategory | null>(null);
+  const [savingCategory, setSavingCategory] = useState(false);
 
   // Analytics calculations
   const totalViews = posts.reduce((acc, p) => acc + p.view_count, 0);
@@ -374,6 +388,105 @@ const BlogManagement = () => {
     }
   };
 
+  const generateAIImage = async () => {
+    const prompt = aiImagePrompt || form.title || aiTopic;
+    if (!prompt) {
+      toast.error('Please enter an image prompt, title, or topic');
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-blog-image', {
+        body: { prompt: `Blog post featured image: ${prompt}. Professional, high-quality, relevant to the topic.` }
+      });
+
+      if (error) throw error;
+
+      if (data?.imageUrl) {
+        setForm(prev => ({ ...prev, featured_image: data.imageUrl }));
+        toast.success('Image generated successfully!');
+      }
+    } catch (error: any) {
+      console.error('Error generating image:', error);
+      toast.error(error.message || 'Failed to generate image');
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  // Category management functions
+  const openCategoryDialog = (category?: BlogCategory) => {
+    if (category) {
+      setEditingCategory(category);
+      setCategoryForm({
+        name: category.name,
+        slug: category.slug,
+        description: category.description || '',
+        icon: category.icon || '',
+        color: category.color || '#6366f1'
+      });
+    } else {
+      setEditingCategory(null);
+      setCategoryForm({ name: '', slug: '', description: '', icon: '', color: '#6366f1' });
+    }
+    setShowCategoryDialog(true);
+  };
+
+  const saveCategory = async () => {
+    if (!categoryForm.name) {
+      toast.error('Category name is required');
+      return;
+    }
+
+    setSavingCategory(true);
+    try {
+      const slug = categoryForm.slug || categoryForm.name.toLowerCase().replace(/\s+/g, '-');
+      const data = {
+        name: categoryForm.name,
+        slug,
+        description: categoryForm.description || null,
+        icon: categoryForm.icon || null,
+        color: categoryForm.color || null,
+        is_active: true,
+        display_order: categories.length
+      };
+
+      if (editingCategory) {
+        const { error } = await supabase
+          .from('blog_categories')
+          .update(data)
+          .eq('id', editingCategory.id);
+        if (error) throw error;
+        toast.success('Category updated');
+      } else {
+        const { error } = await supabase.from('blog_categories').insert(data);
+        if (error) throw error;
+        toast.success('Category created');
+      }
+
+      setShowCategoryDialog(false);
+      fetchData();
+    } catch (error: any) {
+      console.error('Error saving category:', error);
+      toast.error(error.message || 'Failed to save category');
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const deleteCategory = async (id: string) => {
+    if (!confirm('Delete this category? Posts will be uncategorized.')) return;
+    try {
+      const { error } = await supabase.from('blog_categories').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Category deleted');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete category');
+    }
+  };
+
   // Affiliate link functions
   const addAffiliateLink = () => {
     if (!newLinkName.trim() || !newLinkUrl.trim()) {
@@ -479,9 +592,12 @@ const BlogManagement = () => {
         <CardContent>
       {/* Main Tabs */}
       <Tabs value={activeMainTab} onValueChange={setActiveMainTab}>
-        <TabsList className="grid w-full grid-cols-4 mb-4">
+        <TabsList className="grid w-full grid-cols-5 mb-4">
           <TabsTrigger value="posts" className="text-xs sm:text-sm">
             <FileText className="h-4 w-4 mr-1" />Posts
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="text-xs sm:text-sm">
+            <FolderPlus className="h-4 w-4 mr-1" />Categories
           </TabsTrigger>
           <TabsTrigger value="analytics" className="text-xs sm:text-sm">
             <BarChart3 className="h-4 w-4 mr-1" />Analytics
@@ -599,6 +715,65 @@ const BlogManagement = () => {
               )}
             </div>
           </ScrollArea>
+        </TabsContent>
+
+        {/* Categories Tab */}
+        <TabsContent value="categories" className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold">Blog Categories</h3>
+              <p className="text-xs text-muted-foreground">Organize your posts with categories</p>
+            </div>
+            <Button size="sm" onClick={() => openCategoryDialog()}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Category
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {categories.map(cat => {
+              const catPosts = posts.filter(p => p.category_id === cat.id);
+              return (
+                <div key={cat.id} className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+                        style={{ backgroundColor: cat.color || '#6366f1' }}
+                      >
+                        {cat.icon || cat.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-medium">{cat.name}</div>
+                        <div className="text-xs text-muted-foreground">{catPosts.length} posts • /{cat.slug}</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openCategoryDialog(cat)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteCategory(cat.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  {cat.description && (
+                    <p className="text-xs text-muted-foreground mt-2">{cat.description}</p>
+                  )}
+                </div>
+              );
+            })}
+            {categories.length === 0 && (
+              <div className="col-span-2 text-center py-8 text-muted-foreground">
+                <FolderPlus className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>No categories yet</p>
+                <Button variant="outline" size="sm" className="mt-2" onClick={() => openCategoryDialog()}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Create First Category
+                </Button>
+              </div>
+            )}
+          </div>
         </TabsContent>
 
         {/* Analytics Tab */}
@@ -974,11 +1149,39 @@ const BlogManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Featured Image URL</Label>
+                  <Label className="flex items-center gap-2">
+                    <Image className="h-4 w-4" />
+                    Featured Image
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.featured_image}
+                      onChange={(e) => setForm({ ...form, featured_image: e.target.value })}
+                      placeholder="https://example.com/image.jpg"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={generateAIImage}
+                      disabled={isGeneratingImage}
+                      className="shrink-0"
+                    >
+                      {isGeneratingImage ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <><Wand2 className="h-4 w-4 mr-1" />AI Generate</>
+                      )}
+                    </Button>
+                  </div>
+                  {form.featured_image && (
+                    <img src={form.featured_image} alt="Preview" className="w-full h-32 object-cover rounded-lg border" />
+                  )}
                   <Input
-                    value={form.featured_image}
-                    onChange={(e) => setForm({ ...form, featured_image: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
+                    value={aiImagePrompt}
+                    onChange={(e) => setAiImagePrompt(e.target.value)}
+                    placeholder="Optional: Custom prompt for AI image (defaults to title)"
+                    className="text-xs"
                   />
                 </div>
 
@@ -1269,6 +1472,80 @@ const BlogManagement = () => {
                 <><Save className="h-4 w-4 mr-2" />Save Post</>
               )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Dialog */}
+      <Dialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingCategory ? 'Edit Category' : 'Add Category'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Name *</Label>
+                <Input
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                  placeholder="Category name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Slug</Label>
+                <Input
+                  value={categoryForm.slug}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })}
+                  placeholder="category-slug"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={categoryForm.description}
+                onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                placeholder="Brief description"
+                rows={2}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Icon (emoji or letter)</Label>
+                <Input
+                  value={categoryForm.icon}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                  placeholder="📝 or T"
+                  maxLength={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={categoryForm.color}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                    className="w-12 h-9 p-1"
+                  />
+                  <Input
+                    value={categoryForm.color}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                    placeholder="#6366f1"
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowCategoryDialog(false)}>Cancel</Button>
+              <Button onClick={saveCategory} disabled={savingCategory}>
+                {savingCategory && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                <Save className="h-4 w-4 mr-1" />
+                {editingCategory ? 'Update' : 'Create'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
