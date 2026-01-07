@@ -91,7 +91,7 @@ export default function BuyAICreditsDialog({ open, onOpenChange, onPurchaseCompl
     if (!user) return;
     try {
       const { data } = await supabase
-        .from('binary_ai_purchases')
+        .from('ai_credit_topups')
         .select('amount')
         .eq('user_id', user.id)
         .eq('status', 'approved')
