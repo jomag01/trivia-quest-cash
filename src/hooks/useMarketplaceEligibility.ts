@@ -60,7 +60,7 @@ export function useMarketplaceEligibility(userId: string | undefined) {
           .maybeSingle();
 
         const { data: hasAIPurchase } = await supabase
-          .from('binary_ai_purchases')
+          .from('ai_credit_topups')
           .select('id')
           .eq('user_id', userId)
           .eq('status', 'approved')

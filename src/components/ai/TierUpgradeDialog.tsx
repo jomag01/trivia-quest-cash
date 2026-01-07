@@ -247,17 +247,15 @@ export default function TierUpgradeDialog({
         }
       }
 
-      // Update user's current tier in binary_ai_purchases or create new record
-      await supabase.from('binary_ai_purchases').upsert({
+      // Update user's current tier in ai_credit_topups
+      await supabase.from('ai_credit_topups').insert({
         user_id: user.id,
         amount: calc.targetTier.price,
-        credits_received: calc.targetTier.credits,
-        images_allocated: calc.targetTier.images,
-        video_minutes_allocated: calc.targetTier.videos,
+        credits_purchased: calc.targetTier.credits,
+        payment_method: 'credits',
         status: 'approved',
-        is_first_purchase: false,
         admin_notes: `Upgraded to ${calc.targetTier.name}`
-      }, { onConflict: 'user_id' });
+      });
 
       toast.success(`Successfully upgraded to ${calc.targetTier.name}! Your new daily cap is ₱${calc.newDailyCap.toLocaleString()}`);
       onUpgradeComplete?.();
