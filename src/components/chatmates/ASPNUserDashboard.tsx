@@ -63,7 +63,7 @@ export function ASPNUserDashboard() {
           aspn_tiers (tier_name, lifetime_cap)
         `)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (enrollmentData) {
         setEnrollment({

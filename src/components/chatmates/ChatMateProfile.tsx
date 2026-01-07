@@ -68,7 +68,7 @@ export function ChatMateProfile() {
       .select('tier_id, beesmate_premium_tiers(tier_key, tier_name)')
       .eq('user_id', user.id)
       .eq('status', 'active')
-      .single();
+      .maybeSingle();
     if (data?.beesmate_premium_tiers) {
       const tier = data.beesmate_premium_tiers as any;
       setUserSubscription({ tier_key: tier.tier_key, tier_name: tier.tier_name });
