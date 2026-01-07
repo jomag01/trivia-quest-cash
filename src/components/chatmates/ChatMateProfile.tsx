@@ -13,9 +13,14 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   User, Heart, Plus, X, Save, Eye, EyeOff,
-  MessageSquare, Briefcase, Gamepad2, GraduationCap, Shield
+  MessageSquare, Briefcase, Gamepad2, GraduationCap, Shield, Crown
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { BeesMateProfileGallery } from "./BeesMateProfileGallery";
+import { BeesMatePremiumUpgrade } from "./BeesMatePremiumUpgrade";
+import { BeesMateReferralDashboard } from "./BeesMateReferralDashboard";
+import { BeesMateShopShowcase } from "./BeesMateShopShowcase";
+import { ASPNUserDashboard } from "./ASPNUserDashboard";
 
 const INTEREST_SUGGESTIONS = [
   "AI & Technology", "Business", "Gaming", "Music", "Art & Design",
@@ -37,6 +42,8 @@ export function ChatMateProfile() {
   const [saving, setSaving] = useState(false);
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState("");
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+  const [userSubscription, setUserSubscription] = useState<{ tier_key: string; tier_name: string } | null>(null);
   const [personalityProfile, setPersonalityProfile] = useState({
     communication_style: "friendly",
     conversation_depth: "casual",
@@ -50,8 +57,23 @@ export function ChatMateProfile() {
   useEffect(() => {
     if (user) {
       fetchProfileData();
+      fetchSubscription();
     }
   }, [user]);
+
+  const fetchSubscription = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('beesmate_subscriptions')
+      .select('tier_id, beesmate_premium_tiers(tier_key, tier_name)')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+    if (data?.beesmate_premium_tiers) {
+      const tier = data.beesmate_premium_tiers as any;
+      setUserSubscription({ tier_key: tier.tier_key, tier_name: tier.tier_name });
+    }
+  };
 
   const fetchProfileData = async () => {
     if (!user) return;
@@ -173,6 +195,12 @@ export function ChatMateProfile() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-8">
+      {/* Profile Gallery */}
+      <BeesMateProfileGallery 
+        userSubscription={userSubscription}
+        onUpgradeClick={() => setUpgradeDialogOpen(true)}
+      />
+
       {/* Profile Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -454,6 +482,26 @@ export function ChatMateProfile() {
           )}
         </Button>
       </motion.div>
+
+      {/* Shop Showcase (Pro only) */}
+      <BeesMateShopShowcase 
+        canShowcase={userSubscription?.tier_key === 'pro'}
+        onUpgradeClick={() => setUpgradeDialogOpen(true)}
+      />
+
+      {/* Referral Dashboard */}
+      <BeesMateReferralDashboard />
+
+      {/* ASPN Dashboard */}
+      <ASPNUserDashboard />
+
+      {/* Premium Upgrade Dialog */}
+      <BeesMatePremiumUpgrade
+        open={upgradeDialogOpen}
+        onOpenChange={setUpgradeDialogOpen}
+        currentTierKey={userSubscription?.tier_key}
+        onUpgradeSuccess={fetchSubscription}
+      />
     </div>
   );
 }

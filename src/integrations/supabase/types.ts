@@ -978,6 +978,294 @@ export type Database = {
         }
         Relationships: []
       }
+      aspn_cycles: {
+        Row: {
+          created_at: string | null
+          cycle_end: string
+          cycle_number: number
+          cycle_start: string
+          id: string
+          pool_id: string | null
+          processed_at: string | null
+          status: string | null
+          total_distributed: number | null
+          total_sp_in_cycle: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          cycle_end: string
+          cycle_number: number
+          cycle_start: string
+          id?: string
+          pool_id?: string | null
+          processed_at?: string | null
+          status?: string | null
+          total_distributed?: number | null
+          total_sp_in_cycle?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          cycle_end?: string
+          cycle_number?: number
+          cycle_start?: string
+          id?: string
+          pool_id?: string | null
+          processed_at?: string | null
+          status?: string | null
+          total_distributed?: number | null
+          total_sp_in_cycle?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspn_cycles_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "aspn_pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspn_earnings: {
+        Row: {
+          amount: number
+          created_at: string | null
+          cycle_id: string | null
+          id: string
+          pool_share_percent: number | null
+          sp_used: number
+          tier_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          cycle_id?: string | null
+          id?: string
+          pool_share_percent?: number | null
+          sp_used: number
+          tier_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          cycle_id?: string | null
+          id?: string
+          pool_share_percent?: number | null
+          sp_used?: number
+          tier_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspn_earnings_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "aspn_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspn_pools: {
+        Row: {
+          created_at: string | null
+          cycle_end: string | null
+          cycle_start: string | null
+          distributed_amount: number | null
+          id: string
+          is_active: boolean | null
+          pool_name: string
+          remaining_amount: number | null
+          total_pool_amount: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          cycle_end?: string | null
+          cycle_start?: string | null
+          distributed_amount?: number | null
+          id?: string
+          is_active?: boolean | null
+          pool_name: string
+          remaining_amount?: number | null
+          total_pool_amount?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          cycle_end?: string | null
+          cycle_start?: string | null
+          distributed_amount?: number | null
+          id?: string
+          is_active?: boolean | null
+          pool_name?: string
+          remaining_amount?: number | null
+          total_pool_amount?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      aspn_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      aspn_sp_ledger: {
+        Row: {
+          created_at: string | null
+          decay_applied: number | null
+          id: string
+          level_from_source: number | null
+          source_id: string | null
+          source_type: string
+          source_user_id: string | null
+          sp_amount: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          decay_applied?: number | null
+          id?: string
+          level_from_source?: number | null
+          source_id?: string | null
+          source_type: string
+          source_user_id?: string | null
+          sp_amount: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          decay_applied?: number | null
+          id?: string
+          level_from_source?: number | null
+          source_id?: string | null
+          source_type?: string
+          source_user_id?: string | null
+          sp_amount?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      aspn_tiers: {
+        Row: {
+          admin_profit_percent: number
+          aspn_pool_percent: number
+          auto_deduct_enabled: boolean | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          lifetime_cap: number | null
+          price_php: number
+          sp_rate: number
+          tier_key: string
+          tier_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_profit_percent?: number
+          aspn_pool_percent?: number
+          auto_deduct_enabled?: boolean | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          lifetime_cap?: number | null
+          price_php?: number
+          sp_rate?: number
+          tier_key: string
+          tier_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_profit_percent?: number
+          aspn_pool_percent?: number
+          auto_deduct_enabled?: boolean | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          lifetime_cap?: number | null
+          price_php?: number
+          sp_rate?: number
+          tier_key?: string
+          tier_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      aspn_user_enrollment: {
+        Row: {
+          auto_deduct_enabled: boolean | null
+          enrolled_at: string | null
+          graduated_at: string | null
+          id: string
+          is_graduated: boolean | null
+          lifetime_cap_reached: boolean | null
+          tier_id: string | null
+          total_earnings: number | null
+          total_sp_earned: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_deduct_enabled?: boolean | null
+          enrolled_at?: string | null
+          graduated_at?: string | null
+          id?: string
+          is_graduated?: boolean | null
+          lifetime_cap_reached?: boolean | null
+          tier_id?: string | null
+          total_earnings?: number | null
+          total_sp_earned?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_deduct_enabled?: boolean | null
+          enrolled_at?: string | null
+          graduated_at?: string | null
+          id?: string
+          is_graduated?: boolean | null
+          lifetime_cap_reached?: boolean | null
+          tier_id?: string | null
+          total_earnings?: number | null
+          total_sp_earned?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspn_user_enrollment_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "aspn_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auction_auto_bids: {
         Row: {
           auction_id: string
@@ -1687,6 +1975,239 @@ export type Database = {
             columns: ["subscriber_id"]
             isOneToOne: false
             referencedRelation: "newsletter_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      beesmate_activity_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      beesmate_premium_tiers: {
+        Row: {
+          ai_enhancement_mode: string
+          ai_free_enhancements_per_month: number | null
+          can_join_rewards_program: boolean | null
+          can_showcase_shop: boolean | null
+          created_at: string | null
+          daily_likes: number | null
+          display_order: number | null
+          duration_days: number
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          price_php: number
+          tier_key: string
+          tier_name: string
+          updated_at: string | null
+          visibility_multiplier: number
+        }
+        Insert: {
+          ai_enhancement_mode?: string
+          ai_free_enhancements_per_month?: number | null
+          can_join_rewards_program?: boolean | null
+          can_showcase_shop?: boolean | null
+          created_at?: string | null
+          daily_likes?: number | null
+          display_order?: number | null
+          duration_days?: number
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          price_php?: number
+          tier_key: string
+          tier_name: string
+          updated_at?: string | null
+          visibility_multiplier?: number
+        }
+        Update: {
+          ai_enhancement_mode?: string
+          ai_free_enhancements_per_month?: number | null
+          can_join_rewards_program?: boolean | null
+          can_showcase_shop?: boolean | null
+          created_at?: string | null
+          daily_likes?: number | null
+          display_order?: number | null
+          duration_days?: number
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          price_php?: number
+          tier_key?: string
+          tier_name?: string
+          updated_at?: string | null
+          visibility_multiplier?: number
+        }
+        Relationships: []
+      }
+      beesmate_profile_images: {
+        Row: {
+          ai_enhancement_type: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          image_url: string
+          is_ai_enhanced: boolean | null
+          is_primary: boolean | null
+          original_image_url: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_enhancement_type?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_url: string
+          is_ai_enhanced?: boolean | null
+          is_primary?: boolean | null
+          original_image_url?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_enhancement_type?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          is_ai_enhanced?: boolean | null
+          is_primary?: boolean | null
+          original_image_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      beesmate_referral_stats: {
+        Row: {
+          active_referrals: number | null
+          id: string
+          last_updated: string | null
+          this_month_earnings: number | null
+          total_earnings: number | null
+          total_referrals: number | null
+          user_id: string
+        }
+        Insert: {
+          active_referrals?: number | null
+          id?: string
+          last_updated?: string | null
+          this_month_earnings?: number | null
+          total_earnings?: number | null
+          total_referrals?: number | null
+          user_id: string
+        }
+        Update: {
+          active_referrals?: number | null
+          id?: string
+          last_updated?: string | null
+          this_month_earnings?: number | null
+          total_earnings?: number | null
+          total_referrals?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      beesmate_shop_showcase: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          product_id: string | null
+          shop_name: string | null
+          shop_url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          product_id?: string | null
+          shop_name?: string | null
+          shop_url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          product_id?: string | null
+          shop_name?: string | null
+          shop_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      beesmate_subscriptions: {
+        Row: {
+          auto_renew: boolean | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          payment_method: string | null
+          payment_reference: string | null
+          started_at: string
+          status: string
+          tier_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_renew?: boolean | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          started_at?: string
+          status?: string
+          tier_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_renew?: boolean | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          started_at?: string
+          status?: string
+          tier_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beesmate_subscriptions_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "beesmate_premium_tiers"
             referencedColumns: ["id"]
           },
         ]
