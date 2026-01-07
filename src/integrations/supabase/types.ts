@@ -978,6 +978,48 @@ export type Database = {
         }
         Relationships: []
       }
+      aspn_abuse_flags: {
+        Row: {
+          action_taken: string | null
+          confidence: number | null
+          created_at: string | null
+          details: Json | null
+          detected_at: string | null
+          flag_type: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string | null
+          user_id: string
+        }
+        Insert: {
+          action_taken?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          details?: Json | null
+          detected_at?: string | null
+          flag_type: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string | null
+          user_id: string
+        }
+        Update: {
+          action_taken?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          details?: Json | null
+          detected_at?: string | null
+          flag_type?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       aspn_cycles: {
         Row: {
           created_at: string | null
@@ -1102,6 +1144,39 @@ export type Database = {
           remaining_amount?: number | null
           total_pool_amount?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      aspn_refund_reversals: {
+        Row: {
+          created_at: string | null
+          earnings_reversed: number | null
+          id: string
+          original_transaction_id: string | null
+          reason: string | null
+          source_type: string
+          sp_reversed: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          earnings_reversed?: number | null
+          id?: string
+          original_transaction_id?: string | null
+          reason?: string | null
+          source_type: string
+          sp_reversed: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          earnings_reversed?: number | null
+          id?: string
+          original_transaction_id?: string | null
+          reason?: string | null
+          source_type?: string
+          sp_reversed?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -13041,6 +13116,10 @@ export type Database = {
         Args: { _node_id: string; _requester: string }
         Returns: boolean
       }
+      cancel_aspn_enrollment: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       check_affiliate_eligibility: {
         Args: { user_id_param: string }
         Returns: Json
@@ -13048,6 +13127,14 @@ export type Database = {
       check_and_update_affiliate_rank: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      check_aspn_abuse: {
+        Args: { p_user_id: string }
+        Returns: {
+          confidence: number
+          flag_type: string
+          severity: string
+        }[]
       }
       check_level5_bonus: { Args: { player_id: string }; Returns: undefined }
       check_marketplace_eligibility: {
@@ -13219,6 +13306,10 @@ export type Database = {
             }
             Returns: undefined
           }
+      freeze_aspn_user: {
+        Args: { p_reason: string; p_user_id: string }
+        Returns: undefined
+      }
       generate_aspn_sales_points: {
         Args: {
           p_amount: number
@@ -13242,6 +13333,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      graduate_aspn_user: { Args: { p_user_id: string }; Returns: undefined }
       has_active_ai_subscription: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -13282,6 +13374,10 @@ export type Database = {
           p_request_id: string
         }
         Returns: Json
+      }
+      reverse_aspn_on_refund: {
+        Args: { p_reason?: string; p_source_id: string; p_source_type: string }
+        Returns: undefined
       }
       unlock_category: {
         Args: { p_category_id: string; p_user_id: string }

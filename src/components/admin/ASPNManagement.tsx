@@ -12,9 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { 
   TrendingUp, Settings, Users, Coins, Edit2, Save, 
-  Play, Pause, RefreshCw, ChevronRight, Award
+  Play, Pause, RefreshCw, ChevronRight, Award, Shield
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { ASPNAbuseMonitor } from "./ASPNAbuseMonitor";
 
 interface ASPNTier {
   id: string;
@@ -208,10 +209,14 @@ export function ASPNManagement() {
       </div>
 
       <Tabs defaultValue="tiers">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="tiers">Tiers</TabsTrigger>
           <TabsTrigger value="pools">Pools</TabsTrigger>
           <TabsTrigger value="cycles">Cycles</TabsTrigger>
+          <TabsTrigger value="abuse" className="flex items-center gap-1">
+            <Shield className="w-3 h-3" />
+            Abuse
+          </TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -368,6 +373,10 @@ export function ASPNManagement() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="abuse">
+          <ASPNAbuseMonitor />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
