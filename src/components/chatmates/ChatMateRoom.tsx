@@ -241,7 +241,7 @@ export function ChatMateRoom({ roomId, matchUserId, onBack }: ChatMateRoomProps)
         </Avatar>
 
         <div className="flex-1">
-          <h3 className="font-semibold">{matchProfile?.full_name || "Chat Mate"}</h3>
+          <h3 className="font-semibold">{matchProfile?.full_name || "BeesMate"}</h3>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Shield className="w-3 h-3" />
             Trust Score: {matchProfile?.trust_score || 100}

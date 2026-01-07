@@ -38,7 +38,7 @@ import WeatherForecast from '@/components/ai/WeatherForecast';
 import EmailMarketingHub from '@/components/ai/EmailMarketingHub';
 import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
 import { ManualBrushEraser } from '@/components/ai/ManualBrushEraser';
-import GuestAITrialPopup from '@/components/ai/GuestAITrialPopup';
+// GuestAITrialPopup removed per user request
 import { Suspense } from 'react';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -205,18 +205,7 @@ const AIHub = memo(() => {
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   
-  // Guest trial popup state
-  const [showGuestTrialPopup, setShowGuestTrialPopup] = useState(false);
-  const [guestTrialImageUrl, setGuestTrialImageUrl] = useState<string | null>(null);
-  const [guestPopupSettings, setGuestPopupSettings] = useState({
-    enabled: true,
-    delaySeconds: 30,
-    scrollPercent: 50,
-    title: 'Try Our AI Services Free!',
-    description: 'Experience the power of AI image & video generation',
-    ctaText: 'Get Download Access',
-    showOnScroll: true
-  });
+  // Guest trial popup removed per user request
   
   // Subscription hook
   const { 
@@ -354,47 +343,13 @@ const AIHub = memo(() => {
   useEffect(() => {
     fetchSettings();
     fetchAppLogo();
-    fetchGuestPopupSettings();
     if (user) {
       fetchUsageStats();
       fetchUserCredits();
     }
   }, [user]);
 
-  // Show guest trial popup for unregistered users based on admin settings
-  useEffect(() => {
-    if (user) return; // Don't show for logged-in users
-    if (!guestPopupSettings.enabled) return; // Popup disabled by admin
-    
-    // Check if already shown this session
-    const alreadyShown = sessionStorage.getItem('guestTrialPopupShown');
-    if (alreadyShown) return;
-    
-    const timer = setTimeout(() => {
-      setShowGuestTrialPopup(true);
-      sessionStorage.setItem('guestTrialPopupShown', 'true');
-    }, guestPopupSettings.delaySeconds * 1000);
-    
-    // Also show on scroll if enabled
-    const handleScroll = () => {
-      if (!guestPopupSettings.showOnScroll) return;
-      const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-      if (scrollPercent > guestPopupSettings.scrollPercent && !sessionStorage.getItem('guestTrialPopupShown')) {
-        setShowGuestTrialPopup(true);
-        sessionStorage.setItem('guestTrialPopupShown', 'true');
-        window.removeEventListener('scroll', handleScroll);
-      }
-    };
-    
-    if (guestPopupSettings.showOnScroll) {
-      window.addEventListener('scroll', handleScroll);
-    }
-    
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [user, guestPopupSettings]);
+  // Guest trial popup removed
 
   const fetchAppLogo = async () => {
     try {
@@ -424,34 +379,7 @@ const AIHub = memo(() => {
     }
   };
 
-  const fetchGuestPopupSettings = async () => {
-    try {
-      const { data } = await supabase.from('app_settings').select('key, value').like('key', 'ai_guest_popup_%');
-      if (data && data.length > 0) {
-        const settings = { ...guestPopupSettings };
-        data.forEach(setting => {
-          if (setting.key === 'ai_guest_popup_enabled') {
-            settings.enabled = setting.value === 'true';
-          } else if (setting.key === 'ai_guest_popup_delay_seconds') {
-            settings.delaySeconds = parseInt(setting.value || '30');
-          } else if (setting.key === 'ai_guest_popup_scroll_percent') {
-            settings.scrollPercent = parseInt(setting.value || '50');
-          } else if (setting.key === 'ai_guest_popup_title') {
-            settings.title = setting.value || 'Try Our AI Services Free!';
-          } else if (setting.key === 'ai_guest_popup_description') {
-            settings.description = setting.value || 'Experience the power of AI image & video generation';
-          } else if (setting.key === 'ai_guest_popup_cta_text') {
-            settings.ctaText = setting.value || 'Get Download Access';
-          } else if (setting.key === 'ai_guest_popup_show_on_scroll') {
-            settings.showOnScroll = setting.value === 'true';
-          }
-        });
-        setGuestPopupSettings(settings);
-      }
-    } catch (error) {
-      console.error('Error fetching guest popup settings:', error);
-    }
-  };
+  // fetchGuestPopupSettings removed with popup
 
   const fetchUsageStats = async () => {
     if (!user) return;
@@ -3002,18 +2930,7 @@ const AIHub = memo(() => {
         }}
       />
 
-      {/* Guest AI Trial Popup for unregistered users */}
-      <GuestAITrialPopup
-        open={showGuestTrialPopup}
-        onOpenChange={setShowGuestTrialPopup}
-        generatedImageUrl={guestTrialImageUrl || undefined}
-        customTitle={guestPopupSettings.title}
-        customDescription={guestPopupSettings.description}
-        customCtaText={guestPopupSettings.ctaText}
-        onEmailSubmitted={() => {
-          toast.success('Welcome! Check your email for exclusive AI tips.');
-        }}
-      />
+      {/* Guest AI Trial Popup removed */}
     </div>
   );
 });

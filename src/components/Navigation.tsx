@@ -47,9 +47,9 @@ const Navigation = () => {
 
         {/* BeesMate - Interest-based connections */}
         <Link
-          to="/chat-mates"
+          to="/bees-mate"
           className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-2 relative ${
-            isActive("/chat-mates") ? "text-primary" : "text-muted-foreground"
+            isActive("/bees-mate") ? "text-primary" : "text-muted-foreground"
           }`}
         >
           <Heart className="w-5 h-5" />

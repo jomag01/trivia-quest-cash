@@ -39,7 +39,7 @@ export default function ChatMates() {
           <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-rose-400 to-purple-500 flex items-center justify-center">
             <Heart className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-2xl font-bold">Find Your Chat Mates</h2>
+          <h2 className="text-2xl font-bold">Find Your BeesMates</h2>
           <p className="text-muted-foreground max-w-sm">
             Connect with like-minded people based on your interests. Sign in to start discovering!
           </p>
@@ -64,8 +64,8 @@ export default function ChatMates() {
               <Heart className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-rose-500 to-purple-600 bg-clip-text text-transparent">
-                Chat Mates
+            <h1 className="text-xl font-bold bg-gradient-to-r from-rose-500 to-purple-600 bg-clip-text text-transparent">
+                BeesMate
               </h1>
               <p className="text-xs text-muted-foreground">Interest-based connections</p>
             </div>

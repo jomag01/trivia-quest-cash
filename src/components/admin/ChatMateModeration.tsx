@@ -227,7 +227,7 @@ export default function ChatMateModeration() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Chat Mate Moderation</h2>
+          <h2 className="text-2xl font-bold">BeesMate Moderation</h2>
           <p className="text-muted-foreground">Review reports and manage chat safety</p>
         </div>
         <Button onClick={fetchData} variant="outline" size="sm">

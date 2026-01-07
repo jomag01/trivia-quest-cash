@@ -8,7 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import Navigation from "./components/Navigation";
 import { parseAndTrackFromUrl } from "@/lib/cookieTracking";
 import { useDeepLinkTracking } from "@/hooks/useDeepLinkTracking";
-import { AffiliateSignupPopup } from "./components/AffiliateSignupPopup";
+// AffiliateSignupPopup removed per user request
 import { PurchaseNotification } from "./components/PurchaseNotification";
 import { ErrorReportButton } from "./components/ErrorReportButton";
 
@@ -40,7 +40,7 @@ const Install = lazy(() => import("./pages/Install"));
 const MyOrdersPage = lazy(() => import("./components/shop/MyOrdersPage"));
 const Warehouse = lazy(() => import("./pages/Warehouse"));
 const ShareholderRegistration = lazy(() => import("./pages/ShareholderRegistration"));
-const ChatMates = lazy(() => import("./pages/ChatMates"));
+const BeesMate = lazy(() => import("./pages/ChatMates"));
 
 // Configure QueryClient with aggressive caching
 const queryClient = new QueryClient({
@@ -121,7 +121,7 @@ const App = () => (
           <CookieTracker />
           <PageTracker />
           <Navigation />
-          <AffiliateSignupPopup />
+          {/* AffiliateSignupPopup removed */}
           <PurchaseNotification />
           <ErrorReportButton />
           <Suspense fallback={<PageLoader />}>
@@ -154,7 +154,7 @@ const App = () => (
               <Route path="/my-orders" element={<MyOrdersPage />} />
               <Route path="/warehouse" element={<Warehouse />} />
               <Route path="/shareholder-registration" element={<ShareholderRegistration />} />
-              <Route path="/chat-mates" element={<ChatMates />} />
+              <Route path="/bees-mate" element={<BeesMate />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

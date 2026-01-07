@@ -38,14 +38,14 @@ export function ChatMateTermsSafety() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
-              <strong>Triviabees Chat Mate Finder</strong> is an <strong>interest-based social chat feature</strong>. 
+              <strong>Triviabees BeesMate Finder</strong> is an <strong>interest-based social chat feature</strong>. 
               It is designed for:
             </p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-              <li>Interest-based chat mates (hobbies, AI, business, games, faith, learning)</li>
+              <li>Interest-based bees mates (hobbies, AI, business, games, faith, learning)</li>
               <li>AI-recommended conversations</li>
               <li>Local or global chat connections</li>
-              <li>Game & quiz chat mates</li>
+              <li>Game & quiz bees mates</li>
               <li>Business / affiliate networking chat</li>
             </ul>
             <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
