@@ -148,10 +148,10 @@ export const SalesAnalytics = () => {
         .eq("status", "completed");
       const diamondCashins = diamondTxns?.reduce((sum, txn) => sum + Number(txn.total_price), 0) || 0;
 
-      // Fetch AI Credit purchases (approved)
+      // Fetch AI Credit purchases (approved) - from ai_credit_topups instead of binary_ai_purchases
       const { data: aiPurchases } = await supabase
-        .from("binary_ai_purchases")
-        .select("amount, credits_received")
+        .from("ai_credit_topups")
+        .select("amount, credits_purchased")
         .eq("status", "approved");
       const aiCreditPurchases = aiPurchases?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
@@ -187,11 +187,8 @@ export const SalesAnalytics = () => {
       const breakawayPayouts = commissions?.filter(c => c.commission_type === "breakaway")
         .reduce((sum, c) => sum + Number(c.amount), 0) || 0;
 
-      // Fetch binary commissions
-      const { data: binaryCommissions } = await supabase
-        .from("binary_commissions")
-        .select("amount");
-      const binaryPayouts = binaryCommissions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+      // Binary commissions removed - set to 0
+      const binaryPayouts = 0;
 
       // Fetch leadership commissions
       const { data: leadershipCommissions } = await supabase

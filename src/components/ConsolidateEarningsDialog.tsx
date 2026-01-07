@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { GitBranch, Diamond, TrendingUp, Users, Award, Wallet, Loader2, ArrowRight, Coins } from "lucide-react";
+import { Diamond, TrendingUp, Users, Award, Wallet, Loader2, ArrowRight, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -45,8 +45,8 @@ export default function ConsolidateEarningsDialog({
   const fetchAllEarnings = async () => {
     setLoading(true);
     try {
-      // Fetch all commission types in parallel
-      const [unilevelResult, stairstepResult, leadershipResult, binaryResult, diamondsResult, diamondPriceResult] = await Promise.all([
+      // Fetch all commission types in parallel (excluding binary - removed)
+      const [unilevelResult, stairstepResult, leadershipResult, diamondsResult, diamondPriceResult] = await Promise.all([
         // Unilevel commissions
         supabase
           .from("commissions")
@@ -67,12 +67,6 @@ export default function ConsolidateEarningsDialog({
           .select("amount")
           .eq("upline_id", userId),
         
-        // Binary commissions
-        supabase
-          .from("binary_commissions")
-          .select("amount")
-          .eq("user_id", userId),
-        
         // Diamond balance
         supabase
           .from("treasure_wallet")
@@ -91,7 +85,6 @@ export default function ConsolidateEarningsDialog({
       const unilevelTotal = (unilevelResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
       const stairstepTotal = (stairstepResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
       const leadershipTotal = (leadershipResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
-      const binaryTotal = (binaryResult.data || []).reduce((sum, c) => sum + Number(c.amount), 0);
       
       const diamonds = diamondsResult.data?.diamonds || 0;
       const basePrice = diamondPriceResult.data?.setting_value ? parseFloat(diamondPriceResult.data.setting_value) : 10;
@@ -104,7 +97,6 @@ export default function ConsolidateEarningsDialog({
         { id: 'unilevel', label: 'Unilevel Commissions', value: unilevelTotal, icon: Users, color: 'text-blue-500', selected: unilevelTotal > 0 },
         { id: 'stairstep', label: 'Stairstep Commissions', value: stairstepTotal, icon: TrendingUp, color: 'text-green-500', selected: stairstepTotal > 0 },
         { id: 'leadership', label: 'Leadership Commissions', value: leadershipTotal, icon: Award, color: 'text-purple-500', selected: leadershipTotal > 0 },
-        { id: 'binary', label: 'Binary Commissions', value: binaryTotal, icon: GitBranch, color: 'text-orange-500', selected: binaryTotal > 0 },
         { id: 'diamonds', label: `Diamonds (${diamonds} 💎)`, value: diamondValue, icon: Diamond, color: 'text-cyan-500', selected: diamondValue > 0 },
       ]);
     } catch (error: any) {
@@ -184,11 +176,6 @@ export default function ConsolidateEarningsDialog({
             .from("leadership_commissions")
             .delete()
             .eq("upline_id", userId);
-        } else if (source.id === 'binary') {
-          await supabase
-            .from("binary_commissions")
-            .delete()
-            .eq("user_id", userId);
         } else if (source.id === 'diamonds' && totalDiamonds > 0) {
           await supabase
             .from("treasure_wallet")

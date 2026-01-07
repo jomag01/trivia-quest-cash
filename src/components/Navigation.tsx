@@ -45,7 +45,7 @@ const Navigation = () => {
           <span className="text-[9px] font-medium">Games</span>
         </Link>
 
-        {/* Chat Mates - Interest-based connections */}
+        {/* BeesMate - Interest-based connections */}
         <Link
           to="/chat-mates"
           className={`flex flex-col items-center justify-center gap-0.5 min-w-[40px] py-2 relative ${
@@ -53,7 +53,7 @@ const Navigation = () => {
           }`}
         >
           <Heart className="w-5 h-5" />
-          <span className="text-[9px] font-medium">ChatMate</span>
+          <span className="text-[9px] font-medium">BeesMate</span>
         </Link>
 
         {/* Messages - Seller/Buyer Communication */}

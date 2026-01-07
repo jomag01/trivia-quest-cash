@@ -298,145 +298,7 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
     }
   };
 
-  const placeMeInBinaryNetwork = async (userId: string, sponsorId: string | null) => {
-    try {
-      // Check if user is already in binary network
-      const { data: existingNode } = await supabase
-        .from('binary_network')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (existingNode) {
-        console.log('User already in binary network');
-        return; // Already enrolled
-      }
-
-      // If no sponsor, this is the first user (root node)
-      if (!sponsorId) {
-        const { error } = await supabase.from('binary_network').insert({
-          user_id: userId,
-          sponsor_id: null,
-          parent_id: null,
-          placement_leg: null,
-          left_child_id: null,
-          right_child_id: null,
-          left_volume: 0,
-          right_volume: 0,
-          total_cycles: 0
-        });
-
-        if (error) throw error;
-        toast.success('You are now the root of the binary network!');
-        return;
-      }
-
-      // Get sponsor's binary network node
-      const { data: sponsorNode } = await supabase
-        .from('binary_network')
-        .select('*')
-        .eq('user_id', sponsorId)
-        .maybeSingle();
-
-      if (!sponsorNode) {
-        // Sponsor not in network yet, place under root or create as root
-        const { data: rootNode } = await supabase
-          .from('binary_network')
-          .select('*')
-          .is('parent_id', null)
-          .maybeSingle();
-
-        if (!rootNode) {
-          // No root exists, make this user the root
-          const { error } = await supabase.from('binary_network').insert({
-            user_id: userId,
-            sponsor_id: null,
-            parent_id: null,
-            placement_leg: null
-          });
-          if (error) throw error;
-          toast.success('You are now the root of the binary network!');
-          return;
-        }
-
-        // Place under root's weaker leg
-        await placeUnderNode(userId, rootNode, sponsorId);
-        return;
-      }
-
-      // Place under sponsor using weaker leg strategy
-      await placeUnderNode(userId, sponsorNode, sponsorId);
-    } catch (error) {
-      console.error('Binary placement error:', error);
-    }
-  };
-
-  const placeUnderNode = async (userId: string, parentNode: any, sponsorId: string | null) => {
-    // Determine weaker leg (or left if equal)
-    const placementLeg = (parentNode.left_volume || 0) <= (parentNode.right_volume || 0) ? 'left' : 'right';
-    
-    // Check if the leg is available
-    if (placementLeg === 'left' && !parentNode.left_child_id) {
-      // Place directly in left leg
-      const { data: newNode, error: insertError } = await supabase
-        .from('binary_network')
-        .insert({
-          user_id: userId,
-          sponsor_id: parentNode.id,
-          parent_id: parentNode.id,
-          placement_leg: 'left'
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      // Update parent's left child
-      await supabase
-        .from('binary_network')
-        .update({ left_child_id: newNode.id })
-        .eq('id', parentNode.id);
-
-      toast.success('Placed in binary network (left leg)!');
-    } else if (placementLeg === 'right' && !parentNode.right_child_id) {
-      // Place directly in right leg
-      const { data: newNode, error: insertError } = await supabase
-        .from('binary_network')
-        .insert({
-          user_id: userId,
-          sponsor_id: parentNode.id,
-          parent_id: parentNode.id,
-          placement_leg: 'right'
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      // Update parent's right child
-      await supabase
-        .from('binary_network')
-        .update({ right_child_id: newNode.id })
-        .eq('id', parentNode.id);
-
-      toast.success('Placed in binary network (right leg)!');
-    } else {
-      // Need to find next available spot in the weaker leg
-      const childId = placementLeg === 'left' ? parentNode.left_child_id : parentNode.right_child_id;
-      
-      if (childId) {
-        const { data: childNode } = await supabase
-          .from('binary_network')
-          .select('*')
-          .eq('id', childId)
-          .single();
-
-        if (childNode) {
-          await placeUnderNode(userId, childNode, sponsorId);
-        }
-      }
-    }
-  };
+  // Binary network placement removed - system discontinued
 
   const handleBuyCredits = async () => {
     if (selectedTier === null || !user) return;
@@ -460,7 +322,7 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
 
       // Check if this is user's first purchase
       const { data: previousPurchases } = await supabase
-        .from('binary_ai_purchases')
+        .from('ai_credit_topups')
         .select('id')
         .eq('user_id', user.id)
         .eq('status', 'approved')
@@ -484,22 +346,13 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
           .eq('id', user.id);
 
         // Create pending purchase for admin approval with selected services
-        await supabase.from('binary_ai_purchases').insert({
+        await supabase.from('ai_credit_topups').insert({
           user_id: user.id,
           amount: tier.price,
-          credits_received: totalCredits,
-          images_allocated: allocation.images,
-          video_minutes_allocated: allocation.videoSeconds / 60,
-          audio_minutes_allocated: allocation.audioSeconds / 60,
-          sponsor_id: profileData?.referred_by || null,
-          status: 'pending',
-          is_first_purchase: isFirstPurchase
+          credits_purchased: totalCredits,
+          payment_method: 'credits',
+          status: 'pending'
         });
-
-        // Place user in binary network on first purchase
-        if (isFirstPurchase) {
-          await placeMeInBinaryNetwork(user.id, profileData?.referred_by || null);
-        }
 
         // Distribute commissions through unilevel, stairstep, leadership
         if (profileData?.referred_by) {
@@ -549,23 +402,14 @@ export default function ReplenishCreditsDialog({ open, onOpenChange, onReplenish
         }
 
         // Create pending purchase with reference for admin approval
-        await supabase.from('binary_ai_purchases').insert({
+        await supabase.from('ai_credit_topups').insert({
           user_id: user.id,
           amount: tier.price,
-          credits_received: totalCredits,
-          images_allocated: allocation.images,
-          video_minutes_allocated: allocation.videoSeconds / 60,
-          audio_minutes_allocated: allocation.audioSeconds / 60,
-          sponsor_id: profileData?.referred_by || null,
-          status: 'pending',
-          is_first_purchase: isFirstPurchase,
-          admin_notes: `QR/Bank Payment - Reference: ${referenceNumber}`
+          credits_purchased: totalCredits,
+          payment_method: 'qrcode',
+          payment_reference: referenceNumber,
+          status: 'pending'
         });
-
-        // Place user in binary network on first purchase
-        if (isFirstPurchase) {
-          await placeMeInBinaryNetwork(user.id, profileData?.referred_by || null);
-        }
 
         setShowQrSuccess(true);
         setReferenceNumber('');

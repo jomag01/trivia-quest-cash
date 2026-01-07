@@ -99,27 +99,9 @@ const Dashboard = () => {
     if (user) {
       fetchAllData();
       checkAdminRole();
-      checkBinaryEnrollment();
     }
   }, [user]);
   
-  const checkBinaryEnrollment = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase
-        .from("binary_network")
-        .select("id, admin_activated")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      
-      if (error) throw error;
-      // User is enrolled if they have a record AND admin_activated is true
-      setIsBinaryEnrolled(!!data && data.admin_activated === true);
-    } catch (error) {
-      console.error('Error checking binary enrollment:', error);
-      setIsBinaryEnrolled(false);
-    }
-  };
   const checkAdminRole = async () => {
     if (!user) return;
     try {
