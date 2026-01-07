@@ -21,6 +21,7 @@ import { BeesMatePremiumUpgrade } from "./BeesMatePremiumUpgrade";
 import { BeesMateReferralDashboard } from "./BeesMateReferralDashboard";
 import { BeesMateShopShowcase } from "./BeesMateShopShowcase";
 import { ASPNUserDashboard } from "./ASPNUserDashboard";
+import { BeesMateVerification, VerificationBadge } from "./BeesMateVerification";
 
 const INTEREST_SUGGESTIONS = [
   "AI & Technology", "Business", "Gaming", "Music", "Art & Design",
@@ -44,6 +45,7 @@ export function ChatMateProfile() {
   const [newInterest, setNewInterest] = useState("");
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [userSubscription, setUserSubscription] = useState<{ tier_key: string; tier_name: string } | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
   const [personalityProfile, setPersonalityProfile] = useState({
     communication_style: "friendly",
     conversation_depth: "casual",
@@ -201,6 +203,9 @@ export function ChatMateProfile() {
         onUpgradeClick={() => setUpgradeDialogOpen(true)}
       />
 
+      {/* ID Verification */}
+      <BeesMateVerification onVerificationChange={setIsVerified} />
+
       {/* Profile Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -217,7 +222,8 @@ export function ChatMateProfile() {
               </Avatar>
               <div className="flex-1">
                 <h2 className="text-2xl font-bold">{profile?.full_name || "Your Name"}</h2>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <VerificationBadge isVerified={isVerified} />
                   {personalityProfile.is_visible ? (
                     <Badge className="bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30">
                       <Eye className="w-3 h-3 mr-1" />
