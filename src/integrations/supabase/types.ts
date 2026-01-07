@@ -2832,6 +2832,160 @@ export type Database = {
           },
         ]
       }
+      chatmate_business_profiles: {
+        Row: {
+          business_mode_enabled: boolean | null
+          company_name: string | null
+          created_at: string
+          id: string
+          industry: string | null
+          is_verified: boolean | null
+          job_title: string | null
+          linkedin_url: string | null
+          pitch_template: string | null
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          business_mode_enabled?: boolean | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          industry?: string | null
+          is_verified?: boolean | null
+          job_title?: string | null
+          linkedin_url?: string | null
+          pitch_template?: string | null
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          business_mode_enabled?: boolean | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          industry?: string | null
+          is_verified?: boolean | null
+          job_title?: string | null
+          linkedin_url?: string | null
+          pitch_template?: string | null
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      chatmate_coach_suggestions: {
+        Row: {
+          created_at: string
+          id: string
+          room_id: string | null
+          suggestion_text: string
+          suggestion_type: string
+          user_id: string
+          was_used: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          room_id?: string | null
+          suggestion_text: string
+          suggestion_type: string
+          user_id: string
+          was_used?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          room_id?: string | null
+          suggestion_text?: string
+          suggestion_type?: string
+          user_id?: string
+          was_used?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatmate_coach_suggestions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chatmate_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatmate_game_participants: {
+        Row: {
+          game_room_id: string
+          id: string
+          joined_at: string
+          score: number | null
+          user_id: string
+        }
+        Insert: {
+          game_room_id: string
+          id?: string
+          joined_at?: string
+          score?: number | null
+          user_id: string
+        }
+        Update: {
+          game_room_id?: string
+          id?: string
+          joined_at?: string
+          score?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatmate_game_participants_game_room_id_fkey"
+            columns: ["game_room_id"]
+            isOneToOne: false
+            referencedRelation: "chatmate_game_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatmate_game_rooms: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_players: number
+          game_type: string
+          host_id: string
+          id: string
+          max_players: number
+          started_at: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_players?: number
+          game_type: string
+          host_id: string
+          id?: string
+          max_players?: number
+          started_at?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_players?: number
+          game_type?: string
+          host_id?: string
+          id?: string
+          max_players?: number
+          started_at?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
       chatmate_messages: {
         Row: {
           created_at: string | null
@@ -2872,6 +3026,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      chatmate_premium_visibility: {
+        Row: {
+          boost_weight: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          priority_matching: boolean | null
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          boost_weight?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          priority_matching?: boolean | null
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          boost_weight?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          priority_matching?: boolean | null
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       chatmate_reports: {
         Row: {

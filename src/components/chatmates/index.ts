@@ -2,3 +2,8 @@ export { ChatMateDiscovery } from "./ChatMateDiscovery";
 export { ChatMateProfile } from "./ChatMateProfile";
 export { ChatMateConversations } from "./ChatMateConversations";
 export { ChatMateRoom } from "./ChatMateRoom";
+export { ChatMateGameMatching } from "./ChatMateGameMatching";
+export { ChatMateBusinessNetworking } from "./ChatMateBusinessNetworking";
+export { ChatMatePremiumVisibility } from "./ChatMatePremiumVisibility";
+export { ChatMateAICoach } from "./ChatMateAICoach";
+export { ChatMateTermsSafety } from "./ChatMateTermsSafety";
