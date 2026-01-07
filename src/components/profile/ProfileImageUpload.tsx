@@ -2,12 +2,16 @@ import { useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Camera, Loader2 } from "lucide-react";
-import imageCompression from "browser-image-compression";
-import { uploadToStorage } from "@/lib/storage";
+import { Camera, Loader2, AlertCircle } from "lucide-react";
+import { 
+  validateImage, 
+  uploadProfileImage, 
+  UploadProgress 
+} from "@/lib/imageUpload";
 
 interface ProfileImageUploadProps {
   size?: "sm" | "md" | "lg";
@@ -17,6 +21,8 @@ interface ProfileImageUploadProps {
 export default function ProfileImageUpload({ size = "md", showEditButton = true }: ProfileImageUploadProps) {
   const { user, profile, refreshProfile } = useAuth();
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,42 +36,29 @@ export default function ProfileImageUpload({ size = "md", showEditButton = true 
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+    // Validate file
+    const validation = validateImage(file, 'profile');
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid file');
+      toast.error(validation.error);
       return;
     }
 
+    setError(null);
     setUploading(true);
+    setUploadProgress({ progress: 0, status: 'uploading', message: 'Starting...' });
+
     try {
-      // Compress image aggressively for avatar (small size needed)
-      const compressed = await imageCompression(file, {
-        maxSizeMB: 0.1, // 100KB max for avatars
-        maxWidthOrHeight: 256, // Small avatar size
-        useWebWorker: true,
-        fileType: 'image/jpeg' // Force JPEG for smaller size
-      });
+      const result = await uploadProfileImage(file, user.id, setUploadProgress);
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `avatar.${fileExt}`;
-
-      // Use Edge Function workaround for storage upload
-      const { data: uploadData, error: uploadError } = await uploadToStorage(
-        "avatars", 
-        user.id, 
-        compressed, 
-        { fileName }
-      );
-
-      if (uploadError || !uploadData?.publicUrl) {
-        throw new Error("Failed to upload image");
+      if (!result.success) {
+        throw new Error(result.error || 'Upload failed');
       }
-
-      const publicUrl = uploadData.publicUrl;
 
       // Update profile with new avatar URL
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ avatar_url: `${publicUrl}?t=${Date.now()}` })
+        .update({ avatar_url: result.publicUrl })
         .eq("id", user.id);
 
       if (updateError) throw updateError;
@@ -75,9 +68,11 @@ export default function ProfileImageUpload({ size = "md", showEditButton = true 
       setOpen(false);
     } catch (error: any) {
       console.error("Upload error:", error);
-      toast.error("Failed to update profile picture");
+      setError(error.message || 'Upload failed. Tap to retry.');
+      toast.error(error.message || "Failed to update profile picture");
     } finally {
       setUploading(false);
+      setTimeout(() => setUploadProgress(null), 2000);
     }
   };
 
@@ -116,12 +111,32 @@ export default function ProfileImageUpload({ size = "md", showEditButton = true 
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
             onChange={handleFileSelect}
           />
+
+          {uploadProgress && (
+            <div className="space-y-2">
+              <Progress value={uploadProgress.progress} className="h-2" />
+              <p className="text-xs text-center text-muted-foreground">
+                {uploadProgress.message}
+              </p>
+            </div>
+          )}
+
+          {error && (
+            <div className="flex items-center gap-2 p-2 bg-destructive/10 text-destructive rounded-lg text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
           <Button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              setError(null);
+              fileInputRef.current?.click();
+            }}
             disabled={uploading}
             className="w-full"
           >
@@ -133,10 +148,14 @@ export default function ProfileImageUpload({ size = "md", showEditButton = true 
             ) : (
               <>
                 <Camera className="w-4 h-4 mr-2" />
-                Choose Photo
+                {error ? 'Retry Upload' : 'Choose Photo'}
               </>
             )}
           </Button>
+
+          <p className="text-xs text-muted-foreground text-center">
+            Supported: JPEG, PNG, WebP (max 2MB)
+          </p>
         </div>
       </DialogContent>
     </Dialog>
