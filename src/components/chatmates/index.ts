@@ -12,3 +12,4 @@ export { BeesMatePremiumUpgrade } from "./BeesMatePremiumUpgrade";
 export { BeesMateReferralDashboard } from "./BeesMateReferralDashboard";
 export { BeesMateShopShowcase } from "./BeesMateShopShowcase";
 export { ASPNUserDashboard } from "./ASPNUserDashboard";
+export { BeesMateVerification, VerificationBadge } from "./BeesMateVerification";

@@ -70,33 +70,52 @@ export function BeesMateProfileGallery({ userSubscription, onUpgradeClick }: Bee
       return;
     }
 
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
-      const { error: uploadError } = await supabase.storage
-        .from('beesmate-profiles')
-        .upload(fileName, file);
+      // Try beesmate-profiles bucket first, fallback to avatars
+      let bucketName = 'beesmate-profiles';
+      let uploadResult = await supabase.storage
+        .from(bucketName)
+        .upload(fileName, file, { upsert: true });
 
-      if (uploadError) throw uploadError;
+      // If beesmate-profiles fails, try avatars bucket
+      if (uploadResult.error) {
+        console.log('beesmate-profiles bucket error, trying avatars:', uploadResult.error);
+        bucketName = 'avatars';
+        uploadResult = await supabase.storage
+          .from(bucketName)
+          .upload(fileName, file, { upsert: true });
+      }
+
+      if (uploadResult.error) throw uploadResult.error;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('beesmate-profiles')
+        .from(bucketName)
         .getPublicUrl(fileName);
 
-      await supabase.from('beesmate_profile_images').insert({
+      const { error: insertError } = await supabase.from('beesmate_profile_images').insert({
         user_id: user.id,
         image_url: publicUrl,
         is_primary: images.length === 0,
         display_order: images.length
       });
+
+      if (insertError) throw insertError;
       
       toast.success('Image uploaded!');
       fetchImages();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
+      toast.error(error?.message || 'Failed to upload image');
     } finally {
       setUploading(false);
     }

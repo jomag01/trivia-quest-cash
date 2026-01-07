@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner";
 import { 
   Crown, Settings, Users, TrendingUp, Edit2, Plus, 
-  Save, Trash2, Eye, Heart, Wand2, Store
+  Save, Trash2, Eye, Heart, Wand2, Store, ArrowUpCircle, ShieldCheck
 } from "lucide-react";
 
 interface PremiumTier {
@@ -30,6 +30,8 @@ interface PremiumTier {
   can_join_rewards_program: boolean;
   display_order: number;
   is_active: boolean;
+  upgrade_tier_id: string | null;
+  is_graduation_tier: boolean;
 }
 
 interface ActivitySetting {
@@ -366,6 +368,41 @@ export function BeesMatePremiumManagement() {
                   checked={editingTier.can_join_rewards_program}
                   onCheckedChange={(checked) => setEditingTier(prev => prev ? { ...prev, can_join_rewards_program: checked } : null)}
                 />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Graduation Tier</Label>
+                  <p className="text-xs text-muted-foreground">Users can upgrade to this tier when they graduate</p>
+                </div>
+                <Switch
+                  checked={editingTier.is_graduation_tier || false}
+                  onCheckedChange={(checked) => setEditingTier(prev => prev ? { ...prev, is_graduation_tier: checked } : null)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <ArrowUpCircle className="w-4 h-4" />
+                  Upgrade Path (for graduation)
+                </Label>
+                <Select
+                  value={editingTier.upgrade_tier_id || 'none'}
+                  onValueChange={(value) => setEditingTier(prev => prev ? { ...prev, upgrade_tier_id: value === 'none' ? null : value } : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select upgrade tier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No upgrade path</SelectItem>
+                    {tiers.filter(t => t.id !== editingTier.id).map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.tier_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  When a user graduates from this tier, they can upgrade to the selected tier
+                </p>
               </div>
 
               <Button className="w-full" onClick={saveTier}>

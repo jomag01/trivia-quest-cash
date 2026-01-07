@@ -2094,10 +2094,12 @@ export type Database = {
           features: Json | null
           id: string
           is_active: boolean | null
+          is_graduation_tier: boolean | null
           price_php: number
           tier_key: string
           tier_name: string
           updated_at: string | null
+          upgrade_tier_id: string | null
           visibility_multiplier: number
         }
         Insert: {
@@ -2112,10 +2114,12 @@ export type Database = {
           features?: Json | null
           id?: string
           is_active?: boolean | null
+          is_graduation_tier?: boolean | null
           price_php?: number
           tier_key: string
           tier_name: string
           updated_at?: string | null
+          upgrade_tier_id?: string | null
           visibility_multiplier?: number
         }
         Update: {
@@ -2130,13 +2134,23 @@ export type Database = {
           features?: Json | null
           id?: string
           is_active?: boolean | null
+          is_graduation_tier?: boolean | null
           price_php?: number
           tier_key?: string
           tier_name?: string
           updated_at?: string | null
+          upgrade_tier_id?: string | null
           visibility_multiplier?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "beesmate_premium_tiers_upgrade_tier_id_fkey"
+            columns: ["upgrade_tier_id"]
+            isOneToOne: false
+            referencedRelation: "beesmate_premium_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       beesmate_profile_images: {
         Row: {
@@ -2286,6 +2300,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      beesmate_verifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          id_document_url: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          selfie_url: string | null
+          submitted_at: string
+          updated_at: string | null
+          user_id: string
+          verification_status: string
+          verified_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          id_document_url: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selfie_url?: string | null
+          submitted_at?: string
+          updated_at?: string | null
+          user_id: string
+          verification_status?: string
+          verified_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          id_document_url?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selfie_url?: string | null
+          submitted_at?: string
+          updated_at?: string | null
+          user_id?: string
+          verification_status?: string
+          verified_name?: string | null
+        }
+        Relationships: []
       }
       blog_categories: {
         Row: {
