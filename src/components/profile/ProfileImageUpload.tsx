@@ -154,7 +154,7 @@ export default function ProfileImageUpload({ size = "md", showEditButton = true 
           </Button>
 
           <p className="text-xs text-muted-foreground text-center">
-            Supported: JPEG, PNG, WebP (max 2MB)
+            Supported: JPEG, PNG, WebP (max 10MB)
           </p>
         </div>
       </DialogContent>
