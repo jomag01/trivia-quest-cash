@@ -4,22 +4,22 @@ import imageCompression from "browser-image-compression";
 // Supported image types
 const SUPPORTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-// Max file sizes in bytes
+// Max file sizes in bytes (increased to 10MB for better UX)
 const MAX_SIZES = {
-  profile: 2 * 1024 * 1024, // 2MB
-  verification: 5 * 1024 * 1024, // 5MB
+  profile: 10 * 1024 * 1024, // 10MB
+  verification: 10 * 1024 * 1024, // 10MB
 };
 
 // Compression options
 const COMPRESSION_OPTIONS = {
   profile: {
-    maxSizeMB: 0.5,
+    maxSizeMB: 1,
     maxWidthOrHeight: 1024,
     useWebWorker: true,
     fileType: 'image/webp' as const,
   },
   verification: {
-    maxSizeMB: 1,
+    maxSizeMB: 2,
     maxWidthOrHeight: 1920,
     useWebWorker: true,
     fileType: 'image/webp' as const,
@@ -31,6 +31,51 @@ const BUCKETS = {
   profile: ['profile-images', 'beesmate-profiles', 'avatars'] as const,
   verification: ['verification-images', 'beesmate-profiles'] as const,
 };
+
+// Supabase config
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+/**
+ * Direct upload using REST API to bypass bucket metadata queries
+ * This avoids the "file_size_limit does not exist" error
+ */
+async function directUpload(
+  bucket: string,
+  path: string,
+  file: Blob,
+  token: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const url = `${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'x-upsert': 'true',
+        'Content-Type': 'image/webp',
+        'Cache-Control': '3600',
+      },
+      body: file,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { 
+        success: false, 
+        error: errorData.message || `Upload failed with status ${response.status}` 
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Network error during upload' 
+    };
+  }
+}
 
 export interface UploadResult {
   success: boolean;
@@ -146,9 +191,13 @@ export async function uploadImage(
     const folderPath = subfolder ? `${userId}/${subfolder}` : userId;
     const fullPath = `${folderPath}/${fileName}`;
 
+    // Get auth token for upload
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || SUPABASE_ANON_KEY;
+
     // Try each bucket with retries
     const buckets = BUCKETS[type];
-    let lastError: Error | null = null;
+    let lastError: string | null = null;
 
     for (const bucket of buckets) {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -159,19 +208,12 @@ export async function uploadImage(
             message: `Uploading... (attempt ${attempt})`,
           });
 
-          // Direct upload without bucket metadata check
-          const { error: uploadError } = await supabase.storage
-            .from(bucket)
-            .upload(fullPath, compressed, { 
-              upsert: true,
-              contentType: 'image/webp',
-              cacheControl: '3600',
-            });
+          // Use direct REST API upload to bypass bucket metadata queries
+          const result = await directUpload(bucket, fullPath, compressed, token);
 
-          if (!uploadError) {
-            // Success! Get public URL directly without getBucket call
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-            const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${fullPath}`;
+          if (result.success) {
+            // Success! Construct public URL directly
+            const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${fullPath}`;
 
             onProgress?.({
               progress: 100,
@@ -187,15 +229,15 @@ export async function uploadImage(
             };
           }
 
-          lastError = new Error(uploadError.message);
-          console.warn(`Upload attempt ${attempt} to ${bucket} failed:`, uploadError);
+          lastError = result.error || 'Upload failed';
+          console.warn(`Upload attempt ${attempt} to ${bucket} failed:`, lastError);
           
           // Wait before retry (exponential backoff)
           if (attempt < maxRetries) {
             await new Promise(r => setTimeout(r, 1000 * attempt));
           }
         } catch (err) {
-          lastError = err as Error;
+          lastError = err instanceof Error ? err.message : 'Unknown error';
           console.warn(`Upload attempt ${attempt} to ${bucket} error:`, err);
         }
       }
@@ -213,7 +255,7 @@ export async function uploadImage(
 
     return {
       success: false,
-      error: lastError?.message || 'Failed to upload image. Please try again.',
+      error: lastError || 'Failed to upload image. Please try again.',
     };
   } catch (error) {
     console.error('Upload error:', error);
