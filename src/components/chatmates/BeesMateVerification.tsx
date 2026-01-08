@@ -319,7 +319,7 @@ export function BeesMateVerification({ onVerificationChange }: BeesMateVerificat
             <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
               <input 
                 type="file" 
-                accept="image/*" 
+                accept="image/jpeg,image/png,image/webp" 
                 className="hidden" 
                 onChange={handleIdUpload}
               />
@@ -359,7 +359,7 @@ export function BeesMateVerification({ onVerificationChange }: BeesMateVerificat
             <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
               <input 
                 type="file" 
-                accept="image/*" 
+                accept="image/jpeg,image/png,image/webp" 
                 className="hidden" 
                 onChange={handleSelfieUpload}
               />

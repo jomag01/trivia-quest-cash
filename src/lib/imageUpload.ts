@@ -1,5 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
 import imageCompression from "browser-image-compression";
+import { uploadToAWS } from "@/lib/awsMedia";
 
 // Supported image types
 const SUPPORTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -26,56 +26,9 @@ const COMPRESSION_OPTIONS = {
   },
 };
 
-// Bucket configurations
-const BUCKETS = {
-  profile: ['profile-images', 'beesmate-profiles', 'avatars'] as const,
-  verification: ['verification-images', 'beesmate-profiles'] as const,
-};
-
-// Supabase config
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-/**
- * Direct upload using REST API to bypass bucket metadata queries
- * This avoids the "file_size_limit does not exist" error
- */
-async function directUpload(
-  bucket: string,
-  path: string,
-  file: Blob,
-  token: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const url = `${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`;
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'x-upsert': 'true',
-        'Content-Type': 'image/webp',
-        'Cache-Control': '3600',
-      },
-      body: file,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return { 
-        success: false, 
-        error: errorData.message || `Upload failed with status ${response.status}` 
-      };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Network error during upload' 
-    };
-  }
-}
+// Uploads are routed through our AWS-backed media pipeline to avoid
+// storage schema mismatches (e.g. missing file_size_limit / allowed_mime_types
+// columns) that can break managed storage uploads.
 
 export interface UploadResult {
   success: boolean;
@@ -184,78 +137,30 @@ export async function uploadImage(
       message: 'Uploading image...',
     });
 
-    // Generate file path
     const timestamp = Date.now();
-    const ext = 'webp'; // We compress to webp
-    const fileName = filename || `${timestamp}.${ext}`;
-    const folderPath = subfolder ? `${userId}/${subfolder}` : userId;
-    const fullPath = `${folderPath}/${fileName}`;
 
-    // Get auth token for upload
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || SUPABASE_ANON_KEY;
+    const aws = await uploadToAWS(compressed, `beesmate/${userId}`, (p) => {
+      onProgress?.({
+        progress: 40 + Math.round(p.percentage * 0.6),
+        status: "uploading",
+        message: `Uploading... ${p.percentage}%`,
+      });
+    });
 
-    // Try each bucket with retries
-    const buckets = BUCKETS[type];
-    let lastError: string | null = null;
-
-    for (const bucket of buckets) {
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          onProgress?.({
-            progress: 40 + (attempt * 10),
-            status: 'uploading',
-            message: `Uploading... (attempt ${attempt})`,
-          });
-
-          // Use direct REST API upload to bypass bucket metadata queries
-          const result = await directUpload(bucket, fullPath, compressed, token);
-
-          if (result.success) {
-            // Success! Construct public URL directly
-            const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${fullPath}`;
-
-            onProgress?.({
-              progress: 100,
-              status: 'complete',
-              message: 'Upload complete!',
-            });
-
-            return {
-              success: true,
-              publicUrl: `${publicUrl}?t=${timestamp}`, // Cache bust
-              bucket,
-              path: fullPath,
-            };
-          }
-
-          lastError = result.error || 'Upload failed';
-          console.warn(`Upload attempt ${attempt} to ${bucket} failed:`, lastError);
-          
-          // Wait before retry (exponential backoff)
-          if (attempt < maxRetries) {
-            await new Promise(r => setTimeout(r, 1000 * attempt));
-          }
-        } catch (err) {
-          lastError = err instanceof Error ? err.message : 'Unknown error';
-          console.warn(`Upload attempt ${attempt} to ${bucket} error:`, err);
-        }
-      }
-      
-      // Try next bucket
-      console.log(`All retries failed for ${bucket}, trying next bucket...`);
+    if (!aws?.cdnUrl) {
+      throw new Error("Failed to upload image. Please try again.");
     }
 
-    // All buckets failed
     onProgress?.({
-      progress: 0,
-      status: 'error',
-      message: 'Upload failed. Tap to retry.',
+      progress: 100,
+      status: "complete",
+      message: "Upload complete!",
     });
 
     return {
-      success: false,
-      error: lastError || 'Failed to upload image. Please try again.',
+      success: true,
+      publicUrl: `${aws.cdnUrl}?t=${timestamp}`, // Cache bust
+      path: aws.fileName,
     };
   } catch (error) {
     console.error('Upload error:', error);
