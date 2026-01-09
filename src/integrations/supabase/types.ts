@@ -5090,8 +5090,10 @@ export type Database = {
           address: string | null
           admin_notes: string | null
           approval_status: string | null
+          banner_url: string | null
           category_id: string | null
           city_id: string | null
+          closing_time: string | null
           cover_image_url: string | null
           created_at: string | null
           cuisine_type: string | null
@@ -5105,6 +5107,7 @@ export type Database = {
           longitude: number | null
           minimum_order: number | null
           name: string
+          opening_time: string | null
           owner_id: string
           phone: string | null
           rating: number | null
@@ -5116,8 +5119,10 @@ export type Database = {
           address?: string | null
           admin_notes?: string | null
           approval_status?: string | null
+          banner_url?: string | null
           category_id?: string | null
           city_id?: string | null
+          closing_time?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           cuisine_type?: string | null
@@ -5131,6 +5136,7 @@ export type Database = {
           longitude?: number | null
           minimum_order?: number | null
           name: string
+          opening_time?: string | null
           owner_id: string
           phone?: string | null
           rating?: number | null
@@ -5142,8 +5148,10 @@ export type Database = {
           address?: string | null
           admin_notes?: string | null
           approval_status?: string | null
+          banner_url?: string | null
           category_id?: string | null
           city_id?: string | null
+          closing_time?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           cuisine_type?: string | null
@@ -5157,6 +5165,7 @@ export type Database = {
           longitude?: number | null
           minimum_order?: number | null
           name?: string
+          opening_time?: string | null
           owner_id?: string
           phone?: string | null
           rating?: number | null
@@ -9096,6 +9105,42 @@ export type Database = {
         }
         Relationships: []
       }
+      reservation_slots: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean | null
+          max_capacity: number | null
+          slot_duration_minutes: number | null
+          start_time: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean | null
+          max_capacity?: number | null
+          slot_duration_minutes?: number | null
+          start_time: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          max_capacity?: number | null
+          slot_duration_minutes?: number | null
+          start_time?: string
+          vendor_id?: string
+        }
+        Relationships: []
+      }
       restaurant_commissions: {
         Row: {
           commission_type: string | null
@@ -9183,6 +9228,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      restaurant_reservations: {
+        Row: {
+          arrived_at: string | null
+          completed_at: string | null
+          confirmed_at: string | null
+          created_at: string
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string
+          id: string
+          party_size: number
+          reservation_date: string
+          reservation_time: string
+          special_requests: string | null
+          status: string | null
+          table_number: string | null
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          arrived_at?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_phone: string
+          id?: string
+          party_size?: number
+          reservation_date: string
+          reservation_time: string
+          special_requests?: string | null
+          status?: string | null
+          table_number?: string | null
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          arrived_at?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          party_size?: number
+          reservation_date?: string
+          reservation_time?: string
+          special_requests?: string | null
+          status?: string | null
+          table_number?: string | null
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: []
       }
       restaurant_wallets: {
         Row: {

@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plus, Store, UtensilsCrossed, ShoppingBag, Settings, Menu, AlertTriangle } from "lucide-react";
+import { Plus, Store, UtensilsCrossed, ShoppingBag, Settings, Menu, AlertTriangle, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { MenuItemsList } from "./MenuItemsList";
 import { MenuManagement } from "./MenuManagement";
 import { VendorOrders } from "./VendorOrders";
+import { ReservationManagement } from "./ReservationManagement";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CreateMenuItemDialog } from "./CreateMenuItemDialog";
 import { EditRestaurantDialog } from "./EditRestaurantDialog";
@@ -169,7 +170,7 @@ export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="menus" className="text-xs">
             <Menu className="w-3 h-3 mr-1" />
             Menus
@@ -181,6 +182,10 @@ export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
           <TabsTrigger value="orders" className="text-xs">
             <ShoppingBag className="w-3 h-3 mr-1" />
             Orders
+          </TabsTrigger>
+          <TabsTrigger value="reservations" className="text-xs">
+            <Calendar className="w-3 h-3 mr-1" />
+            Tables
           </TabsTrigger>
         </TabsList>
 
@@ -201,6 +206,10 @@ export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
 
         <TabsContent value="orders" className="mt-4">
           <VendorOrders vendorId={vendor.id} />
+        </TabsContent>
+
+        <TabsContent value="reservations" className="mt-4">
+          <ReservationManagement vendorId={vendor.id} />
         </TabsContent>
       </Tabs>
 
