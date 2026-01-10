@@ -5113,6 +5113,7 @@ export type Database = {
           rating: number | null
           service_radius_km: number | null
           total_orders: number | null
+          total_tables: number | null
           updated_at: string | null
         }
         Insert: {
@@ -5142,6 +5143,7 @@ export type Database = {
           rating?: number | null
           service_radius_km?: number | null
           total_orders?: number | null
+          total_tables?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -5171,6 +5173,7 @@ export type Database = {
           rating?: number | null
           service_radius_km?: number | null
           total_orders?: number | null
+          total_tables?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -8577,6 +8580,9 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           birthday: string | null
+          block_reason: string | null
+          blocked_at: string | null
+          blocked_by: string | null
           chat_response_count: number | null
           chat_response_rating: number | null
           country: string | null
@@ -8593,6 +8599,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_admin: boolean | null
+          is_blocked: boolean | null
           is_chat_enabled: boolean | null
           is_creator: boolean | null
           is_on_hold: boolean | null
@@ -8623,6 +8630,9 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           birthday?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
           chat_response_count?: number | null
           chat_response_rating?: number | null
           country?: string | null
@@ -8639,6 +8649,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_admin?: boolean | null
+          is_blocked?: boolean | null
           is_chat_enabled?: boolean | null
           is_creator?: boolean | null
           is_on_hold?: boolean | null
@@ -8669,6 +8680,9 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           birthday?: string | null
+          block_reason?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
           chat_response_count?: number | null
           chat_response_rating?: number | null
           country?: string | null
@@ -8685,6 +8699,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
+          is_blocked?: boolean | null
           is_chat_enabled?: boolean | null
           is_creator?: boolean | null
           is_on_hold?: boolean | null
