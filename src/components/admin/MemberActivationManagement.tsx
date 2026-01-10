@@ -19,7 +19,9 @@ import {
   Lock,
   Unlock,
   Store,
-  Star
+  Star,
+  Ban,
+  UserX
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,6 +38,7 @@ interface SearchResult {
   marketplace_activated: boolean;
   is_on_hold: boolean;
   is_verified_user: boolean;
+  is_blocked: boolean;
   diamonds: number;
   referral_code: string;
   referral_count: number;
@@ -65,7 +68,7 @@ export default function MemberActivationManagement() {
     try {
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, is_verified, is_paid_affiliate, ai_features_unlocked, marketplace_activated, is_on_hold, is_verified_user, diamonds, referral_code, created_at')
+        .select('id, email, full_name, is_verified, is_paid_affiliate, ai_features_unlocked, marketplace_activated, is_on_hold, is_verified_user, is_blocked, diamonds, referral_code, created_at')
         .or(`email.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%,referral_code.ilike.%${searchQuery}%`)
         .limit(20);
 
@@ -103,6 +106,7 @@ export default function MemberActivationManagement() {
         marketplace_activated: (p as any).marketplace_activated || false,
         is_on_hold: (p as any).is_on_hold ?? true,
         is_verified_user: (p as any).is_verified_user || false,
+        is_blocked: (p as any).is_blocked || false,
         referral_count: referralCountMap.get(p.id) || 0,
         affiliate_status: affiliateMap.get(p.id) || null,
       }));
@@ -224,6 +228,30 @@ export default function MemberActivationManagement() {
     }
   };
 
+  const handleToggleBlock = async (userId: string, currentStatus: boolean) => {
+    if (!user) return;
+    setActivating(userId);
+    try {
+      const newStatus = !currentStatus;
+      await supabase
+        .from('profiles')
+        .update({
+          is_blocked: newStatus,
+          blocked_at: newStatus ? new Date().toISOString() : null,
+          blocked_by: newStatus ? user.id : null,
+        })
+        .eq('id', userId);
+
+      toast.success(newStatus ? 'User has been blocked' : 'User has been unblocked');
+      handleSearch();
+    } catch (error) {
+      console.error('Block toggle error:', error);
+      toast.error('Failed to toggle block status');
+    } finally {
+      setActivating(null);
+    }
+  };
+
   const getAffiliateRequirements = (result: SearchResult) => {
     const hasDiamonds = result.diamonds >= 150;
     const hasReferrals = result.referral_count >= 2;
@@ -265,7 +293,11 @@ export default function MemberActivationManagement() {
           </div>
           
           <div className="flex flex-wrap gap-1.5">
-            {result.is_on_hold ? (
+            {result.is_blocked ? (
+              <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5 bg-red-600">
+                <Ban className="h-2.5 w-2.5 mr-0.5" />Blocked
+              </Badge>
+            ) : result.is_on_hold ? (
               <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5">On Hold</Badge>
             ) : (
               <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-[10px] px-1.5 py-0.5">Active</Badge>
@@ -352,12 +384,23 @@ export default function MemberActivationManagement() {
             
             <Button
               size="sm"
+              variant={result.is_blocked ? "default" : "destructive"}
+              onClick={() => handleToggleBlock(result.id, result.is_blocked)}
+              disabled={isActivating}
+              className={`h-7 text-[10px] ${result.is_blocked ? 'bg-gradient-to-r from-green-500 to-emerald-500' : ''}`}
+            >
+              {isActivating ? <Loader2 className="h-3 w-3 animate-spin" /> : result.is_blocked ? <UserCheck className="h-3 w-3 mr-1" /> : <UserX className="h-3 w-3 mr-1" />}
+              {result.is_blocked ? 'Unblock' : 'Block'}
+            </Button>
+            
+            <Button
+              size="sm"
               variant="secondary"
               onClick={() => setTabVisibilityUser({ id: result.id, name: result.full_name || result.email })}
-              className="h-7 text-[10px] col-span-2"
+              className="h-7 text-[10px]"
             >
               <EyeOff className="h-3 w-3 mr-1" />
-              Manage Tabs
+              Tabs
             </Button>
           </div>
         </div>

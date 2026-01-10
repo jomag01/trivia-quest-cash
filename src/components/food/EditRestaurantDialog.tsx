@@ -32,6 +32,7 @@ export const EditRestaurantDialog = ({ vendor, onClose }: EditRestaurantDialogPr
     banner_url: vendor.banner_url || "",
     opening_time: vendor.opening_time || "08:00",
     closing_time: vendor.closing_time || "22:00",
+    total_tables: vendor.total_tables?.toString() || "0",
   });
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,6 +81,7 @@ export const EditRestaurantDialog = ({ vendor, onClose }: EditRestaurantDialogPr
           banner_url: formData.banner_url || null,
           opening_time: formData.opening_time,
           closing_time: formData.closing_time,
+          total_tables: parseInt(formData.total_tables) || 0,
         })
         .eq("id", vendor.id);
 
@@ -236,12 +238,23 @@ export const EditRestaurantDialog = ({ vendor, onClose }: EditRestaurantDialogPr
           </div>
         </div>
 
-        <div>
-          <Label>Estimated Delivery Time</Label>
-          <Input
-            value={formData.estimated_delivery_time}
-            onChange={(e) => setFormData({ ...formData, estimated_delivery_time: e.target.value })}
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Estimated Delivery Time</Label>
+            <Input
+              value={formData.estimated_delivery_time}
+              onChange={(e) => setFormData({ ...formData, estimated_delivery_time: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Total Tables</Label>
+            <Input
+              type="number"
+              value={formData.total_tables}
+              onChange={(e) => setFormData({ ...formData, total_tables: e.target.value })}
+              placeholder="Number of tables"
+            />
+          </div>
         </div>
       </div>
 

@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft, Star, Clock, MapPin, Plus, Minus } from "lucide-react";
 import { useFoodCart } from "@/hooks/useFoodCart";
 import { toast } from "sonner";
+import { CustomerReservationSection } from "./CustomerReservationSection";
 
 interface RestaurantMenuProps {
   vendorId: string;
@@ -31,6 +32,7 @@ interface FoodVendor {
   estimated_delivery_time: string | null;
   delivery_fee: number;
   minimum_order: number;
+  total_tables?: number;
 }
 
 interface Variation {
@@ -275,6 +277,13 @@ export const RestaurantMenu = ({ vendorId, onBack }: RestaurantMenuProps) => {
             <Badge variant="outline">Min order ₱{vendor.minimum_order}</Badge>
           )}
         </div>
+
+        {/* Reservation Section for Users */}
+        <CustomerReservationSection 
+          vendorId={vendorId} 
+          vendorName={vendor.name}
+          totalTables={vendor.total_tables}
+        />
       </div>
 
       {/* Category Filter */}

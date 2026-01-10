@@ -168,26 +168,28 @@ export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
         </Alert>
       )}
 
-      {/* Tabs */}
+      {/* Tabs - Scrollable */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="menus" className="text-xs">
-            <Menu className="w-3 h-3 mr-1" />
-            Menus
-          </TabsTrigger>
-          <TabsTrigger value="items" className="text-xs">
-            <UtensilsCrossed className="w-3 h-3 mr-1" />
-            Items
-          </TabsTrigger>
-          <TabsTrigger value="orders" className="text-xs">
-            <ShoppingBag className="w-3 h-3 mr-1" />
-            Orders
-          </TabsTrigger>
-          <TabsTrigger value="reservations" className="text-xs">
-            <Calendar className="w-3 h-3 mr-1" />
-            Tables
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4">
+          <TabsList className="inline-flex w-auto min-w-full gap-1">
+            <TabsTrigger value="menus" className="text-xs shrink-0">
+              <Menu className="w-3 h-3 mr-1" />
+              Menus
+            </TabsTrigger>
+            <TabsTrigger value="items" className="text-xs shrink-0">
+              <UtensilsCrossed className="w-3 h-3 mr-1" />
+              Items
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="text-xs shrink-0">
+              <ShoppingBag className="w-3 h-3 mr-1" />
+              Orders
+            </TabsTrigger>
+            <TabsTrigger value="reservations" className="text-xs shrink-0">
+              <Calendar className="w-3 h-3 mr-1" />
+              Tables
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="menus" className="mt-4">
           <MenuManagement vendorId={vendor.id} />
