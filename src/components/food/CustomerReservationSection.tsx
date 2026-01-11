@@ -56,6 +56,7 @@ export const CustomerReservationSection = ({
     date: format(new Date(), "yyyy-MM-dd"),
     time: "",
     party_size: "2",
+    table_number: "",
     customer_name: profile?.full_name || "",
     customer_phone: "",
     customer_email: profile?.email || "",
@@ -75,6 +76,21 @@ export const CustomerReservationSection = ({
         .order("start_time");
       if (error) throw error;
       return data as ReservationSlot[];
+    },
+  });
+
+  // Fetch available tables
+  const { data: tables } = useQuery({
+    queryKey: ["vendor-tables", vendorId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("restaurant_tables")
+        .select("*")
+        .eq("vendor_id", vendorId)
+        .eq("is_available", true)
+        .order("table_number");
+      if (error) throw error;
+      return data || [];
     },
   });
 
@@ -106,6 +122,7 @@ export const CustomerReservationSection = ({
         reservation_date: formData.date,
         reservation_time: formData.time,
         party_size: parseInt(formData.party_size),
+        table_number: formData.table_number ? parseInt(formData.table_number) : null,
         special_requests: formData.special_requests || null,
         status: "pending",
       });
@@ -118,6 +135,7 @@ export const CustomerReservationSection = ({
       setFormData({
         ...formData,
         time: "",
+        table_number: "",
         special_requests: "",
       });
     },
@@ -261,23 +279,48 @@ export const CustomerReservationSection = ({
               </div>
 
               {/* Party Size */}
-              <div>
-                <Label>Party Size</Label>
-                <Select
-                  value={formData.party_size}
-                  onValueChange={(v) => setFormData({ ...formData, party_size: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20].map((size) => (
-                      <SelectItem key={size} value={size.toString()}>
-                        {size} {size === 1 ? "guest" : "guests"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Party Size</Label>
+                  <Select
+                    value={formData.party_size}
+                    onValueChange={(v) => setFormData({ ...formData, party_size: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20].map((size) => (
+                        <SelectItem key={size} value={size.toString()}>
+                          {size} {size === 1 ? "guest" : "guests"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Table Selection */}
+                {tables && tables.length > 0 && (
+                  <div>
+                    <Label>Table Number</Label>
+                    <Select
+                      value={formData.table_number}
+                      onValueChange={(v) => setFormData({ ...formData, table_number: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select table" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Any available</SelectItem>
+                        {tables.map((table: any) => (
+                          <SelectItem key={table.id} value={table.table_number.toString()}>
+                            Table {table.table_number} ({table.seats} seats)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               {/* Contact Info */}

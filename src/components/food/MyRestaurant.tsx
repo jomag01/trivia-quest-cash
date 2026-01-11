@@ -14,6 +14,7 @@ import { MenuItemsList } from "./MenuItemsList";
 import { MenuManagement } from "./MenuManagement";
 import { VendorOrders } from "./VendorOrders";
 import { ReservationManagement } from "./ReservationManagement";
+import { RestaurantTablesManager } from "./RestaurantTablesManager";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CreateMenuItemDialog } from "./CreateMenuItemDialog";
 import { EditRestaurantDialog } from "./EditRestaurantDialog";
@@ -211,7 +212,10 @@ export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
         </TabsContent>
 
         <TabsContent value="reservations" className="mt-4">
-          <ReservationManagement vendorId={vendor.id} />
+          <div className="space-y-4">
+            <RestaurantTablesManager vendorId={vendor.id} />
+            <ReservationManagement vendorId={vendor.id} />
+          </div>
         </TabsContent>
       </Tabs>
 

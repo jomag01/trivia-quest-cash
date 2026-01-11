@@ -24,7 +24,8 @@ import {
   ChevronRight,
   ArrowLeft,
   PiggyBank,
-  UserCog
+  UserCog,
+  Ban
 } from "lucide-react";
 import {
   Dialog,
@@ -103,6 +104,7 @@ import { Bug, Heart, Award, Coins } from "lucide-react";
 import ChatMateModeration from "@/components/admin/ChatMateModeration";
 import { BeesMatePremiumManagement } from "@/components/admin/BeesMatePremiumManagement";
 import { ASPNManagement } from "@/components/admin/ASPNManagement";
+import ProductAffiliateExclusion from "@/components/admin/ProductAffiliateExclusion";
 
 interface MenuItem {
   id: string;
@@ -181,6 +183,7 @@ const Admin = () => {
       icon: Network,
       items: [
         { id: "member-activation", label: "Member Activation", icon: UserCheck },
+        { id: "product-affiliate-exclusion", label: "Product Affiliate Exclusion", icon: Ban },
         { id: "unilevel-settings", label: "Unilevel Network", icon: Users },
         { id: "stair-step", label: "Stair Step MLM", icon: TrendingUp },
         { id: "transfers", label: "Upline Transfers", icon: Users },
@@ -864,6 +867,7 @@ const Admin = () => {
           {activeTab === "cash-deposits" && <CashDepositManagement />}
           {activeTab === "payout-accounts" && <PayoutAccountsManagement />}
           {activeTab === "member-activation" && <MemberActivationManagement />}
+          {activeTab === "product-affiliate-exclusion" && <ProductAffiliateExclusion />}
           {activeTab === "marketplace-categories" && <MarketplaceCategoryManagement />}
           {activeTab === "marketplace-settings" && <MarketplaceSettingsManagement />}
           {activeTab === "listing-features" && <ListingFeaturesManagement />}

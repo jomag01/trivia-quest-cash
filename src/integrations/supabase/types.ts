@@ -5097,6 +5097,7 @@ export type Database = {
           cover_image_url: string | null
           created_at: string | null
           cuisine_type: string | null
+          delivers_to_all_areas: boolean | null
           delivery_fee: number | null
           estimated_delivery_time: string | null
           id: string
@@ -5127,6 +5128,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string | null
           cuisine_type?: string | null
+          delivers_to_all_areas?: boolean | null
           delivery_fee?: number | null
           estimated_delivery_time?: string | null
           id?: string
@@ -5157,6 +5159,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string | null
           cuisine_type?: string | null
+          delivers_to_all_areas?: boolean | null
           delivery_fee?: number | null
           estimated_delivery_time?: string | null
           id?: string
@@ -8462,6 +8465,7 @@ export type Database = {
           diamond_reward: number | null
           dimensions_cm: string | null
           discount_percentage: number | null
+          exclude_from_affiliate: boolean | null
           final_price: number | null
           free_shipping: boolean | null
           id: string
@@ -8499,6 +8503,7 @@ export type Database = {
           diamond_reward?: number | null
           dimensions_cm?: string | null
           discount_percentage?: number | null
+          exclude_from_affiliate?: boolean | null
           final_price?: number | null
           free_shipping?: boolean | null
           id?: string
@@ -8536,6 +8541,7 @@ export type Database = {
           diamond_reward?: number | null
           dimensions_cm?: string | null
           discount_percentage?: number | null
+          exclude_from_affiliate?: boolean | null
           final_price?: number | null
           free_shipping?: boolean | null
           id?: string
@@ -9303,6 +9309,44 @@ export type Database = {
           vendor_id?: string
         }
         Relationships: []
+      }
+      restaurant_tables: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_available: boolean | null
+          seats: number | null
+          table_number: number
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_available?: boolean | null
+          seats?: number | null
+          table_number: number
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_available?: boolean | null
+          seats?: number | null
+          table_number?: number
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_tables_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "food_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       restaurant_wallets: {
         Row: {
