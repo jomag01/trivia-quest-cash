@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { GuestCheckoutDialog } from "@/components/GuestCheckoutDialog";
 
 export const CartView = () => {
   const { user, profile } = useAuth();
@@ -34,6 +35,7 @@ export const CartView = () => {
   const [cashWalletBalance, setCashWalletBalance] = useState(0);
   const [isVerified, setIsVerified] = useState(false);
   const [checkingVerification, setCheckingVerification] = useState(true);
+  const [showGuestCheckout, setShowGuestCheckout] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -583,12 +585,28 @@ export const CartView = () => {
               </span>
             </div>
           </div>
-          <Button className="w-full" size="lg" onClick={() => setCheckoutDialog(true)}>
+          <Button 
+            className="w-full" 
+            size="lg" 
+            onClick={() => {
+              if (!user) {
+                setShowGuestCheckout(true);
+              } else {
+                setCheckoutDialog(true);
+              }
+            }}
+          >
             <ShoppingCart className="w-4 h-4 mr-2" />
             Proceed to Checkout
           </Button>
         </Card>
       </div>
+
+      {/* Guest Checkout Dialog */}
+      <GuestCheckoutDialog 
+        open={showGuestCheckout} 
+        onOpenChange={setShowGuestCheckout} 
+      />
 
       {/* Checkout Dialog */}
       <Dialog open={checkoutDialog} onOpenChange={setCheckoutDialog}>

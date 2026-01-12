@@ -49,6 +49,7 @@ import { useHiddenTabs } from "@/hooks/useHiddenTabs";
 import SellerOrderProcessing from "@/components/dashboard/SellerOrderProcessing";
 import { CommissionEarningsCard } from "@/components/dashboard/CommissionEarningsCard";
 import { CommissionNotificationsCard } from "@/components/dashboard/CommissionNotificationsCard";
+import { BlockedUserDialog } from "@/components/BlockedUserDialog";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -95,6 +96,17 @@ const Dashboard = () => {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  // Show blocked user dialog if user is blocked
+  if (profile?.is_blocked) {
+    return (
+      <BlockedUserDialog
+        userId={user?.id || ""}
+        blockReason={(profile as any)?.block_reason}
+        onSignOut={signOut}
+      />
+    );
+  }
   useEffect(() => {
     if (user) {
       fetchAllData();

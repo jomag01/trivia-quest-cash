@@ -111,11 +111,12 @@ export const CustomerReservationSection = ({
   });
 
   // Create reservation mutation
+  // Create reservation mutation
   const createReservationMutation = useMutation({
     mutationFn: async () => {
       const { error } = await (supabase as any).from("restaurant_reservations").insert({
         vendor_id: vendorId,
-        user_id: user?.id || null,
+        customer_id: user?.id || null,
         customer_name: formData.customer_name,
         customer_phone: formData.customer_phone,
         customer_email: formData.customer_email || null,
