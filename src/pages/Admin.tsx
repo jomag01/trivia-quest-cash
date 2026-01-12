@@ -284,6 +284,7 @@ const Admin = () => {
       items: [
         { id: "shareholders", label: "Shareholders", icon: PiggyBank },
         { id: "sub-admins", label: "Sub-Admins", icon: UserCog },
+        { id: "activation-requests", label: "Activation Requests", icon: UserCheck },
         { id: "beesmate-moderation", label: "BeesMate Moderation", icon: Heart },
         { id: "beesmate-premium", label: "BeesMate Premium", icon: Crown },
         { id: "aspn-management", label: "ASPN Rewards", icon: Award },

@@ -24,6 +24,8 @@ interface Profile {
   phone_number?: string | null;
   is_on_hold?: boolean;
   is_verified_user?: boolean;
+  is_blocked?: boolean;
+  block_reason?: string | null;
 }
 
 type UserRole = 'admin' | 'user';

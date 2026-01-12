@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      activation_requests: {
+        Row: {
+          admin_response: string | null
+          created_at: string | null
+          id: string
+          request_message: string | null
+          responded_at: string | null
+          responded_by: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string | null
+          id?: string
+          request_message?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string | null
+          id?: string
+          request_message?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ad_impressions: {
         Row: {
           ad_id: string
