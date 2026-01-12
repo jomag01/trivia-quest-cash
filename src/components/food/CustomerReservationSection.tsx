@@ -189,8 +189,31 @@ export const CustomerReservationSection = ({
   const availableTimes = getAvailableTimes();
   const hasSlots = slots && slots.length > 0;
 
-  if (!hasSlots && !loadingSlots) {
-    return null; // Don't show section if no reservation slots configured
+  if (loadingSlots) {
+    return (
+      <Card className="mt-4 border-primary/20">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <Clock className="w-4 h-4 animate-spin" />
+            <span className="text-sm">Loading reservation options...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!hasSlots) {
+    return (
+      <Card className="mt-4 border-muted">
+        <CardContent className="p-4">
+          <div className="text-center text-muted-foreground">
+            <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm font-medium">No Reservations Available</p>
+            <p className="text-xs mt-1">This restaurant hasn't set up reservation slots yet.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
