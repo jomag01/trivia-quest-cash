@@ -82,7 +82,7 @@ export const CustomerReservationSection = ({
     },
   });
 
-  // Fetch available tables
+  // Fetch ALL tables for this vendor (including unavailable)
   const { data: tables, error: tablesError } = useQuery({
     queryKey: ["vendor-tables", vendorId],
     queryFn: async () => {
@@ -90,7 +90,6 @@ export const CustomerReservationSection = ({
         .from("restaurant_tables")
         .select("*")
         .eq("vendor_id", vendorId)
-        .eq("is_available", true)
         .order("table_number");
       if (error) {
         console.error("Error fetching tables:", error);
@@ -100,13 +99,13 @@ export const CustomerReservationSection = ({
     },
   });
 
-  // Fetch existing reservations for the selected date
+  // Fetch existing reservations for the selected date with table info
   const { data: existingReservations } = useQuery({
     queryKey: ["date-reservations", vendorId, formData.date],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("restaurant_reservations")
-        .select("reservation_time, party_size, status")
+        .select("reservation_time, party_size, status, table_number")
         .eq("vendor_id", vendorId)
         .eq("reservation_date", formData.date)
         .not("status", "in", "(cancelled,no_show)");
@@ -115,6 +114,25 @@ export const CustomerReservationSection = ({
     },
     enabled: !!formData.date,
   });
+
+  // Check if a table is booked for the selected time
+  const isTableBookedForTime = (tableNumber: number, time: string) => {
+    if (!existingReservations || !time) return false;
+    return existingReservations.some(
+      (r: any) => r.table_number === tableNumber && r.reservation_time === time
+    );
+  };
+
+  // Get available tables for the selected time
+  const getAvailableTablesForTime = () => {
+    if (!tables || !formData.time) return tables || [];
+    return tables.map((table: any) => ({
+      ...table,
+      isBookedForTime: isTableBookedForTime(table.table_number, formData.time),
+    }));
+  };
+
+  const tablesWithAvailability = getAvailableTablesForTime();
 
   // Create reservation mutation
   // Create reservation mutation
@@ -248,10 +266,10 @@ export const CustomerReservationSection = ({
       <CardContent className="p-4 space-y-3">
         {/* Available Info */}
         <div className="flex flex-wrap gap-2">
-          {totalTables > 0 && (
+          {tables && tables.length > 0 && (
             <Badge variant="secondary" className="text-xs">
               <Table2 className="w-3 h-3 mr-1" />
-              {totalTables} tables available
+              {tables.filter((t: any) => t.is_available).length} / {tables.length} tables available
             </Badge>
           )}
           <Badge variant="outline" className="text-xs">
@@ -344,26 +362,70 @@ export const CustomerReservationSection = ({
                   </Select>
                 </div>
 
-                {/* Table Selection */}
+                {/* Table Selection - Visual Grid */}
                 {tables && tables.length > 0 && (
-                  <div>
-                    <Label>Table Number</Label>
-                    <Select
-                      value={formData.table_number}
-                      onValueChange={(v) => setFormData({ ...formData, table_number: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select table" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Any available</SelectItem>
-                        {tables.map((table: any) => (
-                          <SelectItem key={table.id} value={table.table_number.toString()}>
-                            Table {table.table_number} ({table.seats} seats)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="col-span-2">
+                    <Label className="mb-2 block">Select Table</Label>
+                    <div className="grid grid-cols-4 gap-2 p-3 bg-muted/30 rounded-lg border">
+                      {tablesWithAvailability.map((table: any) => {
+                        const isBooked = table.isBookedForTime;
+                        const isUnavailable = !table.is_available;
+                        const isSelected = formData.table_number === table.table_number.toString();
+                        const isDisabled = isBooked || isUnavailable || !formData.time;
+                        
+                        return (
+                          <button
+                            key={table.id}
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() => setFormData({ ...formData, table_number: table.table_number.toString() })}
+                            className={`
+                              relative p-2 rounded-lg border-2 text-center transition-all
+                              ${isSelected 
+                                ? 'border-primary bg-primary/10 ring-2 ring-primary/30' 
+                                : 'border-border hover:border-primary/50'}
+                              ${isDisabled 
+                                ? 'opacity-50 cursor-not-allowed bg-muted' 
+                                : 'cursor-pointer hover:bg-accent'}
+                              ${isBooked ? 'bg-destructive/10 border-destructive/30' : ''}
+                            `}
+                          >
+                            <div className="flex flex-col items-center gap-0.5">
+                              <Table2 className={`w-4 h-4 ${isBooked ? 'text-destructive' : isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <span className="text-xs font-medium">T{table.table_number}</span>
+                              <span className="text-[10px] text-muted-foreground">{table.seats}p</span>
+                            </div>
+                            {isBooked && (
+                              <Badge variant="destructive" className="absolute -top-1 -right-1 text-[8px] px-1 py-0">
+                                Taken
+                              </Badge>
+                            )}
+                            {isUnavailable && !isBooked && (
+                              <Badge variant="secondary" className="absolute -top-1 -right-1 text-[8px] px-1 py-0">
+                                N/A
+                              </Badge>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!formData.time && (
+                      <p className="text-xs text-muted-foreground mt-1">Select a time to see table availability</p>
+                    )}
+                    <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded border-2 border-primary bg-primary/10" />
+                        <span>Selected</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded border-2 border-border" />
+                        <span>Available</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-destructive/10 border-2 border-destructive/30" />
+                        <span>Taken</span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
