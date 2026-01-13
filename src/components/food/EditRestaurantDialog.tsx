@@ -51,17 +51,26 @@ export const EditRestaurantDialog = ({ vendor, onClose }: EditRestaurantDialogPr
 
     setUploading(true);
     try {
+      console.log("Starting banner upload for restaurant:", vendor.id);
       const result = await uploadToAWS(file, `restaurants/${vendor.id}`);
+      console.log("Upload result:", result);
+      
       if (result?.cdnUrl) {
         setFormData({ ...formData, banner_url: result.cdnUrl });
         toast.success("Banner uploaded!");
       } else {
-        toast.error("Failed to upload banner");
+        console.error("Upload failed: No CDN URL returned");
+        toast.error("Failed to upload banner. Please try again.");
       }
-    } catch (error) {
-      toast.error("Upload failed");
+    } catch (error: any) {
+      console.error("Banner upload error:", error);
+      toast.error(error?.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
+      // Reset the input so the same file can be selected again
+      if (bannerInputRef.current) {
+        bannerInputRef.current.value = "";
+      }
     }
   };
 

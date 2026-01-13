@@ -64,7 +64,7 @@ export const CustomerReservationSection = ({
   });
 
   // Fetch available slots for this vendor
-  const { data: slots, isLoading: loadingSlots } = useQuery({
+  const { data: slots, isLoading: loadingSlots, error: slotsError } = useQuery({
     queryKey: ["vendor-public-slots", vendorId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -74,13 +74,16 @@ export const CustomerReservationSection = ({
         .eq("is_active", true)
         .order("day_of_week")
         .order("start_time");
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching slots:", error);
+        throw error;
+      }
       return data as ReservationSlot[];
     },
   });
 
   // Fetch available tables
-  const { data: tables } = useQuery({
+  const { data: tables, error: tablesError } = useQuery({
     queryKey: ["vendor-tables", vendorId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -89,7 +92,10 @@ export const CustomerReservationSection = ({
         .eq("vendor_id", vendorId)
         .eq("is_available", true)
         .order("table_number");
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching tables:", error);
+        throw error;
+      }
       return data || [];
     },
   });
@@ -196,6 +202,21 @@ export const CustomerReservationSection = ({
           <div className="flex items-center justify-center gap-2 text-muted-foreground">
             <Clock className="w-4 h-4 animate-spin" />
             <span className="text-sm">Loading reservation options...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state if queries failed
+  if (slotsError || tablesError) {
+    return (
+      <Card className="mt-4 border-destructive/20">
+        <CardContent className="p-4">
+          <div className="text-center text-muted-foreground">
+            <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm font-medium">Unable to load reservations</p>
+            <p className="text-xs mt-1">Please try again later.</p>
           </div>
         </CardContent>
       </Card>
