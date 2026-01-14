@@ -117,16 +117,58 @@ export const ReservationManagement = ({ vendorId }: ReservationManagementProps) 
     },
   });
 
-  // Update reservation status
+  // Update reservation status and handle table occupation
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status, arrivedAt }: { id: string; status: string; arrivedAt?: string }) => {
+    mutationFn: async ({ id, status, arrivedAt, tableNumber }: { id: string; status: string; arrivedAt?: string; tableNumber?: string | null }) => {
       const updates: any = { status };
       if (status === "arrived") {
         updates.arrived_at = arrivedAt || new Date().toISOString();
+        
+        // Mark table as occupied if table number exists
+        if (tableNumber) {
+          const expectedVacantAt = new Date();
+          expectedVacantAt.setHours(expectedVacantAt.getHours() + 1); // Default 1 hour
+          
+          await (supabase as any)
+            .from("restaurant_tables")
+            .update({
+              current_reservation_id: id,
+              occupied_since: new Date().toISOString(),
+              expected_vacant_at: expectedVacantAt.toISOString(),
+            })
+            .eq("vendor_id", vendorId)
+            .eq("table_number", parseInt(tableNumber));
+        }
       } else if (status === "completed") {
         updates.completed_at = new Date().toISOString();
+        
+        // Release the table when reservation is completed
+        if (tableNumber) {
+          await (supabase as any)
+            .from("restaurant_tables")
+            .update({
+              current_reservation_id: null,
+              occupied_since: null,
+              expected_vacant_at: null,
+            })
+            .eq("vendor_id", vendorId)
+            .eq("table_number", parseInt(tableNumber));
+        }
       } else if (status === "confirmed") {
         updates.confirmed_at = new Date().toISOString();
+      } else if (status === "cancelled" || status === "no_show") {
+        // Release table if it was occupied
+        if (tableNumber) {
+          await (supabase as any)
+            .from("restaurant_tables")
+            .update({
+              current_reservation_id: null,
+              occupied_since: null,
+              expected_vacant_at: null,
+            })
+            .eq("vendor_id", vendorId)
+            .eq("table_number", parseInt(tableNumber));
+        }
       }
 
       const { error } = await (supabase as any)
@@ -137,6 +179,8 @@ export const ReservationManagement = ({ vendorId }: ReservationManagementProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant-tables"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-tables"] });
       toast.success("Reservation updated!");
     },
     onError: (error: any) => {
@@ -283,7 +327,7 @@ export const ReservationManagement = ({ vendorId }: ReservationManagementProps) 
                           <Button
                             size="sm"
                             onClick={() =>
-                              updateStatusMutation.mutate({ id: reservation.id, status: "confirmed" })
+                              updateStatusMutation.mutate({ id: reservation.id, status: "confirmed", tableNumber: reservation.table_number })
                             }
                           >
                             <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -293,7 +337,7 @@ export const ReservationManagement = ({ vendorId }: ReservationManagementProps) 
                             size="sm"
                             variant="destructive"
                             onClick={() =>
-                              updateStatusMutation.mutate({ id: reservation.id, status: "cancelled" })
+                              updateStatusMutation.mutate({ id: reservation.id, status: "cancelled", tableNumber: reservation.table_number })
                             }
                           >
                             <XCircle className="w-3 h-3 mr-1" />
@@ -308,7 +352,7 @@ export const ReservationManagement = ({ vendorId }: ReservationManagementProps) 
                             size="sm"
                             className="bg-green-600 hover:bg-green-700"
                             onClick={() =>
-                              updateStatusMutation.mutate({ id: reservation.id, status: "arrived" })
+                              updateStatusMutation.mutate({ id: reservation.id, status: "arrived", tableNumber: reservation.table_number })
                             }
                           >
                             <UserCheck className="w-3 h-3 mr-1" />
@@ -318,7 +362,7 @@ export const ReservationManagement = ({ vendorId }: ReservationManagementProps) 
                             size="sm"
                             variant="outline"
                             onClick={() =>
-                              updateStatusMutation.mutate({ id: reservation.id, status: "no_show" })
+                              updateStatusMutation.mutate({ id: reservation.id, status: "no_show", tableNumber: reservation.table_number })
                             }
                           >
                             No Show
@@ -330,11 +374,11 @@ export const ReservationManagement = ({ vendorId }: ReservationManagementProps) 
                         <Button
                           size="sm"
                           onClick={() =>
-                            updateStatusMutation.mutate({ id: reservation.id, status: "completed" })
+                            updateStatusMutation.mutate({ id: reservation.id, status: "completed", tableNumber: reservation.table_number })
                           }
                         >
                           <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Complete
+                          Complete (Free Table)
                         </Button>
                       )}
                     </div>

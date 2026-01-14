@@ -5125,6 +5125,7 @@ export type Database = {
         Row: {
           address: string | null
           admin_notes: string | null
+          allow_waitlist: boolean | null
           approval_status: string | null
           banner_url: string | null
           category_id: string | null
@@ -5133,9 +5134,11 @@ export type Database = {
           cover_image_url: string | null
           created_at: string | null
           cuisine_type: string | null
+          default_table_duration_hours: number | null
           delivers_to_all_areas: boolean | null
           delivery_fee: number | null
           estimated_delivery_time: string | null
+          hourly_extension_fee: number | null
           id: string
           is_active: boolean | null
           is_open: boolean | null
@@ -5152,10 +5155,12 @@ export type Database = {
           total_orders: number | null
           total_tables: number | null
           updated_at: string | null
+          waitlist_buffer_minutes: number | null
         }
         Insert: {
           address?: string | null
           admin_notes?: string | null
+          allow_waitlist?: boolean | null
           approval_status?: string | null
           banner_url?: string | null
           category_id?: string | null
@@ -5164,9 +5169,11 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string | null
           cuisine_type?: string | null
+          default_table_duration_hours?: number | null
           delivers_to_all_areas?: boolean | null
           delivery_fee?: number | null
           estimated_delivery_time?: string | null
+          hourly_extension_fee?: number | null
           id?: string
           is_active?: boolean | null
           is_open?: boolean | null
@@ -5183,10 +5190,12 @@ export type Database = {
           total_orders?: number | null
           total_tables?: number | null
           updated_at?: string | null
+          waitlist_buffer_minutes?: number | null
         }
         Update: {
           address?: string | null
           admin_notes?: string | null
+          allow_waitlist?: boolean | null
           approval_status?: string | null
           banner_url?: string | null
           category_id?: string | null
@@ -5195,9 +5204,11 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string | null
           cuisine_type?: string | null
+          default_table_duration_hours?: number | null
           delivers_to_all_areas?: boolean | null
           delivery_fee?: number | null
           estimated_delivery_time?: string | null
+          hourly_extension_fee?: number | null
           id?: string
           is_active?: boolean | null
           is_open?: boolean | null
@@ -5214,6 +5225,7 @@ export type Database = {
           total_orders?: number | null
           total_tables?: number | null
           updated_at?: string | null
+          waitlist_buffer_minutes?: number | null
         }
         Relationships: [
           {
@@ -9289,6 +9301,7 @@ export type Database = {
       restaurant_reservations: {
         Row: {
           arrived_at: string | null
+          booked_hours: number | null
           completed_at: string | null
           confirmed_at: string | null
           created_at: string
@@ -9296,6 +9309,8 @@ export type Database = {
           customer_id: string | null
           customer_name: string
           customer_phone: string
+          expected_end_time: string | null
+          extension_fee_total: number | null
           id: string
           party_size: number
           reservation_date: string
@@ -9308,6 +9323,7 @@ export type Database = {
         }
         Insert: {
           arrived_at?: string | null
+          booked_hours?: number | null
           completed_at?: string | null
           confirmed_at?: string | null
           created_at?: string
@@ -9315,6 +9331,8 @@ export type Database = {
           customer_id?: string | null
           customer_name: string
           customer_phone: string
+          expected_end_time?: string | null
+          extension_fee_total?: number | null
           id?: string
           party_size?: number
           reservation_date: string
@@ -9327,6 +9345,7 @@ export type Database = {
         }
         Update: {
           arrived_at?: string | null
+          booked_hours?: number | null
           completed_at?: string | null
           confirmed_at?: string | null
           created_at?: string
@@ -9334,6 +9353,8 @@ export type Database = {
           customer_id?: string | null
           customer_name?: string
           customer_phone?: string
+          expected_end_time?: string | null
+          extension_fee_total?: number | null
           id?: string
           party_size?: number
           reservation_date?: string
@@ -9349,32 +9370,48 @@ export type Database = {
       restaurant_tables: {
         Row: {
           created_at: string | null
+          current_reservation_id: string | null
           description: string | null
+          expected_vacant_at: string | null
           id: string
           is_available: boolean | null
+          occupied_since: string | null
           seats: number | null
           table_number: number
           vendor_id: string
         }
         Insert: {
           created_at?: string | null
+          current_reservation_id?: string | null
           description?: string | null
+          expected_vacant_at?: string | null
           id?: string
           is_available?: boolean | null
+          occupied_since?: string | null
           seats?: number | null
           table_number: number
           vendor_id: string
         }
         Update: {
           created_at?: string | null
+          current_reservation_id?: string | null
           description?: string | null
+          expected_vacant_at?: string | null
           id?: string
           is_available?: boolean | null
+          occupied_since?: string | null
           seats?: number | null
           table_number?: number
           vendor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "restaurant_tables_current_reservation_id_fkey"
+            columns: ["current_reservation_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_reservations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "restaurant_tables_vendor_id_fkey"
             columns: ["vendor_id"]
