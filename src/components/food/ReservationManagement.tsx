@@ -33,6 +33,8 @@ import {
   UserCheck,
   Plus,
   Settings,
+  Hourglass,
+  ArrowRight,
 } from "lucide-react";
 
 interface ReservationManagementProps {
@@ -153,6 +155,31 @@ export const ReservationManagement = ({ vendorId }: ReservationManagementProps) 
             })
             .eq("vendor_id", vendorId)
             .eq("table_number", parseInt(tableNumber));
+          
+          // Auto-assign next waitlist customer to the freed table
+          const { data: waitlistCustomers } = await (supabase as any)
+            .from("restaurant_reservations")
+            .select("*")
+            .eq("vendor_id", vendorId)
+            .is("table_number", null)
+            .gte("reservation_date", format(new Date(), "yyyy-MM-dd"))
+            .not("status", "in", '("cancelled","completed","no_show")')
+            .order("created_at", { ascending: true })
+            .limit(1);
+          
+          if (waitlistCustomers && waitlistCustomers.length > 0) {
+            const nextCustomer = waitlistCustomers[0];
+            await (supabase as any)
+              .from("restaurant_reservations")
+              .update({ 
+                table_number: tableNumber,
+                status: "confirmed"
+              })
+              .eq("id", nextCustomer.id);
+            
+            // Show notification about auto-assignment
+            toast.success(`Waitlist customer "${nextCustomer.customer_name}" auto-assigned to Table ${tableNumber}!`);
+          }
         }
       } else if (status === "confirmed") {
         updates.confirmed_at = new Date().toISOString();
@@ -234,17 +261,52 @@ export const ReservationManagement = ({ vendorId }: ReservationManagementProps) 
     (r) => r.reservation_date >= format(new Date(), "yyyy-MM-dd") && !["cancelled", "completed", "no_show"].includes(r.status)
   );
 
+  // Waitlist reservations (no table assigned, is_waitlist = true or table_number is null)
+  const waitlistReservations = reservations?.filter(
+    (r) => (!r.table_number || r.table_number === "") && 
+           !["cancelled", "completed", "no_show"].includes(r.status) &&
+           r.reservation_date >= format(new Date(), "yyyy-MM-dd")
+  );
+
+  // Auto-assign waitlist customer to freed table
+  const assignWaitlistToTable = async (waitlistReservation: Reservation, tableNumber: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from("restaurant_reservations")
+        .update({ 
+          table_number: tableNumber,
+          status: "confirmed"
+        })
+        .eq("id", waitlistReservation.id);
+      
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ["vendor-reservations"] });
+      toast.success(`Waitlist customer "${waitlistReservation.customer_name}" assigned to Table ${tableNumber}!`);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to assign table");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="reservations" className="text-xs">
             <Calendar className="w-3 h-3 mr-1" />
             Reservations
           </TabsTrigger>
+          <TabsTrigger value="waitlist" className="text-xs">
+            <Hourglass className="w-3 h-3 mr-1" />
+            Waitlist {waitlistReservations && waitlistReservations.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                {waitlistReservations.length}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="slots" className="text-xs">
             <Settings className="w-3 h-3 mr-1" />
-            Time Slots
+            Slots
           </TabsTrigger>
         </TabsList>
 
@@ -381,6 +443,115 @@ export const ReservationManagement = ({ vendorId }: ReservationManagementProps) 
                           Complete (Free Table)
                         </Button>
                       )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Waitlist Tab */}
+        <TabsContent value="waitlist" className="mt-4 space-y-4">
+          <Card className="bg-gradient-to-r from-orange-500/10 to-amber-500/5">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Customers in Waitlist</p>
+                  <p className="text-2xl font-bold">{waitlistReservations?.length || 0}</p>
+                </div>
+                <Hourglass className="w-8 h-8 text-orange-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {loadingReservations ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-4">
+                    <div className="h-16 bg-muted rounded" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : waitlistReservations?.length === 0 ? (
+            <div className="text-center py-8">
+              <Hourglass className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+              <p className="text-muted-foreground">No customers in waitlist</p>
+              <p className="text-sm text-muted-foreground">
+                Customers join the waitlist when all tables are occupied
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {waitlistReservations?.map((reservation, index) => (
+                <Card key={reservation.id} className="border-orange-200 dark:border-orange-800">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300">
+                          #{index + 1} in queue
+                        </Badge>
+                        <h4 className="font-semibold">{reservation.customer_name}</h4>
+                      </div>
+                      <Badge className={STATUS_COLORS[reservation.status]}>
+                        {reservation.status}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                      <Phone className="w-3 h-3" />
+                      {reservation.customer_phone}
+                    </div>
+
+                    <div className="flex items-center gap-4 text-sm mb-3">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        {format(new Date(reservation.reservation_date), "MMM dd, yyyy")}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        {reservation.reservation_time}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                        {reservation.party_size} guests
+                      </div>
+                    </div>
+
+                    {reservation.special_requests && (
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Note: {reservation.special_requests}
+                      </p>
+                    )}
+
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                        onClick={() => {
+                          // Prompt admin to select a table
+                          const tableNum = prompt("Enter table number to assign:");
+                          if (tableNum) {
+                            assignWaitlistToTable(reservation, tableNum);
+                          }
+                        }}
+                      >
+                        <ArrowRight className="w-3 h-3 mr-1" />
+                        Assign Table
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() =>
+                          updateStatusMutation.mutate({ id: reservation.id, status: "cancelled", tableNumber: null })
+                        }
+                      >
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Remove
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
