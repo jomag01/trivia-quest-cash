@@ -38,11 +38,14 @@ import WeatherForecast from '@/components/ai/WeatherForecast';
 import EmailMarketingHub from '@/components/ai/EmailMarketingHub';
 import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
 import { ManualBrushEraser } from '@/components/ai/ManualBrushEraser';
+import { BrandGenerator } from '@/components/ai/BrandGenerator';
+import { LeadGenerator } from '@/components/ai/LeadGenerator';
 // GuestAITrialPopup removed per user request
 import { Suspense } from 'react';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { Target } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMetaTags } from '@/hooks/useMetaTags';
@@ -275,6 +278,8 @@ const AIHub = memo(() => {
     { id: 'research', label: 'Research', icon: Brain, gradient: 'from-purple-400 to-indigo-500', iconColor: 'text-purple-500' },
     { id: 'chat', label: 'GPT-5', icon: MessageSquare, gradient: 'from-blue-400 to-cyan-500', iconColor: 'text-blue-500' },
     { id: 'business', label: 'Business', icon: Briefcase, gradient: 'from-slate-400 to-gray-600', iconColor: 'text-slate-500' },
+    { id: 'brand-generator', label: 'Branding', icon: Palette, gradient: 'from-purple-400 to-pink-500', iconColor: 'text-purple-500' },
+    { id: 'lead-generator', label: 'Leads', icon: Target, gradient: 'from-green-400 to-teal-500', iconColor: 'text-green-500' },
     { id: 'text-to-image', label: 'Image', icon: Wand2, gradient: 'from-pink-400 to-rose-500', iconColor: 'text-pink-500' },
     { id: 'text-to-video', label: 'Video', icon: VideoIcon, gradient: 'from-red-400 to-orange-500', iconColor: 'text-red-500' },
     { id: 'text-to-music', label: 'Music', icon: Music, gradient: 'from-violet-400 to-purple-500', iconColor: 'text-violet-500' },
@@ -1603,6 +1608,20 @@ const AIHub = memo(() => {
           {activeTab === 'business' && (
             <div className="p-4 md:p-6">
               <BusinessSolutions userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
+          )}
+
+          {/* Brand Generator */}
+          {activeTab === 'brand-generator' && (
+            <div className="p-4 md:p-6">
+              <BrandGenerator userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
+          )}
+
+          {/* Lead Generator */}
+          {activeTab === 'lead-generator' && (
+            <div className="p-4 md:p-6">
+              <LeadGenerator userCredits={userCredits} onCreditsChange={fetchUserCredits} />
             </div>
           )}
 
