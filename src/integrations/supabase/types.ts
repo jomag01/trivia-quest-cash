@@ -50,6 +50,357 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_ab_tests: {
+        Row: {
+          confidence_level: number | null
+          control_creative_id: string | null
+          created_at: string | null
+          end_date: string | null
+          id: string
+          metrics: Json | null
+          sponsored_product_id: string | null
+          start_date: string | null
+          statistical_significance: boolean | null
+          status: string | null
+          test_name: string
+          winner_creative_id: string | null
+        }
+        Insert: {
+          confidence_level?: number | null
+          control_creative_id?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          metrics?: Json | null
+          sponsored_product_id?: string | null
+          start_date?: string | null
+          statistical_significance?: boolean | null
+          status?: string | null
+          test_name: string
+          winner_creative_id?: string | null
+        }
+        Update: {
+          confidence_level?: number | null
+          control_creative_id?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          metrics?: Json | null
+          sponsored_product_id?: string | null
+          start_date?: string | null
+          statistical_significance?: boolean | null
+          status?: string | null
+          test_name?: string
+          winner_creative_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_ab_tests_control_creative_id_fkey"
+            columns: ["control_creative_id"]
+            isOneToOne: false
+            referencedRelation: "ai_ad_creatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_ab_tests_sponsored_product_id_fkey"
+            columns: ["sponsored_product_id"]
+            isOneToOne: false
+            referencedRelation: "sponsored_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_ab_tests_winner_creative_id_fkey"
+            columns: ["winner_creative_id"]
+            isOneToOne: false
+            referencedRelation: "ai_ad_creatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_auction_logs: {
+        Row: {
+          auction_metadata: Json | null
+          auction_timestamp: string | null
+          id: string
+          latency_ms: number | null
+          participating_ads: number | null
+          placement_key: string
+          runner_up_ad_id: string | null
+          runner_up_score: number | null
+          user_id: string | null
+          visitor_id: string | null
+          winning_ad_id: string | null
+          winning_score: number | null
+        }
+        Insert: {
+          auction_metadata?: Json | null
+          auction_timestamp?: string | null
+          id?: string
+          latency_ms?: number | null
+          participating_ads?: number | null
+          placement_key: string
+          runner_up_ad_id?: string | null
+          runner_up_score?: number | null
+          user_id?: string | null
+          visitor_id?: string | null
+          winning_ad_id?: string | null
+          winning_score?: number | null
+        }
+        Update: {
+          auction_metadata?: Json | null
+          auction_timestamp?: string | null
+          id?: string
+          latency_ms?: number | null
+          participating_ads?: number | null
+          placement_key?: string
+          runner_up_ad_id?: string | null
+          runner_up_score?: number | null
+          user_id?: string | null
+          visitor_id?: string | null
+          winning_ad_id?: string | null
+          winning_score?: number | null
+        }
+        Relationships: []
+      }
+      ad_daily_analytics: {
+        Row: {
+          analytics_date: string
+          clicks: number | null
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
+          created_at: string | null
+          ctr: number | null
+          cvr: number | null
+          id: string
+          impressions: number | null
+          placement_key: string | null
+          product_id: string | null
+          revenue: number | null
+          roas: number | null
+          seller_id: string | null
+          spend: number | null
+          sponsored_product_id: string | null
+        }
+        Insert: {
+          analytics_date: string
+          clicks?: number | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          cvr?: number | null
+          id?: string
+          impressions?: number | null
+          placement_key?: string | null
+          product_id?: string | null
+          revenue?: number | null
+          roas?: number | null
+          seller_id?: string | null
+          spend?: number | null
+          sponsored_product_id?: string | null
+        }
+        Update: {
+          analytics_date?: string
+          clicks?: number | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          cvr?: number | null
+          id?: string
+          impressions?: number | null
+          placement_key?: string | null
+          product_id?: string | null
+          revenue?: number | null
+          roas?: number | null
+          seller_id?: string | null
+          spend?: number | null
+          sponsored_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_daily_analytics_sponsored_product_id_fkey"
+            columns: ["sponsored_product_id"]
+            isOneToOne: false
+            referencedRelation: "sponsored_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_fraud_detection: {
+        Row: {
+          detected_at: string | null
+          evidence: Json | null
+          fraud_score: number
+          fraud_type: string
+          id: string
+          ip_address: string | null
+          is_blocked: boolean | null
+          review_action: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          user_id: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          detected_at?: string | null
+          evidence?: Json | null
+          fraud_score: number
+          fraud_type: string
+          id?: string
+          ip_address?: string | null
+          is_blocked?: boolean | null
+          review_action?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          detected_at?: string | null
+          evidence?: Json | null
+          fraud_score?: number
+          fraud_type?: string
+          id?: string
+          ip_address?: string | null
+          is_blocked?: boolean | null
+          review_action?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: []
+      }
+      ad_impression_caps: {
+        Row: {
+          cap_reached: boolean | null
+          created_at: string | null
+          id: string
+          impressions_today: number | null
+          last_impression_at: string | null
+          sponsored_product_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          cap_reached?: boolean | null
+          created_at?: string | null
+          id?: string
+          impressions_today?: number | null
+          last_impression_at?: string | null
+          sponsored_product_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          cap_reached?: boolean | null
+          created_at?: string | null
+          id?: string
+          impressions_today?: number | null
+          last_impression_at?: string | null
+          sponsored_product_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_impression_caps_sponsored_product_id_fkey"
+            columns: ["sponsored_product_id"]
+            isOneToOne: false
+            referencedRelation: "sponsored_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_impression_details: {
+        Row: {
+          actual_cost: number | null
+          auction_id: string | null
+          bid_amount: number | null
+          conversion_value: number | null
+          created_at: string | null
+          creative_id: string | null
+          device_type: string | null
+          id: string
+          is_clicked: boolean | null
+          is_converted: boolean | null
+          placement_key: string | null
+          retargeting_boost: number | null
+          retargeting_segment: string | null
+          session_id: string | null
+          sponsored_product_id: string | null
+          user_id: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          actual_cost?: number | null
+          auction_id?: string | null
+          bid_amount?: number | null
+          conversion_value?: number | null
+          created_at?: string | null
+          creative_id?: string | null
+          device_type?: string | null
+          id?: string
+          is_clicked?: boolean | null
+          is_converted?: boolean | null
+          placement_key?: string | null
+          retargeting_boost?: number | null
+          retargeting_segment?: string | null
+          session_id?: string | null
+          sponsored_product_id?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          actual_cost?: number | null
+          auction_id?: string | null
+          bid_amount?: number | null
+          conversion_value?: number | null
+          created_at?: string | null
+          creative_id?: string | null
+          device_type?: string | null
+          id?: string
+          is_clicked?: boolean | null
+          is_converted?: boolean | null
+          placement_key?: string | null
+          retargeting_boost?: number | null
+          retargeting_segment?: string | null
+          session_id?: string | null
+          sponsored_product_id?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_impression_details_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "ad_auction_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_impression_details_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "ai_ad_creatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_impression_details_sponsored_product_id_fkey"
+            columns: ["sponsored_product_id"]
+            isOneToOne: false
+            referencedRelation: "sponsored_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_impressions: {
         Row: {
           ad_id: string
@@ -109,6 +460,57 @@ export type Database = {
           id?: string
           interests?: string[]
           is_active?: boolean | null
+        }
+        Relationships: []
+      }
+      ad_platform_metrics: {
+        Row: {
+          active_advertisers: number | null
+          avg_quality_score: number | null
+          created_at: string | null
+          fraud_blocked_count: number | null
+          fraud_blocked_value: number | null
+          id: string
+          metrics_date: string
+          system_health: Json | null
+          top_advertisers: Json | null
+          top_performing_ads: Json | null
+          total_ad_revenue: number | null
+          total_clicks: number | null
+          total_conversions: number | null
+          total_impressions: number | null
+        }
+        Insert: {
+          active_advertisers?: number | null
+          avg_quality_score?: number | null
+          created_at?: string | null
+          fraud_blocked_count?: number | null
+          fraud_blocked_value?: number | null
+          id?: string
+          metrics_date: string
+          system_health?: Json | null
+          top_advertisers?: Json | null
+          top_performing_ads?: Json | null
+          total_ad_revenue?: number | null
+          total_clicks?: number | null
+          total_conversions?: number | null
+          total_impressions?: number | null
+        }
+        Update: {
+          active_advertisers?: number | null
+          avg_quality_score?: number | null
+          created_at?: string | null
+          fraud_blocked_count?: number | null
+          fraud_blocked_value?: number | null
+          id?: string
+          metrics_date?: string
+          system_health?: Json | null
+          top_advertisers?: Json | null
+          top_performing_ads?: Json | null
+          total_ad_revenue?: number | null
+          total_clicks?: number | null
+          total_conversions?: number | null
+          total_impressions?: number | null
         }
         Relationships: []
       }
@@ -392,6 +794,39 @@ export type Database = {
         }
         Relationships: []
       }
+      advanced_ad_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          setting_key: string
+          setting_type: string | null
+          setting_value: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          setting_key: string
+          setting_type?: string | null
+          setting_value?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          setting_key?: string
+          setting_type?: string | null
+          setting_value?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       affiliate_attributions: {
         Row: {
           affiliate_id: string
@@ -553,6 +988,98 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      ai_ad_creatives: {
+        Row: {
+          ab_test_group: string | null
+          auto_paused: boolean | null
+          click_rate: number | null
+          clicks: number | null
+          conversion_rate: number | null
+          conversions: number | null
+          created_at: string | null
+          creative_type: string | null
+          cta_text: string | null
+          description: string | null
+          headline: string
+          id: string
+          impressions: number | null
+          is_active: boolean | null
+          is_control: boolean | null
+          last_refreshed_at: string | null
+          pause_reason: string | null
+          performance_score: number | null
+          primary_image_url: string | null
+          product_id: string | null
+          secondary_images: string[] | null
+          seller_id: string
+          sponsored_product_id: string | null
+          updated_at: string | null
+          variation_key: string | null
+        }
+        Insert: {
+          ab_test_group?: string | null
+          auto_paused?: boolean | null
+          click_rate?: number | null
+          clicks?: number | null
+          conversion_rate?: number | null
+          conversions?: number | null
+          created_at?: string | null
+          creative_type?: string | null
+          cta_text?: string | null
+          description?: string | null
+          headline: string
+          id?: string
+          impressions?: number | null
+          is_active?: boolean | null
+          is_control?: boolean | null
+          last_refreshed_at?: string | null
+          pause_reason?: string | null
+          performance_score?: number | null
+          primary_image_url?: string | null
+          product_id?: string | null
+          secondary_images?: string[] | null
+          seller_id: string
+          sponsored_product_id?: string | null
+          updated_at?: string | null
+          variation_key?: string | null
+        }
+        Update: {
+          ab_test_group?: string | null
+          auto_paused?: boolean | null
+          click_rate?: number | null
+          clicks?: number | null
+          conversion_rate?: number | null
+          conversions?: number | null
+          created_at?: string | null
+          creative_type?: string | null
+          cta_text?: string | null
+          description?: string | null
+          headline?: string
+          id?: string
+          impressions?: number | null
+          is_active?: boolean | null
+          is_control?: boolean | null
+          last_refreshed_at?: string | null
+          pause_reason?: string | null
+          performance_score?: number | null
+          primary_image_url?: string | null
+          product_id?: string | null
+          secondary_images?: string[] | null
+          seller_id?: string
+          sponsored_product_id?: string | null
+          updated_at?: string | null
+          variation_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_ad_creatives_sponsored_product_id_fkey"
+            columns: ["sponsored_product_id"]
+            isOneToOne: false
+            referencedRelation: "sponsored_products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_credit_purchases: {
         Row: {
@@ -2381,6 +2908,57 @@ export type Database = {
           verified_name?: string | null
         }
         Relationships: []
+      }
+      bid_adjustment_history: {
+        Row: {
+          adjustment_reason: string | null
+          created_at: string | null
+          id: string
+          new_bid: number
+          performance_multiplier: number | null
+          previous_bid: number
+          roas_at_adjustment: number | null
+          rule_id: string | null
+          sponsored_product_id: string | null
+        }
+        Insert: {
+          adjustment_reason?: string | null
+          created_at?: string | null
+          id?: string
+          new_bid: number
+          performance_multiplier?: number | null
+          previous_bid: number
+          roas_at_adjustment?: number | null
+          rule_id?: string | null
+          sponsored_product_id?: string | null
+        }
+        Update: {
+          adjustment_reason?: string | null
+          created_at?: string | null
+          id?: string
+          new_bid?: number
+          performance_multiplier?: number | null
+          previous_bid?: number
+          roas_at_adjustment?: number | null
+          rule_id?: string | null
+          sponsored_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_adjustment_history_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "smart_bidding_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_adjustment_history_sponsored_product_id_fkey"
+            columns: ["sponsored_product_id"]
+            isOneToOne: false
+            referencedRelation: "sponsored_products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       blog_categories: {
         Row: {
@@ -9651,6 +10229,48 @@ export type Database = {
           },
         ]
       }
+      retargeting_segments: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          lookback_days: number | null
+          priority_boost: number | null
+          rules: Json
+          segment_key: string
+          segment_name: string
+          updated_at: string | null
+          user_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          lookback_days?: number | null
+          priority_boost?: number | null
+          rules: Json
+          segment_key: string
+          segment_name: string
+          updated_at?: string | null
+          user_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          lookback_days?: number | null
+          priority_boost?: number | null
+          rules?: Json
+          segment_key?: string
+          segment_name?: string
+          updated_at?: string | null
+          user_count?: number | null
+        }
+        Relationships: []
+      }
       seller_custom_ads: {
         Row: {
           admin_notes: string | null
@@ -10711,6 +11331,56 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_bidding_rules: {
+        Row: {
+          action_type: string
+          action_value: number
+          condition_type: string
+          condition_value: number
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_triggered_at: string | null
+          rule_type: string
+          sponsored_product_id: string | null
+          trigger_count: number | null
+        }
+        Insert: {
+          action_type: string
+          action_value: number
+          condition_type: string
+          condition_value: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          rule_type: string
+          sponsored_product_id?: string | null
+          trigger_count?: number | null
+        }
+        Update: {
+          action_type?: string
+          action_value?: number
+          condition_type?: string
+          condition_value?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          rule_type?: string
+          sponsored_product_id?: string | null
+          trigger_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_bidding_rules_sponsored_product_id_fkey"
+            columns: ["sponsored_product_id"]
+            isOneToOne: false
+            referencedRelation: "sponsored_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       smm_ad_campaigns: {
         Row: {
           ad_content: Json | null
@@ -11231,6 +11901,129 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sponsored_placements: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          max_ads: number | null
+          placement_key: string
+          placement_name: string
+          placement_type: string
+          priority_weight: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_ads?: number | null
+          placement_key: string
+          placement_name: string
+          placement_type: string
+          priority_weight?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_ads?: number | null
+          placement_key?: string
+          placement_name?: string
+          placement_type?: string
+          priority_weight?: number | null
+        }
+        Relationships: []
+      }
+      sponsored_products: {
+        Row: {
+          bid_amount: number
+          campaign_name: string
+          clicks: number | null
+          conversion_rate: number | null
+          conversions: number | null
+          created_at: string | null
+          daily_budget: number
+          end_date: string | null
+          frequency_cap: number | null
+          id: string
+          impressions: number | null
+          is_learning_phase: boolean | null
+          learning_phase_data: Json | null
+          optimization_goal: string | null
+          placements: string[] | null
+          product_id: string
+          quality_score: number | null
+          relevance_score: number | null
+          revenue_generated: number | null
+          roas: number | null
+          seller_id: string
+          spent_amount: number
+          start_date: string | null
+          status: string | null
+          target_roas: number | null
+          total_budget: number
+          updated_at: string | null
+        }
+        Insert: {
+          bid_amount?: number
+          campaign_name: string
+          clicks?: number | null
+          conversion_rate?: number | null
+          conversions?: number | null
+          created_at?: string | null
+          daily_budget?: number
+          end_date?: string | null
+          frequency_cap?: number | null
+          id?: string
+          impressions?: number | null
+          is_learning_phase?: boolean | null
+          learning_phase_data?: Json | null
+          optimization_goal?: string | null
+          placements?: string[] | null
+          product_id: string
+          quality_score?: number | null
+          relevance_score?: number | null
+          revenue_generated?: number | null
+          roas?: number | null
+          seller_id: string
+          spent_amount?: number
+          start_date?: string | null
+          status?: string | null
+          target_roas?: number | null
+          total_budget?: number
+          updated_at?: string | null
+        }
+        Update: {
+          bid_amount?: number
+          campaign_name?: string
+          clicks?: number | null
+          conversion_rate?: number | null
+          conversions?: number | null
+          created_at?: string | null
+          daily_budget?: number
+          end_date?: string | null
+          frequency_cap?: number | null
+          id?: string
+          impressions?: number | null
+          is_learning_phase?: boolean | null
+          learning_phase_data?: Json | null
+          optimization_goal?: string | null
+          placements?: string[] | null
+          product_id?: string
+          quality_score?: number | null
+          relevance_score?: number | null
+          revenue_generated?: number | null
+          roas?: number | null
+          seller_id?: string
+          spent_amount?: number
+          start_date?: string | null
+          status?: string | null
+          target_roas?: number | null
+          total_budget?: number
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       stair_step_config: {
         Row: {
@@ -12324,6 +13117,69 @@ export type Database = {
           },
         ]
       }
+      user_behavior_events: {
+        Row: {
+          browser: string | null
+          created_at: string | null
+          device_type: string | null
+          event_category: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          page_url: string | null
+          referrer_url: string | null
+          search_query: string | null
+          session_id: string | null
+          target_category: string | null
+          target_id: string | null
+          target_name: string | null
+          target_price: number | null
+          target_type: string | null
+          user_id: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          event_category?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          referrer_url?: string | null
+          search_query?: string | null
+          session_id?: string | null
+          target_category?: string | null
+          target_id?: string | null
+          target_name?: string | null
+          target_price?: number | null
+          target_type?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          event_category?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          referrer_url?: string | null
+          search_query?: string | null
+          session_id?: string | null
+          target_category?: string | null
+          target_id?: string | null
+          target_name?: string | null
+          target_price?: number | null
+          target_type?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: []
+      }
       user_completed_categories: {
         Row: {
           category_id: string
@@ -12524,6 +13380,72 @@ export type Database = {
           id?: string
           level?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_retargeting_profiles: {
+        Row: {
+          ai_hub_interactions: string[] | null
+          avg_order_value: number | null
+          beesmate_interactions: string[] | null
+          cart_products: string[] | null
+          created_at: string | null
+          id: string
+          last_activity_at: string | null
+          last_search_queries: string[] | null
+          last_viewed_categories: string[] | null
+          last_viewed_products: string[] | null
+          purchase_history: string[] | null
+          purchase_probability: number | null
+          segments: string[] | null
+          total_cart_adds: number | null
+          total_product_views: number | null
+          total_purchases: number | null
+          updated_at: string | null
+          user_id: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          ai_hub_interactions?: string[] | null
+          avg_order_value?: number | null
+          beesmate_interactions?: string[] | null
+          cart_products?: string[] | null
+          created_at?: string | null
+          id?: string
+          last_activity_at?: string | null
+          last_search_queries?: string[] | null
+          last_viewed_categories?: string[] | null
+          last_viewed_products?: string[] | null
+          purchase_history?: string[] | null
+          purchase_probability?: number | null
+          segments?: string[] | null
+          total_cart_adds?: number | null
+          total_product_views?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          ai_hub_interactions?: string[] | null
+          avg_order_value?: number | null
+          beesmate_interactions?: string[] | null
+          cart_products?: string[] | null
+          created_at?: string | null
+          id?: string
+          last_activity_at?: string | null
+          last_search_queries?: string[] | null
+          last_viewed_categories?: string[] | null
+          last_viewed_products?: string[] | null
+          purchase_history?: string[] | null
+          purchase_probability?: number | null
+          segments?: string[] | null
+          total_cart_adds?: number | null
+          total_product_views?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
         }
         Relationships: []
       }
