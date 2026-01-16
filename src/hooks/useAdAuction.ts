@@ -1,0 +1,195 @@
+import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface SponsoredProduct {
+  id: string;
+  product_id: string;
+  seller_id: string;
+  bid_amount: number;
+  quality_score: number;
+  relevance_score: number;
+  conversion_rate: number;
+  creative?: {
+    id: string;
+    headline: string;
+    description: string;
+    cta_text: string;
+    primary_image_url: string;
+  };
+  product?: {
+    id: string;
+    name: string;
+    price: number;
+    image_url: string;
+    seller_id: string;
+  };
+  final_score?: number;
+  retargeting_boost?: number;
+}
+
+interface AuctionResult {
+  ads: SponsoredProduct[];
+  auction_id?: string;
+}
+
+const getVisitorId = (): string => {
+  return localStorage.getItem('tb_visitor_id') || '';
+};
+
+export const useAdAuction = () => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  const runAuction = useCallback(async (
+    placementKey: string,
+    maxAds: number = 5,
+    context?: {
+      categoryId?: string;
+      searchQuery?: string;
+      productIds?: string[];
+    }
+  ): Promise<AuctionResult> => {
+    setLoading(true);
+    const startTime = Date.now();
+
+    try {
+      const visitorId = getVisitorId();
+
+      // 1. Fetch active sponsored products
+      const { data: sponsoredProducts, error } = await supabase
+        .from('sponsored_products')
+        .select('id, product_id, seller_id, bid_amount, quality_score, relevance_score, conversion_rate, daily_budget, spent_amount, frequency_cap, placements')
+        .eq('status', 'active')
+        .gt('daily_budget', 0);
+
+      if (error || !sponsoredProducts?.length) {
+        setLoading(false);
+        return { ads: [] };
+      }
+
+      // 2. Filter by placement
+      const eligibleProducts = sponsoredProducts.filter(sp => 
+        (sp.placements as string[])?.includes(placementKey) || (sp.placements as string[])?.includes('all')
+      );
+
+      if (!eligibleProducts.length) {
+        setLoading(false);
+        return { ads: [] };
+      }
+
+      // 3. Calculate scores
+      const scoredProducts = eligibleProducts
+        .map(sp => {
+          const finalScore = (sp.bid_amount as number) * ((sp.quality_score as number) || 5) * 0.01;
+          return { ...sp, final_score: finalScore, retargeting_boost: 1.0 };
+        })
+        .sort((a, b) => (b.final_score || 0) - (a.final_score || 0))
+        .slice(0, maxAds);
+
+      // 4. Fetch product details
+      const productIds = scoredProducts.map(sp => sp.product_id);
+      const { data: products } = await supabase
+        .from('products')
+        .select('id, name, seller_id, image_url')
+        .in('id', productIds);
+
+      const productsMap = new Map((products || []).map(p => [p.id, p]));
+
+      const adsWithDetails: SponsoredProduct[] = scoredProducts.map(sp => {
+        const product = productsMap.get(sp.product_id);
+        return {
+          id: sp.id,
+          product_id: sp.product_id,
+          seller_id: sp.seller_id,
+          bid_amount: sp.bid_amount as number,
+          quality_score: (sp.quality_score as number) || 5,
+          relevance_score: (sp.relevance_score as number) || 5,
+          conversion_rate: (sp.conversion_rate as number) || 0,
+          final_score: sp.final_score,
+          retargeting_boost: sp.retargeting_boost,
+          product: product ? {
+            id: product.id,
+            name: product.name,
+            price: 0,
+            image_url: product.image_url || '',
+            seller_id: product.seller_id,
+          } : undefined,
+          creative: {
+            id: sp.id,
+            headline: product?.name || 'Shop Now',
+            description: 'Great deal!',
+            cta_text: 'Shop Now',
+            primary_image_url: product?.image_url || '',
+          },
+        };
+      });
+
+      // 5. Log auction
+      const latencyMs = Date.now() - startTime;
+      const { data: auctionLog } = await supabase
+        .from('ad_auction_logs')
+        .insert({
+          placement_key: placementKey,
+          user_id: user?.id || null,
+          visitor_id: visitorId || null,
+          winning_ad_id: adsWithDetails[0]?.id || null,
+          winning_score: adsWithDetails[0]?.final_score || null,
+          participating_ads: eligibleProducts.length,
+          latency_ms: latencyMs,
+        })
+        .select('id')
+        .single();
+
+      setLoading(false);
+      return { ads: adsWithDetails, auction_id: auctionLog?.id };
+    } catch (error) {
+      console.error('Ad auction error:', error);
+      setLoading(false);
+      return { ads: [] };
+    }
+  }, [user]);
+
+  const recordImpression = useCallback(async (
+    sponsoredProductId: string,
+    creativeId: string | null,
+    placementKey: string,
+    auctionId: string | null,
+    bidAmount: number,
+    retargetingBoost: number = 1.0
+  ) => {
+    try {
+      await supabase.from('ad_impression_details').insert({
+        sponsored_product_id: sponsoredProductId,
+        creative_id: creativeId,
+        placement_key: placementKey,
+        user_id: user?.id || null,
+        visitor_id: getVisitorId(),
+        auction_id: auctionId,
+        bid_amount: bidAmount,
+        actual_cost: bidAmount * 0.01,
+        retargeting_boost: retargetingBoost,
+      });
+    } catch (error) {
+      console.error('Error recording impression:', error);
+    }
+  }, [user]);
+
+  const recordClick = useCallback(async (
+    sponsoredProductId: string,
+    creativeId: string | null,
+    placementKey: string
+  ) => {
+    try {
+      await supabase
+        .from('ad_impression_details')
+        .update({ is_clicked: true })
+        .eq('sponsored_product_id', sponsoredProductId)
+        .eq('placement_key', placementKey);
+    } catch (error) {
+      console.error('Error recording click:', error);
+    }
+  }, []);
+
+  return { runAuction, recordImpression, recordClick, loading };
+};
