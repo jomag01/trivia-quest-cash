@@ -258,6 +258,7 @@ const Admin = () => {
       label: "Advertising",
       icon: Megaphone,
       items: [
+        { id: "ads-platform", label: "Ads Platform Dashboard", icon: BarChart3 },
         { id: "ad-management", label: "Ad Management", icon: Upload },
         { id: "promotional-ads", label: "Promotional Ads", icon: Sparkles },
         { id: "user-ads", label: "User Ad Campaigns", icon: TrendingUp },
