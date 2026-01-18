@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Suspense, lazy } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatMateDiscovery } from "@/components/chatmates/ChatMateDiscovery";
 import { ChatMateProfile } from "@/components/chatmates/ChatMateProfile";
@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, MessageCircle, Heart, Settings, Gamepad2, Briefcase, Crown, Bot, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+
+const SponsoredBeesMateAd = lazy(() => import("@/components/ads/SponsoredBeesMateAd").then(m => ({ default: m.SponsoredBeesMateAd })));
 
 export default function ChatMates() {
   const { user } = useAuth();
@@ -115,6 +117,13 @@ export default function ChatMates() {
           </TabsList>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
+
+        {/* Sponsored BeesMate Ad */}
+        <Suspense fallback={null}>
+          <div className="px-4 mb-4">
+            <SponsoredBeesMateAd />
+          </div>
+        </Suspense>
 
         <TabsContent value="discover" className="mt-0">
           <ChatMateDiscovery onMatch={() => setActiveTab("matches")} />

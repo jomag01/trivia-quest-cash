@@ -39,6 +39,8 @@ const SellerAdsSlider = lazy(() => import("@/components/shop/SellerAdsSlider"));
 const CompactSellerAdsSlider = lazy(() => import("@/components/shop/CompactSellerAdsSlider"));
 const SellerDashboard = lazy(() => import("./SellerDashboard"));
 const ShopAccountOverview = lazy(() => import("@/components/ShopAccountOverview"));
+const SponsoredProductsGrid = lazy(() => import("@/components/ads/SponsoredProductsGrid").then(m => ({ default: m.SponsoredProductsGrid })));
+const RetargetedProductsSection = lazy(() => import("@/components/ads/RetargetedProductsSection").then(m => ({ default: m.RetargetedProductsSection })));
 // AdminProductRecommendationPopup removed per user request
 
 const Shop = () => {
@@ -588,6 +590,16 @@ const Shop = () => {
                 <span className="font-semibold">SEC:</span> Sales-based referral rewards. Earnings not guaranteed.
               </p>
             </div>
+
+            {/* Retargeted Products Section */}
+            <Suspense fallback={null}>
+              <RetargetedProductsSection />
+            </Suspense>
+
+            {/* Sponsored Products Grid */}
+            <Suspense fallback={null}>
+              <SponsoredProductsGrid placementKey="homepage_feed" maxAds={4} />
+            </Suspense>
 
             {/* AI Product Recommendations - Compact */}
             <Suspense fallback={<ProductGridSkeleton count={4} />}>
