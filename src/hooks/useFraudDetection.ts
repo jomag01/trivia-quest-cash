@@ -197,12 +197,13 @@ export const useFraudDetection = () => {
 
     // Log fraud detection if signals found
     if (fraudSignals.length > 0) {
+      const evidenceData = JSON.parse(JSON.stringify({ signals: fraudSignals }));
       await supabase.from('ad_fraud_detection').insert([{
         user_id: userId || null,
         fraud_type: fraudSignals.map(s => s.type).join(','),
         fraud_score: totalScore,
         is_blocked: !isValid,
-        evidence: { signals: fraudSignals },
+        evidence: evidenceData,
       }]);
     }
 
