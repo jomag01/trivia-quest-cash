@@ -122,3 +122,6 @@ verify_jwt = false
 
 [functions.beesmate-image-enhance]
 verify_jwt = false
+
+[functions.ai-ad-creative-generator]
+verify_jwt = false

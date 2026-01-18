@@ -47,7 +47,7 @@ export const RetargetedProductsSection = () => {
       // Fetch product details
       const { data: productData } = await supabase
         .from('products')
-        .select('id, name, selling_price, compare_at_price, image_url')
+        .select('id, name, final_price, base_price, promo_price, image_url')
         .in('id', productIds);
 
       if (productData) {
@@ -55,7 +55,9 @@ export const RetargetedProductsSection = () => {
           .map(id => {
             const p = productData.find(prod => prod.id === id);
             if (!p) return null;
-            return { id: p.id, name: p.name, price: p.selling_price || 0, image_url: p.image_url || '', original_price: p.compare_at_price };
+            const price = p.promo_price || p.final_price || p.base_price || 0;
+            const originalPrice = p.promo_price ? (p.final_price || p.base_price) : undefined;
+            return { id: p.id, name: p.name, price, image_url: p.image_url || '', original_price: originalPrice };
           })
           .filter(Boolean) as Product[];
         setProducts(orderedProducts);
