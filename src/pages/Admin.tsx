@@ -98,6 +98,7 @@ import AISubscriptionManagement from "@/components/admin/AISubscriptionManagemen
 import NewsletterManagement from "@/components/admin/NewsletterManagement";
 import SellerReferrerCommissionManagement from "@/components/admin/SellerReferrerCommissionManagement";
 import ErrorReportsManagement from "@/components/admin/ErrorReportsManagement";
+import { AdminAdsPlatformDashboard } from "@/components/ads/AdminAdsPlatformDashboard";
 import CookiePlacementSettings from "@/components/admin/CookiePlacementSettings";
 import MarketingSystemManagement from "@/components/admin/MarketingSystemManagement";
 import { Bug, Heart, Award, Coins } from "lucide-react";
@@ -874,6 +875,7 @@ const Admin = () => {
           {activeTab === "listing-features" && <ListingFeaturesManagement />}
           {activeTab === "slider-ads" && <SliderAdsManagement />}
           {activeTab === "ad-revenue-settings" && <AdRevenueSettings />}
+          {activeTab === "ads-platform" && <AdminAdsPlatformDashboard />}
           {activeTab === "suppliers" && <SupplierManagement />}
           {activeTab === "retailer-commissions" && <RetailerCommissionSettings />}
           {activeTab === "seller-referrer" && <SellerReferrerCommissionManagement />}

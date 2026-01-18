@@ -40,6 +40,7 @@ import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
 import { ManualBrushEraser } from '@/components/ai/ManualBrushEraser';
 import { BrandGenerator } from '@/components/ai/BrandGenerator';
 import { LeadGenerator } from '@/components/ai/LeadGenerator';
+import { SponsoredAIHubAd } from '@/components/ads/SponsoredAIHubAd';
 // GuestAITrialPopup removed per user request
 import { Suspense } from 'react';
 
@@ -1561,6 +1562,13 @@ const AIHub = memo(() => {
 
         {/* Content Area */}
         <div className="min-h-[calc(100vh-60px)] md:min-h-screen">
+          {/* Sponsored Ad for AI Hub */}
+          <Suspense fallback={null}>
+            <div className="px-4 pt-4">
+              <SponsoredAIHubAd />
+            </div>
+          </Suspense>
+
           {/* Home - Gallery Style Landing */}
           {activeTab === 'home' && (
             <AIHubGallery 
