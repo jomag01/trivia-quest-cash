@@ -18,6 +18,7 @@ import { ImageUploadCrop } from "@/components/ImageUploadCrop";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import AdsPromoPopup from "@/components/seller/AdsPromoPopup";
 import ConvertToAuctionDialog from "@/components/auction/ConvertToAuctionDialog";
+import PromoteProductDialog from "@/components/seller/PromoteProductDialog";
 export default function SellerDashboard() {
   const {
     user,
@@ -33,7 +34,9 @@ export default function SellerDashboard() {
   const [showVariantsDialog, setShowVariantsDialog] = useState(false);
   const [showAdsPromo, setShowAdsPromo] = useState(false);
   const [showAuctionDialog, setShowAuctionDialog] = useState(false);
+  const [showPromoteDialog, setShowPromoteDialog] = useState(false);
   const [selectedProductForAuction, setSelectedProductForAuction] = useState<any>(null);
+  const [selectedProductForPromotion, setSelectedProductForPromotion] = useState<any>(null);
   const [selectedProductForVariants, setSelectedProductForVariants] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState({
@@ -360,6 +363,12 @@ export default function SellerDashboard() {
                           setShowVariantsDialog(true);
                         }} title="Manage Variants">
                           <Layers className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="outline" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10" onClick={() => {
+                          setSelectedProductForPromotion(p);
+                          setShowPromoteDialog(true);
+                        }} title="Promote Product">
+                          <Megaphone className="h-3.5 w-3.5" />
                         </Button>
                         <Button size="icon" variant="outline" className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => {
                           setSelectedProductForAuction(p);
