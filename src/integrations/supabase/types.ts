@@ -14593,18 +14593,6 @@ export type Database = {
         }
         Returns: Json
       }
-      promote_product: {
-        Args: {
-          p_bid_amount: number
-          p_campaign_name: string
-          p_daily_budget: number
-          p_placements: string[]
-          p_product_id: string
-          p_seller_id: string
-          p_total_budget: number
-        }
-        Returns: string
-      }
       reverse_aspn_on_refund: {
         Args: { p_reason?: string; p_source_id: string; p_source_type: string }
         Returns: undefined
