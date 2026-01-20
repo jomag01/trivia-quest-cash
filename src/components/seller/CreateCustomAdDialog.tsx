@@ -19,9 +19,17 @@ import { toast } from 'sonner';
 import { Loader2, Upload, ChevronRight, Target, MapPin, Users, Image, DollarSign, CreditCard, Wallet, Building2, Copy, Check } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 
+interface ProductData {
+  id: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+}
+
 interface CreateCustomAdDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefilledProduct?: ProductData | null;
 }
 
 interface PricingTier {
