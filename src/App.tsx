@@ -41,6 +41,7 @@ const MyOrdersPage = lazy(() => import("./components/shop/MyOrdersPage"));
 const Warehouse = lazy(() => import("./pages/Warehouse"));
 const ShareholderRegistration = lazy(() => import("./pages/ShareholderRegistration"));
 const BeesMate = lazy(() => import("./pages/ChatMates"));
+const LinkRedirect = lazy(() => import("./pages/LinkRedirect"));
 
 // Configure QueryClient with aggressive caching
 const queryClient = new QueryClient({
