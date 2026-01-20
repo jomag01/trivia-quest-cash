@@ -87,17 +87,28 @@ export const useAdAuction = () => {
         .sort((a, b) => (b.final_score || 0) - (a.final_score || 0))
         .slice(0, maxAds);
 
-      // 4. Fetch product details
-      const productIds = scoredProducts.map(sp => sp.product_id);
-      const { data: products } = await supabase
+      // 4. Fetch product details for product-based ads
+      const productIds = scoredProducts.filter(sp => sp.product_id).map(sp => sp.product_id);
+      const userAdIds = scoredProducts.filter(sp => !sp.product_id).map(sp => sp.id);
+      
+      const { data: products } = productIds.length ? await supabase
         .from('products')
         .select('id, name, seller_id, image_url')
-        .in('id', productIds);
+        .in('id', productIds) : { data: [] };
+
+      // Fetch user_ads data for standalone ads (no product_id)
+      const { data: userAds } = userAdIds.length ? await supabase
+        .from('user_ads')
+        .select('id, title, description, image_url, link_url')
+        .in('id', userAdIds) : { data: [] };
 
       const productsMap = new Map((products || []).map(p => [p.id, p]));
+      const userAdsMap = new Map((userAds || []).map(ua => [ua.id, ua]));
 
       const adsWithDetails: SponsoredProduct[] = scoredProducts.map(sp => {
-        const product = productsMap.get(sp.product_id);
+        const product = sp.product_id ? productsMap.get(sp.product_id) : null;
+        const userAd = !sp.product_id ? userAdsMap.get(sp.id) : null;
+        
         return {
           id: sp.id,
           product_id: sp.product_id,
@@ -114,13 +125,19 @@ export const useAdAuction = () => {
             price: 0,
             image_url: product.image_url || '',
             seller_id: product.seller_id,
+          } : userAd ? {
+            id: sp.id,
+            name: userAd.title || 'Sponsored',
+            price: 0,
+            image_url: userAd.image_url || '',
+            seller_id: sp.seller_id,
           } : undefined,
           creative: {
             id: sp.id,
-            headline: product?.name || 'Shop Now',
-            description: 'Great deal!',
+            headline: product?.name || userAd?.title || 'Shop Now',
+            description: userAd?.description || 'Great deal!',
             cta_text: 'Shop Now',
-            primary_image_url: product?.image_url || '',
+            primary_image_url: product?.image_url || userAd?.image_url || '',
           },
         };
       });
