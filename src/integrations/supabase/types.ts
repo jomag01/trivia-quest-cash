@@ -11174,6 +11174,36 @@ export type Database = {
         }
         Relationships: []
       }
+      shortened_links: {
+        Row: {
+          clicks: number | null
+          created_at: string
+          id: string
+          original_url: string
+          short_code: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          clicks?: number | null
+          created_at?: string
+          id?: string
+          original_url: string
+          short_code: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          clicks?: number | null
+          created_at?: string
+          id?: string
+          original_url?: string
+          short_code?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sku_master: {
         Row: {
           barcode_ean: string | null
@@ -14561,6 +14591,7 @@ export type Database = {
         Args: { amount: number; user_id: string }
         Returns: undefined
       }
+      increment_link_clicks: { Args: { p_short_code: string }; Returns: string }
       is_admin:
         | { Args: never; Returns: boolean }
         | { Args: { _user_id: string }; Returns: boolean }

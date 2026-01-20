@@ -40,6 +40,7 @@ import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
 import { ManualBrushEraser } from '@/components/ai/ManualBrushEraser';
 import { BrandGenerator } from '@/components/ai/BrandGenerator';
 import { LeadGenerator } from '@/components/ai/LeadGenerator';
+import LinkShortener from '@/components/ai/LinkShortener';
 import { SponsoredAIHubAd } from '@/components/ads/SponsoredAIHubAd';
 // GuestAITrialPopup removed per user request
 import { Suspense } from 'react';
@@ -299,6 +300,7 @@ const AIHub = memo(() => {
     { id: 'weather', label: 'Weather', icon: CloudSun, gradient: 'from-sky-400 to-blue-500', iconColor: 'text-sky-500' },
     { id: 'market-analysis', label: 'Markets', icon: TrendingUp, gradient: 'from-blue-500 to-indigo-600', iconColor: 'text-blue-500', premium: true, unlockCost: 30 },
     { id: 'email-marketing', label: 'Email', icon: Mail, gradient: 'from-rose-400 to-pink-500', iconColor: 'text-rose-500', premium: true, unlockCost: 25 },
+    { id: 'link-shortener', label: 'Links', icon: Link2, gradient: 'from-blue-400 to-indigo-500', iconColor: 'text-blue-500' },
     { id: 'contact', label: 'Contact', icon: MessageSquare, gradient: 'from-teal-400 to-blue-500', iconColor: 'text-teal-500' },
   ];
 

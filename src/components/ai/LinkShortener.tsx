@@ -33,14 +33,14 @@ export default function LinkShortener() {
     queryKey: ['shortened-links', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
-        .from('shortened_links')
+      const { data, error } = await (supabase
+        .from('shortened_links' as any)
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(50) as any);
       if (error) throw error;
-      return data as ShortenedLink[];
+      return (data || []) as ShortenedLink[];
     },
     enabled: !!user,
   });
@@ -72,16 +72,16 @@ export default function LinkShortener() {
 
       // Check if custom code already exists
       if (customCode) {
-        const { data: existing } = await supabase
-          .from('shortened_links')
+        const { data: existing } = await (supabase
+          .from('shortened_links' as any)
           .select('id')
           .eq('short_code', customCode)
-          .maybeSingle();
+          .maybeSingle() as any);
         if (existing) throw new Error('This custom code is already taken');
       }
 
-      const { data, error } = await supabase
-        .from('shortened_links')
+      const { data, error } = await (supabase
+        .from('shortened_links' as any)
         .insert({
           user_id: user.id,
           original_url: url,
@@ -89,7 +89,7 @@ export default function LinkShortener() {
           clicks: 0,
         })
         .select()
-        .single();
+        .single() as any);
 
       if (error) throw error;
       return data;
@@ -108,10 +108,10 @@ export default function LinkShortener() {
   // Delete link
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('shortened_links')
+      const { error } = await (supabase
+        .from('shortened_links' as any)
         .delete()
-        .eq('id', id);
+        .eq('id', id) as any);
       if (error) throw error;
     },
     onSuccess: () => {
