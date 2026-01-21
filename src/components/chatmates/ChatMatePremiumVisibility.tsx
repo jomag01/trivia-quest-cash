@@ -19,68 +19,32 @@ interface PremiumTier {
   bgColor: string;
   price: number;
   duration: string;
+  duration_days: number;
   features: string[];
   boost_weight: number;
   priority_matching: boolean;
 }
 
-const PREMIUM_TIERS: PremiumTier[] = [
-  {
-    id: "free",
-    name: "Free",
-    icon: Star,
-    color: "text-gray-500",
-    bgColor: "from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900",
-    price: 0,
-    duration: "Forever",
-    features: [
-      "Basic profile visibility",
-      "Standard matching",
-      "5 daily likes",
-      "Basic icebreakers"
-    ],
-    boost_weight: 1.0,
-    priority_matching: false
+const TIER_ICONS: Record<string, typeof Crown> = {
+  free: Star,
+  boost: Zap,
+  pro: Crown
+};
+
+const TIER_COLORS: Record<string, { color: string; bgColor: string }> = {
+  free: { 
+    color: "text-gray-500", 
+    bgColor: "from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900" 
   },
-  {
-    id: "boost",
-    name: "Boost",
-    icon: Zap,
-    color: "text-yellow-500",
-    bgColor: "from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30",
-    price: 50,
-    duration: "7 days",
-    features: [
-      "2x profile visibility",
-      "Priority in discover",
-      "15 daily likes",
-      "AI-powered icebreakers",
-      "See who liked you"
-    ],
-    boost_weight: 2.0,
-    priority_matching: false
+  boost: { 
+    color: "text-yellow-500", 
+    bgColor: "from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30" 
   },
-  {
-    id: "pro",
-    name: "Pro Network",
-    icon: Crown,
-    color: "text-purple-500",
-    bgColor: "from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30",
-    price: 150,
-    duration: "30 days",
-    features: [
-      "5x profile visibility",
-      "Top priority matching",
-      "Unlimited likes",
-      "Premium AI coach",
-      "Rewind last skip",
-      "Business networking badge",
-      "Analytics dashboard"
-    ],
-    boost_weight: 5.0,
-    priority_matching: true
+  pro: { 
+    color: "text-purple-500", 
+    bgColor: "from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30" 
   }
-];
+};
 
 export function ChatMatePremiumVisibility() {
   const { user } = useAuth();
