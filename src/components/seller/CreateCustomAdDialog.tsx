@@ -73,7 +73,7 @@ const PHILIPPINES_REGIONS = [
   { value: 'Region XI', label: 'Region XI - Davao Region' },
 ];
 
-export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialogProps) {
+export function CreateCustomAdDialog({ open, onOpenChange, prefilledProduct }: CreateCustomAdDialogProps) {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(1);
@@ -102,7 +102,25 @@ export function CreateCustomAdDialog({ open, onOpenChange }: CreateCustomAdDialo
     target_gender: 'all',
     payment_method: 'diamonds' as 'diamonds' | 'ai_credits' | 'ewallet' | 'bank',
     payment_reference: '',
+    product_id: '',
   });
+
+  // Prefill form when product is provided
+  useEffect(() => {
+    if (prefilledProduct && open) {
+      setFormData(prev => ({
+        ...prev,
+        title: prefilledProduct.name || '',
+        description: prefilledProduct.description || '',
+        link_type: 'marketplace',
+        link_url: `/product/${prefilledProduct.id}`,
+        product_id: prefilledProduct.id,
+      }));
+      if (prefilledProduct.image_url) {
+        setImagePreview(prefilledProduct.image_url);
+      }
+    }
+  }, [prefilledProduct, open]);
 
   // Fetch user AI credits
   const { data: userAiCredits = 0 } = useQuery({
