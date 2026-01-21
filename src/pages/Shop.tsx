@@ -611,6 +611,11 @@ const Shop = () => {
 
             {/* Admin Product Recommendation Popup removed */}
 
+            {/* Seller Ads Slider - Moved up */}
+            <Suspense fallback={null}>
+              <SellerAdsSlider />
+            </Suspense>
+
             {/* Booking Services - Collapsible */}
             <button 
               onClick={() => setShowBookings(!showBookings)}
@@ -661,10 +666,6 @@ const Shop = () => {
               />
             </div>
 
-            {/* Seller Ads Slider */}
-            <Suspense fallback={null}>
-              <SellerAdsSlider />
-            </Suspense>
 
             {/* Live Streams Slider */}
             <Suspense fallback={null}>
