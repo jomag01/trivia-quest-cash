@@ -35,6 +35,7 @@ export default function SellerDashboard() {
   const [showAuctionDialog, setShowAuctionDialog] = useState(false);
   const [selectedProductForAuction, setSelectedProductForAuction] = useState<any>(null);
   const [selectedProductForVariants, setSelectedProductForVariants] = useState<any>(null);
+  const [selectedProductForPromo, setSelectedProductForPromo] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState({
     name: "",
@@ -367,6 +368,12 @@ export default function SellerDashboard() {
                         }} title="Convert to Auction">
                           <Gavel className="h-3.5 w-3.5" />
                         </Button>
+                        <Button size="icon" variant="outline" className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50" onClick={() => {
+                          setSelectedProductForPromo(p);
+                          setShowAdsPromo(true);
+                        }} title="Promote Product">
+                          <Megaphone className="h-3.5 w-3.5" />
+                        </Button>
                         <Button size="icon" variant="outline" className="h-8 w-8" onClick={async () => {
                           if (confirm("Delete?")) {
                             await supabase.from("products").delete().eq("id", p.id);
@@ -630,7 +637,19 @@ export default function SellerDashboard() {
       </Dialog>
 
       {/* AI Ads Promo Popup */}
-      <AdsPromoPopup open={showAdsPromo} onOpenChange={setShowAdsPromo} />
+      <AdsPromoPopup 
+        open={showAdsPromo} 
+        onOpenChange={(open) => {
+          setShowAdsPromo(open);
+          if (!open) setSelectedProductForPromo(null);
+        }}
+        prefilledProduct={selectedProductForPromo ? {
+          id: selectedProductForPromo.id,
+          name: selectedProductForPromo.name,
+          description: selectedProductForPromo.description,
+          image_url: selectedProductForPromo.image_url
+        } : undefined}
+      />
 
       {/* Convert to Auction Dialog */}
       <ConvertToAuctionDialog

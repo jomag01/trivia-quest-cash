@@ -68,10 +68,14 @@ export const useAdAuction = () => {
         return { ads: [] };
       }
 
-      // 2. Filter by placement
-      const eligibleProducts = sponsoredProducts.filter(sp => 
-        (sp.placements as string[])?.includes(placementKey) || (sp.placements as string[])?.includes('all')
-      );
+      // 2. Filter by placement - include 'feed' as generic fallback for all feed-type placements
+      const feedPlacements = ['feed', 'homepage_feed', 'beesmate', 'aihub', 'shop'];
+      const eligibleProducts = sponsoredProducts.filter(sp => {
+        const adPlacements = sp.placements as string[] || [];
+        return adPlacements.includes(placementKey) || 
+               adPlacements.includes('all') ||
+               (feedPlacements.includes(placementKey) && adPlacements.includes('feed'));
+      });
 
       if (!eligibleProducts.length) {
         setLoading(false);
