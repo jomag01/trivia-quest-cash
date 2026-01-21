@@ -52,12 +52,43 @@ export function ChatMatePremiumVisibility() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
+  const [premiumTiers, setPremiumTiers] = useState<PremiumTier[]>([]);
 
   useEffect(() => {
+    fetchTiers();
     if (user) {
       fetchPremiumStatus();
     }
   }, [user]);
+
+  const fetchTiers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("beesmate_premium_tiers")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order");
+
+      if (data) {
+        const mappedTiers: PremiumTier[] = data.map(tier => ({
+          id: tier.tier_key,
+          name: tier.tier_name,
+          icon: TIER_ICONS[tier.tier_key] || Star,
+          color: TIER_COLORS[tier.tier_key]?.color || "text-gray-500",
+          bgColor: TIER_COLORS[tier.tier_key]?.bgColor || "from-gray-100 to-gray-200",
+          price: tier.price_php || 0,
+          duration: tier.duration_days === 0 ? "Forever" : `${tier.duration_days} days`,
+          duration_days: tier.duration_days || 0,
+          features: Array.isArray(tier.features) ? tier.features as string[] : [],
+          boost_weight: tier.tier_key === "pro" ? 5.0 : tier.tier_key === "boost" ? 2.0 : 1.0,
+          priority_matching: tier.tier_key === "pro"
+        }));
+        setPremiumTiers(mappedTiers);
+      }
+    } catch (error) {
+      console.error("Error fetching tiers:", error);
+    }
+  };
 
   const fetchPremiumStatus = async () => {
     if (!user) return;
@@ -70,7 +101,6 @@ export function ChatMatePremiumVisibility() {
         .single();
 
       if (data) {
-        // Check if expired
         if (data.expires_at && new Date(data.expires_at) < new Date()) {
           setCurrentTier("free");
         } else {
@@ -90,15 +120,10 @@ export function ChatMatePremiumVisibility() {
 
     setUpgrading(true);
     try {
-      const tier = PREMIUM_TIERS.find(t => t.id === tierId);
+      const tier = premiumTiers.find(t => t.id === tierId);
       if (!tier) return;
 
-      // Calculate expiry based on tier duration
-      const daysMap: Record<string, number> = {
-        "7 days": 7,
-        "30 days": 30
-      };
-      const days = daysMap[tier.duration] || 7;
+      const days = tier.duration_days || 7;
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + days);
 
@@ -137,7 +162,7 @@ export function ChatMatePremiumVisibility() {
     );
   }
 
-  const currentTierData = PREMIUM_TIERS.find(t => t.id === currentTier);
+  const currentTierData = premiumTiers.find(t => t.id === currentTier);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -192,7 +217,7 @@ export function ChatMatePremiumVisibility() {
 
       {/* Tier Cards */}
       <div className="grid md:grid-cols-3 gap-4">
-        {PREMIUM_TIERS.map((tier, index) => {
+        {premiumTiers.map((tier, index) => {
           const Icon = tier.icon;
           const isCurrentTier = currentTier === tier.id;
           const canUpgrade = tier.id !== "free" && !isCurrentTier;
