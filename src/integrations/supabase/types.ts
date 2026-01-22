@@ -2814,6 +2814,57 @@ export type Database = {
         }
         Relationships: []
       }
+      beesmate_subscription_payments: {
+        Row: {
+          admin_profit: number
+          amount_paid: number
+          created_at: string
+          id: string
+          leadership_pool: number
+          payment_method: string | null
+          payment_reference: string | null
+          plan_type: string
+          stairstep_pool: number
+          status: string | null
+          subscription_id: string | null
+          unilevel_pool: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_profit?: number
+          amount_paid?: number
+          created_at?: string
+          id?: string
+          leadership_pool?: number
+          payment_method?: string | null
+          payment_reference?: string | null
+          plan_type: string
+          stairstep_pool?: number
+          status?: string | null
+          subscription_id?: string | null
+          unilevel_pool?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_profit?: number
+          amount_paid?: number
+          created_at?: string
+          id?: string
+          leadership_pool?: number
+          payment_method?: string | null
+          payment_reference?: string | null
+          plan_type?: string
+          stairstep_pool?: number
+          status?: string | null
+          subscription_id?: string | null
+          unilevel_pool?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       beesmate_subscriptions: {
         Row: {
           auto_renew: boolean | null
@@ -9077,6 +9128,7 @@ export type Database = {
       products: {
         Row: {
           admin_markup_percentage: number | null
+          admin_net_profit_percentage: number | null
           approval_status: string | null
           base_price: number
           boosted_rating: number | null
@@ -9098,6 +9150,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean | null
           is_featured: boolean | null
+          leadership_percentage: number | null
           name: string
           preferred_courier: string | null
           promo_active: boolean | null
@@ -9107,6 +9160,7 @@ export type Database = {
           review_count: number | null
           seller_id: string | null
           shipping_fee: number | null
+          stairstep_percentage: number | null
           stock_quantity: number | null
           updated_at: string | null
           virtual_tryon_enabled: boolean | null
@@ -9115,6 +9169,7 @@ export type Database = {
         }
         Insert: {
           admin_markup_percentage?: number | null
+          admin_net_profit_percentage?: number | null
           approval_status?: string | null
           base_price: number
           boosted_rating?: number | null
@@ -9136,6 +9191,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          leadership_percentage?: number | null
           name: string
           preferred_courier?: string | null
           promo_active?: boolean | null
@@ -9145,6 +9201,7 @@ export type Database = {
           review_count?: number | null
           seller_id?: string | null
           shipping_fee?: number | null
+          stairstep_percentage?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
           virtual_tryon_enabled?: boolean | null
@@ -9153,6 +9210,7 @@ export type Database = {
         }
         Update: {
           admin_markup_percentage?: number | null
+          admin_net_profit_percentage?: number | null
           approval_status?: string | null
           base_price?: number
           boosted_rating?: number | null
@@ -9174,6 +9232,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          leadership_percentage?: number | null
           name?: string
           preferred_courier?: string | null
           promo_active?: boolean | null
@@ -9183,6 +9242,7 @@ export type Database = {
           review_count?: number | null
           seller_id?: string | null
           shipping_fee?: number | null
+          stairstep_percentage?: number | null
           stock_quantity?: number | null
           updated_at?: string | null
           virtual_tryon_enabled?: boolean | null
