@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { uploadToStorage } from '@/lib/storage';
@@ -456,6 +456,7 @@ export function CreateCustomAdDialog({ open, onOpenChange, prefilledProduct }: C
       target_gender: 'all',
       payment_method: 'diamonds',
       payment_reference: '',
+      product_id: '',
     });
     setImageFile(null);
     setImagePreview('');
