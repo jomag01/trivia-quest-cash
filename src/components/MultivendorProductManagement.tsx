@@ -24,6 +24,9 @@ export default function MultivendorProductManagement() {
   const [commission, setCommission] = useState("");
   const [diamondReward, setDiamondReward] = useState("");
   const [referralCommission, setReferralCommission] = useState("");
+  const [stairstepPercentage, setStairstepPercentage] = useState("");
+  const [leadershipPercentage, setLeadershipPercentage] = useState("");
+  const [adminNetProfitPercentage, setAdminNetProfitPercentage] = useState("");
   const [diamondBasePrice, setDiamondBasePrice] = useState(10);
   const [processing, setProcessing] = useState(false);
 
@@ -73,6 +76,9 @@ export default function MultivendorProductManagement() {
     setCommission(product.commission_percentage?.toString() || "0");
     setDiamondReward(product.diamond_reward?.toString() || "0");
     setReferralCommission(product.referral_commission_diamonds?.toString() || "0");
+    setStairstepPercentage(product.stairstep_percentage?.toString() || "0");
+    setLeadershipPercentage(product.leadership_percentage?.toString() || "0");
+    setAdminNetProfitPercentage(product.admin_net_profit_percentage?.toString() || "0");
   };
 
   const handleApproveProduct = async (product: any, approved: boolean) => {
@@ -115,6 +121,9 @@ export default function MultivendorProductManagement() {
           commission_percentage: parseInt(commission),
           diamond_reward: parseInt(diamondReward),
           referral_commission_diamonds: parseInt(referralCommission),
+          stairstep_percentage: parseFloat(stairstepPercentage) || 0,
+          leadership_percentage: parseFloat(leadershipPercentage) || 0,
+          admin_net_profit_percentage: parseFloat(adminNetProfitPercentage) || 0,
         })
         .eq("id", selectedProduct.id);
 
@@ -351,6 +360,52 @@ export default function MultivendorProductManagement() {
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Diamonds × price per diamond (₱{diamondBasePrice}) distributed to affiliates via unilevel, stair-step & leadership bonuses
+              </p>
+            </div>
+
+            {/* Commission Allocation Section */}
+            <div className="border-t pt-4 mt-2">
+              <p className="text-sm font-medium mb-3">Commission Allocation Percentages</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label htmlFor="stairstepPercentage" className="text-xs">Stairstep %</Label>
+                  <Input
+                    id="stairstepPercentage"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={stairstepPercentage}
+                    onChange={(e) => setStairstepPercentage(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="leadershipPercentage" className="text-xs">Leadership %</Label>
+                  <Input
+                    id="leadershipPercentage"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={leadershipPercentage}
+                    onChange={(e) => setLeadershipPercentage(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="adminNetProfitPercentage" className="text-xs">Admin Net Profit %</Label>
+                  <Input
+                    id="adminNetProfitPercentage"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={adminNetProfitPercentage}
+                    onChange={(e) => setAdminNetProfitPercentage(e.target.value)}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                These percentages define how commission pool is distributed. Values synced to Sales Analytics on delivery.
               </p>
             </div>
 

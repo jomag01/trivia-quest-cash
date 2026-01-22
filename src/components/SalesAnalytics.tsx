@@ -37,6 +37,13 @@ interface SalesData {
   netProfit: number;
   aiCreditAdminProfit: number;
   aiCreditAffiliatePool: number;
+
+  // BeesMate Subscriptions
+  beesmateRevenue: number;
+  beesmateAdminProfit: number;
+  beesmateUnilevelPool: number;
+  beesmateStairstepPool: number;
+  beesmateLeadershipPool: number;
 }
 
 interface DepartmentSales {
@@ -72,6 +79,11 @@ export const SalesAnalytics = () => {
     netProfit: 0,
     aiCreditAdminProfit: 0,
     aiCreditAffiliatePool: 0,
+    beesmateRevenue: 0,
+    beesmateAdminProfit: 0,
+    beesmateUnilevelPool: 0,
+    beesmateStairstepPool: 0,
+    beesmateLeadershipPool: 0,
   });
 
   useEffect(() => {
@@ -87,6 +99,7 @@ export const SalesAnalytics = () => {
       supabase.channel('sales-binary').on('postgres_changes', { event: '*', schema: 'public', table: 'binary_commissions' }, () => fetchSalesAnalytics()).subscribe(),
       supabase.channel('sales-ai').on('postgres_changes', { event: '*', schema: 'public', table: 'binary_ai_purchases' }, () => fetchSalesAnalytics()).subscribe(),
       supabase.channel('sales-leadership').on('postgres_changes', { event: '*', schema: 'public', table: 'leadership_commissions' }, () => fetchSalesAnalytics()).subscribe(),
+      supabase.channel('sales-beesmate').on('postgres_changes', { event: '*', schema: 'public', table: 'beesmate_subscription_payments' }, () => fetchSalesAnalytics()).subscribe(),
     ];
 
     return () => {
@@ -229,8 +242,20 @@ export const SalesAnalytics = () => {
       const aiCreditAdminProfit = Math.max(0, adminKeepsTotal - aiCreditCosts);
       const aiCreditAffiliatePool = Math.max(0, aiCreditPurchases - aiCreditCosts - aiCreditAdminProfit);
 
+      // Fetch BeesMate subscription payments
+      const { data: beesmatePayments } = await supabase
+        .from("beesmate_subscription_payments")
+        .select("amount_paid, admin_profit, unilevel_pool, stairstep_pool, leadership_pool")
+        .eq("status", "completed");
+      
+      const beesmateRevenue = beesmatePayments?.reduce((sum, p) => sum + Number(p.amount_paid), 0) || 0;
+      const beesmateAdminProfit = beesmatePayments?.reduce((sum, p) => sum + Number(p.admin_profit), 0) || 0;
+      const beesmateUnilevelPool = beesmatePayments?.reduce((sum, p) => sum + Number(p.unilevel_pool), 0) || 0;
+      const beesmateStairstepPool = beesmatePayments?.reduce((sum, p) => sum + Number(p.stairstep_pool), 0) || 0;
+      const beesmateLeadershipPool = beesmatePayments?.reduce((sum, p) => sum + Number(p.leadership_pool), 0) || 0;
+
       const totalCommissions = unilevelPayouts + stairstepPayouts + breakawayPayouts + binaryPayouts + leadershipPayouts + sellerReferrerPayouts;
-      const totalSales = productSales + foodOrderSales + bookingSales + marketplaceSales + creditCashins + diamondCashins + aiCreditPurchases + auctionSales + adPurchases + supplierMarkup;
+      const totalSales = productSales + foodOrderSales + bookingSales + marketplaceSales + creditCashins + diamondCashins + aiCreditPurchases + auctionSales + adPurchases + supplierMarkup + beesmateRevenue;
       const netProfit = totalSales - totalCommissions - aiCreditCosts;
 
       setSalesData({
@@ -256,6 +281,11 @@ export const SalesAnalytics = () => {
         netProfit,
         aiCreditAdminProfit,
         aiCreditAffiliatePool,
+        beesmateRevenue,
+        beesmateAdminProfit,
+        beesmateUnilevelPool,
+        beesmateStairstepPool,
+        beesmateLeadershipPool,
       });
     } catch (error: any) {
       console.error("Error fetching sales analytics:", error);
@@ -338,7 +368,7 @@ export const SalesAnalytics = () => {
       </Card>
 
       <Tabs defaultValue="departments" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10">
+        <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-indigo-500/10 to-purple-500/10">
           <TabsTrigger value="departments" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white">
             <Building2 className="w-4 h-4 mr-2" />
             Departments
@@ -350,6 +380,10 @@ export const SalesAnalytics = () => {
           <TabsTrigger value="ai-credits" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-500 data-[state=active]:text-white">
             <GitBranch className="w-4 h-4 mr-2" />
             AI Credits
+          </TabsTrigger>
+          <TabsTrigger value="beesmate" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-yellow-500 data-[state=active]:text-white">
+            <Sparkles className="w-4 h-4 mr-2" />
+            BeesMate
           </TabsTrigger>
           <TabsTrigger value="breakdown" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white">
             <Layers className="w-4 h-4 mr-2" />
@@ -525,6 +559,92 @@ export const SalesAnalytics = () => {
                   <div className={`flex justify-between py-2 border-t font-semibold ${(salesData.aiCreditAffiliatePool - salesData.binaryPayouts) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                     <span>= Pool Remaining</span>
                     <span>{formatCurrency(salesData.aiCreditAffiliatePool - salesData.binaryPayouts, "PHP")}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* BeesMate Subscriptions Tab */}
+        <TabsContent value="beesmate" className="space-y-4 mt-4">
+          <Card className="bg-gradient-to-br from-amber-500/10 to-yellow-500/10 border-amber-500/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sparkles className="w-5 h-5 text-amber-600" />
+                <span className="bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+                  BeesMate Subscription Revenue
+                </span>
+              </CardTitle>
+              <CardDescription>Complete breakdown of BeesMate premium subscription payments</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <Card className="bg-gradient-to-br from-amber-500/10 to-yellow-500/10 border-amber-500/30">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-4 w-4 text-amber-500" />
+                      <p className="text-xs font-medium text-muted-foreground">Total Revenue</p>
+                    </div>
+                    <p className="text-xl font-bold text-amber-600">{formatCurrency(salesData.beesmateRevenue, "PHP")}</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/30">
+                  <CardContent className="pt-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Admin Profit</p>
+                    <p className="text-xl font-bold text-emerald-600">{formatCurrency(salesData.beesmateAdminProfit, "PHP")}</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border-blue-500/30">
+                  <CardContent className="pt-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Unilevel Pool</p>
+                    <p className="text-xl font-bold text-blue-600">{formatCurrency(salesData.beesmateUnilevelPool, "PHP")}</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/30">
+                  <CardContent className="pt-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Stairstep Pool</p>
+                    <p className="text-xl font-bold text-purple-600">{formatCurrency(salesData.beesmateStairstepPool, "PHP")}</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-orange-500/10 to-red-500/10 border-orange-500/30">
+                  <CardContent className="pt-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Leadership Pool</p>
+                    <p className="text-xl font-bold text-orange-600">{formatCurrency(salesData.beesmateLeadershipPool, "PHP")}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="p-4 bg-background/50 rounded-lg border">
+                <h5 className="font-medium mb-3 text-sm">BeesMate Subscription Distribution</h5>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between py-1">
+                    <span>Total Subscription Revenue</span>
+                    <span className="font-medium">{formatCurrency(salesData.beesmateRevenue, "PHP")}</span>
+                  </div>
+                  <div className="flex justify-between py-1 text-emerald-600">
+                    <span className="pl-4">→ Admin Profit</span>
+                    <span>{formatCurrency(salesData.beesmateAdminProfit, "PHP")}</span>
+                  </div>
+                  <div className="flex justify-between py-1 text-blue-600">
+                    <span className="pl-4">→ Unilevel Pool (7-Level)</span>
+                    <span>{formatCurrency(salesData.beesmateUnilevelPool, "PHP")}</span>
+                  </div>
+                  <div className="flex justify-between py-1 text-purple-600">
+                    <span className="pl-4">→ Stairstep Pool</span>
+                    <span>{formatCurrency(salesData.beesmateStairstepPool, "PHP")}</span>
+                  </div>
+                  <div className="flex justify-between py-1 text-orange-600">
+                    <span className="pl-4">→ Leadership Pool</span>
+                    <span>{formatCurrency(salesData.beesmateLeadershipPool, "PHP")}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-t font-semibold">
+                    <span>Total Distributed</span>
+                    <span>{formatCurrency(salesData.beesmateAdminProfit + salesData.beesmateUnilevelPool + salesData.beesmateStairstepPool + salesData.beesmateLeadershipPool, "PHP")}</span>
                   </div>
                 </div>
               </div>
