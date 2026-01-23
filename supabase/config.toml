@@ -125,3 +125,15 @@ verify_jwt = false
 
 [functions.ai-ad-creative-generator]
 verify_jwt = false
+
+[functions.printify]
+verify_jwt = false
+
+[functions.ai-lead-generator]
+verify_jwt = false
+
+[functions.generate-blog-image]
+verify_jwt = false
+
+[functions.youtube-search]
+verify_jwt = false

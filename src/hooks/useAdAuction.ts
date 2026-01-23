@@ -109,42 +109,50 @@ export const useAdAuction = () => {
       const productsMap = new Map((products || []).map(p => [p.id, p]));
       const userAdsMap = new Map((userAds || []).map(ua => [ua.id, ua]));
 
-      const adsWithDetails: SponsoredProduct[] = scoredProducts.map(sp => {
-        const product = sp.product_id ? productsMap.get(sp.product_id) : null;
-        const userAd = !sp.product_id ? userAdsMap.get(sp.id) : null;
-        
-        return {
-          id: sp.id,
-          product_id: sp.product_id,
-          seller_id: sp.seller_id,
-          bid_amount: sp.bid_amount as number,
-          quality_score: (sp.quality_score as number) || 5,
-          relevance_score: (sp.relevance_score as number) || 5,
-          conversion_rate: (sp.conversion_rate as number) || 0,
-          final_score: sp.final_score,
-          retargeting_boost: sp.retargeting_boost,
-          product: product ? {
-            id: product.id,
-            name: product.name,
-            price: 0,
-            image_url: product.image_url || '',
-            seller_id: product.seller_id,
-          } : userAd ? {
+      const adsWithDetails: SponsoredProduct[] = scoredProducts
+        .map(sp => {
+          const product = sp.product_id ? productsMap.get(sp.product_id) : null;
+          const userAd = !sp.product_id ? userAdsMap.get(sp.id) : null;
+          
+          // Skip ads with no valid image source
+          const imageUrl = product?.image_url || userAd?.image_url;
+          if (!imageUrl) {
+            return null;
+          }
+          
+          return {
             id: sp.id,
-            name: userAd.title || 'Sponsored',
-            price: 0,
-            image_url: userAd.image_url || '',
+            product_id: sp.product_id,
             seller_id: sp.seller_id,
-          } : undefined,
-          creative: {
-            id: sp.id,
-            headline: product?.name || userAd?.title || 'Shop Now',
-            description: userAd?.description || 'Great deal!',
-            cta_text: 'Shop Now',
-            primary_image_url: product?.image_url || userAd?.image_url || '',
-          },
-        };
-      });
+            bid_amount: sp.bid_amount as number,
+            quality_score: (sp.quality_score as number) || 5,
+            relevance_score: (sp.relevance_score as number) || 5,
+            conversion_rate: (sp.conversion_rate as number) || 0,
+            final_score: sp.final_score,
+            retargeting_boost: sp.retargeting_boost,
+            product: product ? {
+              id: product.id,
+              name: product.name,
+              price: 0,
+              image_url: product.image_url || '',
+              seller_id: product.seller_id,
+            } : userAd ? {
+              id: sp.id,
+              name: userAd.title || 'Sponsored',
+              price: 0,
+              image_url: userAd.image_url || '',
+              seller_id: sp.seller_id,
+            } : undefined,
+            creative: {
+              id: sp.id,
+              headline: product?.name || userAd?.title || 'Shop Now',
+              description: userAd?.description || 'Great deal!',
+              cta_text: 'Shop Now',
+              primary_image_url: imageUrl,
+            },
+          };
+        })
+        .filter((ad): ad is NonNullable<typeof ad> => ad !== null);
 
       // 5. Log auction
       const latencyMs = Date.now() - startTime;
