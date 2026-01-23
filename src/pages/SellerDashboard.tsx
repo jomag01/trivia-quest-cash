@@ -18,6 +18,7 @@ import { ImageUploadCrop } from "@/components/ImageUploadCrop";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import AdsPromoPopup from "@/components/seller/AdsPromoPopup";
 import ConvertToAuctionDialog from "@/components/auction/ConvertToAuctionDialog";
+import { PrintOnDemandManager } from "@/components/seller/PrintOnDemandManager";
 export default function SellerDashboard() {
   const {
     user,
