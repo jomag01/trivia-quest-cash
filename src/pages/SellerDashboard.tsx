@@ -392,6 +392,13 @@ export default function SellerDashboard() {
             {products.length === 0 && <p className="text-center py-8 text-muted-foreground">No products yet</p>}
           </CardContent>
         </Card>}
+
+      {/* Print-on-Demand Section */}
+      {profile?.is_verified_seller && (
+        <div className="mt-6">
+          <PrintOnDemandManager />
+        </div>
+      )}
       <Dialog open={showProductDialog} onOpenChange={setShowProductDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingProduct ? "Edit" : "Add"} Product</DialogTitle></DialogHeader>
