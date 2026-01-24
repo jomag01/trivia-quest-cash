@@ -9,15 +9,39 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Palette, Package, ShoppingBag, Plus, ExternalLink, Search, Image as ImageIcon, Shirt, RefreshCw } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Loader2, Palette, Package, ShoppingBag, Plus, Search, Image as ImageIcon, Shirt, RefreshCw, Edit, DollarSign, Percent } from 'lucide-react';
 import { usePrintify } from '@/hooks/usePrintify';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PrintOnDemandManagerProps {
   onProductCreated?: (product: { name: string; imageUrl: string; price: number }) => void;
 }
 
+interface VariantPricing {
+  id: number;
+  title: string;
+  printifyCost: number;
+  sellerPrice: number;
+  isEnabled: boolean;
+}
+
+interface PODProduct {
+  id: string;
+  title: string;
+  description: string;
+  images: { src: string }[];
+  variants: { id: number; title: string; price: number; cost?: number }[];
+  is_published: boolean;
+  localProductId?: string;
+  printifyProductId?: string;
+  adminMarkup?: number;
+}
+
 export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerProps) {
+  const { user } = useAuth();
   const {
     loading,
     shops,
@@ -29,6 +53,7 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
     getPrintProviders,
     getVariants,
     getProducts,
+    getProduct,
     createProduct,
     publishProduct,
     uploadImage,
@@ -40,7 +65,11 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
   const [variants, setVariants] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('catalog');
+  const [syncing, setSyncing] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<PODProduct | null>(null);
+  const [localPodProducts, setLocalPodProducts] = useState<Map<string, any>>(new Map());
 
   const [productForm, setProductForm] = useState({
     title: '',
@@ -48,8 +77,12 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
     designUrl: '',
   });
 
+  const [variantPricing, setVariantPricing] = useState<VariantPricing[]>([]);
+  const [adminMarkup, setAdminMarkup] = useState(20);
+
   useEffect(() => {
     getShops();
+    loadLocalPodProducts();
   }, [getShops]);
 
   useEffect(() => {
@@ -64,6 +97,20 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
     }
   }, [selectedShop, getProducts]);
 
+  const loadLocalPodProducts = async () => {
+    const { data } = await supabase
+      .from('printify_products')
+      .select('*, product:products(*)');
+    
+    if (data) {
+      const map = new Map();
+      data.forEach((pp: any) => {
+        map.set(pp.printify_product_id, pp);
+      });
+      setLocalPodProducts(map);
+    }
+  };
+
   const handleLoadCatalog = async () => {
     await getCatalog();
   };
@@ -74,7 +121,17 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
     if (providers?.length > 0) {
       setSelectedProvider(providers[0].id);
       const vars = await getVariants(blueprintId, providers[0].id);
-      setVariants(vars?.variants || []);
+      if (vars?.variants) {
+        setVariants(vars.variants);
+        // Initialize variant pricing
+        setVariantPricing(vars.variants.slice(0, 10).map((v: any) => ({
+          id: v.id,
+          title: v.title,
+          printifyCost: v.cost || 1500, // Default cost in cents
+          sellerPrice: 2500, // Default seller price
+          isEnabled: true,
+        })));
+      }
     }
     setShowCreateDialog(true);
   };
@@ -94,12 +151,14 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
       }
     }
 
-    // Create product with selected variants
-    const selectedVariants = variants.slice(0, 10).map(v => ({
-      id: v.id,
-      price: 2500, // Base price in cents ($25.00)
-      is_enabled: true,
-    }));
+    // Create product with selected variants and pricing
+    const selectedVariants = variantPricing
+      .filter(v => v.isEnabled)
+      .map(v => ({
+        id: v.id,
+        price: v.sellerPrice, // Price in cents
+        is_enabled: true,
+      }));
 
     const product = {
       title: productForm.title,
@@ -124,22 +183,208 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
     if (created) {
       setShowCreateDialog(false);
       setProductForm({ title: '', description: '', designUrl: '' });
+      setVariantPricing([]);
       getProducts(selectedShop);
       
       if (onProductCreated) {
         onProductCreated({
           name: productForm.title,
           imageUrl: productForm.designUrl,
-          price: 25,
+          price: variantPricing[0]?.sellerPrice / 100 || 25,
         });
       }
     }
   };
 
-  const handlePublishProduct = async (productId: string) => {
-    if (!selectedShop) return;
-    await publishProduct(selectedShop, productId);
-    getProducts(selectedShop);
+  const handlePublishAndSync = async (printifyProduct: PODProduct) => {
+    if (!selectedShop || !user) return;
+    setSyncing(true);
+
+    try {
+      // First publish to Printify
+      await publishProduct(selectedShop, printifyProduct.id);
+
+      // Get full product details from Printify
+      const fullProduct = await getProduct(selectedShop, printifyProduct.id);
+      if (!fullProduct) throw new Error('Failed to get product details');
+
+      // Calculate base price (lowest variant price with admin markup)
+      const lowestPrice = Math.min(...(fullProduct.variants || []).map((v: any) => v.price || 2500));
+      const basePrice = Math.round(lowestPrice * (1 + adminMarkup / 100)) / 100;
+
+      // Create local product
+      const { data: localProduct, error: productError } = await supabase
+        .from('products')
+        .insert({
+          name: fullProduct.title,
+          description: fullProduct.description || '',
+          base_price: basePrice,
+          image_url: fullProduct.images?.[0]?.src || '',
+          seller_id: user.id,
+          is_active: false, // Needs admin approval
+          is_pod: true,
+          approval_status: 'pending',
+          admin_markup_percentage: adminMarkup,
+          stock_quantity: 999, // POD has unlimited stock
+        })
+        .select()
+        .single();
+
+      if (productError) throw productError;
+
+      // Create printify_products link
+      const { data: podLink, error: linkError } = await supabase
+        .from('printify_products')
+        .insert({
+          product_id: localProduct.id,
+          printify_product_id: printifyProduct.id,
+          printify_shop_id: selectedShop,
+          blueprint_id: selectedBlueprint,
+          print_provider_id: selectedProvider,
+          printify_data: fullProduct,
+          admin_markup_percentage: adminMarkup,
+          is_synced: true,
+        })
+        .select()
+        .single();
+
+      if (linkError) throw linkError;
+
+      // Create variant records
+      const variantRecords = (fullProduct.variants || []).map((v: any) => ({
+        printify_product_id: podLink.id,
+        variant_id: v.id,
+        variant_title: v.title,
+        printify_cost: v.cost || 1500,
+        seller_price: v.price || 2500,
+        admin_markup_percentage: adminMarkup,
+        final_price: Math.round((v.price || 2500) * (1 + adminMarkup / 100)),
+        is_enabled: v.is_enabled !== false,
+      }));
+
+      if (variantRecords.length > 0) {
+        const { error: variantError } = await supabase
+          .from('printify_variants')
+          .insert(variantRecords);
+        
+        if (variantError) console.error('Variant insert error:', variantError);
+      }
+
+      toast.success('Product published and synced to shop!');
+      loadLocalPodProducts();
+      getProducts(selectedShop);
+
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      toast.error(error.message || 'Failed to sync product');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleEditProduct = async (printifyProduct: PODProduct) => {
+    const localData = localPodProducts.get(printifyProduct.id);
+    
+    // Load variant pricing from database or use defaults
+    if (localData) {
+      const { data: variants } = await supabase
+        .from('printify_variants')
+        .select('*')
+        .eq('printify_product_id', localData.id);
+
+      if (variants) {
+        setVariantPricing(variants.map((v: any) => ({
+          id: v.variant_id,
+          title: v.variant_title,
+          printifyCost: v.printify_cost,
+          sellerPrice: v.seller_price,
+          isEnabled: v.is_enabled,
+        })));
+      }
+      setAdminMarkup(localData.admin_markup_percentage || 20);
+    } else {
+      // Use Printify data for non-synced products
+      setVariantPricing((printifyProduct.variants || []).map(v => ({
+        id: v.id,
+        title: v.title,
+        printifyCost: v.cost || 1500,
+        sellerPrice: v.price || 2500,
+        isEnabled: true,
+      })));
+    }
+
+    setEditingProduct({
+      ...printifyProduct,
+      localProductId: localData?.product_id,
+      printifyProductId: localData?.id,
+      adminMarkup: localData?.admin_markup_percentage || 20,
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingProduct) return;
+    setSyncing(true);
+
+    try {
+      const localData = localPodProducts.get(editingProduct.id);
+      
+      if (localData) {
+        // Update local product price
+        const lowestPrice = Math.min(...variantPricing.filter(v => v.isEnabled).map(v => v.sellerPrice));
+        const basePrice = Math.round(lowestPrice * (1 + adminMarkup / 100)) / 100;
+
+        await supabase
+          .from('products')
+          .update({
+            base_price: basePrice,
+            admin_markup_percentage: adminMarkup,
+          })
+          .eq('id', localData.product_id);
+
+        // Update POD link
+        await supabase
+          .from('printify_products')
+          .update({ admin_markup_percentage: adminMarkup })
+          .eq('id', localData.id);
+
+        // Update variants
+        for (const v of variantPricing) {
+          await supabase
+            .from('printify_variants')
+            .update({
+              seller_price: v.sellerPrice,
+              admin_markup_percentage: adminMarkup,
+              final_price: Math.round(v.sellerPrice * (1 + adminMarkup / 100)),
+              is_enabled: v.isEnabled,
+            })
+            .eq('printify_product_id', localData.id)
+            .eq('variant_id', v.id);
+        }
+
+        toast.success('Product updated!');
+        loadLocalPodProducts();
+      }
+
+      setShowEditDialog(false);
+      setEditingProduct(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const updateVariantPrice = (variantId: number, newPrice: number) => {
+    setVariantPricing(prev => prev.map(v => 
+      v.id === variantId ? { ...v, sellerPrice: newPrice } : v
+    ));
+  };
+
+  const toggleVariant = (variantId: number) => {
+    setVariantPricing(prev => prev.map(v => 
+      v.id === variantId ? { ...v, isEnabled: !v.isEnabled } : v
+    ));
   };
 
   const filteredBlueprints = blueprints.filter(bp =>
@@ -153,6 +398,12 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
     { id: 'mugs', name: 'Mugs', icon: ShoppingBag },
     { id: 'posters', name: 'Posters', icon: ImageIcon },
   ];
+
+  const enrichedProducts = products.map((p: any) => ({
+    ...p,
+    localData: localPodProducts.get(p.id),
+    isSynced: localPodProducts.has(p.id),
+  }));
 
   return (
     <Card>
@@ -257,7 +508,7 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {products.map((product: any) => (
+                  {enrichedProducts.map((product: any) => (
                     <Card key={product.id} className="overflow-hidden">
                       <CardContent className="p-3 flex gap-3">
                         {product.images?.[0]?.src && (
@@ -272,21 +523,55 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
                           <p className="text-xs text-muted-foreground">
                             {product.variants?.length || 0} variants
                           </p>
-                          <div className="flex gap-2 mt-2">
+                          <div className="flex flex-wrap gap-2 mt-2">
                             <Badge variant={product.is_published ? 'default' : 'secondary'}>
                               {product.is_published ? 'Published' : 'Draft'}
                             </Badge>
+                            {product.isSynced && (
+                              <Badge variant="outline" className="text-primary border-primary">
+                                Synced to Shop
+                              </Badge>
+                            )}
+                            {product.localData?.product?.approval_status === 'pending' && (
+                              <Badge variant="outline" className="text-accent border-accent">
+                                Pending Approval
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            {!product.isSynced && product.is_published && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-7 text-xs"
+                                onClick={() => handlePublishAndSync(product)}
+                                disabled={syncing}
+                              >
+                                {syncing ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <ShoppingBag className="h-3 w-3 mr-1" />}
+                                Sync to Shop
+                              </Button>
+                            )}
                             {!product.is_published && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-6 text-xs"
-                                onClick={() => handlePublishProduct(product.id)}
-                                disabled={loading}
+                                className="h-7 text-xs"
+                                onClick={() => handlePublishAndSync(product)}
+                                disabled={syncing}
                               >
-                                Publish
+                                {syncing ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                                Publish & Sync
                               </Button>
                             )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              onClick={() => handleEditProduct(product)}
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit Pricing
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -301,14 +586,14 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
 
       {/* Create Product Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
               Create Product
             </DialogTitle>
             <DialogDescription>
-              Add your design to create a custom product
+              Add your design and set pricing for each variant
             </DialogDescription>
           </DialogHeader>
 
@@ -365,12 +650,35 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
               </div>
             )}
 
-            {variants.length > 0 && (
+            {variantPricing.length > 0 && (
               <div>
-                <Label>Available Variants</Label>
-                <p className="text-sm text-muted-foreground">
-                  {variants.length} sizes/colors available
-                </p>
+                <Label className="flex items-center gap-2 mb-2">
+                  <DollarSign className="h-4 w-4" />
+                  Variant Pricing (in cents)
+                </Label>
+                <ScrollArea className="h-[200px] border rounded-lg p-2">
+                  <div className="space-y-2">
+                    {variantPricing.map((v) => (
+                      <div key={v.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                        <Switch
+                          checked={v.isEnabled}
+                          onCheckedChange={() => toggleVariant(v.id)}
+                        />
+                        <span className="text-xs flex-1 truncate">{v.title}</span>
+                        <Input
+                          type="number"
+                          value={v.sellerPrice}
+                          onChange={(e) => updateVariantPrice(v.id, parseInt(e.target.value) || 0)}
+                          className="w-24 h-8 text-xs"
+                          disabled={!v.isEnabled}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          ₱{(v.sellerPrice / 100).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               </div>
             )}
           </div>
@@ -382,6 +690,106 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
             <Button onClick={handleCreateProduct} disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Create Product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Product Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit POD Product
+            </DialogTitle>
+            <DialogDescription>
+              Update variant pricing and admin markup
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingProduct && (
+            <div className="space-y-4">
+              <div className="flex gap-3 items-start">
+                {editingProduct.images?.[0]?.src && (
+                  <img
+                    src={editingProduct.images[0].src}
+                    alt={editingProduct.title}
+                    className="w-20 h-20 object-cover rounded"
+                  />
+                )}
+                <div>
+                  <p className="font-medium">{editingProduct.title}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {variantPricing.length} variants
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <Label className="flex items-center gap-2">
+                  <Percent className="h-4 w-4" />
+                  Admin Markup (%)
+                </Label>
+                <Input
+                  type="number"
+                  value={adminMarkup}
+                  onChange={(e) => setAdminMarkup(parseInt(e.target.value) || 0)}
+                  min={0}
+                  max={100}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This percentage will be added on top of seller prices
+                </p>
+              </div>
+
+              <div>
+                <Label className="flex items-center gap-2 mb-2">
+                  <DollarSign className="h-4 w-4" />
+                  Variant Pricing
+                </Label>
+                <ScrollArea className="h-[250px] border rounded-lg p-2">
+                  <div className="space-y-2">
+                    {variantPricing.map((v) => (
+                      <div key={v.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                        <Switch
+                          checked={v.isEnabled}
+                          onCheckedChange={() => toggleVariant(v.id)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs truncate">{v.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Cost: ₱{(v.printifyCost / 100).toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <Input
+                            type="number"
+                            value={v.sellerPrice}
+                            onChange={(e) => updateVariantPrice(v.id, parseInt(e.target.value) || 0)}
+                            className="w-24 h-7 text-xs"
+                            disabled={!v.isEnabled}
+                          />
+                          <span className="text-xs text-primary">
+                            Final: ₱{((v.sellerPrice * (1 + adminMarkup / 100)) / 100).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={syncing}>
+              {syncing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
