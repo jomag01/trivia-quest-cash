@@ -8783,6 +8783,106 @@ export type Database = {
         }
         Relationships: []
       }
+      printify_products: {
+        Row: {
+          admin_markup_percentage: number | null
+          blueprint_id: number | null
+          created_at: string | null
+          id: string
+          is_synced: boolean | null
+          print_provider_id: number | null
+          printify_data: Json | null
+          printify_product_id: string
+          printify_shop_id: number
+          product_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_markup_percentage?: number | null
+          blueprint_id?: number | null
+          created_at?: string | null
+          id?: string
+          is_synced?: boolean | null
+          print_provider_id?: number | null
+          printify_data?: Json | null
+          printify_product_id: string
+          printify_shop_id: number
+          product_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_markup_percentage?: number | null
+          blueprint_id?: number | null
+          created_at?: string | null
+          id?: string
+          is_synced?: boolean | null
+          print_provider_id?: number | null
+          printify_data?: Json | null
+          printify_product_id?: string
+          printify_shop_id?: number
+          product_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printify_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      printify_variants: {
+        Row: {
+          admin_markup_percentage: number | null
+          created_at: string | null
+          final_price: number | null
+          id: string
+          is_enabled: boolean | null
+          printify_cost: number
+          printify_product_id: string | null
+          seller_price: number
+          updated_at: string | null
+          variant_id: number
+          variant_title: string | null
+        }
+        Insert: {
+          admin_markup_percentage?: number | null
+          created_at?: string | null
+          final_price?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          printify_cost?: number
+          printify_product_id?: string | null
+          seller_price?: number
+          updated_at?: string | null
+          variant_id: number
+          variant_title?: string | null
+        }
+        Update: {
+          admin_markup_percentage?: number | null
+          created_at?: string | null
+          final_price?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          printify_cost?: number
+          printify_product_id?: string | null
+          seller_price?: number
+          updated_at?: string | null
+          variant_id?: number
+          variant_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printify_variants_printify_product_id_fkey"
+            columns: ["printify_product_id"]
+            isOneToOne: false
+            referencedRelation: "printify_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       private_conversations: {
         Row: {
           created_at: string | null
@@ -9150,6 +9250,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean | null
           is_featured: boolean | null
+          is_pod: boolean | null
           leadership_percentage: number | null
           name: string
           preferred_courier: string | null
@@ -9191,6 +9292,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          is_pod?: boolean | null
           leadership_percentage?: number | null
           name: string
           preferred_courier?: string | null
@@ -9232,6 +9334,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          is_pod?: boolean | null
           leadership_percentage?: number | null
           name?: string
           preferred_courier?: string | null
