@@ -64,42 +64,14 @@ export default function CashConversionDialog({
 
   const convertMutation = useMutation({
     mutationFn: async () => {
-      // Verify PIN if set
+      // Verify PIN server-side if set
       if (hasPin) {
-        const { data: wallet, error: walletError } = await supabase
-          .from('cash_wallets')
-          .select('pin_hash, pin_attempts, locked_until')
-          .eq('user_id', userId)
-          .single();
+        const { data, error } = await supabase.functions.invoke('verify-pin', {
+          body: { action: 'verify', pin }
+        });
 
-        if (walletError) throw new Error('Failed to verify PIN');
-
-        // Check if locked
-        if (wallet.locked_until && new Date(wallet.locked_until) > new Date()) {
-          throw new Error('Wallet is locked. Try again later.');
-        }
-
-        // Simple PIN verification (in production, use proper hashing)
-        const expectedHash = btoa(pin);
-        if (wallet.pin_hash !== expectedHash) {
-          // Increment attempts
-          const attempts = (wallet.pin_attempts || 0) + 1;
-          const updates: any = { pin_attempts: attempts };
-          
-          if (attempts >= 3) {
-            updates.locked_until = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // Lock for 30 min
-          }
-
-          await supabase.from('cash_wallets').update(updates).eq('user_id', userId);
-          
-          if (attempts >= 3) {
-            throw new Error('Too many attempts. Wallet locked for 30 minutes.');
-          }
-          throw new Error(`Invalid PIN. ${3 - attempts} attempts remaining.`);
-        }
-
-        // Reset attempts on success
-        await supabase.from('cash_wallets').update({ pin_attempts: 0 }).eq('user_id', userId);
+        if (error) throw new Error(error.message || 'PIN verification failed');
+        if (data?.error) throw new Error(data.error);
       }
 
       const cashAmount = parseFloat(amount);
