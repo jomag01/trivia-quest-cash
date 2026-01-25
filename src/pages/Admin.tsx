@@ -106,6 +106,8 @@ import ChatMateModeration from "@/components/admin/ChatMateModeration";
 import { BeesMatePremiumManagement } from "@/components/admin/BeesMatePremiumManagement";
 import { ASPNManagement } from "@/components/admin/ASPNManagement";
 import ProductAffiliateExclusion from "@/components/admin/ProductAffiliateExclusion";
+import SponsoredListingsManagement from "@/components/admin/SponsoredListingsManagement";
+import SponsoredListingsSettings from "@/components/admin/SponsoredListingsSettings";
 
 interface MenuItem {
   id: string;
@@ -263,6 +265,8 @@ const Admin = () => {
         { id: "promotional-ads", label: "Promotional Ads", icon: Sparkles },
         { id: "user-ads", label: "User Ad Campaigns", icon: TrendingUp },
         { id: "slider-ads", label: "Slider Ads", icon: Megaphone },
+        { id: "sponsored-listings", label: "Sponsored Listings", icon: Megaphone },
+        { id: "sponsored-settings", label: "Sponsored Settings", icon: Settings },
         { id: "ad-revenue-settings", label: "Ad Revenue & Pricing", icon: DollarSign },
         { id: "purchase-notifications", label: "Purchase Pop-ups", icon: Bell },
       ],
@@ -891,6 +895,8 @@ const Admin = () => {
           {activeTab === "beesmate-premium" && <BeesMatePremiumManagement />}
           {activeTab === "aspn-management" && <ASPNManagement />}
           {activeTab === "error-reports" && <ErrorReportsManagement />}
+          {activeTab === "sponsored-listings" && <SponsoredListingsManagement />}
+          {activeTab === "sponsored-settings" && <SponsoredListingsSettings />}
           {activeTab === "warehouse" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">

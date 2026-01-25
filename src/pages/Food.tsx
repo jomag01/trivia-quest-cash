@@ -10,6 +10,7 @@ import { RiderApplication } from "@/components/food/RiderApplication";
 import { RiderDashboard } from "@/components/food/RiderDashboard";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CreateRestaurantDialog } from "@/components/food/CreateRestaurantDialog";
+import { SponsoredListingsGrid } from "@/components/sponsored/SponsoredListingsGrid";
 
 const Food = () => {
   const { user } = useAuth();
@@ -58,6 +59,12 @@ const Food = () => {
 
         <div className="p-4">
           <TabsContent value="browse">
+            <SponsoredListingsGrid 
+              listingType="restaurant" 
+              limit={4} 
+              className="mb-4"
+              onListingClick={(id) => console.log("Navigate to restaurant:", id)}
+            />
             <RestaurantList />
           </TabsContent>
 

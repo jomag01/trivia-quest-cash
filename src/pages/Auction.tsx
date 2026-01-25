@@ -10,6 +10,7 @@ import {
   Gavel, Search, Filter, Clock, Trophy, TrendingUp, 
   Star, Plus, Heart, ChevronRight, Flame
 } from "lucide-react";
+import { SponsoredListingsGrid } from "@/components/sponsored/SponsoredListingsGrid";
 import Navigation from "@/components/Navigation";
 import AuctionListings from "@/components/auction/AuctionListings";
 import CreateAuctionDialog from "@/components/auction/CreateAuctionDialog";
@@ -244,6 +245,12 @@ const Auction = () => {
           </TabsList>
 
           <TabsContent value="browse">
+            <SponsoredListingsGrid 
+              listingType="auction" 
+              limit={4} 
+              className="mb-4"
+              onListingClick={(id) => console.log("Navigate to auction:", id)}
+            />
             <AuctionListings 
               category={selectedCategory} 
               searchQuery={searchQuery}
