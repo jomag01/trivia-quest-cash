@@ -40,6 +40,17 @@ interface PODProduct {
   adminMarkup?: number;
 }
 
+interface LocalPodData {
+  id: string;
+  product_id: string;
+  printify_product_id: string;
+  printify_shop_id: number;
+  admin_markup_percentage: number;
+  product?: {
+    approval_status?: string;
+  };
+}
+
 export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerProps) {
   const { user } = useAuth();
   const {
@@ -69,7 +80,7 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
   const [activeTab, setActiveTab] = useState('catalog');
   const [syncing, setSyncing] = useState(false);
   const [editingProduct, setEditingProduct] = useState<PODProduct | null>(null);
-  const [localPodProducts, setLocalPodProducts] = useState<Map<string, any>>(new Map());
+  const [localPodProducts, setLocalPodProducts] = useState<Map<string, LocalPodData>>(new Map());
 
   const [productForm, setProductForm] = useState({
     title: '',
@@ -83,7 +94,8 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
   useEffect(() => {
     getShops();
     loadLocalPodProducts();
-  }, [getShops]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (shops.length > 0 && !selectedShop) {
@@ -95,17 +107,18 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
     if (selectedShop) {
       getProducts(selectedShop);
     }
-  }, [selectedShop, getProducts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedShop]);
 
   const loadLocalPodProducts = async () => {
     const { data } = await supabase
       .from('printify_products')
-      .select('*, product:products(*)');
+      .select('*, product:products(approval_status)');
     
     if (data) {
-      const map = new Map();
-      data.forEach((pp: any) => {
-        map.set(pp.printify_product_id, pp);
+      const map = new Map<string, LocalPodData>();
+      data.forEach((pp) => {
+        map.set(pp.printify_product_id, pp as unknown as LocalPodData);
       });
       setLocalPodProducts(map);
     }
@@ -393,11 +406,11 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
   );
 
   const categories = [
-    { id: 'shirts', name: 'T-Shirts', icon: Shirt },
-    { id: 'hoodies', name: 'Hoodies', icon: Package },
-    { id: 'mugs', name: 'Mugs', icon: ShoppingBag },
-    { id: 'posters', name: 'Posters', icon: ImageIcon },
-  ];
+    { id: 'shirts', name: 'T-Shirts', Icon: Shirt },
+    { id: 'hoodies', name: 'Hoodies', Icon: Package },
+    { id: 'mugs', name: 'Mugs', Icon: ShoppingBag },
+    { id: 'posters', name: 'Posters', Icon: ImageIcon },
+  ] as const;
 
   const enrichedProducts = products.map((p: any) => ({
     ...p,
@@ -459,7 +472,7 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
                   <div className="flex flex-wrap justify-center gap-2">
                     {categories.map(cat => (
                       <Badge key={cat.id} variant="secondary" className="gap-1">
-                        <cat.icon className="h-3 w-3" />
+                        <cat.Icon className="h-3 w-3" />
                         {cat.name}
                       </Badge>
                     ))}
