@@ -225,47 +225,100 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
       const lowestPrice = Math.min(...(fullProduct.variants || []).map((v: any) => v.price || 2500));
       const basePrice = Math.round(lowestPrice * (1 + adminMarkup / 100)) / 100;
 
-      // Create local product
-      const { data: localProduct, error: productError } = await supabase
-        .from('products')
-        .insert({
-          name: fullProduct.title,
-          description: fullProduct.description || '',
-          base_price: basePrice,
-          image_url: fullProduct.images?.[0]?.src || '',
-          seller_id: user.id,
-          is_active: false, // Needs admin approval
-          is_pod: true,
-          approval_status: 'pending',
-          admin_markup_percentage: adminMarkup,
-          stock_quantity: 999, // POD has unlimited stock
-        })
-        .select()
-        .single();
-
-      if (productError) throw productError;
-
-      // Create printify_products link
-      const { data: podLink, error: linkError } = await supabase
+      // Check if this Printify product already exists in our system
+      const { data: existingLink } = await supabase
         .from('printify_products')
-        .insert({
-          product_id: localProduct.id,
-          printify_product_id: printifyProduct.id,
-          printify_shop_id: selectedShop,
-          blueprint_id: selectedBlueprint,
-          print_provider_id: selectedProvider,
-          printify_data: fullProduct,
-          admin_markup_percentage: adminMarkup,
-          is_synced: true,
-        })
-        .select()
-        .single();
+        .select('id, product_id')
+        .eq('printify_product_id', printifyProduct.id)
+        .maybeSingle();
 
-      if (linkError) throw linkError;
+      let localProductId: string;
+      let podLinkId: string;
+
+      if (existingLink) {
+        // Update existing product and link
+        localProductId = existingLink.product_id;
+        podLinkId = existingLink.id;
+
+        // Update the local product
+        const { error: updateProductError } = await supabase
+          .from('products')
+          .update({
+            name: fullProduct.title,
+            description: fullProduct.description || '',
+            base_price: basePrice,
+            image_url: fullProduct.images?.[0]?.src || '',
+            admin_markup_percentage: adminMarkup,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', localProductId);
+
+        if (updateProductError) throw updateProductError;
+
+        // Update the printify_products link
+        const { error: updateLinkError } = await supabase
+          .from('printify_products')
+          .update({
+            printify_data: fullProduct,
+            admin_markup_percentage: adminMarkup,
+            is_synced: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', podLinkId);
+
+        if (updateLinkError) throw updateLinkError;
+
+        // Delete existing variants before re-inserting
+        await supabase
+          .from('printify_variants')
+          .delete()
+          .eq('printify_product_id', podLinkId);
+
+      } else {
+        // Create new local product
+        const { data: localProduct, error: productError } = await supabase
+          .from('products')
+          .insert({
+            name: fullProduct.title,
+            description: fullProduct.description || '',
+            base_price: basePrice,
+            image_url: fullProduct.images?.[0]?.src || '',
+            seller_id: user.id,
+            is_active: false, // Needs admin approval
+            is_pod: true,
+            approval_status: 'pending',
+            admin_markup_percentage: adminMarkup,
+            stock_quantity: 999, // POD has unlimited stock
+          })
+          .select()
+          .single();
+
+        if (productError) throw productError;
+        localProductId = localProduct.id;
+
+        // Create printify_products link
+        const { data: podLink, error: linkError } = await supabase
+          .from('printify_products')
+          .insert({
+            product_id: localProductId,
+            printify_product_id: printifyProduct.id,
+            printify_shop_id: selectedShop,
+            blueprint_id: selectedBlueprint,
+            print_provider_id: selectedProvider,
+            printify_data: fullProduct,
+            admin_markup_percentage: adminMarkup,
+            is_synced: true,
+          })
+          .select()
+          .single();
+
+        if (linkError) throw linkError;
+        podLinkId = podLink.id;
+      }
 
       // Create variant records
       const variantRecords = (fullProduct.variants || []).map((v: any) => ({
-        printify_product_id: podLink.id,
+        printify_product_id: podLinkId,
         variant_id: v.id,
         variant_title: v.title,
         printify_cost: v.cost || 1500,
@@ -283,13 +336,14 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
         if (variantError) console.error('Variant insert error:', variantError);
       }
 
-      toast.success('Product published and synced to shop!');
+      toast.success(existingLink ? 'Product re-synced to shop!' : 'Product published and synced to shop!');
       loadLocalPodProducts();
       getProducts(selectedShop);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Sync error:', error);
-      toast.error(error.message || 'Failed to sync product');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to sync product';
+      toast.error(errorMessage);
     } finally {
       setSyncing(false);
     }
