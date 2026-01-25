@@ -21,6 +21,7 @@ export default function MultivendorProductManagement() {
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [markup, setMarkup] = useState("");
+  const [fixedMarkup, setFixedMarkup] = useState("");
   const [commission, setCommission] = useState("");
   const [diamondReward, setDiamondReward] = useState("");
   const [referralCommission, setReferralCommission] = useState("");
@@ -73,6 +74,7 @@ export default function MultivendorProductManagement() {
   const handleEditProduct = (product: any) => {
     setSelectedProduct(product);
     setMarkup(product.admin_markup_percentage?.toString() || "0");
+    setFixedMarkup(product.fixed_markup_amount?.toString() || "0");
     setCommission(product.commission_percentage?.toString() || "0");
     setDiamondReward(product.diamond_reward?.toString() || "0");
     setReferralCommission(product.referral_commission_diamonds?.toString() || "0");
@@ -118,6 +120,7 @@ export default function MultivendorProductManagement() {
         .from("products")
         .update({
           admin_markup_percentage: markupValue,
+          fixed_markup_amount: parseFloat(fixedMarkup) || 0,
           commission_percentage: parseInt(commission),
           diamond_reward: parseInt(diamondReward),
           referral_commission_diamonds: parseInt(referralCommission),
@@ -139,8 +142,8 @@ export default function MultivendorProductManagement() {
     }
   };
 
-  const calculateFinalPrice = (wholesalePrice: number, markupPercent: number) => {
-    return wholesalePrice * (1 + markupPercent / 100);
+  const calculateFinalPrice = (wholesalePrice: number, markupPercent: number, fixedAmount: number = 0) => {
+    return wholesalePrice * (1 + markupPercent / 100) + fixedAmount;
   };
 
   const calculateAdminProfit = (wholesalePrice: number, markupPercent: number) => {
@@ -192,9 +195,11 @@ export default function MultivendorProductManagement() {
                         }>
                           {product.approval_status || "pending"}
                         </Badge>
-                        {product.admin_markup_percentage > 0 && (
+                        {(product.admin_markup_percentage > 0 || product.fixed_markup_amount > 0) && (
                           <Badge variant="outline">
-                            {product.admin_markup_percentage}% markup
+                            {product.admin_markup_percentage > 0 ? `${product.admin_markup_percentage}%` : ""}
+                            {product.admin_markup_percentage > 0 && product.fixed_markup_amount > 0 ? " + " : ""}
+                            {product.fixed_markup_amount > 0 ? `₱${product.fixed_markup_amount}` : ""}
                           </Badge>
                         )}
                       </div>
@@ -295,17 +300,32 @@ export default function MultivendorProductManagement() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="markup">Markup Percentage (0-500%)</Label>
-              <Input
-                id="markup"
-                type="number"
-                min="0"
-                max="500"
-                value={markup}
-                onChange={(e) => setMarkup(e.target.value)}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="markup">Markup % (0-500)</Label>
+                <Input
+                  id="markup"
+                  type="number"
+                  min="0"
+                  max="500"
+                  value={markup}
+                  onChange={(e) => setMarkup(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="fixedMarkup">Fixed Markup (₱)</Label>
+                <Input
+                  id="fixedMarkup"
+                  type="number"
+                  min="0"
+                  value={fixedMarkup}
+                  onChange={(e) => setFixedMarkup(e.target.value)}
+                />
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Combined: Percentage + Fixed amount are both applied
+            </p>
 
             <div>
               <Label htmlFor="commission">Commission Percentage</Label>
@@ -423,7 +443,8 @@ export default function MultivendorProductManagement() {
                     ₱
                     {calculateFinalPrice(
                       selectedProduct.wholesale_price,
-                      parseInt(markup) || 0
+                      parseInt(markup) || 0,
+                      parseFloat(fixedMarkup) || 0
                     ).toFixed(2)}
                   </span>
                 </div>
