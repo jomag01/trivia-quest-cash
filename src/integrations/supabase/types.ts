@@ -2454,11 +2454,13 @@ export type Database = {
           featured: boolean | null
           id: string
           images: string[] | null
+          is_sponsored: boolean | null
           original_end_time: string | null
           reserve_price: number | null
           seller_id: string
           shipping_fee: number | null
           shipping_options: Json | null
+          sponsored_until: string | null
           starting_bid: number
           starts_at: string | null
           status: string | null
@@ -2492,11 +2494,13 @@ export type Database = {
           featured?: boolean | null
           id?: string
           images?: string[] | null
+          is_sponsored?: boolean | null
           original_end_time?: string | null
           reserve_price?: number | null
           seller_id: string
           shipping_fee?: number | null
           shipping_options?: Json | null
+          sponsored_until?: string | null
           starting_bid: number
           starts_at?: string | null
           status?: string | null
@@ -2530,11 +2534,13 @@ export type Database = {
           featured?: boolean | null
           id?: string
           images?: string[] | null
+          is_sponsored?: boolean | null
           original_end_time?: string | null
           reserve_price?: number | null
           seller_id?: string
           shipping_fee?: number | null
           shipping_options?: Json | null
+          sponsored_until?: string | null
           starting_bid?: number
           starts_at?: string | null
           status?: string | null
@@ -5431,11 +5437,13 @@ export type Database = {
           image_url: string | null
           is_available: boolean | null
           is_featured: boolean | null
+          is_sponsored: boolean | null
           menu_id: string | null
           name: string
           preparation_time: string | null
           price: number
           referral_commission_diamonds: number | null
+          sponsored_until: string | null
           updated_at: string | null
           vendor_id: string
         }
@@ -5451,11 +5459,13 @@ export type Database = {
           image_url?: string | null
           is_available?: boolean | null
           is_featured?: boolean | null
+          is_sponsored?: boolean | null
           menu_id?: string | null
           name: string
           preparation_time?: string | null
           price: number
           referral_commission_diamonds?: number | null
+          sponsored_until?: string | null
           updated_at?: string | null
           vendor_id: string
         }
@@ -5471,11 +5481,13 @@ export type Database = {
           image_url?: string | null
           is_available?: boolean | null
           is_featured?: boolean | null
+          is_sponsored?: boolean | null
           menu_id?: string | null
           name?: string
           preparation_time?: string | null
           price?: number
           referral_commission_diamonds?: number | null
+          sponsored_until?: string | null
           updated_at?: string | null
           vendor_id?: string
         }
@@ -5771,6 +5783,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_open: boolean | null
+          is_sponsored: boolean | null
           latitude: number | null
           logo_url: string | null
           longitude: number | null
@@ -5781,6 +5794,7 @@ export type Database = {
           phone: string | null
           rating: number | null
           service_radius_km: number | null
+          sponsored_until: string | null
           total_orders: number | null
           total_tables: number | null
           updated_at: string | null
@@ -5806,6 +5820,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_open?: boolean | null
+          is_sponsored?: boolean | null
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
@@ -5816,6 +5831,7 @@ export type Database = {
           phone?: string | null
           rating?: number | null
           service_radius_km?: number | null
+          sponsored_until?: string | null
           total_orders?: number | null
           total_tables?: number | null
           updated_at?: string | null
@@ -5841,6 +5857,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_open?: boolean | null
+          is_sponsored?: boolean | null
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
@@ -5851,6 +5868,7 @@ export type Database = {
           phone?: string | null
           rating?: number | null
           service_radius_km?: number | null
+          sponsored_until?: string | null
           total_orders?: number | null
           total_tables?: number | null
           updated_at?: string | null
@@ -7306,6 +7324,7 @@ export type Database = {
           inquiries_count: number | null
           is_boosted: boolean | null
           is_featured: boolean | null
+          is_sponsored: boolean | null
           latitude: number | null
           listing_fee_paid: boolean | null
           listing_fee_paid_at: string | null
@@ -7321,6 +7340,7 @@ export type Database = {
           referrer_id: string | null
           seller_id: string
           specifications: Json | null
+          sponsored_until: string | null
           status:
             | Database["public"]["Enums"]["marketplace_listing_status"]
             | null
@@ -7362,6 +7382,7 @@ export type Database = {
           inquiries_count?: number | null
           is_boosted?: boolean | null
           is_featured?: boolean | null
+          is_sponsored?: boolean | null
           latitude?: number | null
           listing_fee_paid?: boolean | null
           listing_fee_paid_at?: string | null
@@ -7377,6 +7398,7 @@ export type Database = {
           referrer_id?: string | null
           seller_id: string
           specifications?: Json | null
+          sponsored_until?: string | null
           status?:
             | Database["public"]["Enums"]["marketplace_listing_status"]
             | null
@@ -7418,6 +7440,7 @@ export type Database = {
           inquiries_count?: number | null
           is_boosted?: boolean | null
           is_featured?: boolean | null
+          is_sponsored?: boolean | null
           latitude?: number | null
           listing_fee_paid?: boolean | null
           listing_fee_paid_at?: string | null
@@ -7433,6 +7456,7 @@ export type Database = {
           referrer_id?: string | null
           seller_id?: string
           specifications?: Json | null
+          sponsored_until?: string | null
           status?:
             | Database["public"]["Enums"]["marketplace_listing_status"]
             | null
@@ -9245,6 +9269,7 @@ export type Database = {
           discount_percentage: number | null
           exclude_from_affiliate: boolean | null
           final_price: number | null
+          fixed_markup_amount: number | null
           free_shipping: boolean | null
           id: string
           image_url: string | null
@@ -9287,6 +9312,7 @@ export type Database = {
           discount_percentage?: number | null
           exclude_from_affiliate?: boolean | null
           final_price?: number | null
+          fixed_markup_amount?: number | null
           free_shipping?: boolean | null
           id?: string
           image_url?: string | null
@@ -9329,6 +9355,7 @@ export type Database = {
           discount_percentage?: number | null
           exclude_from_affiliate?: boolean | null
           final_price?: number | null
+          fixed_markup_amount?: number | null
           free_shipping?: boolean | null
           id?: string
           image_url?: string | null
@@ -9410,6 +9437,8 @@ export type Database = {
           referral_code: string
           referred_by: string | null
           seller_category: string | null
+          seller_default_fixed_markup: number | null
+          seller_default_markup_percentage: number | null
           seller_rating: number | null
           seller_referrer_id: string | null
           seller_registered_at: string | null
@@ -9460,6 +9489,8 @@ export type Database = {
           referral_code: string
           referred_by?: string | null
           seller_category?: string | null
+          seller_default_fixed_markup?: number | null
+          seller_default_markup_percentage?: number | null
           seller_rating?: number | null
           seller_referrer_id?: string | null
           seller_registered_at?: string | null
@@ -9510,6 +9541,8 @@ export type Database = {
           referral_code?: string
           referred_by?: string | null
           seller_category?: string | null
+          seller_default_fixed_markup?: number | null
+          seller_default_markup_percentage?: number | null
           seller_rating?: number | null
           seller_referrer_id?: string | null
           seller_registered_at?: string | null
@@ -12094,6 +12127,123 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sponsored_listing_settings: {
+        Row: {
+          boost_multiplier: number | null
+          created_at: string | null
+          id: string
+          instructions: string | null
+          is_enabled: boolean | null
+          listing_type: string
+          max_budget: number | null
+          max_duration_days: number | null
+          min_budget: number | null
+          min_duration_days: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          boost_multiplier?: number | null
+          created_at?: string | null
+          id?: string
+          instructions?: string | null
+          is_enabled?: boolean | null
+          listing_type: string
+          max_budget?: number | null
+          max_duration_days?: number | null
+          min_budget?: number | null
+          min_duration_days?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          boost_multiplier?: number | null
+          created_at?: string | null
+          id?: string
+          instructions?: string | null
+          is_enabled?: boolean | null
+          listing_type?: string
+          max_budget?: number | null
+          max_duration_days?: number | null
+          min_budget?: number | null
+          min_duration_days?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sponsored_listings: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          boost_multiplier: number | null
+          budget_amount: number
+          clicks: number | null
+          created_at: string | null
+          daily_budget: number | null
+          duration_days: number
+          end_date: string | null
+          id: string
+          impressions: number | null
+          listing_id: string
+          listing_image_url: string | null
+          listing_title: string
+          listing_type: string
+          payment_proof_url: string | null
+          payment_reference: string | null
+          start_date: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          boost_multiplier?: number | null
+          budget_amount?: number
+          clicks?: number | null
+          created_at?: string | null
+          daily_budget?: number | null
+          duration_days?: number
+          end_date?: string | null
+          id?: string
+          impressions?: number | null
+          listing_id: string
+          listing_image_url?: string | null
+          listing_title: string
+          listing_type: string
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          boost_multiplier?: number | null
+          budget_amount?: number
+          clicks?: number | null
+          created_at?: string | null
+          daily_budget?: number | null
+          duration_days?: number
+          end_date?: string | null
+          id?: string
+          impressions?: number | null
+          listing_id?: string
+          listing_image_url?: string | null
+          listing_title?: string
+          listing_type?: string
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       sponsored_placements: {
         Row: {
