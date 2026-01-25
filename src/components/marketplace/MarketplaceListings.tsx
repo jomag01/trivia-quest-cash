@@ -27,6 +27,7 @@ import {
   Grid, List, SlidersHorizontal, ArrowUpDown, Edit2, Megaphone,
   Navigation, LocateFixed
 } from "lucide-react";
+import { SponsoredListingsGrid } from "@/components/sponsored/SponsoredListingsGrid";
 
 type MarketplaceCategory = 'property_sale' | 'vehicle_sale' | 'secondhand_items' | 'property_rent' | 'room_rent' | 'hotel_staycation';
 
@@ -917,6 +918,17 @@ const MarketplaceListings = () => {
           <span>Showing {listings.length.toLocaleString()}</span>
         </div>
       )}
+
+      {/* Sponsored Listings */}
+      <SponsoredListingsGrid 
+        listingType="marketplace" 
+        limit={4} 
+        className="mb-4"
+        onListingClick={(id) => {
+          const listing = listings.find(l => l.id === id);
+          if (listing) openListingDetail(listing);
+        }}
+      />
 
       {/* Listings Grid */}
       {loading ? (
