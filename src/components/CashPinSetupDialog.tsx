@@ -31,39 +31,25 @@ export default function CashPinSetupDialog({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (hasExistingPin) {
-        // Verify current PIN
-        const { data: wallet, error: walletError } = await supabase
-          .from('cash_wallets')
-          .select('pin_hash')
-          .eq('user_id', userId)
-          .single();
-
-        if (walletError) throw new Error('Failed to verify current PIN');
-
-        const currentHash = btoa(currentPin);
-        if (wallet.pin_hash !== currentHash) {
-          throw new Error('Current PIN is incorrect');
-        }
-      }
-
       if (newPin !== confirmPin) {
         throw new Error('PINs do not match');
       }
 
-      if (newPin.length !== 4) {
-        throw new Error('PIN must be 4 digits');
+      if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+        throw new Error('PIN must be exactly 4 digits');
       }
 
-      // Save new PIN (in production, use proper hashing like bcrypt)
-      const pinHash = btoa(newPin);
-      
-      const { error } = await supabase
-        .from('cash_wallets')
-        .update({ pin_hash: pinHash, pin_attempts: 0, locked_until: null })
-        .eq('user_id', userId);
+      // Use secure server-side PIN hashing
+      const { data, error } = await supabase.functions.invoke('verify-pin', {
+        body: {
+          action: hasExistingPin ? 'change' : 'set',
+          pin: hasExistingPin ? currentPin : undefined,
+          newPin: newPin
+        }
+      });
 
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'Failed to update PIN');
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cash-wallet'] });
