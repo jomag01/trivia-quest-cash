@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plus, Store, UtensilsCrossed, ShoppingBag, Settings, Menu, AlertTriangle, Calendar } from "lucide-react";
+import { Plus, Store, UtensilsCrossed, ShoppingBag, Settings, Menu, AlertTriangle, Calendar, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { MenuItemsList } from "./MenuItemsList";
 import { MenuManagement } from "./MenuManagement";
@@ -19,6 +19,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CreateMenuItemDialog } from "./CreateMenuItemDialog";
 import { EditRestaurantDialog } from "./EditRestaurantDialog";
 import { MarketplaceEligibilityGate } from "@/components/common/MarketplaceEligibilityGate";
+import { SponsoredListingDialog } from "@/components/sponsored/SponsoredListingDialog";
 
 interface MyRestaurantProps {
   onCreateNew: () => void;
@@ -40,6 +41,7 @@ export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
   const [activeTab, setActiveTab] = useState("menu");
   const [createItemOpen, setCreateItemOpen] = useState(false);
   const [editRestaurantOpen, setEditRestaurantOpen] = useState(false);
+  const [promoteOpen, setPromoteOpen] = useState(false);
 
   const { data: vendor, isLoading } = useQuery({
     queryKey: ["my-food-vendor", user?.id],
@@ -142,6 +144,16 @@ export const MyRestaurant = ({ onCreateNew }: MyRestaurantProps) => {
                   <Settings className="w-4 h-4 mr-1" />
                   Edit
                 </Button>
+                {vendor.approval_status === "approved" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPromoteOpen(true)}
+                  >
+                    <Megaphone className="w-4 h-4 mr-1" />
+                    Promote
+                  </Button>
+                )}
               </div>
             </div>
           </div>

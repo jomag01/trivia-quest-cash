@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus, Clock, CheckCircle, XCircle, AlertCircle,
-  Eye, Gavel, DollarSign, Package, MessageSquare, Pencil
+  Eye, Gavel, DollarSign, Package, MessageSquare, Pencil, Megaphone
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import AuctionEscrowDialog from "./AuctionEscrowDialog";
 import EditAuctionDialog from "./EditAuctionDialog";
+import { SponsoredListingDialog } from "@/components/sponsored/SponsoredListingDialog";
 
 interface MyAuctionsProps {
   onCreateNew: () => void;
@@ -48,6 +49,7 @@ const MyAuctions = ({ onCreateNew }: MyAuctionsProps) => {
   const { user } = useAuth();
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [promotingAuction, setPromotingAuction] = useState<Auction | null>(null);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedEscrow, setSelectedEscrow] = useState<any>(null);
   const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
@@ -240,6 +242,16 @@ const MyAuctions = ({ onCreateNew }: MyAuctionsProps) => {
                               Message Buyer
                             </Button>
                           )}
+                          {auction.status === "active" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPromotingAuction(auction)}
+                            >
+                              <Megaphone className="h-4 w-4 mr-1" />
+                              Promote
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -267,6 +279,19 @@ const MyAuctions = ({ onCreateNew }: MyAuctionsProps) => {
         onOpenChange={(open) => !open && setEditingAuction(null)}
         onUpdate={fetchAuctions}
       />
+
+      {/* Promote Auction Dialog */}
+      {promotingAuction && (
+        <SponsoredListingDialog
+          open={!!promotingAuction}
+          onOpenChange={(open) => !open && setPromotingAuction(null)}
+          listingType="auction"
+          listingId={promotingAuction.id}
+          listingTitle={promotingAuction.title}
+          listingImageUrl={promotingAuction.images?.[0]}
+          onSuccess={() => setPromotingAuction(null)}
+        />
+      )}
     </div>
   );
 };
