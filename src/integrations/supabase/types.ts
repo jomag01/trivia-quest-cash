@@ -12128,44 +12128,183 @@ export type Database = {
           },
         ]
       }
+      sponsored_listing_commissions: {
+        Row: {
+          amount: number
+          commission_type: string
+          created_at: string | null
+          id: string
+          level_from_source: number | null
+          paid_at: string | null
+          recipient_id: string
+          sponsored_listing_id: string
+          status: string | null
+        }
+        Insert: {
+          amount?: number
+          commission_type: string
+          created_at?: string | null
+          id?: string
+          level_from_source?: number | null
+          paid_at?: string | null
+          recipient_id: string
+          sponsored_listing_id: string
+          status?: string | null
+        }
+        Update: {
+          amount?: number
+          commission_type?: string
+          created_at?: string | null
+          id?: string
+          level_from_source?: number | null
+          paid_at?: string | null
+          recipient_id?: string
+          sponsored_listing_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsored_listing_commissions_sponsored_listing_id_fkey"
+            columns: ["sponsored_listing_id"]
+            isOneToOne: false
+            referencedRelation: "sponsored_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sponsored_listing_impressions: {
+        Row: {
+          clicked_at: string | null
+          converted_at: string | null
+          cost_per_impression: number | null
+          device_type: string | null
+          id: string
+          impression_at: string | null
+          is_clicked: boolean | null
+          is_converted: boolean | null
+          placement: string | null
+          sponsored_listing_id: string | null
+          user_id: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          clicked_at?: string | null
+          converted_at?: string | null
+          cost_per_impression?: number | null
+          device_type?: string | null
+          id?: string
+          impression_at?: string | null
+          is_clicked?: boolean | null
+          is_converted?: boolean | null
+          placement?: string | null
+          sponsored_listing_id?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          clicked_at?: string | null
+          converted_at?: string | null
+          cost_per_impression?: number | null
+          device_type?: string | null
+          id?: string
+          impression_at?: string | null
+          is_clicked?: boolean | null
+          is_converted?: boolean | null
+          placement?: string | null
+          sponsored_listing_id?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsored_listing_impressions_sponsored_listing_id_fkey"
+            columns: ["sponsored_listing_id"]
+            isOneToOne: false
+            referencedRelation: "sponsored_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sponsored_listing_settings: {
         Row: {
           boost_multiplier: number | null
+          cost_per_impression: number | null
           created_at: string | null
+          default_cpm_rate: number | null
+          default_leadership_percent: number | null
+          default_max_impressions: number | null
+          default_referrer_percent: number | null
+          default_stairstep_percent: number | null
+          default_unilevel_percent: number | null
+          enable_affiliate_commissions: boolean | null
           id: string
           instructions: string | null
           is_enabled: boolean | null
+          leadership_percentage: number | null
           listing_type: string
           max_budget: number | null
           max_duration_days: number | null
+          max_impressions_per_day: number | null
           min_budget: number | null
           min_duration_days: number | null
+          min_impressions_per_day: number | null
+          referrer_commission_percentage: number | null
+          stairstep_percentage: number | null
+          unilevel_percentage: number | null
           updated_at: string | null
         }
         Insert: {
           boost_multiplier?: number | null
+          cost_per_impression?: number | null
           created_at?: string | null
+          default_cpm_rate?: number | null
+          default_leadership_percent?: number | null
+          default_max_impressions?: number | null
+          default_referrer_percent?: number | null
+          default_stairstep_percent?: number | null
+          default_unilevel_percent?: number | null
+          enable_affiliate_commissions?: boolean | null
           id?: string
           instructions?: string | null
           is_enabled?: boolean | null
+          leadership_percentage?: number | null
           listing_type: string
           max_budget?: number | null
           max_duration_days?: number | null
+          max_impressions_per_day?: number | null
           min_budget?: number | null
           min_duration_days?: number | null
+          min_impressions_per_day?: number | null
+          referrer_commission_percentage?: number | null
+          stairstep_percentage?: number | null
+          unilevel_percentage?: number | null
           updated_at?: string | null
         }
         Update: {
           boost_multiplier?: number | null
+          cost_per_impression?: number | null
           created_at?: string | null
+          default_cpm_rate?: number | null
+          default_leadership_percent?: number | null
+          default_max_impressions?: number | null
+          default_referrer_percent?: number | null
+          default_stairstep_percent?: number | null
+          default_unilevel_percent?: number | null
+          enable_affiliate_commissions?: boolean | null
           id?: string
           instructions?: string | null
           is_enabled?: boolean | null
+          leadership_percentage?: number | null
           listing_type?: string
           max_budget?: number | null
           max_duration_days?: number | null
+          max_impressions_per_day?: number | null
           min_budget?: number | null
           min_duration_days?: number | null
+          min_impressions_per_day?: number | null
+          referrer_commission_percentage?: number | null
+          stairstep_percentage?: number | null
+          unilevel_percentage?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -12173,73 +12312,145 @@ export type Database = {
       sponsored_listings: {
         Row: {
           admin_notes: string | null
+          admin_only_profit: boolean | null
+          admin_profit: number | null
           approved_at: string | null
           approved_by: string | null
           boost_multiplier: number | null
           budget_amount: number
           clicks: number | null
+          cpm_rate: number | null
           created_at: string | null
+          ctr: number | null
           daily_budget: number | null
+          daily_impression_cap: number | null
           duration_days: number
+          enable_leadership: boolean | null
+          enable_stairstep: boolean | null
+          enable_unilevel: boolean | null
           end_date: string | null
           id: string
           impressions: number | null
+          impressions_delivered: number | null
+          last_impression_at: string | null
+          leadership_commission_paid: number | null
           listing_id: string
           listing_image_url: string | null
           listing_title: string
           listing_type: string
+          max_impressions: number | null
           payment_proof_url: string | null
           payment_reference: string | null
+          performance_score: number | null
+          priority_score: number | null
+          quality_score: number | null
+          referrer_commission_earned: number | null
+          referrer_commission_paid: number | null
+          referrer_commission_percent: number | null
+          referrer_id: string | null
+          spent_amount: number | null
+          stairstep_commission_paid: number | null
           start_date: string | null
           status: string
+          target_audience: Json | null
+          total_impressions_target: number | null
+          unilevel_commission_paid: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           admin_notes?: string | null
+          admin_only_profit?: boolean | null
+          admin_profit?: number | null
           approved_at?: string | null
           approved_by?: string | null
           boost_multiplier?: number | null
           budget_amount?: number
           clicks?: number | null
+          cpm_rate?: number | null
           created_at?: string | null
+          ctr?: number | null
           daily_budget?: number | null
+          daily_impression_cap?: number | null
           duration_days?: number
+          enable_leadership?: boolean | null
+          enable_stairstep?: boolean | null
+          enable_unilevel?: boolean | null
           end_date?: string | null
           id?: string
           impressions?: number | null
+          impressions_delivered?: number | null
+          last_impression_at?: string | null
+          leadership_commission_paid?: number | null
           listing_id: string
           listing_image_url?: string | null
           listing_title: string
           listing_type: string
+          max_impressions?: number | null
           payment_proof_url?: string | null
           payment_reference?: string | null
+          performance_score?: number | null
+          priority_score?: number | null
+          quality_score?: number | null
+          referrer_commission_earned?: number | null
+          referrer_commission_paid?: number | null
+          referrer_commission_percent?: number | null
+          referrer_id?: string | null
+          spent_amount?: number | null
+          stairstep_commission_paid?: number | null
           start_date?: string | null
           status?: string
+          target_audience?: Json | null
+          total_impressions_target?: number | null
+          unilevel_commission_paid?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           admin_notes?: string | null
+          admin_only_profit?: boolean | null
+          admin_profit?: number | null
           approved_at?: string | null
           approved_by?: string | null
           boost_multiplier?: number | null
           budget_amount?: number
           clicks?: number | null
+          cpm_rate?: number | null
           created_at?: string | null
+          ctr?: number | null
           daily_budget?: number | null
+          daily_impression_cap?: number | null
           duration_days?: number
+          enable_leadership?: boolean | null
+          enable_stairstep?: boolean | null
+          enable_unilevel?: boolean | null
           end_date?: string | null
           id?: string
           impressions?: number | null
+          impressions_delivered?: number | null
+          last_impression_at?: string | null
+          leadership_commission_paid?: number | null
           listing_id?: string
           listing_image_url?: string | null
           listing_title?: string
           listing_type?: string
+          max_impressions?: number | null
           payment_proof_url?: string | null
           payment_reference?: string | null
+          performance_score?: number | null
+          priority_score?: number | null
+          quality_score?: number | null
+          referrer_commission_earned?: number | null
+          referrer_commission_paid?: number | null
+          referrer_commission_percent?: number | null
+          referrer_id?: string | null
+          spent_amount?: number | null
+          stairstep_commission_paid?: number | null
           start_date?: string | null
           status?: string
+          target_audience?: Json | null
+          total_impressions_target?: number | null
+          unilevel_commission_paid?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -14662,6 +14873,17 @@ export type Database = {
             Returns: Json
           }
         | { Args: { p_amount: number; p_user_id: string }; Returns: Json }
+      calculate_ad_priority_score: {
+        Args: {
+          p_boost_multiplier: number
+          p_budget: number
+          p_ctr: number
+          p_daily_budget: number
+          p_impressions_delivered: number
+          p_impressions_target: number
+        }
+        Returns: number
+      }
       calculate_player_level: { Args: { total_xp: number }; Returns: number }
       can_access_category_level: {
         Args: { p_category_id: string; p_level: number; p_user_id: string }
@@ -14846,6 +15068,14 @@ export type Database = {
           buyer_id: string
           purchase_id_param: string
         }
+        Returns: undefined
+      }
+      distribute_sponsored_listing_commissions: {
+        Args: { p_amount: number; p_sponsored_listing_id: string }
+        Returns: undefined
+      }
+      distribute_sponsored_listing_revenue: {
+        Args: { p_amount: number; p_listing_id: string }
         Returns: undefined
       }
       distribute_stair_step_commissions:
