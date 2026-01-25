@@ -3,12 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2, Megaphone, Upload, Calendar, DollarSign, Info } from "lucide-react";
+import { Loader2, Megaphone, Upload, Calendar, DollarSign, Info, Eye } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
 
 interface SponsoredListingDialogProps {
   open: boolean;
@@ -117,6 +117,13 @@ export const SponsoredListingDialog = ({
 
     setLoading(true);
     try {
+      // Get referrer from cookie or localStorage
+      const referrerId = localStorage.getItem('ref') || null;
+      
+      // Calculate estimated impressions
+      const costPerImpression = settings?.cost_per_impression || 0.10;
+      const estimatedImpressions = Math.floor(budget / costPerImpression);
+
       const { error } = await supabase.from("sponsored_listings").insert({
         user_id: user.id,
         listing_type: listingType,
@@ -125,8 +132,12 @@ export const SponsoredListingDialog = ({
         listing_image_url: listingImageUrl,
         budget_amount: budget,
         duration_days: duration,
+        daily_budget: budget / duration,
+        total_impressions_target: estimatedImpressions,
+        daily_impression_cap: Math.ceil(estimatedImpressions / duration),
         payment_proof_url: paymentProofUrl,
         payment_reference: paymentReference,
+        referrer_id: referrerId,
         status: "pending",
         boost_multiplier: settings?.boost_multiplier || 2.0
       });

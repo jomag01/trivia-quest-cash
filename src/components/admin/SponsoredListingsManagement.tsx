@@ -78,12 +78,13 @@ export default function SponsoredListingsManagement() {
 
       const tableName = tableMap[listing.listing_type];
       if (tableName) {
-        await supabase
-          .from(tableName)
+        // Use type assertion to bypass strict typing for dynamic table names
+        const table = supabase.from(tableName as 'marketplace_listings');
+        await table
           .update({ 
             is_sponsored: true, 
             sponsored_until: endDate.toISOString() 
-          })
+          } as any)
           .eq("id", listing.listing_id);
       }
 
