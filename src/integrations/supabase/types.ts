@@ -10572,6 +10572,7 @@ export type Database = {
           bulk_price: number | null
           category_id: string | null
           commission_percentage: number
+          commission_tier: string | null
           created_at: string | null
           description: string
           diamond_reward: number | null
@@ -10586,11 +10587,13 @@ export type Database = {
           is_active: boolean | null
           is_featured: boolean | null
           is_pod: boolean | null
+          is_promotable: boolean | null
           leadership_percentage: number | null
           name: string
           preferred_courier: string | null
           promo_active: boolean | null
           promo_price: number | null
+          promotable_at: string | null
           rating: number | null
           referral_commission_diamonds: number | null
           review_count: number | null
@@ -10615,6 +10618,7 @@ export type Database = {
           bulk_price?: number | null
           category_id?: string | null
           commission_percentage?: number
+          commission_tier?: string | null
           created_at?: string | null
           description: string
           diamond_reward?: number | null
@@ -10629,11 +10633,13 @@ export type Database = {
           is_active?: boolean | null
           is_featured?: boolean | null
           is_pod?: boolean | null
+          is_promotable?: boolean | null
           leadership_percentage?: number | null
           name: string
           preferred_courier?: string | null
           promo_active?: boolean | null
           promo_price?: number | null
+          promotable_at?: string | null
           rating?: number | null
           referral_commission_diamonds?: number | null
           review_count?: number | null
@@ -10658,6 +10664,7 @@ export type Database = {
           bulk_price?: number | null
           category_id?: string | null
           commission_percentage?: number
+          commission_tier?: string | null
           created_at?: string | null
           description?: string
           diamond_reward?: number | null
@@ -10672,11 +10679,13 @@ export type Database = {
           is_active?: boolean | null
           is_featured?: boolean | null
           is_pod?: boolean | null
+          is_promotable?: boolean | null
           leadership_percentage?: number | null
           name?: string
           preferred_courier?: string | null
           promo_active?: boolean | null
           promo_price?: number | null
+          promotable_at?: string | null
           rating?: number | null
           referral_commission_diamonds?: number | null
           review_count?: number | null

@@ -10,6 +10,7 @@ import { DashboardNavigation } from "@/components/dashboard/DashboardNavigation"
 import { toast } from "sonner";
 import RetailerSupplierProducts from "@/components/dashboard/RetailerSupplierProducts";
 import MyListingsHub from "@/components/dashboard/MyListingsHub";
+import SuggestedProductsToPromote from "@/components/dashboard/SuggestedProductsToPromote";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/currencies";
 import { BuyCreditsDialog } from "@/components/BuyCreditsDialog";
@@ -818,6 +819,10 @@ const Dashboard = () => {
 
       <TabsContent value="ai-credits">
         <AICreditsTracker />
+      </TabsContent>
+
+      <TabsContent value="suggested-products">
+        <SuggestedProductsToPromote />
       </TabsContent>
 
       <TabsContent value="supplier-products">
