@@ -28,22 +28,22 @@ const RiderCODWallet = () => {
       if (!rider) return null;
 
       const { data: pendingCOD } = await supabase
-        .from("courier_cod_transactions")
+        .from("courier_cod_transactions" as any)
         .select("amount")
-        .eq("rider_id", rider.id)
+        .eq("rider_id", (rider as any).id)
         .eq("status", "collected");
 
       const { data: recentTransactions } = await supabase
-        .from("courier_cod_transactions")
+        .from("courier_cod_transactions" as any)
         .select(`
           *,
           shipment:courier_shipments(tracking_number)
         `)
-        .eq("rider_id", rider.id)
+        .eq("rider_id", (rider as any).id)
         .order("created_at", { ascending: false })
         .limit(10);
 
-      const pendingTotal = pendingCOD?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+      const pendingTotal = (pendingCOD as any[])?.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) || 0;
 
       return {
         rider,
