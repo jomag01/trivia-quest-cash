@@ -841,7 +841,7 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
                         <div className="flex-1 min-w-0">
                           <p className="text-xs truncate">{v.title}</p>
                           <p className="text-xs text-muted-foreground">
-                            Cost: ₱{(v.printifyCost / 100).toFixed(2)}
+                            Cost: ₱{v.printifyCost.toFixed(2)}
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-1">
@@ -853,7 +853,7 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
                             disabled={!v.isEnabled}
                           />
                           <span className="text-xs text-primary">
-                            Final: ₱{((v.sellerPrice * (1 + adminMarkup / 100)) / 100).toFixed(2)}
+                            Final: ₱{(v.sellerPrice * (1 + adminMarkup / 100)).toFixed(2)}
                           </span>
                         </div>
                       </div>

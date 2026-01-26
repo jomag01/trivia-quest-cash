@@ -393,12 +393,8 @@ export default function SellerDashboard() {
           </CardContent>
         </Card>}
 
-      {/* Print-on-Demand Section */}
-      {profile?.is_verified_seller && (
-        <div className="mt-6">
-          <PrintOnDemandManager />
-        </div>
-      )}
+      {/* Print-on-Demand Section - Admin Only */}
+      {/* POD management moved to admin panel. Affiliates can promote POD products via Suggested Products tab */}
       <Dialog open={showProductDialog} onOpenChange={setShowProductDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingProduct ? "Edit" : "Add"} Product</DialogTitle></DialogHeader>
