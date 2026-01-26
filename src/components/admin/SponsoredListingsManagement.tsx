@@ -23,6 +23,22 @@ export default function SponsoredListingsManagement() {
 
   useEffect(() => {
     fetchListings();
+
+    // Real-time subscription for impressions/clicks updates
+    const channel = supabase
+      .channel('sponsored_products_updates')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'sponsored_products' },
+        () => {
+          fetchListings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [activeTab]);
 
   const fetchListings = async () => {

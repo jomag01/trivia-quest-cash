@@ -188,6 +188,7 @@ export const useAdAuction = () => {
     retargetingBoost: number = 1.0
   ) => {
     try {
+      // Record detailed impression
       await supabase.from('ad_impression_details').insert({
         sponsored_product_id: sponsoredProductId,
         creative_id: creativeId,
@@ -199,6 +200,18 @@ export const useAdAuction = () => {
         actual_cost: bidAmount * 0.01,
         retargeting_boost: retargetingBoost,
       });
+
+      // Increment impressions count on sponsored_products for real-time sync
+      const { data: current } = await supabase
+        .from('sponsored_products')
+        .select('impressions')
+        .eq('id', sponsoredProductId)
+        .single();
+      
+      await supabase
+        .from('sponsored_products')
+        .update({ impressions: (current?.impressions || 0) + 1 })
+        .eq('id', sponsoredProductId);
     } catch (error) {
       console.error('Error recording impression:', error);
     }
@@ -215,6 +228,18 @@ export const useAdAuction = () => {
         .update({ is_clicked: true })
         .eq('sponsored_product_id', sponsoredProductId)
         .eq('placement_key', placementKey);
+
+      // Increment clicks count on sponsored_products for real-time sync
+      const { data: current } = await supabase
+        .from('sponsored_products')
+        .select('clicks')
+        .eq('id', sponsoredProductId)
+        .single();
+      
+      await supabase
+        .from('sponsored_products')
+        .update({ clicks: (current?.clicks || 0) + 1 })
+        .eq('id', sponsoredProductId);
     } catch (error) {
       console.error('Error recording click:', error);
     }
