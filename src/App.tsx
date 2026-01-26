@@ -11,6 +11,7 @@ import { useDeepLinkTracking } from "@/hooks/useDeepLinkTracking";
 // AffiliateSignupPopup removed per user request
 import { PurchaseNotification } from "./components/PurchaseNotification";
 import { ErrorReportButton } from "./components/ErrorReportButton";
+import { CookieConsentPopup } from "./components/CookieConsentPopup";
 
 // Lazy load all pages for code splitting
 const AIHub = lazy(() => import("./pages/AIHub"));
@@ -132,6 +133,7 @@ const App = () => (
           {/* AffiliateSignupPopup removed */}
           <PurchaseNotification />
           <ErrorReportButton />
+          <CookieConsentPopup />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<AIHub />} />
