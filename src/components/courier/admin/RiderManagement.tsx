@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Plus, User, MapPin, Phone, Star, Package, Wallet } from "lucide-react";
@@ -15,6 +16,14 @@ const RiderManagement = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newRider, setNewRider] = useState({
+    rider_name: "",
+    phone_number: "",
+    vehicle_type: "motorcycle",
+    vehicle_plate: "",
+    hub_id: "",
+  });
 
   const { data: riders, isLoading } = useQuery({
     queryKey: ["admin-riders", statusFilter],
@@ -67,6 +76,50 @@ const RiderManagement = () => {
     },
   });
 
+  const addRiderMutation = useMutation({
+    mutationFn: async (riderData: typeof newRider) => {
+      const { error } = await supabase
+        .from("courier_riders" as any)
+        .insert([{
+          rider_name: riderData.rider_name,
+          phone_number: riderData.phone_number,
+          vehicle_type: riderData.vehicle_type,
+          vehicle_plate: riderData.vehicle_plate,
+          hub_id: riderData.hub_id || null,
+          is_available: true,
+          is_active: true,
+        }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Rider added successfully" });
+      queryClient.invalidateQueries({ queryKey: ["admin-riders"] });
+      setIsAddDialogOpen(false);
+      setNewRider({
+        rider_name: "",
+        phone_number: "",
+        vehicle_type: "motorcycle",
+        vehicle_plate: "",
+        hub_id: "",
+      });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleAddRider = () => {
+    if (!newRider.rider_name || !newRider.phone_number) {
+      toast({ 
+        title: "Validation Error", 
+        description: "Rider name and phone number are required",
+        variant: "destructive" 
+      });
+      return;
+    }
+    addRiderMutation.mutate(newRider);
+  };
+
   const filteredRiders = (riders || []).filter((rider: any) =>
     rider.rider_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     rider.rider_name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -100,10 +153,99 @@ const RiderManagement = () => {
             </SelectContent>
           </Select>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Rider
-        </Button>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Rider
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Rider</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="rider_name">Rider Name *</Label>
+                <Input
+                  id="rider_name"
+                  placeholder="Enter rider name"
+                  value={newRider.rider_name}
+                  onChange={(e) => setNewRider({ ...newRider, rider_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone_number">Phone Number *</Label>
+                <Input
+                  id="phone_number"
+                  placeholder="e.g., +639123456789"
+                  value={newRider.phone_number}
+                  onChange={(e) => setNewRider({ ...newRider, phone_number: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vehicle_type">Vehicle Type</Label>
+                <Select
+                  value={newRider.vehicle_type}
+                  onValueChange={(value) => setNewRider({ ...newRider, vehicle_type: value })}
+                >
+                  <SelectTrigger id="vehicle_type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="motorcycle">Motorcycle</SelectItem>
+                    <SelectItem value="van">Van</SelectItem>
+                    <SelectItem value="truck">Truck</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vehicle_plate">Vehicle Plate</Label>
+                <Input
+                  id="vehicle_plate"
+                  placeholder="e.g., ABC1234"
+                  value={newRider.vehicle_plate}
+                  onChange={(e) => setNewRider({ ...newRider, vehicle_plate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hub_id">Assign to Hub (Optional)</Label>
+                <Select
+                  value={newRider.hub_id}
+                  onValueChange={(value) => setNewRider({ ...newRider, hub_id: value })}
+                >
+                  <SelectTrigger id="hub_id">
+                    <SelectValue placeholder="Select a hub" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Unassigned</SelectItem>
+                    {(hubs || []).map((hub: any) => (
+                      <SelectItem key={hub.id} value={hub.id}>
+                        {hub.hub_name} ({hub.hub_code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsAddDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleAddRider}
+                  disabled={addRiderMutation.isPending}
+                >
+                  {addRiderMutation.isPending ? "Adding..." : "Add Rider"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
