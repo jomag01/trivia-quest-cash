@@ -4776,7 +4776,10 @@ export type Database = {
           job_type: string
           notes: string | null
           priority: number | null
+          proof_photo_url: string | null
           rider_id: string
+          scan_type: string | null
+          scanned_at: string | null
           scheduled_date: string | null
           scheduled_slot: string | null
           shipment_id: string
@@ -4799,7 +4802,10 @@ export type Database = {
           job_type: string
           notes?: string | null
           priority?: number | null
+          proof_photo_url?: string | null
           rider_id: string
+          scan_type?: string | null
+          scanned_at?: string | null
           scheduled_date?: string | null
           scheduled_slot?: string | null
           shipment_id: string
@@ -4822,7 +4828,10 @@ export type Database = {
           job_type?: string
           notes?: string | null
           priority?: number | null
+          proof_photo_url?: string | null
           rider_id?: string
+          scan_type?: string | null
+          scanned_at?: string | null
           scheduled_date?: string | null
           scheduled_slot?: string | null
           shipment_id?: string
@@ -10699,6 +10708,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_type: string | null
           ai_features_unlocked: boolean | null
           avatar_url: string | null
           bio: string | null
@@ -10751,6 +10761,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          account_type?: string | null
           ai_features_unlocked?: boolean | null
           avatar_url?: string | null
           bio?: string | null
@@ -10803,6 +10814,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          account_type?: string | null
           ai_features_unlocked?: boolean | null
           avatar_url?: string | null
           bio?: string | null
