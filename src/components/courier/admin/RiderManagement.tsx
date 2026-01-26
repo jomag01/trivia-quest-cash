@@ -67,12 +67,20 @@ const RiderManagement = () => {
       
       const existingUserIds = (existingRiders || []).map((r: any) => r.user_id);
       
+      // Prioritize users who registered as riders (account_type = 'rider')
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name, email, phone")
+        .select("id, full_name, email, phone, account_type")
+        .order("account_type", { ascending: false }) // riders first
         .order("full_name");
       
-      return (profiles || []).filter((p: any) => !existingUserIds.includes(p.id));
+      // Filter out existing riders and sort with account_type='rider' first
+      const available = (profiles || []).filter((p: any) => !existingUserIds.includes(p.id));
+      return available.sort((a: any, b: any) => {
+        if (a.account_type === 'rider' && b.account_type !== 'rider') return -1;
+        if (a.account_type !== 'rider' && b.account_type === 'rider') return 1;
+        return 0;
+      });
     },
   });
 
