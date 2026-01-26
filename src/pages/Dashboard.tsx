@@ -50,6 +50,7 @@ import SellerOrderProcessing from "@/components/dashboard/SellerOrderProcessing"
 import { CommissionEarningsCard } from "@/components/dashboard/CommissionEarningsCard";
 import { CommissionNotificationsCard } from "@/components/dashboard/CommissionNotificationsCard";
 import { BlockedUserDialog } from "@/components/BlockedUserDialog";
+import RiderMobileApp from "@/components/courier/rider/RiderMobileApp";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -714,6 +715,10 @@ const Dashboard = () => {
           </p>
           <SellerOrderProcessing />
         </Card>
+      </TabsContent>
+
+      <TabsContent value="rider-app">
+        <RiderMobileApp />
       </TabsContent>
 
       <TabsContent value="stair-step" className="space-y-6">

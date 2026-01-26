@@ -115,6 +115,7 @@ const navItems: NavItem[] = [
       { id: "wishlist", label: "Wishlist", icon: Heart, color: "text-red-500" },
       { id: "orders", label: "My Orders", icon: Package, color: "text-teal-500" },
       { id: "seller-orders", label: "Seller Orders", icon: Truck, color: "text-indigo-500" },
+      { id: "rider-app", label: "Rider Deliveries", icon: Truck, color: "text-orange-500" },
     ]
   },
   {
