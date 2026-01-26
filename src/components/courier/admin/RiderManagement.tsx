@@ -197,7 +197,9 @@ const RiderManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {(availableUsers || []).length === 0 ? (
-                      <SelectItem value="" disabled>No available users</SelectItem>
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        No available users
+                      </div>
                     ) : (
                       (availableUsers || []).map((user: any) => (
                         <SelectItem key={user.id} value={user.id}>
@@ -243,11 +245,17 @@ const RiderManagement = () => {
                     <SelectValue placeholder="Select a hub" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(hubs || []).map((hub: any) => (
-                      <SelectItem key={hub.id} value={hub.id}>
-                        {hub.hub_name} ({hub.hub_code})
-                      </SelectItem>
-                    ))}
+                    {(hubs || []).length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        No hubs available
+                      </div>
+                    ) : (
+                      (hubs || []).map((hub: any) => (
+                        <SelectItem key={hub.id} value={hub.id}>
+                          {hub.hub_name} ({hub.hub_code})
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
