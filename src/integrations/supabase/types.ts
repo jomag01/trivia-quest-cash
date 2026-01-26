@@ -13809,12 +13809,16 @@ export type Database = {
           clicks: number | null
           conversion_rate: number | null
           conversions: number | null
+          cost_per_impression: number | null
           created_at: string | null
           daily_budget: number
+          delivery_status: string | null
           end_date: string | null
           frequency_cap: number | null
           id: string
           impressions: number | null
+          impressions_allocated: number | null
+          impressions_remaining: number | null
           is_learning_phase: boolean | null
           learning_phase_data: Json | null
           optimization_goal: string | null
@@ -13838,12 +13842,16 @@ export type Database = {
           clicks?: number | null
           conversion_rate?: number | null
           conversions?: number | null
+          cost_per_impression?: number | null
           created_at?: string | null
           daily_budget?: number
+          delivery_status?: string | null
           end_date?: string | null
           frequency_cap?: number | null
           id?: string
           impressions?: number | null
+          impressions_allocated?: number | null
+          impressions_remaining?: number | null
           is_learning_phase?: boolean | null
           learning_phase_data?: Json | null
           optimization_goal?: string | null
@@ -13867,12 +13875,16 @@ export type Database = {
           clicks?: number | null
           conversion_rate?: number | null
           conversions?: number | null
+          cost_per_impression?: number | null
           created_at?: string | null
           daily_budget?: number
+          delivery_status?: string | null
           end_date?: string | null
           frequency_cap?: number | null
           id?: string
           impressions?: number | null
+          impressions_allocated?: number | null
+          impressions_remaining?: number | null
           is_learning_phase?: boolean | null
           learning_phase_data?: Json | null
           optimization_goal?: string | null
