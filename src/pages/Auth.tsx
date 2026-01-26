@@ -38,6 +38,7 @@ const Auth = () => {
   const [loginError, setLoginError] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [accountType, setAccountType] = useState<string>("buyer");
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -241,7 +242,8 @@ const Auth = () => {
           country: country,
           currency: currency,
           currency_symbol: CURRENCIES[currency].symbol,
-          referral_code: normalizedCode || undefined
+          referral_code: normalizedCode || undefined,
+          account_type: accountType
         };
 
         const { error, data: signUpData } = await supabase.auth.signUp({
@@ -506,6 +508,33 @@ const Auth = () => {
                 {detectingCountry && (
                   <p className="text-xs text-muted-foreground">Detecting your location...</p>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="accountType" className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Account Type
+                </Label>
+                <Select value={accountType} onValueChange={setAccountType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select account type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="buyer">Buyer (Shop & Purchase)</SelectItem>
+                    <SelectItem value="seller">Seller (Sell Products)</SelectItem>
+                    <SelectItem value="affiliate">Affiliate (Earn Commissions)</SelectItem>
+                    <SelectItem value="rider">Rider (Delivery Partner)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {accountType === 'rider' 
+                    ? "You'll be registered as a delivery rider for both courier and food delivery"
+                    : accountType === 'seller'
+                    ? "You can list and sell your products on the marketplace"
+                    : accountType === 'affiliate'
+                    ? "Earn commissions by referring customers and sellers"
+                    : "Browse and purchase products from our marketplace"}
+                </p>
               </div>
 
               <div className="space-y-2">

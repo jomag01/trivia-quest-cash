@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, MapPin, Camera, CheckCircle, XCircle, Navigation } from "lucide-react";
+import { Package, MapPin, Camera, CheckCircle, XCircle, Navigation, ScanLine, Upload } from "lucide-react";
 
 const RiderActiveDelivery = () => {
   const { toast } = useToast();
@@ -20,6 +20,10 @@ const RiderActiveDelivery = () => {
   const [signature, setSignature] = useState("");
   const [failReason, setFailReason] = useState("");
   const [notes, setNotes] = useState("");
+  const [proofPhoto, setProofPhoto] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannedCode, setScannedCode] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: activeJobs, isLoading } = useQuery({
     queryKey: ["rider-active-jobs"],
@@ -57,6 +61,29 @@ const RiderActiveDelivery = () => {
     },
   });
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const fileName = `proof-${Date.now()}.${file.name.split('.').pop()}`;
+      const { error } = await supabase.storage.from('uploads').upload(`delivery-proofs/${fileName}`, file);
+      if (error) throw error;
+      
+      const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(`delivery-proofs/${fileName}`);
+      setProofPhoto(publicUrl);
+      toast({ title: "Photo uploaded successfully" });
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleScanParcel = (trackingNumber: string) => {
+    setScannedCode(trackingNumber);
+    setIsScanning(false);
+    toast({ title: "Parcel Scanned", description: `Tracking: ${trackingNumber}` });
+  };
+
   const completeDeliveryMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("courier-rider", {
@@ -65,6 +92,7 @@ const RiderActiveDelivery = () => {
           job_id: selectedJob.id,
           signature,
           notes,
+          proof_photo_url: proofPhoto,
         },
       });
       if (error) throw error;
@@ -76,6 +104,7 @@ const RiderActiveDelivery = () => {
       setSelectedJob(null);
       setSignature("");
       setNotes("");
+      setProofPhoto(null);
       queryClient.invalidateQueries({ queryKey: ["rider-active-jobs"] });
     },
     onError: (error: any) => {
@@ -197,11 +226,35 @@ const RiderActiveDelivery = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Photo Proof</Label>
-                      <Button variant="outline" className="w-full">
+                      <Label>Scan Parcel</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Scan or enter tracking number"
+                          value={scannedCode}
+                          onChange={(e) => setScannedCode(e.target.value)}
+                        />
+                        <Button variant="outline" onClick={() => handleScanParcel(job.shipment?.tracking_number || "")}>
+                          <ScanLine className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Photo Proof of Delivery</Label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={handlePhotoUpload}
+                      />
+                      <Button variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
                         <Camera className="h-4 w-4 mr-2" />
-                        Take Photo
+                        {proofPhoto ? "Photo Uploaded ✓" : "Take/Upload Photo"}
                       </Button>
+                      {proofPhoto && (
+                        <img src={proofPhoto} alt="Proof" className="w-full h-32 object-cover rounded-md" />
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Notes (Optional)</Label>
