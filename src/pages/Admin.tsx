@@ -52,6 +52,7 @@ import { UplineTransferManagement } from "@/components/UplineTransferManagement"
 import { ShippingZoneManagement } from "@/components/ShippingZoneManagement";
 import { BulkShippingManagement } from "@/components/BulkShippingManagement";
 import CourierSettingsManagement from "@/components/CourierSettingsManagement";
+import CourierAdminDashboard from "@/components/courier/admin/CourierAdminDashboard";
 import SellerVerificationManagement from "@/components/SellerVerificationManagement";
 import MultivendorProductManagement from "@/components/MultivendorProductManagement";
 import { SalesAnalytics } from "@/components/SalesAnalytics";
@@ -221,6 +222,7 @@ const Admin = () => {
         { id: "shipping-zones", label: "Shipping Zones", icon: MapPin },
         { id: "bulk-shipping", label: "Bulk Shipping", icon: Truck },
         { id: "courier-settings", label: "Courier Settings", icon: Truck },
+        { id: "courier-admin", label: "Courier Management", icon: Package },
       ],
     },
     {
@@ -849,6 +851,7 @@ const Admin = () => {
           {activeTab === "shipping-zones" && <ShippingZoneManagement />}
           {activeTab === "bulk-shipping" && <BulkShippingManagement />}
           {activeTab === "courier-settings" && <CourierSettingsManagement />}
+          {activeTab === "courier-admin" && <CourierAdminDashboard />}
           {activeTab === "migration" && <ImageMigrationTool />}
           {activeTab === "stair-step" && <StairStepManagement />}
           {activeTab === "transfers" && <UplineTransferManagement />}
