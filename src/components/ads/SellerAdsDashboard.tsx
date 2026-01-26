@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,11 +18,12 @@ const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
 
 export const SellerAdsDashboard = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState('7');
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Fetch sponsored products
-  const { data: sponsoredProducts = [] } = useQuery({
+  // Fetch sponsored products with real-time impressions/clicks
+  const { data: sponsoredProducts = [], refetch: refetchProducts } = useQuery({
     queryKey: ['seller-sponsored-products', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -35,6 +36,26 @@ export const SellerAdsDashboard = () => {
     },
     enabled: !!user,
   });
+
+  // Real-time subscription for sponsored_products updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('seller-ads-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'sponsored_products', filter: `seller_id=eq.${user.id}` },
+        () => {
+          refetchProducts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, refetchProducts]);
 
   // Fetch analytics data
   const { data: analyticsData = [] } = useQuery({
@@ -68,14 +89,23 @@ export const SellerAdsDashboard = () => {
     enabled: !!user,
   });
 
-  // Calculate totals
-  const totals = analyticsData.reduce((acc, day) => ({
-    impressions: acc.impressions + (day.impressions || 0),
-    clicks: acc.clicks + (day.clicks || 0),
-    conversions: acc.conversions + (day.conversions || 0),
-    spend: acc.spend + (day.spend || 0),
-    revenue: acc.revenue + (day.revenue || 0),
+  // Calculate totals from sponsored_products (real-time data)
+  const realTimeTotals = sponsoredProducts.reduce((acc: any, sp: any) => ({
+    impressions: acc.impressions + (sp.impressions || 0),
+    clicks: acc.clicks + (sp.clicks || 0),
+    conversions: acc.conversions + (sp.conversions || 0),
+    spend: acc.spend + (sp.spent_amount || 0),
+    revenue: acc.revenue + ((sp.conversions || 0) * (sp.bid_amount || 0) * 10),
   }), { impressions: 0, clicks: 0, conversions: 0, spend: 0, revenue: 0 });
+
+  // Combine with analytics data for historical
+  const totals = {
+    impressions: Math.max(realTimeTotals.impressions, analyticsData.reduce((acc: number, day: any) => acc + (day.impressions || 0), 0)),
+    clicks: Math.max(realTimeTotals.clicks, analyticsData.reduce((acc: number, day: any) => acc + (day.clicks || 0), 0)),
+    conversions: realTimeTotals.conversions + analyticsData.reduce((acc: number, day: any) => acc + (day.conversions || 0), 0),
+    spend: Math.max(realTimeTotals.spend, analyticsData.reduce((acc: number, day: any) => acc + (day.spend || 0), 0)),
+    revenue: realTimeTotals.revenue + analyticsData.reduce((acc: number, day: any) => acc + (day.revenue || 0), 0),
+  };
 
   const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions * 100) : 0;
   const cvr = totals.clicks > 0 ? (totals.conversions / totals.clicks * 100) : 0;
@@ -293,53 +323,75 @@ export const SellerAdsDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle>Sponsored Products</CardTitle>
-              <CardDescription>Manage your active ad campaigns</CardDescription>
+              <CardDescription>Manage your active ad campaigns - Real-time performance data</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Product</TableHead>
+                    <TableHead>Campaign</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Bid</TableHead>
-                    <TableHead>Daily Budget</TableHead>
+                    <TableHead>Impressions</TableHead>
+                    <TableHead>Clicks</TableHead>
+                    <TableHead>CTR</TableHead>
                     <TableHead>Spent</TableHead>
-                    <TableHead>Quality Score</TableHead>
+                    <TableHead>Quality</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sponsoredProducts.map((sp: any) => (
-                    <TableRow key={sp.id}>
-                      <TableCell className="flex items-center gap-2">
-                        <span className="truncate max-w-[150px]">Product ID: {sp.product_id?.substring(0, 8)}</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={sp.status === 'active' ? 'default' : 'secondary'}>
-                          {sp.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>₱{(sp.bid_amount || 0).toFixed(2)}</TableCell>
-                      <TableCell>₱{(sp.daily_budget || 0).toFixed(2)}</TableCell>
-                      <TableCell>₱{(sp.spent_amount || 0).toFixed(2)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={(sp.quality_score || 5) * 10} className="w-16" />
-                          <span>{sp.quality_score || 5}/10</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleGenerateCreatives(sp.id, sp.product_id)}
-                        >
-                          <Sparkles className="w-3 h-3 mr-1" />
-                          AI Creatives
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {sponsoredProducts.map((sp: any) => {
+                    const ctr = sp.impressions > 0 ? ((sp.clicks || 0) / sp.impressions * 100) : 0;
+                    return (
+                      <TableRow key={sp.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium truncate max-w-[150px]">{sp.campaign_name || 'Untitled'}</p>
+                            <p className="text-xs text-muted-foreground">₱{(sp.bid_amount || 0).toFixed(2)}/click</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={sp.status === 'active' ? 'default' : 'secondary'}>
+                            {sp.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Eye className="w-3 h-3 text-blue-500" />
+                            <span className="font-semibold">{(sp.impressions || 0).toLocaleString()}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <MousePointer className="w-3 h-3 text-green-500" />
+                            <span className="font-semibold">{(sp.clicks || 0).toLocaleString()}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className={ctr > 2 ? 'text-green-600' : ctr > 1 ? 'text-yellow-600' : 'text-muted-foreground'}>
+                            {ctr.toFixed(2)}%
+                          </span>
+                        </TableCell>
+                        <TableCell>₱{(sp.spent_amount || 0).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Progress value={(sp.quality_score || 5) * 10} className="w-12" />
+                            <span className="text-xs">{sp.quality_score || 5}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleGenerateCreatives(sp.id, sp.product_id)}
+                          >
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            AI
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
