@@ -29,7 +29,7 @@ export default function SponsoredListingsManagement() {
     setLoading(true);
     try {
       let query = supabase
-        .from("sponsored_listings")
+        .from("sponsored_products")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -52,41 +52,18 @@ export default function SponsoredListingsManagement() {
     try {
       const startDate = new Date();
       const endDate = new Date();
-      endDate.setDate(endDate.getDate() + listing.duration_days);
+      endDate.setDate(endDate.getDate() + (listing.daily_budget ? Math.floor(listing.total_budget / listing.daily_budget) : 7));
 
       const { error } = await supabase
-        .from("sponsored_listings")
+        .from("sponsored_products")
         .update({
           status: "active",
           start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
-          approved_at: new Date().toISOString(),
-          approved_by: user?.id,
-          admin_notes: adminNotes
+          end_date: endDate.toISOString()
         })
         .eq("id", listing.id);
 
       if (error) throw error;
-
-      // Update the listing's is_sponsored flag
-      const tableMap: Record<string, string> = {
-        marketplace: "marketplace_listings",
-        restaurant: "food_vendors",
-        auction: "auctions",
-        food_item: "food_items"
-      };
-
-      const tableName = tableMap[listing.listing_type];
-      if (tableName) {
-        // Use type assertion to bypass strict typing for dynamic table names
-        const table = supabase.from(tableName as 'marketplace_listings');
-        await table
-          .update({ 
-            is_sponsored: true, 
-            sponsored_until: endDate.toISOString() 
-          } as any)
-          .eq("id", listing.listing_id);
-      }
 
       toast.success("Sponsorship approved and activated!");
       setSelectedListing(null);
@@ -108,17 +85,15 @@ export default function SponsoredListingsManagement() {
     setProcessing(true);
     try {
       const { error } = await supabase
-        .from("sponsored_listings")
+        .from("sponsored_products")
         .update({
-          status: "rejected",
-          admin_notes: adminNotes,
-          approved_by: user?.id
+          status: "paused"
         })
         .eq("id", listing.id);
 
       if (error) throw error;
 
-      toast.success("Sponsorship request rejected");
+      toast.success("Sponsorship request paused");
       setSelectedListing(null);
       setAdminNotes("");
       fetchListings();
@@ -188,62 +163,54 @@ export default function SponsoredListingsManagement() {
                 {listings.map((listing) => (
                   <Card key={listing.id} className="p-4">
                     <div className="flex gap-4">
-                      {listing.listing_image_url && (
-                        <img
-                          src={listing.listing_image_url}
-                          alt={listing.listing_title}
-                          className="w-20 h-20 object-cover rounded"
-                        />
-                      )}
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div>
-                            <h4 className="font-semibold">{listing.listing_title}</h4>
+                            <h4 className="font-semibold">{listing.campaign_name}</h4>
                             <p className="text-sm text-muted-foreground">
-                              User ID: {listing.user_id?.slice(0, 8)}...
+                              Seller: {listing.seller_id?.slice(0, 8)}...
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline">{getTypeLabel(listing.listing_type)}</Badge>
                               {getStatusBadge(listing.status)}
+                              {listing.is_learning_phase && (
+                                <Badge variant="outline">Learning</Badge>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-lg">₱{listing.budget_amount?.toLocaleString()}</p>
-                            <p className="text-sm text-muted-foreground">{listing.duration_days} days</p>
+                            <p className="font-bold text-lg">₱{listing.total_budget?.toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground">₱{listing.daily_budget}/day</p>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-4 mt-3 text-sm">
                           <span className="flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
-                            ₱{listing.daily_budget?.toFixed(2)}/day
+                            Spent: ₱{listing.spent_amount?.toFixed(2)}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {format(new Date(listing.created_at), "MMM d, yyyy")}
                           </span>
-                          {listing.impressions > 0 && (
-                            <span className="flex items-center gap-1">
-                              <Eye className="h-3 w-3" />
-                              {listing.impressions} views
-                            </span>
-                          )}
+                          <span className="flex items-center gap-1">
+                            <Eye className="h-3 w-3" />
+                            {listing.impressions || 0} views
+                          </span>
+                          <span>{listing.clicks || 0} clicks</span>
                         </div>
 
-                        {listing.status === "pending" && (
-                          <div className="flex gap-2 mt-3">
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                setSelectedListing(listing);
-                                setAdminNotes("");
-                              }}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              Review
-                            </Button>
-                          </div>
-                        )}
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedListing(listing);
+                              setAdminNotes("");
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Review
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </Card>
@@ -263,21 +230,19 @@ export default function SponsoredListingsManagement() {
             {selectedListing && (
               <div className="space-y-4">
                 <div className="flex gap-4">
-                  {selectedListing.listing_image_url && (
-                    <img
-                      src={selectedListing.listing_image_url}
-                      alt={selectedListing.listing_title}
-                      className="w-24 h-24 object-cover rounded"
-                    />
-                  )}
                   <div>
-                    <h4 className="font-semibold">{selectedListing.listing_title}</h4>
+                    <h4 className="font-semibold">{selectedListing.campaign_name}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {getTypeLabel(selectedListing.listing_type)}
+                      Goal: {selectedListing.optimization_goal}
                     </p>
                     <p className="font-bold mt-2">
-                      ₱{selectedListing.budget_amount?.toLocaleString()} for {selectedListing.duration_days} days
+                      ₱{selectedListing.total_budget?.toLocaleString()} total (₱{selectedListing.daily_budget}/day)
                     </p>
+                    <div className="text-sm mt-2">
+                      <p>Impressions: {selectedListing.impressions || 0}</p>
+                      <p>Clicks: {selectedListing.clicks || 0}</p>
+                      <p>Quality Score: {selectedListing.quality_score}</p>
+                    </div>
                   </div>
                 </div>
 
