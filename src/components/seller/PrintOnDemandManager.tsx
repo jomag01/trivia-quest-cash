@@ -16,6 +16,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
+// USD to PHP conversion rate (Printify prices are in USD cents)
+const USD_TO_PHP_RATE = 56; // 1 USD = ~56 PHP
+
+// Convert USD cents to PHP (whole currency)
+const convertUsdCentsToPhp = (usdCents: number): number => {
+  const usdAmount = usdCents / 100; // Convert cents to dollars
+  return Math.round(usdAmount * USD_TO_PHP_RATE); // Convert to PHP
+};
 interface PrintOnDemandManagerProps {
   onProductCreated?: (product: { name: string; imageUrl: string; price: number }) => void;
 }
@@ -222,8 +230,10 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
       if (!fullProduct) throw new Error('Failed to get product details');
 
       // Calculate base price (lowest variant price with admin markup)
-      const lowestPrice = Math.min(...(fullProduct.variants || []).map((v: any) => v.price || 2500));
-      const basePrice = Math.round(lowestPrice * (1 + adminMarkup / 100)) / 100;
+      // Printify prices are in USD cents, convert to PHP
+      const lowestPriceUsdCents = Math.min(...(fullProduct.variants || []).map((v: any) => v.price || 2500));
+      const lowestPricePhp = convertUsdCentsToPhp(lowestPriceUsdCents);
+      const basePrice = Math.round(lowestPricePhp * (1 + adminMarkup / 100));
 
       // Check if this Printify product already exists in our system
       const { data: existingLink } = await supabase
@@ -316,17 +326,21 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
         podLinkId = podLink.id;
       }
 
-      // Create variant records
-      const variantRecords = (fullProduct.variants || []).map((v: any) => ({
-        printify_product_id: podLinkId,
-        variant_id: v.id,
-        variant_title: v.title,
-        printify_cost: v.cost || 1500,
-        seller_price: v.price || 2500,
-        admin_markup_percentage: adminMarkup,
-        final_price: Math.round((v.price || 2500) * (1 + adminMarkup / 100)),
-        is_enabled: v.is_enabled !== false,
-      }));
+      // Create variant records with USD to PHP conversion
+      const variantRecords = (fullProduct.variants || []).map((v: any) => {
+        const costPhp = convertUsdCentsToPhp(v.cost || 1500);
+        const pricePhp = convertUsdCentsToPhp(v.price || 2500);
+        return {
+          printify_product_id: podLinkId,
+          variant_id: v.id,
+          variant_title: v.title,
+          printify_cost: costPhp, // Now in PHP
+          seller_price: pricePhp, // Now in PHP
+          admin_markup_percentage: adminMarkup,
+          final_price: Math.round(pricePhp * (1 + adminMarkup / 100)), // PHP with markup
+          is_enabled: v.is_enabled !== false,
+        };
+      });
 
       if (variantRecords.length > 0) {
         const { error: variantError } = await supabase
@@ -397,9 +411,9 @@ export function PrintOnDemandManager({ onProductCreated }: PrintOnDemandManagerP
       const localData = localPodProducts.get(editingProduct.id);
       
       if (localData) {
-        // Update local product price
+        // Update local product price (variantPricing.sellerPrice is already in PHP)
         const lowestPrice = Math.min(...variantPricing.filter(v => v.isEnabled).map(v => v.sellerPrice));
-        const basePrice = Math.round(lowestPrice * (1 + adminMarkup / 100)) / 100;
+        const basePrice = Math.round(lowestPrice * (1 + adminMarkup / 100));
 
         await supabase
           .from('products')
