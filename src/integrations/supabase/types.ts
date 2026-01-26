@@ -4262,6 +4262,1251 @@ export type Database = {
         }
         Relationships: []
       }
+      courier_audit_logs: {
+        Row: {
+          action: string
+          changed_by: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          ip_address: string | null
+          new_values: Json | null
+          old_values: Json | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          changed_by?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          changed_by?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      courier_cod_transactions: {
+        Row: {
+          amount: number
+          cash_received: number | null
+          cash_returned: number | null
+          created_at: string
+          created_by: string | null
+          hub_id: string | null
+          id: string
+          notes: string | null
+          reference_number: string | null
+          rider_id: string | null
+          seller_id: string | null
+          shipment_id: string
+          status: string
+          transaction_type: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          amount: number
+          cash_received?: number | null
+          cash_returned?: number | null
+          created_at?: string
+          created_by?: string | null
+          hub_id?: string | null
+          id?: string
+          notes?: string | null
+          reference_number?: string | null
+          rider_id?: string | null
+          seller_id?: string | null
+          shipment_id: string
+          status?: string
+          transaction_type: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          amount?: number
+          cash_received?: number | null
+          cash_returned?: number | null
+          created_at?: string
+          created_by?: string | null
+          hub_id?: string | null
+          id?: string
+          notes?: string | null
+          reference_number?: string | null
+          rider_id?: string | null
+          seller_id?: string | null
+          shipment_id?: string
+          status?: string
+          transaction_type?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_cod_transactions_hub_id_fkey"
+            columns: ["hub_id"]
+            isOneToOne: false
+            referencedRelation: "courier_hubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_cod_transactions_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "courier_riders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_cod_transactions_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "courier_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_hub_scans: {
+        Row: {
+          bag_number: string | null
+          created_at: string
+          destination_hub_id: string | null
+          hub_id: string
+          id: string
+          linehaul_id: string | null
+          notes: string | null
+          scan_type: string
+          scanned_by: string | null
+          shipment_id: string
+          sort_zone_code: string | null
+        }
+        Insert: {
+          bag_number?: string | null
+          created_at?: string
+          destination_hub_id?: string | null
+          hub_id: string
+          id?: string
+          linehaul_id?: string | null
+          notes?: string | null
+          scan_type: string
+          scanned_by?: string | null
+          shipment_id: string
+          sort_zone_code?: string | null
+        }
+        Update: {
+          bag_number?: string | null
+          created_at?: string
+          destination_hub_id?: string | null
+          hub_id?: string
+          id?: string
+          linehaul_id?: string | null
+          notes?: string | null
+          scan_type?: string
+          scanned_by?: string | null
+          shipment_id?: string
+          sort_zone_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_hub_scans_destination_hub_id_fkey"
+            columns: ["destination_hub_id"]
+            isOneToOne: false
+            referencedRelation: "courier_hubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_hub_scans_hub_id_fkey"
+            columns: ["hub_id"]
+            isOneToOne: false
+            referencedRelation: "courier_hubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_hub_scans_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "courier_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_hubs: {
+        Row: {
+          address: string
+          city: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          hub_code: string
+          hub_name: string
+          hub_type: string
+          id: string
+          is_active: boolean | null
+          latitude: number | null
+          longitude: number | null
+          manager_id: string | null
+          operating_hours: Json | null
+          province: string
+          updated_at: string
+          zip_code: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          address: string
+          city: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          hub_code: string
+          hub_name: string
+          hub_type?: string
+          id?: string
+          is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          manager_id?: string | null
+          operating_hours?: Json | null
+          province: string
+          updated_at?: string
+          zip_code?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          address?: string
+          city?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          hub_code?: string
+          hub_name?: string
+          hub_type?: string
+          id?: string
+          is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          manager_id?: string | null
+          operating_hours?: Json | null
+          province?: string
+          updated_at?: string
+          zip_code?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_hubs_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "courier_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_linehaul_parcels: {
+        Row: {
+          bag_number: string | null
+          created_at: string
+          id: string
+          linehaul_trip_id: string
+          loaded_at: string | null
+          shipment_id: string
+          unloaded_at: string | null
+        }
+        Insert: {
+          bag_number?: string | null
+          created_at?: string
+          id?: string
+          linehaul_trip_id: string
+          loaded_at?: string | null
+          shipment_id: string
+          unloaded_at?: string | null
+        }
+        Update: {
+          bag_number?: string | null
+          created_at?: string
+          id?: string
+          linehaul_trip_id?: string
+          loaded_at?: string | null
+          shipment_id?: string
+          unloaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_linehaul_parcels_linehaul_trip_id_fkey"
+            columns: ["linehaul_trip_id"]
+            isOneToOne: false
+            referencedRelation: "courier_linehaul_trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_linehaul_parcels_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "courier_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_linehaul_trips: {
+        Row: {
+          actual_arrival: string | null
+          actual_departure: string | null
+          created_at: string
+          created_by: string | null
+          destination_hub_id: string
+          driver_name: string | null
+          driver_phone: string | null
+          id: string
+          manifest_url: string | null
+          notes: string | null
+          origin_hub_id: string
+          parcel_count: number | null
+          scheduled_arrival: string | null
+          scheduled_departure: string | null
+          status: string
+          total_weight_kg: number | null
+          trip_code: string
+          updated_at: string
+          vehicle_plate: string | null
+        }
+        Insert: {
+          actual_arrival?: string | null
+          actual_departure?: string | null
+          created_at?: string
+          created_by?: string | null
+          destination_hub_id: string
+          driver_name?: string | null
+          driver_phone?: string | null
+          id?: string
+          manifest_url?: string | null
+          notes?: string | null
+          origin_hub_id: string
+          parcel_count?: number | null
+          scheduled_arrival?: string | null
+          scheduled_departure?: string | null
+          status?: string
+          total_weight_kg?: number | null
+          trip_code: string
+          updated_at?: string
+          vehicle_plate?: string | null
+        }
+        Update: {
+          actual_arrival?: string | null
+          actual_departure?: string | null
+          created_at?: string
+          created_by?: string | null
+          destination_hub_id?: string
+          driver_name?: string | null
+          driver_phone?: string | null
+          id?: string
+          manifest_url?: string | null
+          notes?: string | null
+          origin_hub_id?: string
+          parcel_count?: number | null
+          scheduled_arrival?: string | null
+          scheduled_departure?: string | null
+          status?: string
+          total_weight_kg?: number | null
+          trip_code?: string
+          updated_at?: string
+          vehicle_plate?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_linehaul_trips_destination_hub_id_fkey"
+            columns: ["destination_hub_id"]
+            isOneToOne: false
+            referencedRelation: "courier_hubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_linehaul_trips_origin_hub_id_fkey"
+            columns: ["origin_hub_id"]
+            isOneToOne: false
+            referencedRelation: "courier_hubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_notifications: {
+        Row: {
+          content: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          notification_type: string
+          recipient: string
+          sent_at: string | null
+          shipment_id: string | null
+          status: string
+          template_key: string
+          user_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          notification_type: string
+          recipient: string
+          sent_at?: string | null
+          shipment_id?: string | null
+          status?: string
+          template_key: string
+          user_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          notification_type?: string
+          recipient?: string
+          sent_at?: string | null
+          shipment_id?: string | null
+          status?: string
+          template_key?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_notifications_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "courier_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_pricing_rules: {
+        Row: {
+          base_price: number
+          cod_fee_minimum: number | null
+          cod_fee_percent: number | null
+          created_at: string
+          destination_zone_id: string | null
+          id: string
+          insurance_percent: number | null
+          is_active: boolean | null
+          max_weight_kg: number | null
+          min_weight_kg: number | null
+          origin_zone_id: string | null
+          price_per_kg: number | null
+          priority: number | null
+          rule_name: string
+          updated_at: string
+          volumetric_divisor: number | null
+        }
+        Insert: {
+          base_price: number
+          cod_fee_minimum?: number | null
+          cod_fee_percent?: number | null
+          created_at?: string
+          destination_zone_id?: string | null
+          id?: string
+          insurance_percent?: number | null
+          is_active?: boolean | null
+          max_weight_kg?: number | null
+          min_weight_kg?: number | null
+          origin_zone_id?: string | null
+          price_per_kg?: number | null
+          priority?: number | null
+          rule_name: string
+          updated_at?: string
+          volumetric_divisor?: number | null
+        }
+        Update: {
+          base_price?: number
+          cod_fee_minimum?: number | null
+          cod_fee_percent?: number | null
+          created_at?: string
+          destination_zone_id?: string | null
+          id?: string
+          insurance_percent?: number | null
+          is_active?: boolean | null
+          max_weight_kg?: number | null
+          min_weight_kg?: number | null
+          origin_zone_id?: string | null
+          price_per_kg?: number | null
+          priority?: number | null
+          rule_name?: string
+          updated_at?: string
+          volumetric_divisor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_pricing_rules_destination_zone_id_fkey"
+            columns: ["destination_zone_id"]
+            isOneToOne: false
+            referencedRelation: "courier_zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_pricing_rules_origin_zone_id_fkey"
+            columns: ["origin_zone_id"]
+            isOneToOne: false
+            referencedRelation: "courier_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_rider_jobs: {
+        Row: {
+          accepted_at: string | null
+          assigned_at: string | null
+          cod_amount: number | null
+          cod_collected: number | null
+          completed_at: string | null
+          created_at: string
+          failure_reason: string | null
+          id: string
+          job_type: string
+          notes: string | null
+          priority: number | null
+          rider_id: string
+          scheduled_date: string | null
+          scheduled_slot: string | null
+          shipment_id: string
+          started_at: string | null
+          status: string
+          target_address: string | null
+          target_lat: number | null
+          target_lng: number | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          assigned_at?: string | null
+          cod_amount?: number | null
+          cod_collected?: number | null
+          completed_at?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          job_type: string
+          notes?: string | null
+          priority?: number | null
+          rider_id: string
+          scheduled_date?: string | null
+          scheduled_slot?: string | null
+          shipment_id: string
+          started_at?: string | null
+          status?: string
+          target_address?: string | null
+          target_lat?: number | null
+          target_lng?: number | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          assigned_at?: string | null
+          cod_amount?: number | null
+          cod_collected?: number | null
+          completed_at?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          job_type?: string
+          notes?: string | null
+          priority?: number | null
+          rider_id?: string
+          scheduled_date?: string | null
+          scheduled_slot?: string | null
+          shipment_id?: string
+          started_at?: string | null
+          status?: string
+          target_address?: string | null
+          target_lat?: number | null
+          target_lng?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_rider_jobs_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "courier_riders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_rider_jobs_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "courier_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_rider_turnovers: {
+        Row: {
+          actual_amount: number
+          created_at: string
+          discrepancy: number | null
+          discrepancy_reason: string | null
+          expected_amount: number
+          hub_id: string
+          id: string
+          received_by: string | null
+          resolution_notes: string | null
+          rider_id: string
+          shipment_count: number | null
+          status: string
+          turnover_date: string
+          updated_at: string
+          verified_by: string | null
+        }
+        Insert: {
+          actual_amount: number
+          created_at?: string
+          discrepancy?: number | null
+          discrepancy_reason?: string | null
+          expected_amount: number
+          hub_id: string
+          id?: string
+          received_by?: string | null
+          resolution_notes?: string | null
+          rider_id: string
+          shipment_count?: number | null
+          status?: string
+          turnover_date?: string
+          updated_at?: string
+          verified_by?: string | null
+        }
+        Update: {
+          actual_amount?: number
+          created_at?: string
+          discrepancy?: number | null
+          discrepancy_reason?: string | null
+          expected_amount?: number
+          hub_id?: string
+          id?: string
+          received_by?: string | null
+          resolution_notes?: string | null
+          rider_id?: string
+          shipment_count?: number | null
+          status?: string
+          turnover_date?: string
+          updated_at?: string
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_rider_turnovers_hub_id_fkey"
+            columns: ["hub_id"]
+            isOneToOne: false
+            referencedRelation: "courier_hubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_rider_turnovers_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "courier_riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_riders: {
+        Row: {
+          cash_limit: number | null
+          created_at: string
+          current_cash_on_hand: number | null
+          current_lat: number | null
+          current_lng: number | null
+          hub_id: string | null
+          id: string
+          is_available: boolean | null
+          last_location_update: string | null
+          license_number: string | null
+          max_parcels_capacity: number | null
+          rating: number | null
+          rider_code: string
+          total_deliveries: number | null
+          updated_at: string
+          user_id: string
+          vehicle_plate: string | null
+          vehicle_type: string | null
+        }
+        Insert: {
+          cash_limit?: number | null
+          created_at?: string
+          current_cash_on_hand?: number | null
+          current_lat?: number | null
+          current_lng?: number | null
+          hub_id?: string | null
+          id?: string
+          is_available?: boolean | null
+          last_location_update?: string | null
+          license_number?: string | null
+          max_parcels_capacity?: number | null
+          rating?: number | null
+          rider_code: string
+          total_deliveries?: number | null
+          updated_at?: string
+          user_id: string
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
+        }
+        Update: {
+          cash_limit?: number | null
+          created_at?: string
+          current_cash_on_hand?: number | null
+          current_lat?: number | null
+          current_lng?: number | null
+          hub_id?: string | null
+          id?: string
+          is_available?: boolean | null
+          last_location_update?: string | null
+          license_number?: string | null
+          max_parcels_capacity?: number | null
+          rating?: number | null
+          rider_code?: string
+          total_deliveries?: number | null
+          updated_at?: string
+          user_id?: string
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_riders_hub_id_fkey"
+            columns: ["hub_id"]
+            isOneToOne: false
+            referencedRelation: "courier_hubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_seller_wallets: {
+        Row: {
+          available_balance: number
+          created_at: string
+          id: string
+          pending_balance: number
+          seller_id: string
+          total_credited: number
+          total_withdrawn: number
+          updated_at: string
+        }
+        Insert: {
+          available_balance?: number
+          created_at?: string
+          id?: string
+          pending_balance?: number
+          seller_id: string
+          total_credited?: number
+          total_withdrawn?: number
+          updated_at?: string
+        }
+        Update: {
+          available_balance?: number
+          created_at?: string
+          id?: string
+          pending_balance?: number
+          seller_id?: string
+          total_credited?: number
+          total_withdrawn?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      courier_shipments: {
+        Row: {
+          actual_weight_kg: number | null
+          arrived_destination_hub_at: string | null
+          arrived_origin_hub_at: string | null
+          barcode_data: string | null
+          billable_weight_kg: number | null
+          cod_amount: number | null
+          cod_fee: number | null
+          cod_status: Database["public"]["Enums"]["cod_status"] | null
+          created_at: string
+          created_by: string | null
+          current_hub_id: string | null
+          declared_value: number | null
+          delivered_at: string | null
+          delivery_attempts: number | null
+          delivery_notes: string | null
+          delivery_rider_id: string | null
+          description: string | null
+          destination_hub_id: string | null
+          destination_zone_id: string | null
+          dispatched_at: string | null
+          failure_reason: string | null
+          height_cm: number | null
+          id: string
+          insurance_fee: number | null
+          is_cod: boolean | null
+          is_insured: boolean | null
+          length_cm: number | null
+          max_delivery_attempts: number | null
+          order_id: string | null
+          origin_hub_id: string | null
+          origin_zone_id: string | null
+          out_for_delivery_at: string | null
+          package_type: string | null
+          picked_up_at: string | null
+          pickup_attempts: number | null
+          pickup_rider_id: string | null
+          pickup_scheduled_date: string | null
+          pickup_scheduled_slot: string | null
+          pod_photo_url: string | null
+          pod_received_by: string | null
+          pod_relation: string | null
+          pod_signature_url: string | null
+          receiver_address: string
+          receiver_city: string
+          receiver_email: string | null
+          receiver_lat: number | null
+          receiver_lng: number | null
+          receiver_name: string
+          receiver_phone: string
+          receiver_province: string
+          receiver_zip: string | null
+          return_reason: string | null
+          returned_at: string | null
+          seller_id: string | null
+          sender_address: string
+          sender_city: string
+          sender_email: string | null
+          sender_lat: number | null
+          sender_lng: number | null
+          sender_name: string
+          sender_phone: string
+          sender_province: string
+          sender_zip: string | null
+          shipping_fee: number
+          special_instructions: string | null
+          status: Database["public"]["Enums"]["shipment_status"]
+          total_charges: number
+          tracking_number: string
+          updated_at: string
+          volumetric_weight_kg: number | null
+          width_cm: number | null
+        }
+        Insert: {
+          actual_weight_kg?: number | null
+          arrived_destination_hub_at?: string | null
+          arrived_origin_hub_at?: string | null
+          barcode_data?: string | null
+          billable_weight_kg?: number | null
+          cod_amount?: number | null
+          cod_fee?: number | null
+          cod_status?: Database["public"]["Enums"]["cod_status"] | null
+          created_at?: string
+          created_by?: string | null
+          current_hub_id?: string | null
+          declared_value?: number | null
+          delivered_at?: string | null
+          delivery_attempts?: number | null
+          delivery_notes?: string | null
+          delivery_rider_id?: string | null
+          description?: string | null
+          destination_hub_id?: string | null
+          destination_zone_id?: string | null
+          dispatched_at?: string | null
+          failure_reason?: string | null
+          height_cm?: number | null
+          id?: string
+          insurance_fee?: number | null
+          is_cod?: boolean | null
+          is_insured?: boolean | null
+          length_cm?: number | null
+          max_delivery_attempts?: number | null
+          order_id?: string | null
+          origin_hub_id?: string | null
+          origin_zone_id?: string | null
+          out_for_delivery_at?: string | null
+          package_type?: string | null
+          picked_up_at?: string | null
+          pickup_attempts?: number | null
+          pickup_rider_id?: string | null
+          pickup_scheduled_date?: string | null
+          pickup_scheduled_slot?: string | null
+          pod_photo_url?: string | null
+          pod_received_by?: string | null
+          pod_relation?: string | null
+          pod_signature_url?: string | null
+          receiver_address: string
+          receiver_city: string
+          receiver_email?: string | null
+          receiver_lat?: number | null
+          receiver_lng?: number | null
+          receiver_name: string
+          receiver_phone: string
+          receiver_province: string
+          receiver_zip?: string | null
+          return_reason?: string | null
+          returned_at?: string | null
+          seller_id?: string | null
+          sender_address: string
+          sender_city: string
+          sender_email?: string | null
+          sender_lat?: number | null
+          sender_lng?: number | null
+          sender_name: string
+          sender_phone: string
+          sender_province: string
+          sender_zip?: string | null
+          shipping_fee?: number
+          special_instructions?: string | null
+          status?: Database["public"]["Enums"]["shipment_status"]
+          total_charges?: number
+          tracking_number: string
+          updated_at?: string
+          volumetric_weight_kg?: number | null
+          width_cm?: number | null
+        }
+        Update: {
+          actual_weight_kg?: number | null
+          arrived_destination_hub_at?: string | null
+          arrived_origin_hub_at?: string | null
+          barcode_data?: string | null
+          billable_weight_kg?: number | null
+          cod_amount?: number | null
+          cod_fee?: number | null
+          cod_status?: Database["public"]["Enums"]["cod_status"] | null
+          created_at?: string
+          created_by?: string | null
+          current_hub_id?: string | null
+          declared_value?: number | null
+          delivered_at?: string | null
+          delivery_attempts?: number | null
+          delivery_notes?: string | null
+          delivery_rider_id?: string | null
+          description?: string | null
+          destination_hub_id?: string | null
+          destination_zone_id?: string | null
+          dispatched_at?: string | null
+          failure_reason?: string | null
+          height_cm?: number | null
+          id?: string
+          insurance_fee?: number | null
+          is_cod?: boolean | null
+          is_insured?: boolean | null
+          length_cm?: number | null
+          max_delivery_attempts?: number | null
+          order_id?: string | null
+          origin_hub_id?: string | null
+          origin_zone_id?: string | null
+          out_for_delivery_at?: string | null
+          package_type?: string | null
+          picked_up_at?: string | null
+          pickup_attempts?: number | null
+          pickup_rider_id?: string | null
+          pickup_scheduled_date?: string | null
+          pickup_scheduled_slot?: string | null
+          pod_photo_url?: string | null
+          pod_received_by?: string | null
+          pod_relation?: string | null
+          pod_signature_url?: string | null
+          receiver_address?: string
+          receiver_city?: string
+          receiver_email?: string | null
+          receiver_lat?: number | null
+          receiver_lng?: number | null
+          receiver_name?: string
+          receiver_phone?: string
+          receiver_province?: string
+          receiver_zip?: string | null
+          return_reason?: string | null
+          returned_at?: string | null
+          seller_id?: string | null
+          sender_address?: string
+          sender_city?: string
+          sender_email?: string | null
+          sender_lat?: number | null
+          sender_lng?: number | null
+          sender_name?: string
+          sender_phone?: string
+          sender_province?: string
+          sender_zip?: string | null
+          shipping_fee?: number
+          special_instructions?: string | null
+          status?: Database["public"]["Enums"]["shipment_status"]
+          total_charges?: number
+          tracking_number?: string
+          updated_at?: string
+          volumetric_weight_kg?: number | null
+          width_cm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_shipments_current_hub_id_fkey"
+            columns: ["current_hub_id"]
+            isOneToOne: false
+            referencedRelation: "courier_hubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_shipments_delivery_rider_id_fkey"
+            columns: ["delivery_rider_id"]
+            isOneToOne: false
+            referencedRelation: "courier_riders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_shipments_destination_hub_id_fkey"
+            columns: ["destination_hub_id"]
+            isOneToOne: false
+            referencedRelation: "courier_hubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_shipments_destination_zone_id_fkey"
+            columns: ["destination_zone_id"]
+            isOneToOne: false
+            referencedRelation: "courier_zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_shipments_origin_hub_id_fkey"
+            columns: ["origin_hub_id"]
+            isOneToOne: false
+            referencedRelation: "courier_hubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_shipments_origin_zone_id_fkey"
+            columns: ["origin_zone_id"]
+            isOneToOne: false
+            referencedRelation: "courier_zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_shipments_pickup_rider_id_fkey"
+            columns: ["pickup_rider_id"]
+            isOneToOne: false
+            referencedRelation: "courier_riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_tracking_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_description: string
+          event_type: string
+          hub_id: string | null
+          id: string
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          photo_url: string | null
+          rider_id: string | null
+          scan_type: string | null
+          shipment_id: string
+          status: Database["public"]["Enums"]["shipment_status"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_description: string
+          event_type: string
+          hub_id?: string | null
+          id?: string
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          photo_url?: string | null
+          rider_id?: string | null
+          scan_type?: string | null
+          shipment_id: string
+          status: Database["public"]["Enums"]["shipment_status"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_description?: string
+          event_type?: string
+          hub_id?: string | null
+          id?: string
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          photo_url?: string | null
+          rider_id?: string | null
+          scan_type?: string | null
+          shipment_id?: string
+          status?: Database["public"]["Enums"]["shipment_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_tracking_events_hub_id_fkey"
+            columns: ["hub_id"]
+            isOneToOne: false
+            referencedRelation: "courier_hubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_tracking_events_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "courier_riders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_tracking_events_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "courier_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_user_roles: {
+        Row: {
+          created_at: string
+          hub_id: string | null
+          id: string
+          role: Database["public"]["Enums"]["courier_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hub_id?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["courier_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hub_id?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["courier_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      courier_wallet_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          description: string | null
+          id: string
+          reference_number: string | null
+          seller_id: string
+          shipment_id: string | null
+          status: string
+          transaction_type: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_number?: string | null
+          seller_id: string
+          shipment_id?: string | null
+          status?: string
+          transaction_type: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_number?: string | null
+          seller_id?: string
+          shipment_id?: string | null
+          status?: string
+          transaction_type?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_wallet_transactions_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "courier_shipments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "courier_seller_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courier_zones: {
+        Row: {
+          barangay: string | null
+          city: string | null
+          created_at: string
+          delivery_days: number | null
+          id: string
+          is_serviceable: boolean | null
+          province: string | null
+          region: string | null
+          updated_at: string
+          zip_code: string | null
+          zone_code: string
+          zone_name: string
+        }
+        Insert: {
+          barangay?: string | null
+          city?: string | null
+          created_at?: string
+          delivery_days?: number | null
+          id?: string
+          is_serviceable?: boolean | null
+          province?: string | null
+          region?: string | null
+          updated_at?: string
+          zip_code?: string | null
+          zone_code: string
+          zone_name: string
+        }
+        Update: {
+          barangay?: string | null
+          city?: string | null
+          created_at?: string
+          delivery_days?: number | null
+          id?: string
+          is_serviceable?: boolean | null
+          province?: string | null
+          region?: string | null
+          updated_at?: string
+          zip_code?: string | null
+          zone_code?: string
+          zone_name?: string
+        }
+        Relationships: []
+      }
       credit_purchases: {
         Row: {
           admin_notes: string | null
@@ -15112,6 +16357,7 @@ export type Database = {
       }
       generate_order_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
+      generate_tracking_number: { Args: never; Returns: string }
       get_ai_subscription_type: { Args: { p_user_id: string }; Returns: string }
       get_referral_count: { Args: { p_user_id: string }; Returns: number }
       get_store_support_user_id: { Args: never; Returns: string }
@@ -15129,6 +16375,13 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: boolean
       }
+      has_courier_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["courier_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       increment_credits: {
         Args: { amount: number; user_id: string }
@@ -15138,6 +16391,7 @@ export type Database = {
       is_admin:
         | { Args: never; Returns: boolean }
         | { Args: { _user_id: string }; Returns: boolean }
+      is_courier_admin: { Args: { _user_id: string }; Returns: boolean }
       is_group_admin: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
@@ -15206,6 +16460,19 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "supplier"
+      cod_status:
+        | "pending"
+        | "collected"
+        | "turned_over"
+        | "reconciled"
+        | "credited"
+        | "refunded"
+      courier_role:
+        | "courier_admin"
+        | "hub_manager"
+        | "hub_staff"
+        | "courier_rider"
+        | "seller"
       fulfillment_status:
         | "pending"
         | "picking"
@@ -15250,6 +16517,25 @@ export type Database = {
         | "received"
         | "cancelled"
       product_variant_type: "size" | "color" | "weight"
+      shipment_status:
+        | "draft"
+        | "created"
+        | "pickup_scheduled"
+        | "pickup_assigned"
+        | "picked_up"
+        | "at_origin_hub"
+        | "sorting"
+        | "in_transit"
+        | "at_destination_hub"
+        | "out_for_delivery"
+        | "delivery_attempted"
+        | "delivered"
+        | "failed_delivery"
+        | "returning"
+        | "returned_to_sender"
+        | "lost"
+        | "damaged"
+        | "cancelled"
       transfer_status:
         | "pending"
         | "approved"
@@ -15386,6 +16672,21 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "supplier"],
+      cod_status: [
+        "pending",
+        "collected",
+        "turned_over",
+        "reconciled",
+        "credited",
+        "refunded",
+      ],
+      courier_role: [
+        "courier_admin",
+        "hub_manager",
+        "hub_staff",
+        "courier_rider",
+        "seller",
+      ],
       fulfillment_status: [
         "pending",
         "picking",
@@ -15436,6 +16737,26 @@ export const Constants = {
         "cancelled",
       ],
       product_variant_type: ["size", "color", "weight"],
+      shipment_status: [
+        "draft",
+        "created",
+        "pickup_scheduled",
+        "pickup_assigned",
+        "picked_up",
+        "at_origin_hub",
+        "sorting",
+        "in_transit",
+        "at_destination_hub",
+        "out_for_delivery",
+        "delivery_attempted",
+        "delivered",
+        "failed_delivery",
+        "returning",
+        "returned_to_sender",
+        "lost",
+        "damaged",
+        "cancelled",
+      ],
       transfer_status: [
         "pending",
         "approved",
