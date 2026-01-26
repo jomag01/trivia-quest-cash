@@ -27,11 +27,11 @@ const RiderProfile = () => {
       const { count: completedDeliveries } = await supabase
         .from("courier_rider_jobs")
         .select("id", { count: "exact" })
-        .eq("rider_id", rider.id)
+        .eq("rider_id", (rider as any).id)
         .eq("status", "completed");
 
       return {
-        ...rider,
+        ...(rider as any),
         completedDeliveries: completedDeliveries || 0,
       };
     },

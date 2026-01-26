@@ -13,7 +13,7 @@ const HubDashboard = () => {
         supabase.from("courier_shipments").select("id", { count: "exact" }).eq("status", "created"),
         supabase.from("courier_shipments").select("id", { count: "exact" }).in("status", ["picked_up", "in_transit", "at_origin_hub", "out_for_delivery"]),
         supabase.from("courier_shipments").select("id", { count: "exact" }).eq("status", "delivered"),
-        supabase.from("courier_shipments").select("id", { count: "exact" }).in("status", ["failed_delivery", "return_to_sender", "lost"]),
+        supabase.from("courier_shipments").select("id", { count: "exact" }).in("status", ["failed_delivery", "returned_to_sender", "lost"]),
       ]);
 
       return {
