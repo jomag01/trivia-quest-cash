@@ -5,15 +5,17 @@ import RiderTurnoverManagement from "../cod/RiderTurnoverManagement";
 import SellerWalletManagement from "../cod/SellerWalletManagement";
 import CODReconciliationReport from "../cod/CODReconciliationReport";
 import CODExceptionHandler from "./CODExceptionHandler";
+import RiderPayoutManagement from "./RiderPayoutManagement";
 
 const CODAdminPanel = () => {
   const [activeTab, setActiveTab] = useState("overview");
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList>
+      <TabsList className="flex flex-wrap h-auto gap-1">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="turnovers">Turnovers</TabsTrigger>
+        <TabsTrigger value="payouts">Rider Payouts</TabsTrigger>
         <TabsTrigger value="wallets">Seller Wallets</TabsTrigger>
         <TabsTrigger value="exceptions">Exceptions</TabsTrigger>
         <TabsTrigger value="reports">Reports</TabsTrigger>
@@ -25,6 +27,10 @@ const CODAdminPanel = () => {
 
       <TabsContent value="turnovers" className="mt-6">
         <RiderTurnoverManagement />
+      </TabsContent>
+
+      <TabsContent value="payouts" className="mt-6">
+        <RiderPayoutManagement />
       </TabsContent>
 
       <TabsContent value="wallets" className="mt-6">

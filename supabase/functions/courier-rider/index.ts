@@ -390,9 +390,169 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({
         pending_cod: totalPending,
-        current_balance: rider.current_cod_amount,
+        current_balance: rider.current_cod_amount || rider.current_cash_on_hand || 0,
         pending_transactions: summary?.length || 0,
       }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Submit COD turnover to hub
+    if (req.method === "POST" && action === "submit-turnover") {
+      const { amount, notes } = await req.json();
+
+      if (!amount || amount <= 0) {
+        return new Response(JSON.stringify({ error: "Invalid amount" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const currentCash = rider.current_cash_on_hand || 0;
+      if (amount > currentCash) {
+        return new Response(JSON.stringify({ 
+          error: `Insufficient balance. Current: ₱${currentCash}, Requested: ₱${amount}` 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create turnover record
+      const turnoverCode = `TRN-${Date.now().toString(36).toUpperCase()}`;
+      const { data: turnover, error: turnoverError } = await supabase
+        .from("courier_rider_turnovers")
+        .insert({
+          rider_id: rider.id,
+          hub_id: rider.hub_id,
+          amount,
+          turnover_code: turnoverCode,
+          status: "pending",
+          notes,
+        })
+        .select()
+        .single();
+
+      if (turnoverError) {
+        console.error("Turnover error:", turnoverError);
+        return new Response(JSON.stringify({ error: turnoverError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Deduct from rider's cash on hand
+      await supabase
+        .from("courier_riders")
+        .update({
+          current_cash_on_hand: currentCash - amount,
+        })
+        .eq("id", rider.id);
+
+      console.log("Turnover submitted:", turnoverCode, "Amount:", amount);
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        turnover,
+        new_balance: currentCash - amount 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Request payout from collected COD
+    if (req.method === "POST" && action === "request-payout") {
+      const { amount, bank, account_name, account_number } = await req.json();
+
+      if (!amount || amount <= 0) {
+        return new Response(JSON.stringify({ error: "Invalid amount" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!bank || !account_name || !account_number) {
+        return new Response(JSON.stringify({ error: "Bank details required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const currentCash = rider.current_cash_on_hand || 0;
+      if (amount > currentCash) {
+        return new Response(JSON.stringify({ 
+          error: `Insufficient balance. Current: ₱${currentCash}, Requested: ₱${amount}` 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create payout request
+      const { data: payout, error: payoutError } = await supabase
+        .from("courier_rider_payouts")
+        .insert({
+          rider_id: rider.id,
+          amount,
+          bank,
+          account_name,
+          account_number,
+          status: "pending",
+        })
+        .select()
+        .single();
+
+      if (payoutError) {
+        console.error("Payout error:", payoutError);
+        return new Response(JSON.stringify({ error: payoutError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Deduct from rider's cash on hand (hold until approved)
+      await supabase
+        .from("courier_riders")
+        .update({
+          current_cash_on_hand: currentCash - amount,
+        })
+        .eq("id", rider.id);
+
+      console.log("Payout requested:", payout.id, "Amount:", amount);
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        payout,
+        new_balance: currentCash - amount 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get payout history
+    if (req.method === "GET" && action === "payout-history") {
+      const { data: payouts } = await supabase
+        .from("courier_rider_payouts")
+        .select("*")
+        .eq("rider_id", rider.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      return new Response(JSON.stringify({ payouts: payouts || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get turnover history
+    if (req.method === "GET" && action === "turnover-history") {
+      const { data: turnovers } = await supabase
+        .from("courier_rider_turnovers")
+        .select("*")
+        .eq("rider_id", rider.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      return new Response(JSON.stringify({ turnovers: turnovers || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
