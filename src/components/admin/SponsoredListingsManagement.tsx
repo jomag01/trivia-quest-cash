@@ -30,7 +30,7 @@ export default function SponsoredListingsManagement() {
     try {
       let query = supabase
         .from("sponsored_listings")
-        .select("*, profiles:user_id(full_name, email)")
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (activeTab !== "all") {
@@ -200,7 +200,7 @@ export default function SponsoredListingsManagement() {
                           <div>
                             <h4 className="font-semibold">{listing.listing_title}</h4>
                             <p className="text-sm text-muted-foreground">
-                              by {listing.profiles?.full_name || listing.profiles?.email}
+                              User ID: {listing.user_id?.slice(0, 8)}...
                             </p>
                             <div className="flex items-center gap-2 mt-1">
                               <Badge variant="outline">{getTypeLabel(listing.listing_type)}</Badge>
