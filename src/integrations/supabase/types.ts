@@ -4850,6 +4850,59 @@ export type Database = {
           },
         ]
       }
+      courier_rider_payouts: {
+        Row: {
+          account_name: string
+          account_number: string
+          admin_notes: string | null
+          amount: number
+          bank: string
+          created_at: string
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          rider_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          admin_notes?: string | null
+          amount: number
+          bank: string
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          rider_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          admin_notes?: string | null
+          amount?: number
+          bank?: string
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          rider_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_rider_payouts_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "courier_riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courier_rider_turnovers: {
         Row: {
           actual_amount: number
@@ -4928,6 +4981,7 @@ export type Database = {
           current_lng: number | null
           hub_id: string | null
           id: string
+          is_active: boolean | null
           is_available: boolean | null
           last_location_update: string | null
           license_number: string | null
@@ -4948,6 +5002,7 @@ export type Database = {
           current_lng?: number | null
           hub_id?: string | null
           id?: string
+          is_active?: boolean | null
           is_available?: boolean | null
           last_location_update?: string | null
           license_number?: string | null
@@ -4968,6 +5023,7 @@ export type Database = {
           current_lng?: number | null
           hub_id?: string | null
           id?: string
+          is_active?: boolean | null
           is_available?: boolean | null
           last_location_update?: string | null
           license_number?: string | null
