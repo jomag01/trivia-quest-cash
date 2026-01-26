@@ -442,6 +442,11 @@ export const CartView = () => {
     }
   };
 
+  // Check if cart contains any POD (Print-on-Demand) items from Printify
+  const hasPodItems = () => {
+    return cartItems.some(item => item.products?.is_pod === true);
+  };
+
   const getAvailablePaymentMethods = () => {
     const methods = [];
     
@@ -449,8 +454,16 @@ export const CartView = () => {
     const totalAmount = subtotal + shippingFee;
     const userBalance = userCredits + (userDiamonds * 10);
     const hasSufficientBalance = userBalance >= totalAmount;
+    const containsPodItems = hasPodItems();
     
-    if (isVerified && hasSufficientBalance) {
+    // COD is NOT available for POD items (shipped from abroad)
+    if (containsPodItems) {
+      methods.push({ 
+        value: "cod_disabled", 
+        label: `COD unavailable (Print-on-Demand items ship from abroad)`,
+        disabled: true 
+      });
+    } else if (isVerified && hasSufficientBalance) {
       methods.push({ value: "cod", label: `Cash on Delivery (Requires ₱${totalAmount.toFixed(0)} balance)` });
     } else if (isVerified && !hasSufficientBalance) {
       methods.push({ 
@@ -716,9 +729,15 @@ export const CartView = () => {
                   </option>
                 ))}
               </select>
-              {!isVerified && (
+              {!isVerified && !hasPodItems() && (
                 <p className="text-xs text-yellow-600 mt-1">
                   Note: Cash on Delivery is only available for verified users
+                </p>
+              )}
+              {hasPodItems() && (
+                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                  <span>🌍</span>
+                  Print-on-Demand items ship from abroad - COD not available. Pay via e-wallet or cash wallet.
                 </p>
               )}
               {paymentMethod === "diamonds" && calculateTotal() % 10 !== 0 && (
