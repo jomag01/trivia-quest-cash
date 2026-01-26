@@ -56,10 +56,10 @@ export const useAdAuction = () => {
     try {
       const visitorId = getVisitorId();
 
-      // 1. Fetch active sponsored products
+      // 1. Fetch active sponsored products with impression tracking
       const { data: sponsoredProducts, error } = await supabase
         .from('sponsored_products')
-        .select('id, product_id, seller_id, bid_amount, quality_score, relevance_score, conversion_rate, daily_budget, spent_amount, frequency_cap, placements')
+        .select('id, product_id, seller_id, bid_amount, quality_score, relevance_score, conversion_rate, daily_budget, spent_amount, frequency_cap, placements, impressions_allocated, impressions_remaining, cost_per_impression, delivery_status')
         .eq('status', 'active')
         .gt('daily_budget', 0);
 
@@ -68,13 +68,20 @@ export const useAdAuction = () => {
         return { ads: [] };
       }
 
-      // 2. Filter by placement - include 'feed' as generic fallback for all feed-type placements
+      // 2. Filter by placement and check impressions remaining
       const feedPlacements = ['feed', 'homepage_feed', 'beesmate', 'aihub', 'shop'];
       const eligibleProducts = sponsoredProducts.filter(sp => {
         const adPlacements = sp.placements as string[] || [];
-        return adPlacements.includes(placementKey) || 
+        const hasPlacement = adPlacements.includes(placementKey) || 
                adPlacements.includes('all') ||
                (feedPlacements.includes(placementKey) && adPlacements.includes('feed'));
+        
+        // Check if ad still has impressions remaining (Facebook-like delivery)
+        const impressionsRemaining = (sp as any).impressions_remaining ?? Infinity;
+        const deliveryStatus = (sp as any).delivery_status;
+        const hasImpressionsLeft = impressionsRemaining > 0 && deliveryStatus !== 'exhausted';
+        
+        return hasPlacement && hasImpressionsLeft;
       });
 
       if (!eligibleProducts.length) {
@@ -201,16 +208,35 @@ export const useAdAuction = () => {
         retargeting_boost: retargetingBoost,
       });
 
-      // Increment impressions count on sponsored_products for real-time sync
+      // Increment impressions and decrement remaining (Facebook-like delivery)
       const { data: current } = await supabase
         .from('sponsored_products')
-        .select('impressions')
+        .select('impressions, impressions_remaining, impressions_allocated, cost_per_impression')
         .eq('id', sponsoredProductId)
         .single();
       
+      const newImpressions = (current?.impressions || 0) + 1;
+      const newRemaining = Math.max((current?.impressions_remaining || 0) - 1, 0);
+      const newSpent = newImpressions * (current?.cost_per_impression || 0);
+      
+      // Auto-pause when impressions exhausted
+      const deliveryStatus = newRemaining <= 0 ? 'exhausted' : 'delivering';
+      const newStatus = newRemaining <= 0 ? 'paused' : undefined;
+      
+      const updateData: any = { 
+        impressions: newImpressions,
+        impressions_remaining: newRemaining,
+        spent_amount: newSpent,
+        delivery_status: deliveryStatus
+      };
+      
+      if (newStatus) {
+        updateData.status = newStatus;
+      }
+      
       await supabase
         .from('sponsored_products')
-        .update({ impressions: (current?.impressions || 0) + 1 })
+        .update(updateData)
         .eq('id', sponsoredProductId);
     } catch (error) {
       console.error('Error recording impression:', error);

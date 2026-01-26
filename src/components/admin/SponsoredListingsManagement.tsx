@@ -199,7 +199,7 @@ export default function SponsoredListingsManagement() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4 mt-3 text-sm">
+                        <div className="flex items-center gap-4 mt-3 text-sm flex-wrap">
                           <span className="flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
                             Spent: ₱{listing.spent_amount?.toFixed(2)}
@@ -210,9 +210,14 @@ export default function SponsoredListingsManagement() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Eye className="h-3 w-3" />
-                            {listing.impressions || 0} views
+                            {listing.impressions || 0} / {listing.impressions_allocated || '∞'}
                           </span>
                           <span>{listing.clicks || 0} clicks</span>
+                          {listing.delivery_status && (
+                            <Badge variant={listing.delivery_status === 'exhausted' ? 'destructive' : 'outline'} className="text-[10px]">
+                              {listing.delivery_status === 'exhausted' ? 'Budget Exhausted' : 'Delivering'}
+                            </Badge>
+                          )}
                         </div>
 
                         <div className="flex gap-2 mt-3">

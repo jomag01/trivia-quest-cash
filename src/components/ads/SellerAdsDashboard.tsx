@@ -331,17 +331,24 @@ export const SellerAdsDashboard = () => {
                   <TableRow>
                     <TableHead>Campaign</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Delivery</TableHead>
                     <TableHead>Impressions</TableHead>
                     <TableHead>Clicks</TableHead>
                     <TableHead>CTR</TableHead>
                     <TableHead>Spent</TableHead>
-                    <TableHead>Quality</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sponsoredProducts.map((sp: any) => {
                     const ctr = sp.impressions > 0 ? ((sp.clicks || 0) / sp.impressions * 100) : 0;
+                    const impressionsAllocated = sp.impressions_allocated || 0;
+                    const impressionsRemaining = sp.impressions_remaining || 0;
+                    const deliveryProgress = impressionsAllocated > 0 
+                      ? ((impressionsAllocated - impressionsRemaining) / impressionsAllocated * 100) 
+                      : 0;
+                    const isExhausted = sp.delivery_status === 'exhausted' || impressionsRemaining <= 0;
+                    
                     return (
                       <TableRow key={sp.id}>
                         <TableCell>
@@ -351,9 +358,25 @@ export const SellerAdsDashboard = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={sp.status === 'active' ? 'default' : 'secondary'}>
+                          <Badge variant={sp.status === 'active' ? 'default' : sp.status === 'paused' ? 'secondary' : 'outline'}>
                             {sp.status}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1">
+                              <Badge 
+                                variant={isExhausted ? 'destructive' : 'outline'} 
+                                className="text-[10px] px-1"
+                              >
+                                {isExhausted ? 'Exhausted' : 'Delivering'}
+                              </Badge>
+                            </div>
+                            <Progress value={deliveryProgress} className="w-16 h-1.5" />
+                            <p className="text-[10px] text-muted-foreground">
+                              {(impressionsAllocated - impressionsRemaining).toLocaleString()}/{impressionsAllocated.toLocaleString()}
+                            </p>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
@@ -372,11 +395,10 @@ export const SellerAdsDashboard = () => {
                             {ctr.toFixed(2)}%
                           </span>
                         </TableCell>
-                        <TableCell>₱{(sp.spent_amount || 0).toFixed(2)}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Progress value={(sp.quality_score || 5) * 10} className="w-12" />
-                            <span className="text-xs">{sp.quality_score || 5}</span>
+                          <div>
+                            <p className="font-semibold">₱{(sp.spent_amount || 0).toFixed(2)}</p>
+                            <p className="text-[10px] text-muted-foreground">of ₱{(sp.total_budget || 0).toFixed(2)}</p>
                           </div>
                         </TableCell>
                         <TableCell>
