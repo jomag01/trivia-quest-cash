@@ -22,7 +22,8 @@ import { PrintOnDemandManager } from "@/components/seller/PrintOnDemandManager";
 export default function SellerDashboard() {
   const {
     user,
-    profile
+    profile,
+    isAdmin
   } = useAuth();
   const [loading, setLoading] = useState(true);
   const [canBecomeSeller, setCanBecomeSeller] = useState(false);
@@ -393,8 +394,24 @@ export default function SellerDashboard() {
           </CardContent>
         </Card>}
 
-      {/* Print-on-Demand Section - Admin Only */}
-      {/* POD management moved to admin panel. Affiliates can promote POD products via Suggested Products tab */}
+      {/* Print-on-Demand Section - Show for Admin Users */}
+      {profile?.is_verified_seller && isAdmin && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Layers className="h-5 w-5" />
+              Print-on-Demand Manager
+            </CardTitle>
+            <CardDescription>
+              Manage Printify products for the shop
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PrintOnDemandManager />
+          </CardContent>
+        </Card>
+      )}
+      
       <Dialog open={showProductDialog} onOpenChange={setShowProductDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingProduct ? "Edit" : "Add"} Product</DialogTitle></DialogHeader>

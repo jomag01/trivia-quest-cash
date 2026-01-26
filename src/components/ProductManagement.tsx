@@ -122,7 +122,9 @@ export const ProductManagement = () => {
     free_shipping: false,
     boosted_sales_count: "0",
     boosted_rating: "0",
-    virtual_tryon_enabled: false
+    virtual_tryon_enabled: false,
+    is_promotable: false,
+    commission_tier: "standard"
   });
 
   // Image form state
@@ -319,7 +321,10 @@ export const ProductManagement = () => {
       free_shipping: formData.free_shipping,
       boosted_sales_count: parseInt(formData.boosted_sales_count) || 0,
       boosted_rating: parseFloat(formData.boosted_rating) || 0,
-      virtual_tryon_enabled: formData.virtual_tryon_enabled
+      virtual_tryon_enabled: formData.virtual_tryon_enabled,
+      is_promotable: formData.is_promotable,
+      commission_tier: formData.commission_tier,
+      promotable_at: formData.is_promotable ? new Date().toISOString() : null
     };
 
     if (editingProduct) {
@@ -507,7 +512,9 @@ export const ProductManagement = () => {
       free_shipping: false,
       boosted_sales_count: "0",
       boosted_rating: "0",
-      virtual_tryon_enabled: false
+      virtual_tryon_enabled: false,
+      is_promotable: false,
+      commission_tier: "standard"
     });
     setEditingProduct(null);
   };
@@ -535,7 +542,9 @@ export const ProductManagement = () => {
       free_shipping: product.free_shipping || false,
       boosted_sales_count: product.boosted_sales_count?.toString() || "0",
       boosted_rating: product.boosted_rating?.toString() || "0",
-      virtual_tryon_enabled: product.virtual_tryon_enabled || false
+      virtual_tryon_enabled: product.virtual_tryon_enabled || false,
+      is_promotable: (product as any).is_promotable || false,
+      commission_tier: (product as any).commission_tier || "standard"
     });
     setIsDialogOpen(true);
   };
@@ -881,6 +890,41 @@ export const ProductManagement = () => {
                 )}
               </div>
               
+              {/* Affiliate Promotion Section */}
+              <div className="border-t pt-3 space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">📣</span>
+                  <Label className="text-sm font-semibold text-green-600">Affiliate Promotion</Label>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Mark this product as promotable to show in user dashboards for affiliate sharing
+                </p>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is_promotable" className="text-sm">Show in Suggested Products</Label>
+                  <Switch
+                    id="is_promotable"
+                    checked={formData.is_promotable}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_promotable: checked })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="commission_tier">Commission Tier</Label>
+                  <Select
+                    value={formData.commission_tier}
+                    onValueChange={(value) => setFormData({ ...formData, commission_tier: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select tier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="high">High Commission</SelectItem>
+                      <SelectItem value="premium">Premium</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               {/* Sales Boosting Section - Admin Only */}
               <div className="border-t pt-3 space-y-3">
                 <div className="flex items-center gap-2 mb-2">
