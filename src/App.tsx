@@ -43,6 +43,13 @@ const ShareholderRegistration = lazy(() => import("./pages/ShareholderRegistrati
 const BeesMate = lazy(() => import("./pages/ChatMates"));
 const LinkRedirect = lazy(() => import("./pages/LinkRedirect"));
 
+// Courier system pages
+const CourierAdmin = lazy(() => import("./components/courier/admin/CourierAdminDashboard"));
+const CourierHub = lazy(() => import("./components/courier/hub/HubOperationsPage"));
+const CourierRider = lazy(() => import("./components/courier/rider/RiderMobileApp"));
+const CourierCOD = lazy(() => import("./components/courier/cod/CODManagementPage"));
+const CourierTracking = lazy(() => import("./components/courier/tracking/PublicTrackingPage"));
+
 // Configure QueryClient with aggressive caching
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -157,6 +164,12 @@ const App = () => (
               <Route path="/shareholder-registration" element={<ShareholderRegistration />} />
               <Route path="/bees-mate" element={<BeesMate />} />
               <Route path="/s/:code" element={<LinkRedirect />} />
+              {/* Courier system routes */}
+              <Route path="/courier-admin" element={<CourierAdmin />} />
+              <Route path="/courier-hub" element={<CourierHub />} />
+              <Route path="/courier-rider" element={<CourierRider />} />
+              <Route path="/courier-cod" element={<CourierCOD />} />
+              <Route path="/track/:trackingNumber" element={<CourierTracking />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
