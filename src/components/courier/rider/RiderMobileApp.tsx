@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, Truck, Wallet, User } from "lucide-react";
 import RiderJobList from "./RiderJobList";
 import RiderActiveDelivery from "./RiderActiveDelivery";
-import RiderCODWallet from "./RiderCODWallet";
+import RiderPayoutWallet from "./RiderPayoutWallet";
 import RiderProfile from "./RiderProfile";
 
 const RiderMobileApp = () => {
@@ -26,7 +26,7 @@ const RiderMobileApp = () => {
           </TabsContent>
 
           <TabsContent value="wallet" className="m-0 p-4">
-            <RiderCODWallet />
+            <RiderPayoutWallet />
           </TabsContent>
 
           <TabsContent value="profile" className="m-0 p-4">
@@ -44,7 +44,7 @@ const RiderMobileApp = () => {
             </TabsTrigger>
             <TabsTrigger value="wallet" className="flex flex-col items-center gap-1 data-[state=active]:bg-transparent">
               <Wallet className="h-5 w-5" />
-              <span className="text-xs">COD</span>
+              <span className="text-xs">Wallet</span>
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex flex-col items-center gap-1 data-[state=active]:bg-transparent">
               <User className="h-5 w-5" />
