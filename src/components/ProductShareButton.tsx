@@ -1,7 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import SocialShareMenu from "@/components/common/SocialShareMenu";
-import { generateEntityShareUrl } from "@/lib/shareUtils";
 
 interface ProductShareButtonProps {
   productId: string;
@@ -24,7 +23,7 @@ export const ProductShareButton = ({
   utmSource,
   utmCampaign,
 }: ProductShareButtonProps) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   if (!user) {
     return (
@@ -40,17 +39,28 @@ export const ProductShareButton = ({
     );
   }
 
+  // Build proper params with product ID for direct linking
+  const shareParams: Record<string, string> = { 
+    product: productId,
+    src: 'share'
+  };
+  
+  // Add referral code from profile
+  if (profile?.referral_code) {
+    shareParams.ref = profile.referral_code;
+  }
+  
+  // Add UTM params if provided
+  if (utmSource) shareParams.utm_source = utmSource;
+  if (utmCampaign) shareParams.utm_campaign = utmCampaign;
+
   return (
     <div onClick={(e) => e.stopPropagation()}>
       <SocialShareMenu
         title={`Check out ${productName}!`}
         description={`I found this amazing product: ${productName}. Check it out on Triviabees! 🐝`}
         path="/shop"
-        params={{ 
-          product: productId,
-          ...(utmSource && { utm_source: utmSource }),
-          ...(utmCampaign && { utm_campaign: utmCampaign })
-        }}
+        params={shareParams}
         variant={variant}
         size={size}
         className={className}

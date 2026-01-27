@@ -119,39 +119,59 @@ export const shareToSocialMedia = {
   facebook: (url: string, text?: string) => {
     const encodedUrl = encodeURIComponent(url);
     const quote = text ? `&quote=${encodeURIComponent(text)}` : '';
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}${quote}`, '_blank');
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}${quote}`, '_blank', 'width=600,height=500');
   },
   
   twitter: (url: string, text?: string) => {
     const encodedUrl = encodeURIComponent(url);
     const encodedText = text ? encodeURIComponent(text) : '';
-    window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank');
+    window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank', 'width=600,height=500');
   },
   
   whatsapp: (url: string, text?: string) => {
     const fullText = text ? `${text}\n${url}` : url;
-    window.open(`https://wa.me/?text=${encodeURIComponent(fullText)}`, '_blank');
+    // Use mobile-friendly WhatsApp URL
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      window.location.href = `whatsapp://send?text=${encodeURIComponent(fullText)}`;
+    } else {
+      window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(fullText)}`, '_blank', 'width=600,height=500');
+    }
   },
   
   telegram: (url: string, text?: string) => {
     const encodedUrl = encodeURIComponent(url);
     const encodedText = text ? encodeURIComponent(text) : '';
-    window.open(`https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`, '_blank');
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      window.location.href = `tg://msg_url?url=${encodedUrl}&text=${encodedText}`;
+    } else {
+      window.open(`https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`, '_blank', 'width=600,height=500');
+    }
   },
   
-  messenger: (url: string) => {
+  messenger: (url: string, text?: string) => {
     const encodedUrl = encodeURIComponent(url);
-    window.open(
-      `https://www.facebook.com/dialog/send?link=${encodedUrl}&app_id=966242223397117&redirect_uri=${encodeURIComponent(window.location.href)}`,
-      '_blank',
-      'width=600,height=500'
-    );
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // Use mobile deep link for Messenger app
+      window.location.href = `fb-messenger://share?link=${encodedUrl}`;
+      // Fallback after a short delay if app doesn't open
+      setTimeout(() => {
+        // If still on page, fallback to m.me link sharing
+        window.open(`https://m.me/?link=${encodedUrl}`, '_blank');
+      }, 1500);
+    } else {
+      // Desktop: use Facebook share dialog which works more reliably
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodeURIComponent(text || 'Check this out!')}`, '_blank', 'width=600,height=500');
+    }
   },
   
   linkedin: (url: string, title?: string) => {
     const encodedUrl = encodeURIComponent(url);
     const titleParam = title ? `&title=${encodeURIComponent(title)}` : '';
-    window.open(`https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}${titleParam}`, '_blank');
+    window.open(`https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}${titleParam}`, '_blank', 'width=600,height=500');
   },
   
   tiktok: (url: string) => {
@@ -184,6 +204,36 @@ export const shareToSocialMedia = {
       return false;
     }
   }
+};
+
+/**
+ * Generate a proper product permalink with referral tracking
+ */
+export const generateProductShareUrl = (
+  productId: string,
+  referralCode?: string | null,
+  utmParams?: { source?: string; medium?: string; campaign?: string }
+): string => {
+  const baseUrl = window.location.origin;
+  const params = new URLSearchParams();
+  
+  // Add product ID
+  params.set('product', productId);
+  
+  // Add referral code
+  if (referralCode) {
+    params.set('ref', referralCode);
+  }
+  
+  // Add source tracking
+  params.set('src', 'share');
+  
+  // Add UTM params
+  if (utmParams?.source) params.set('utm_source', utmParams.source);
+  if (utmParams?.medium) params.set('utm_medium', utmParams.medium);
+  if (utmParams?.campaign) params.set('utm_campaign', utmParams.campaign);
+  
+  return `${baseUrl}/shop?${params.toString()}`;
 };
 
 /**

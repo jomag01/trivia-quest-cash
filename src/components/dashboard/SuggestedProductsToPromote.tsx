@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Copy, ExternalLink, Share2, Sparkles, TrendingUp, Package, Gem } from "lucide-react";
 import SocialShareMenu from "@/components/common/SocialShareMenu";
+import { generateProductShareUrl } from "@/lib/shareUtils";
 
 interface PromotableProduct {
   id: string;
@@ -79,8 +80,7 @@ export default function SuggestedProductsToPromote() {
   });
 
   const copyShareLink = (product: PromotableProduct) => {
-    const baseUrl = window.location.origin;
-    const shareUrl = `${baseUrl}/shop?product=${product.id}&ref=${profile?.referral_code}`;
+    const shareUrl = generateProductShareUrl(product.id, profile?.referral_code);
     navigator.clipboard.writeText(shareUrl);
     toast.success("Share link copied!");
   };
@@ -130,7 +130,7 @@ export default function SuggestedProductsToPromote() {
               title={`Check out ${product.name}!`}
               description={`Amazing product on Triviabees!`}
               path="/shop"
-              params={{ product: product.id, ref: profile?.referral_code || '' }}
+              params={{ product: product.id, ref: profile?.referral_code || '', src: 'share' }}
               variant="ghost"
               size="sm"
               className="h-7 text-xs"
