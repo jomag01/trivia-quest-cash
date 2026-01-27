@@ -35,9 +35,11 @@ const SocialShareMenu = ({
   className = ''
 }: SocialShareMenuProps) => {
   const [copied, setCopied] = useState(false);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
-  const shareUrl = generateShareUrlSync(path, user?.id, null, params);
+  // Use referral code from params first, then profile, then user ID
+  const refCode = params?.ref || profile?.referral_code || user?.id;
+  const shareUrl = generateShareUrlSync(path, user?.id, refCode, params);
   const shareText = description || title;
 
   const handleFacebook = () => {
@@ -57,7 +59,7 @@ const SocialShareMenu = ({
   };
 
   const handleMessenger = () => {
-    shareToSocialMedia.messenger(shareUrl);
+    shareToSocialMedia.messenger(shareUrl, shareText);
   };
 
   const handleLinkedIn = () => {
