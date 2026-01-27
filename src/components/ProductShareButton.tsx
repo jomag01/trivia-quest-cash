@@ -64,6 +64,9 @@ export const ProductShareButton = ({
         variant={variant}
         size={size}
         className={className}
+        entityType="product"
+        entityId={productId}
+        imageUrl={productImage}
       />
     </div>
   );
