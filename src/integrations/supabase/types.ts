@@ -2444,6 +2444,7 @@ export type Database = {
           blockchain_hash: string | null
           buy_now_price: number | null
           category_id: string | null
+          commission_tier: string | null
           condition: string | null
           created_at: string | null
           current_bid: number | null
@@ -2454,8 +2455,10 @@ export type Database = {
           featured: boolean | null
           id: string
           images: string[] | null
+          is_promotable: boolean | null
           is_sponsored: boolean | null
           original_end_time: string | null
+          promotable_at: string | null
           reserve_price: number | null
           seller_id: string
           shipping_fee: number | null
@@ -2484,6 +2487,7 @@ export type Database = {
           blockchain_hash?: string | null
           buy_now_price?: number | null
           category_id?: string | null
+          commission_tier?: string | null
           condition?: string | null
           created_at?: string | null
           current_bid?: number | null
@@ -2494,8 +2498,10 @@ export type Database = {
           featured?: boolean | null
           id?: string
           images?: string[] | null
+          is_promotable?: boolean | null
           is_sponsored?: boolean | null
           original_end_time?: string | null
+          promotable_at?: string | null
           reserve_price?: number | null
           seller_id: string
           shipping_fee?: number | null
@@ -2524,6 +2530,7 @@ export type Database = {
           blockchain_hash?: string | null
           buy_now_price?: number | null
           category_id?: string | null
+          commission_tier?: string | null
           condition?: string | null
           created_at?: string | null
           current_bid?: number | null
@@ -2534,8 +2541,10 @@ export type Database = {
           featured?: boolean | null
           id?: string
           images?: string[] | null
+          is_promotable?: boolean | null
           is_sponsored?: boolean | null
           original_end_time?: string | null
+          promotable_at?: string | null
           reserve_price?: number | null
           seller_id?: string
           shipping_fee?: number | null
@@ -6740,6 +6749,7 @@ export type Database = {
           bulk_min_quantity: number | null
           bulk_price: number | null
           category: string | null
+          commission_tier: string | null
           created_at: string | null
           description: string | null
           diamond_reward: number | null
@@ -6747,11 +6757,13 @@ export type Database = {
           image_url: string | null
           is_available: boolean | null
           is_featured: boolean | null
+          is_promotable: boolean | null
           is_sponsored: boolean | null
           menu_id: string | null
           name: string
           preparation_time: string | null
           price: number
+          promotable_at: string | null
           referral_commission_diamonds: number | null
           sponsored_until: string | null
           updated_at: string | null
@@ -6762,6 +6774,7 @@ export type Database = {
           bulk_min_quantity?: number | null
           bulk_price?: number | null
           category?: string | null
+          commission_tier?: string | null
           created_at?: string | null
           description?: string | null
           diamond_reward?: number | null
@@ -6769,11 +6782,13 @@ export type Database = {
           image_url?: string | null
           is_available?: boolean | null
           is_featured?: boolean | null
+          is_promotable?: boolean | null
           is_sponsored?: boolean | null
           menu_id?: string | null
           name: string
           preparation_time?: string | null
           price: number
+          promotable_at?: string | null
           referral_commission_diamonds?: number | null
           sponsored_until?: string | null
           updated_at?: string | null
@@ -6784,6 +6799,7 @@ export type Database = {
           bulk_min_quantity?: number | null
           bulk_price?: number | null
           category?: string | null
+          commission_tier?: string | null
           created_at?: string | null
           description?: string | null
           diamond_reward?: number | null
@@ -6791,11 +6807,13 @@ export type Database = {
           image_url?: string | null
           is_available?: boolean | null
           is_featured?: boolean | null
+          is_promotable?: boolean | null
           is_sponsored?: boolean | null
           menu_id?: string | null
           name?: string
           preparation_time?: string | null
           price?: number
+          promotable_at?: string | null
           referral_commission_diamonds?: number | null
           sponsored_until?: string | null
           updated_at?: string | null
@@ -8618,6 +8636,7 @@ export type Database = {
           brand: string | null
           category: Database["public"]["Enums"]["marketplace_category"]
           city: string | null
+          commission_tier: string | null
           condition: string | null
           contact_email: string | null
           contact_phone: string | null
@@ -8634,6 +8653,7 @@ export type Database = {
           inquiries_count: number | null
           is_boosted: boolean | null
           is_featured: boolean | null
+          is_promotable: boolean | null
           is_sponsored: boolean | null
           latitude: number | null
           listing_fee_paid: boolean | null
@@ -8646,6 +8666,7 @@ export type Database = {
           model: string | null
           price: number
           price_type: string | null
+          promotable_at: string | null
           province: string | null
           referrer_id: string | null
           seller_id: string
@@ -8676,6 +8697,7 @@ export type Database = {
           brand?: string | null
           category: Database["public"]["Enums"]["marketplace_category"]
           city?: string | null
+          commission_tier?: string | null
           condition?: string | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -8692,6 +8714,7 @@ export type Database = {
           inquiries_count?: number | null
           is_boosted?: boolean | null
           is_featured?: boolean | null
+          is_promotable?: boolean | null
           is_sponsored?: boolean | null
           latitude?: number | null
           listing_fee_paid?: boolean | null
@@ -8704,6 +8727,7 @@ export type Database = {
           model?: string | null
           price: number
           price_type?: string | null
+          promotable_at?: string | null
           province?: string | null
           referrer_id?: string | null
           seller_id: string
@@ -8734,6 +8758,7 @@ export type Database = {
           brand?: string | null
           category?: Database["public"]["Enums"]["marketplace_category"]
           city?: string | null
+          commission_tier?: string | null
           condition?: string | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -8750,6 +8775,7 @@ export type Database = {
           inquiries_count?: number | null
           is_boosted?: boolean | null
           is_featured?: boolean | null
+          is_promotable?: boolean | null
           is_sponsored?: boolean | null
           latitude?: number | null
           listing_fee_paid?: boolean | null
@@ -8762,6 +8788,7 @@ export type Database = {
           model?: string | null
           price?: number
           price_type?: string | null
+          promotable_at?: string | null
           province?: string | null
           referrer_id?: string | null
           seller_id?: string

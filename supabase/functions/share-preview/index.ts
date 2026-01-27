@@ -53,16 +53,17 @@ Deno.serve(async (req) => {
       case 'product': {
         const { data } = await supabase
           .from('products')
-          .select('id, name, description, image_url, price')
+          .select('id, name, description, image_url, price, base_price')
           .eq('id', entityId)
           .maybeSingle();
         
         if (data) {
+          const price = data.price || data.base_price;
           meta = {
             title: data.name,
             description: data.description?.substring(0, 160) || `Check out ${data.name} on Triviabees!`,
             image: data.image_url || `${baseUrl}/og-image.png`,
-            price: data.price ? `₱${data.price.toLocaleString()}` : undefined,
+            price: price ? `₱${price.toLocaleString()}` : undefined,
             type: 'product',
           };
         }
@@ -102,6 +103,27 @@ Deno.serve(async (req) => {
             description: data.description?.substring(0, 160) || `Order from ${data.name} on Triviabees Food Delivery!`,
             image: data.banner_url || data.image_url || `${baseUrl}/og-image.png`,
             type: 'restaurant.menu',
+          };
+        }
+        break;
+      }
+
+      case 'food': {
+        // Handle food items specifically
+        const { data } = await supabase
+          .from('food_items')
+          .select('id, name, description, image_url, price, vendor:food_vendors(name)')
+          .eq('id', entityId)
+          .maybeSingle();
+        
+        if (data) {
+          const vendorName = (data as any).vendor?.name || 'Restaurant';
+          meta = {
+            title: data.name,
+            description: data.description?.substring(0, 160) || `Order ${data.name} from ${vendorName} on Triviabees!`,
+            image: data.image_url || `${baseUrl}/og-image.png`,
+            price: data.price ? `₱${data.price.toLocaleString()}` : undefined,
+            type: 'product',
           };
         }
         break;
