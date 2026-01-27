@@ -110,6 +110,7 @@ import ProductAffiliateExclusion from "@/components/admin/ProductAffiliateExclus
 import SponsoredListingsManagement from "@/components/admin/SponsoredListingsManagement";
 import SponsoredListingsSettings from "@/components/admin/SponsoredListingsSettings";
 import WhiteLabelManagement from "@/components/admin/WhiteLabelManagement";
+import PromotableItemsManagement from "@/components/admin/PromotableItemsManagement";
 
 interface MenuItem {
   id: string;
@@ -212,6 +213,7 @@ const Admin = () => {
         { id: "seller-verification", label: "Seller Verification", icon: CheckCircle },
         { id: "suppliers", label: "Supplier Management", icon: Building2 },
         { id: "auctions", label: "Auctions", icon: Gavel },
+        { id: "promotable-items", label: "Promotable Items", icon: Sparkles },
       ],
     },
     {
@@ -903,6 +905,7 @@ const Admin = () => {
           {activeTab === "whitelabel" && <WhiteLabelManagement />}
           {activeTab === "sponsored-listings" && <SponsoredListingsManagement />}
           {activeTab === "sponsored-settings" && <SponsoredListingsSettings />}
+          {activeTab === "promotable-items" && <PromotableItemsManagement />}
           {activeTab === "warehouse" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
