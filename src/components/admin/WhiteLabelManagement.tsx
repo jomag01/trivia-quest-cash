@@ -10,8 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Check, X, Crown, Zap, Building2, Users, Package, HardDrive, Globe, Palette, Code, Headphones } from "lucide-react";
+import { Plus, Check, Globe, Palette, Code, Headphones, Package, Users, Zap, Crown, Layers, Map, ShoppingBag, BarChart3 } from "lucide-react";
+import WhiteLabelTierCard from "./whitelabel/WhiteLabelTierCard";
+import WhiteLabelJourney from "./whitelabel/WhiteLabelJourney";
+import WhiteLabelSubscriptionCard from "./whitelabel/WhiteLabelSubscriptionCard";
 
 interface WhiteLabelTier {
   id: string;
@@ -62,15 +66,22 @@ interface WhiteLabelSubscription {
 }
 
 const systemOptions = [
-  { key: 'marketplace', label: 'Marketplace', icon: Package },
-  { key: 'basic_analytics', label: 'Basic Analytics', icon: Zap },
-  { key: 'analytics', label: 'Advanced Analytics', icon: Zap },
+  { key: 'marketplace', label: 'Marketplace', icon: ShoppingBag },
+  { key: 'basic_analytics', label: 'Basic Analytics', icon: BarChart3 },
+  { key: 'analytics', label: 'Advanced Analytics', icon: BarChart3 },
   { key: 'affiliate', label: 'Affiliate System', icon: Users },
-  { key: 'ads', label: 'Advertising Platform', icon: Globe },
-  { key: 'ai_tools', label: 'AI Tools', icon: Code },
+  { key: 'ads', label: 'Advertising Platform', icon: Layers },
+  { key: 'ai_tools', label: 'AI Tools', icon: Zap },
   { key: 'auction', label: 'Auction System', icon: Crown },
-  { key: 'food_delivery', label: 'Food Delivery', icon: Package },
+  { key: 'food_delivery', label: 'Food Delivery', icon: Map },
 ];
+
+const featureCategories: Record<string, string> = {
+  core: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  analytics: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+  marketing: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  commerce: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+};
 
 export default function WhiteLabelManagement() {
   const [tiers, setTiers] = useState<WhiteLabelTier[]>([]);
@@ -253,377 +264,347 @@ export default function WhiteLabelManagement() {
     }
   };
 
-  const getTierIcon = (tierKey: string) => {
-    switch (tierKey) {
-      case 'starter': return <Zap className="h-6 w-6 text-primary" />;
-      case 'professional': return <Crown className="h-6 w-6 text-accent-foreground" />;
-      case 'enterprise': return <Building2 className="h-6 w-6 text-secondary-foreground" />;
-      default: return <Package className="h-6 w-6" />;
-    }
-  };
+  const pendingCount = subscriptions.filter(s => s.status === 'pending').length;
+  const activeCount = subscriptions.filter(s => s.status === 'active').length;
 
   if (loading) {
-    return <div className="flex items-center justify-center p-8">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      {/* Compact Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h2 className="text-2xl font-bold">White-Label Management</h2>
-          <p className="text-muted-foreground">Configure white-label subscription tiers and manage clients</p>
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Package className="h-5 w-5 text-primary" />
+            White-Label
+          </h2>
+          <p className="text-xs text-muted-foreground">Configure tiers & manage clients</p>
+        </div>
+        <div className="flex gap-2">
+          <Badge variant="outline" className="text-xs">
+            {tiers.length} Tiers
+          </Badge>
+          {pendingCount > 0 && (
+            <Badge className="bg-amber-500 text-white text-xs">
+              {pendingCount} Pending
+            </Badge>
+          )}
+          {activeCount > 0 && (
+            <Badge className="bg-green-500 text-white text-xs">
+              {activeCount} Active
+            </Badge>
+          )}
         </div>
       </div>
 
-      <Tabs defaultValue="tiers" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="tiers">Pricing Tiers</TabsTrigger>
-          <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
-          <TabsTrigger value="features">Features</TabsTrigger>
+      {/* User Journey Guide */}
+      <WhiteLabelJourney />
+
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="tiers" className="space-y-3">
+        <TabsList className="h-9 p-1">
+          <TabsTrigger value="tiers" className="text-xs px-3">Tiers</TabsTrigger>
+          <TabsTrigger value="subscriptions" className="text-xs px-3">
+            Clients {pendingCount > 0 && <span className="ml-1 text-[10px] bg-amber-500 text-white rounded-full px-1.5">{pendingCount}</span>}
+          </TabsTrigger>
+          <TabsTrigger value="features" className="text-xs px-3">Features</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tiers" className="space-y-4">
+        {/* Pricing Tiers Tab */}
+        <TabsContent value="tiers" className="space-y-3 mt-0">
           <div className="flex justify-end">
             <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
               <DialogTrigger asChild>
-                <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
-                  <Plus className="h-4 w-4 mr-2" /> Add Tier
+                <Button size="sm" className="h-8 text-xs" onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+                  <Plus className="h-3 w-3 mr-1" /> Add Tier
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>{editingTier ? 'Edit Tier' : 'Create New Tier'}</DialogTitle>
+              <DialogContent className="max-w-lg max-h-[85vh] p-0">
+                <DialogHeader className="p-4 pb-2">
+                  <DialogTitle className="text-base">{editingTier ? 'Edit Tier' : 'Create New Tier'}</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Tier Name *</Label>
-                      <Input
-                        value={formData.tier_name}
-                        onChange={(e) => setFormData({ ...formData, tier_name: e.target.value })}
-                        placeholder="e.g., Professional"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tier Key *</Label>
-                      <Input
-                        value={formData.tier_key}
-                        onChange={(e) => setFormData({ ...formData, tier_key: e.target.value.toLowerCase().replace(/\s/g, '_') })}
-                        placeholder="e.g., professional"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Describe what this tier offers..."
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Price (PHP)</Label>
-                      <Input
-                        type="number"
-                        value={formData.price_php}
-                        onChange={(e) => setFormData({ ...formData, price_php: parseFloat(e.target.value) || 0 })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Billing Cycle</Label>
-                      <Select value={formData.billing_cycle} onValueChange={(v) => setFormData({ ...formData, billing_cycle: v })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                          <SelectItem value="quarterly">Quarterly</SelectItem>
-                          <SelectItem value="yearly">Yearly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Max Users</Label>
-                      <Input
-                        type="number"
-                        value={formData.max_users}
-                        onChange={(e) => setFormData({ ...formData, max_users: e.target.value })}
-                        placeholder="Unlimited"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Max Products</Label>
-                      <Input
-                        type="number"
-                        value={formData.max_products}
-                        onChange={(e) => setFormData({ ...formData, max_products: e.target.value })}
-                        placeholder="Unlimited"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Storage (GB)</Label>
-                      <Input
-                        type="number"
-                        value={formData.max_storage_gb}
-                        onChange={(e) => setFormData({ ...formData, max_storage_gb: e.target.value })}
-                        placeholder="Unlimited"
-                      />
-                    </div>
-                  </div>
-
+                <ScrollArea className="max-h-[70vh] px-4 pb-4">
                   <div className="space-y-3">
-                    <Label>Included Systems</Label>
+                    {/* Basic Info */}
                     <div className="grid grid-cols-2 gap-2">
-                      {systemOptions.map((system) => (
-                        <div
-                          key={system.key}
-                          onClick={() => toggleSystem(system.key)}
-                          className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
-                            formData.included_systems.includes(system.key)
-                              ? 'bg-primary/10 border-primary'
-                              : 'hover:bg-muted'
-                          }`}
-                        >
-                          <system.icon className="h-4 w-4" />
-                          <span className="text-sm">{system.label}</span>
-                          {formData.included_systems.includes(system.key) && (
-                            <Check className="h-4 w-4 ml-auto text-primary" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Additional Features</Label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center justify-between p-3 rounded-lg border">
-                        <div className="flex items-center gap-2">
-                          <Globe className="h-4 w-4" />
-                          <span className="text-sm">Custom Domain</span>
-                        </div>
-                        <Switch
-                          checked={formData.custom_domain}
-                          onCheckedChange={(checked) => setFormData({ ...formData, custom_domain: checked })}
+                      <div className="space-y-1">
+                        <Label className="text-xs">Tier Name *</Label>
+                        <Input
+                          className="h-8 text-sm"
+                          value={formData.tier_name}
+                          onChange={(e) => setFormData({ ...formData, tier_name: e.target.value })}
+                          placeholder="Professional"
                         />
                       </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg border">
-                        <div className="flex items-center gap-2">
-                          <Palette className="h-4 w-4" />
-                          <span className="text-sm">Custom Branding</span>
-                        </div>
-                        <Switch
-                          checked={formData.custom_branding}
-                          onCheckedChange={(checked) => setFormData({ ...formData, custom_branding: checked })}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg border">
-                        <div className="flex items-center gap-2">
-                          <Code className="h-4 w-4" />
-                          <span className="text-sm">API Access</span>
-                        </div>
-                        <Switch
-                          checked={formData.api_access}
-                          onCheckedChange={(checked) => setFormData({ ...formData, api_access: checked })}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg border">
-                        <div className="flex items-center gap-2">
-                          <Headphones className="h-4 w-4" />
-                          <span className="text-sm">Priority Support</span>
-                        </div>
-                        <Switch
-                          checked={formData.priority_support}
-                          onCheckedChange={(checked) => setFormData({ ...formData, priority_support: checked })}
+                      <div className="space-y-1">
+                        <Label className="text-xs">Tier Key *</Label>
+                        <Input
+                          className="h-8 text-sm"
+                          value={formData.tier_key}
+                          onChange={(e) => setFormData({ ...formData, tier_key: e.target.value.toLowerCase().replace(/\s/g, '_') })}
+                          placeholder="professional"
                         />
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={formData.is_active}
-                        onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                    <div className="space-y-1">
+                      <Label className="text-xs">Description</Label>
+                      <Textarea
+                        className="text-sm min-h-[60px]"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Describe this tier..."
                       />
-                      <Label>Active</Label>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => { setIsDialogOpen(false); resetForm(); }}>
-                        Cancel
-                      </Button>
-                      <Button onClick={handleSubmit}>
-                        {editingTier ? 'Update' : 'Create'} Tier
-                      </Button>
+
+                    {/* Price & Billing */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Price (PHP)</Label>
+                        <Input
+                          type="number"
+                          className="h-8 text-sm"
+                          value={formData.price_php}
+                          onChange={(e) => setFormData({ ...formData, price_php: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Billing</Label>
+                        <Select value={formData.billing_cycle} onValueChange={(v) => setFormData({ ...formData, billing_cycle: v })}>
+                          <SelectTrigger className="h-8 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="quarterly">Quarterly</SelectItem>
+                            <SelectItem value="yearly">Yearly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Limits */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Max Users</Label>
+                        <Input
+                          type="number"
+                          className="h-8 text-sm"
+                          value={formData.max_users}
+                          onChange={(e) => setFormData({ ...formData, max_users: e.target.value })}
+                          placeholder="∞"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Max Products</Label>
+                        <Input
+                          type="number"
+                          className="h-8 text-sm"
+                          value={formData.max_products}
+                          onChange={(e) => setFormData({ ...formData, max_products: e.target.value })}
+                          placeholder="∞"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Storage (GB)</Label>
+                        <Input
+                          type="number"
+                          className="h-8 text-sm"
+                          value={formData.max_storage_gb}
+                          onChange={(e) => setFormData({ ...formData, max_storage_gb: e.target.value })}
+                          placeholder="∞"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Systems */}
+                    <div className="space-y-2">
+                      <Label className="text-xs">Included Systems</Label>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {systemOptions.map((system) => (
+                          <div
+                            key={system.key}
+                            onClick={() => toggleSystem(system.key)}
+                            className={`flex items-center gap-1.5 p-2 rounded border cursor-pointer transition-all text-xs ${
+                              formData.included_systems.includes(system.key)
+                                ? 'bg-primary/10 border-primary'
+                                : 'hover:bg-muted'
+                            }`}
+                          >
+                            <system.icon className="h-3.5 w-3.5" />
+                            <span className="flex-1">{system.label}</span>
+                            {formData.included_systems.includes(system.key) && (
+                              <Check className="h-3 w-3 text-primary" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Additional Features */}
+                    <div className="space-y-2">
+                      <Label className="text-xs">Additional Features</Label>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div className="flex items-center justify-between p-2 rounded border text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <Globe className="h-3.5 w-3.5" />
+                            <span>Domain</span>
+                          </div>
+                          <Switch
+                            checked={formData.custom_domain}
+                            onCheckedChange={(checked) => setFormData({ ...formData, custom_domain: checked })}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded border text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <Palette className="h-3.5 w-3.5" />
+                            <span>Branding</span>
+                          </div>
+                          <Switch
+                            checked={formData.custom_branding}
+                            onCheckedChange={(checked) => setFormData({ ...formData, custom_branding: checked })}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded border text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <Code className="h-3.5 w-3.5" />
+                            <span>API</span>
+                          </div>
+                          <Switch
+                            checked={formData.api_access}
+                            onCheckedChange={(checked) => setFormData({ ...formData, api_access: checked })}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded border text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <Headphones className="h-3.5 w-3.5" />
+                            <span>Priority</span>
+                          </div>
+                          <Switch
+                            checked={formData.priority_support}
+                            onCheckedChange={(checked) => setFormData({ ...formData, priority_support: checked })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-3 border-t">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="tier-active"
+                          checked={formData.is_active}
+                          onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                        />
+                        <Label htmlFor="tier-active" className="text-xs">Active</Label>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { setIsDialogOpen(false); resetForm(); }}>
+                          Cancel
+                        </Button>
+                        <Button size="sm" className="h-8 text-xs" onClick={handleSubmit}>
+                          {editingTier ? 'Update' : 'Create'}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </ScrollArea>
               </DialogContent>
             </Dialog>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          {/* Tier Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {tiers.map((tier) => (
-              <Card key={tier.id} className={`relative ${!tier.is_active ? 'opacity-60' : ''}`}>
-                <CardHeader className="text-center pb-2">
-                  <div className="flex justify-center mb-2">
-                    {getTierIcon(tier.tier_key)}
-                  </div>
-                  <CardTitle className="text-xl">{tier.tier_name}</CardTitle>
-                  <CardDescription>{tier.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center">
-                    <span className="text-3xl font-bold">₱{tier.price_php.toLocaleString()}</span>
-                    <span className="text-muted-foreground">/{tier.billing_cycle}</span>
-                  </div>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>{tier.max_users || 'Unlimited'} Users</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                      <span>{tier.max_products || 'Unlimited'} Products</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <HardDrive className="h-4 w-4 text-muted-foreground" />
-                      <span>{tier.max_storage_gb || 'Unlimited'} GB Storage</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1">
-                    {tier.included_systems?.map((sys) => (
-                      <Badge key={sys} variant="secondary" className="text-xs">
-                        {systemOptions.find(s => s.key === sys)?.label || sys}
-                      </Badge>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="flex items-center gap-1">
-                      {tier.custom_domain ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-muted-foreground" />}
-                      <span>Custom Domain</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {tier.custom_branding ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-muted-foreground" />}
-                      <span>Custom Branding</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {tier.api_access ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-muted-foreground" />}
-                      <span>API Access</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {tier.priority_support ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-muted-foreground" />}
-                      <span>Priority Support</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(tier)}>
-                      <Edit className="h-4 w-4 mr-1" /> Edit
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => deleteTier(tier.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <WhiteLabelTierCard
+                key={tier.id}
+                tier={tier}
+                systemOptions={systemOptions}
+                onEdit={openEditDialog}
+                onDelete={deleteTier}
+              />
             ))}
           </div>
+
+          {tiers.length === 0 && (
+            <Card className="p-8 text-center">
+              <Package className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">No pricing tiers yet. Add your first tier to get started.</p>
+            </Card>
+          )}
         </TabsContent>
 
-        <TabsContent value="subscriptions" className="space-y-4">
+        {/* Subscriptions Tab */}
+        <TabsContent value="subscriptions" className="space-y-3 mt-0">
+          {subscriptions.length === 0 ? (
+            <Card className="p-8 text-center">
+              <Users className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">No subscription applications yet</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {subscriptions.map((sub) => {
+                const tier = tiers.find(t => t.id === sub.tier_id);
+                return (
+                  <WhiteLabelSubscriptionCard
+                    key={sub.id}
+                    subscription={sub}
+                    tierName={tier?.tier_name || 'Unknown Tier'}
+                    onApprove={(id) => updateSubscriptionStatus(id, 'active')}
+                    onReject={(id) => updateSubscriptionStatus(id, 'rejected')}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Features Tab */}
+        <TabsContent value="features" className="mt-0">
           <Card>
-            <CardHeader>
-              <CardTitle>White-Label Subscriptions</CardTitle>
-              <CardDescription>Manage client subscriptions and approvals</CardDescription>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-sm">Available Features</CardTitle>
+              <CardDescription className="text-xs">Configure which features can be included in packages</CardDescription>
             </CardHeader>
-            <CardContent>
-              {subscriptions.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No subscriptions yet
+            <CardContent className="px-4 pb-4">
+              {features.length === 0 ? (
+                <div className="text-center py-6 text-sm text-muted-foreground">
+                  No features configured
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {subscriptions.map((sub) => {
-                    const tier = tiers.find(t => t.id === sub.tier_id);
-                    return (
-                      <div key={sub.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div>
-                          <div className="font-medium">{sub.client_name}</div>
-                          <div className="text-sm text-muted-foreground">{sub.client_email}</div>
-                          {sub.company_name && (
-                            <div className="text-sm">{sub.company_name}</div>
-                          )}
-                          <Badge variant={
-                            sub.status === 'active' ? 'default' :
-                            sub.status === 'pending' ? 'secondary' :
-                            'destructive'
-                          } className="mt-1 capitalize">
-                            {sub.status}
-                          </Badge>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{tier?.tier_name || 'Unknown Tier'}</div>
-                          <div className="text-sm text-muted-foreground">
-                            ₱{sub.amount_paid.toLocaleString()}
-                          </div>
-                          {sub.status === 'pending' && (
-                            <div className="flex gap-2 mt-2">
-                              <Button size="sm" onClick={() => updateSubscriptionStatus(sub.id, 'active')}>
-                                Approve
-                              </Button>
-                              <Button size="sm" variant="destructive" onClick={() => updateSubscriptionStatus(sub.id, 'rejected')}>
-                                Reject
-                              </Button>
-                            </div>
-                          )}
-                        </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {features.map((feature) => (
+                    <div key={feature.id} className="flex items-center justify-between p-2.5 border rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-xs truncate">{feature.feature_name}</div>
+                        <div className="text-[10px] text-muted-foreground truncate">{feature.description}</div>
+                        <Badge 
+                          variant="outline" 
+                          className={`text-[9px] mt-1 ${featureCategories[feature.category] || 'bg-muted'}`}
+                        >
+                          {feature.category}
+                        </Badge>
                       </div>
-                    );
-                  })}
+                      <Switch
+                        checked={feature.is_active}
+                        onCheckedChange={async (checked) => {
+                          await supabase
+                            .from('whitelabel_features')
+                            .update({ is_active: checked })
+                            .eq('id', feature.id);
+                          fetchData();
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="features" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Available Features</CardTitle>
-              <CardDescription>Configure which features can be included in white-label packages</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                {features.map((feature) => (
-                  <div key={feature.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <div className="font-medium">{feature.feature_name}</div>
-                      <div className="text-sm text-muted-foreground">{feature.description}</div>
-                      <Badge variant="outline" className="mt-1">{feature.category}</Badge>
-                    </div>
-                    <Switch
-                      checked={feature.is_active}
-                      onCheckedChange={async (checked) => {
-                        await supabase
-                          .from('whitelabel_features')
-                          .update({ is_active: checked })
-                          .eq('id', feature.id);
-                        fetchData();
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
