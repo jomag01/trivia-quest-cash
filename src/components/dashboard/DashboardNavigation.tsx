@@ -158,6 +158,7 @@ const navItems: NavItem[] = [
       { id: "suggested-products", label: "Products to Promote", icon: Share2, color: "text-amber-500" },
       { id: "supplier-products", label: "Supplier Products", icon: Truck, color: "text-slate-400" },
       { id: "my-listings", label: "My Listings", icon: Building2, color: "text-stone-500" },
+      { id: "whitelabel", label: "White-Label", icon: Package, color: "text-indigo-500" },
     ]
   },
   { 

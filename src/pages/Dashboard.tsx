@@ -52,6 +52,7 @@ import { CommissionEarningsCard } from "@/components/dashboard/CommissionEarning
 import { CommissionNotificationsCard } from "@/components/dashboard/CommissionNotificationsCard";
 import { BlockedUserDialog } from "@/components/BlockedUserDialog";
 import RiderMobileApp from "@/components/courier/rider/RiderMobileApp";
+import UserWhiteLabelHub from "@/components/dashboard/whitelabel/UserWhiteLabelHub";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -831,6 +832,10 @@ const Dashboard = () => {
 
       <TabsContent value="my-listings">
         <MyListingsHub />
+      </TabsContent>
+
+      <TabsContent value="whitelabel">
+        <UserWhiteLabelHub />
       </TabsContent>
 
       <TabsContent value="account-settings">
