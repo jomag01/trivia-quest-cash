@@ -10,7 +10,7 @@ import {
   Share2, Facebook, Twitter, MessageCircle, Send, Copy, Check, Linkedin
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { shareToSocialMedia, generateShareUrlSync } from '@/lib/shareUtils';
+import { shareToSocialMedia, generateShareUrlSync, generateSocialShareUrl } from '@/lib/shareUtils';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SocialShareMenuProps {
@@ -22,6 +22,10 @@ interface SocialShareMenuProps {
   size?: 'default' | 'sm' | 'icon';
   showLabel?: boolean;
   className?: string;
+  // For social media OG preview support
+  entityType?: 'product' | 'auction' | 'restaurant' | 'marketplace' | 'service';
+  entityId?: string;
+  imageUrl?: string;
 }
 
 const SocialShareMenu = ({
@@ -32,42 +36,53 @@ const SocialShareMenu = ({
   variant = 'outline',
   size = 'sm',
   showLabel = true,
-  className = ''
+  className = '',
+  entityType,
+  entityId,
+  imageUrl
 }: SocialShareMenuProps) => {
   const [copied, setCopied] = useState(false);
   const { user, profile } = useAuth();
 
   // Use referral code from params first, then profile, then user ID
   const refCode = params?.ref || profile?.referral_code || user?.id;
-  const shareUrl = generateShareUrlSync(path, user?.id, refCode, params);
+  
+  // For social media sharing (Facebook, Messenger, etc.), use the edge function URL
+  // This ensures proper OG meta tags are served to crawlers
+  const socialShareUrl = entityType && entityId 
+    ? generateSocialShareUrl(entityType, entityId, refCode)
+    : generateShareUrlSync(path, user?.id, refCode, params);
+  
+  // For copy/native share, use the direct URL (better UX)
+  const directShareUrl = generateShareUrlSync(path, user?.id, refCode, params);
   const shareText = description || title;
 
   const handleFacebook = () => {
-    shareToSocialMedia.facebook(shareUrl, shareText);
+    shareToSocialMedia.facebook(socialShareUrl, shareText);
   };
 
   const handleTwitter = () => {
-    shareToSocialMedia.twitter(shareUrl, shareText);
+    shareToSocialMedia.twitter(socialShareUrl, shareText);
   };
 
   const handleWhatsApp = () => {
-    shareToSocialMedia.whatsapp(shareUrl, shareText);
+    shareToSocialMedia.whatsapp(socialShareUrl, shareText);
   };
 
   const handleTelegram = () => {
-    shareToSocialMedia.telegram(shareUrl, shareText);
+    shareToSocialMedia.telegram(socialShareUrl, shareText);
   };
 
   const handleMessenger = () => {
-    shareToSocialMedia.messenger(shareUrl, shareText);
+    shareToSocialMedia.messenger(socialShareUrl, shareText);
   };
 
   const handleLinkedIn = () => {
-    shareToSocialMedia.linkedin(shareUrl, title);
+    shareToSocialMedia.linkedin(socialShareUrl, title);
   };
 
   const handleCopy = async () => {
-    const success = await shareToSocialMedia.copyToClipboard(`${shareText}\n${shareUrl}`);
+    const success = await shareToSocialMedia.copyToClipboard(`${shareText}\n${directShareUrl}`);
     if (success) {
       setCopied(true);
       toast.success('Link copied to clipboard!');
@@ -78,7 +93,7 @@ const SocialShareMenu = ({
   };
 
   const handleNativeShare = async () => {
-    const success = await shareToSocialMedia.native(shareUrl, title, shareText);
+    const success = await shareToSocialMedia.native(directShareUrl, title, shareText);
     if (success) {
       toast.success('Shared successfully!');
     }

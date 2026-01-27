@@ -237,6 +237,27 @@ export const generateProductShareUrl = (
 };
 
 /**
+ * Generate share URL that uses the share-preview edge function for proper OG meta tags
+ * This ensures social media platforms show the product image in link previews
+ */
+export const generateSocialShareUrl = (
+  entityType: 'product' | 'auction' | 'restaurant' | 'marketplace' | 'service',
+  entityId: string,
+  referralCode?: string | null
+): string => {
+  // Use the edge function URL for social sharing
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://pcsancednuywpxvuruqb.supabase.co';
+  const params = new URLSearchParams();
+  
+  params.set('type', entityType);
+  params.set('id', entityId);
+  if (referralCode) params.set('ref', referralCode);
+  params.set('src', 'share');
+  
+  return `${supabaseUrl}/functions/v1/share-preview?${params.toString()}`;
+};
+
+/**
  * Generate QR code URL for sharing
  */
 export const generateQRCodeUrl = (shareUrl: string, size: number = 200): string => {
