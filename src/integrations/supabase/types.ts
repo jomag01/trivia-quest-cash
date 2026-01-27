@@ -16159,6 +16159,176 @@ export type Database = {
           },
         ]
       }
+      whitelabel_features: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          feature_key: string
+          feature_name: string
+          id: string
+          is_active: boolean | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          feature_key: string
+          feature_name: string
+          id?: string
+          is_active?: boolean | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          feature_key?: string
+          feature_name?: string
+          id?: string
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
+      whitelabel_subscriptions: {
+        Row: {
+          admin_notes: string | null
+          amount_paid: number | null
+          approved_at: string | null
+          approved_by: string | null
+          client_email: string
+          client_id: string
+          client_name: string
+          company_name: string | null
+          created_at: string | null
+          custom_domain: string | null
+          expires_at: string | null
+          id: string
+          payment_method: string | null
+          payment_reference: string | null
+          starts_at: string | null
+          status: string | null
+          tier_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_paid?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          client_email: string
+          client_id: string
+          client_name: string
+          company_name?: string | null
+          created_at?: string | null
+          custom_domain?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          starts_at?: string | null
+          status?: string | null
+          tier_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_paid?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          client_email?: string
+          client_id?: string
+          client_name?: string
+          company_name?: string | null
+          created_at?: string | null
+          custom_domain?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          starts_at?: string | null
+          status?: string | null
+          tier_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whitelabel_subscriptions_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "whitelabel_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whitelabel_tiers: {
+        Row: {
+          api_access: boolean | null
+          billing_cycle: string | null
+          created_at: string | null
+          custom_branding: boolean | null
+          custom_domain: boolean | null
+          description: string | null
+          display_order: number | null
+          features: Json | null
+          id: string
+          included_systems: string[] | null
+          is_active: boolean | null
+          max_products: number | null
+          max_storage_gb: number | null
+          max_users: number | null
+          price_php: number
+          priority_support: boolean | null
+          tier_key: string
+          tier_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_access?: boolean | null
+          billing_cycle?: string | null
+          created_at?: string | null
+          custom_branding?: boolean | null
+          custom_domain?: boolean | null
+          description?: string | null
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          included_systems?: string[] | null
+          is_active?: boolean | null
+          max_products?: number | null
+          max_storage_gb?: number | null
+          max_users?: number | null
+          price_php?: number
+          priority_support?: boolean | null
+          tier_key: string
+          tier_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_access?: boolean | null
+          billing_cycle?: string | null
+          created_at?: string | null
+          custom_branding?: boolean | null
+          custom_domain?: boolean | null
+          description?: string | null
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          included_systems?: string[] | null
+          is_active?: boolean | null
+          max_products?: number | null
+          max_storage_gb?: number | null
+          max_users?: number | null
+          price_php?: number
+          priority_support?: boolean | null
+          tier_key?: string
+          tier_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       wishlist: {
         Row: {
           created_at: string | null

@@ -109,6 +109,7 @@ import { ASPNManagement } from "@/components/admin/ASPNManagement";
 import ProductAffiliateExclusion from "@/components/admin/ProductAffiliateExclusion";
 import SponsoredListingsManagement from "@/components/admin/SponsoredListingsManagement";
 import SponsoredListingsSettings from "@/components/admin/SponsoredListingsSettings";
+import WhiteLabelManagement from "@/components/admin/WhiteLabelManagement";
 
 interface MenuItem {
   id: string;
@@ -296,6 +297,7 @@ const Admin = () => {
         { id: "beesmate-moderation", label: "BeesMate Moderation", icon: Heart },
         { id: "beesmate-premium", label: "BeesMate Premium", icon: Crown },
         { id: "aspn-management", label: "ASPN Rewards", icon: Award },
+        { id: "whitelabel", label: "White-Label", icon: Building2 },
         { id: "marketing-systems", label: "Marketing Systems", icon: Settings },
         { id: "error-reports", label: "Error Reports", icon: Bug },
       ],
@@ -898,6 +900,7 @@ const Admin = () => {
           {activeTab === "beesmate-premium" && <BeesMatePremiumManagement />}
           {activeTab === "aspn-management" && <ASPNManagement />}
           {activeTab === "error-reports" && <ErrorReportsManagement />}
+          {activeTab === "whitelabel" && <WhiteLabelManagement />}
           {activeTab === "sponsored-listings" && <SponsoredListingsManagement />}
           {activeTab === "sponsored-settings" && <SponsoredListingsSettings />}
           {activeTab === "warehouse" && (
