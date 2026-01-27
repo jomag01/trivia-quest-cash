@@ -117,6 +117,48 @@ const Shop = () => {
     }
   }, [searchParams]);
 
+  // Auto-open product detail when product ID is in URL (for shared affiliate links)
+  useEffect(() => {
+    const productIdFromParams = searchParams.get('product');
+    if (!productIdFromParams || loading) return;
+    
+    // First check if product is already in loaded products
+    const existingProduct = products.find(p => p.id === productIdFromParams);
+    if (existingProduct) {
+      setDetailProduct(existingProduct);
+      setDetailDialog(true);
+      trackInteraction('view', 'product', existingProduct.id, { name: existingProduct.name, source: 'affiliate_link' });
+      return;
+    }
+    
+    // If not in loaded products, fetch from database
+    const fetchProduct = async () => {
+      try {
+        const { data: product, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productIdFromParams)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (error) throw error;
+        
+        if (product) {
+          setDetailProduct(product);
+          setDetailDialog(true);
+          trackInteraction('view', 'product', product.id, { name: product.name, source: 'affiliate_link' });
+        } else {
+          toast.error('Product not found or no longer available');
+        }
+      } catch (err) {
+        console.error('Error fetching product from URL:', err);
+        toast.error('Failed to load product');
+      }
+    };
+    
+    fetchProduct();
+  }, [searchParams, products, loading, trackInteraction]);
+
   const addToCart = useCallback(async (productId: string) => {
     if (!user) {
       toast.error("Please login to add items to cart");
