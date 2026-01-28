@@ -48,15 +48,14 @@ interface SubscriptionTier {
   name: string;
   price: string;
   credits: string;
-  binaryVolume: string;
   icon: 'calendar' | 'hexagon' | 'crown';
   bgClass?: string;
 }
 
 const defaultTiers: SubscriptionTier[] = [
-  { id: '1', key: 'monthly', name: 'Monthly Plan', price: '1390', credits: '500', binaryVolume: '1000', icon: 'calendar' },
-  { id: '2', key: 'biannual', name: '6-Month Plan', price: '6990', credits: '3500', binaryVolume: '6000', icon: 'hexagon', bgClass: 'bg-gradient-to-br from-purple-500/5 to-pink-500/5' },
-  { id: '3', key: 'yearly', name: 'Yearly Plan', price: '11990', credits: '6000', binaryVolume: '11000', icon: 'crown', bgClass: 'bg-gradient-to-br from-yellow-500/5 to-orange-500/5' },
+  { id: '1', key: 'monthly', name: 'Monthly Plan', price: '1390', credits: '500', icon: 'calendar' },
+  { id: '2', key: 'biannual', name: '6-Month Plan', price: '6990', credits: '3500', icon: 'hexagon', bgClass: 'bg-gradient-to-br from-purple-500/5 to-pink-500/5' },
+  { id: '3', key: 'yearly', name: 'Yearly Plan', price: '11990', credits: '6000', icon: 'crown', bgClass: 'bg-gradient-to-br from-yellow-500/5 to-orange-500/5' },
 ];
 
 export default function AISubscriptionManagement() {
@@ -81,7 +80,6 @@ export default function AISubscriptionManagement() {
   const [adsPackageCredits, setAdsPackageCredits] = useState('300');
   const [adsPackageImpressions, setAdsPackageImpressions] = useState('10000');
   const [adsPackageDays, setAdsPackageDays] = useState('30');
-  const [adsPackageBinaryVolume, setAdsPackageBinaryVolume] = useState('2500');
   const [adsPackageEnabled, setAdsPackageEnabled] = useState(true);
 
   // Feature restrictions
@@ -195,7 +193,6 @@ export default function AISubscriptionManagement() {
       name: `New Plan ${tiers.length + 1}`,
       price: '0',
       credits: '0',
-      binaryVolume: '0',
       icon: 'calendar'
     };
     setTiers(prev => [...prev, newTier]);
@@ -499,10 +496,6 @@ export default function AISubscriptionManagement() {
                       <div className="space-y-1">
                         <Label className="text-xs">Credits Included</Label>
                         <Input type="number" value={tier.credits} onChange={e => updateTier(tier.id, 'credits', e.target.value)} />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Binary Volume</Label>
-                        <Input type="number" value={tier.binaryVolume} onChange={e => updateTier(tier.id, 'binaryVolume', e.target.value)} />
                       </div>
                     </div>
                   </div>
