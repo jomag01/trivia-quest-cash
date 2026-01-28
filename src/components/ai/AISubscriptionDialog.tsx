@@ -18,18 +18,39 @@ interface AISubscriptionDialogProps {
 }
 
 interface SubscriptionPlan {
-  type: 'monthly' | 'biannual' | 'yearly' | 'ads_package';
+  id: string;
+  type: string;
+  key: string;
+  name: string;
   price: number;
   credits: number;
+  binaryVolume: number;
   savings: number;
   label: string;
+  icon: 'calendar' | 'hexagon' | 'crown';
 }
+
+interface DynamicTier {
+  id: string;
+  key: string;
+  name: string;
+  price: string;
+  credits: string;
+  binaryVolume: string;
+  icon: 'calendar' | 'hexagon' | 'crown';
+}
+
+const defaultTiers: DynamicTier[] = [
+  { id: '1', key: 'monthly', name: 'Monthly Plan', price: '1390', credits: '500', binaryVolume: '1000', icon: 'calendar' },
+  { id: '2', key: 'biannual', name: '6-Month Plan', price: '6990', credits: '3500', binaryVolume: '6000', icon: 'hexagon' },
+  { id: '3', key: 'yearly', name: 'Yearly Plan', price: '11990', credits: '6000', binaryVolume: '11000', icon: 'crown' },
+];
 
 export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseComplete }: AISubscriptionDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'biannual' | 'yearly' | 'ads_package'>('monthly');
+  const [selectedPlan, setSelectedPlan] = useState<string>('monthly');
   const [activeTab, setActiveTab] = useState<'subscription' | 'topup' | 'ads_package'>('subscription');
   const [paymentMethod, setPaymentMethod] = useState<'paymongo' | 'qrcode'>('paymongo');
   const [paymongoMethod, setPaymongoMethod] = useState<'gcash' | 'paymaya' | 'card'>('gcash');
@@ -39,13 +60,8 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [bankDetails, setBankDetails] = useState({ accountName: '', accountNumber: '', bankName: '' });
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [dynamicTiers, setDynamicTiers] = useState<DynamicTier[]>(defaultTiers);
   const [settings, setSettings] = useState({
-    monthlyPrice: 1390,
-    biannualPrice: 6990,
-    yearlyPrice: 11990,
-    monthlyCredits: 500,
-    biannualCredits: 3500,
-    yearlyCredits: 6000,
     topupPricePerCredit: 3,
     topupMinCredits: 100,
     // Ads Package settings
@@ -69,22 +85,27 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
       const { data } = await supabase
         .from('app_settings')
         .select('key, value')
-        .or('key.like.ai_subscription_%,key.like.payment_%,key.like.ads_package_%');
+        .or('key.like.ai_%,key.like.payment_%,key.like.ads_package_%');
+
+      // First, look for dynamic tiers
+      const tiersData = data?.find(s => s.key === 'ai_subscription_tiers');
+      if (tiersData?.value) {
+        try {
+          const parsedTiers = JSON.parse(tiersData.value);
+          if (Array.isArray(parsedTiers) && parsedTiers.length > 0) {
+            setDynamicTiers(parsedTiers);
+            // Set default selected plan to first tier
+            if (parsedTiers.length > 0) {
+              setSelectedPlan(parsedTiers[0].key);
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing tiers:', e);
+        }
+      }
 
       data?.forEach(setting => {
-        if (setting.key === 'ai_subscription_monthly_price') {
-          setSettings(prev => ({ ...prev, monthlyPrice: parseInt(setting.value || '1390') }));
-        } else if (setting.key === 'ai_subscription_biannual_price') {
-          setSettings(prev => ({ ...prev, biannualPrice: parseInt(setting.value || '6990') }));
-        } else if (setting.key === 'ai_subscription_yearly_price') {
-          setSettings(prev => ({ ...prev, yearlyPrice: parseInt(setting.value || '11990') }));
-        } else if (setting.key === 'ai_subscription_monthly_credits') {
-          setSettings(prev => ({ ...prev, monthlyCredits: parseInt(setting.value || '500') }));
-        } else if (setting.key === 'ai_subscription_biannual_credits') {
-          setSettings(prev => ({ ...prev, biannualCredits: parseInt(setting.value || '3500') }));
-        } else if (setting.key === 'ai_subscription_yearly_credits') {
-          setSettings(prev => ({ ...prev, yearlyCredits: parseInt(setting.value || '6000') }));
-        } else if (setting.key === 'ai_topup_price_per_credit') {
+        if (setting.key === 'ai_topup_price_per_credit') {
           setSettings(prev => ({ ...prev, topupPricePerCredit: parseFloat(setting.value || '3') }));
         } else if (setting.key === 'ai_topup_min_credits') {
           setSettings(prev => ({ ...prev, topupMinCredits: parseInt(setting.value || '100') }));
@@ -134,29 +155,26 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
     }
   };
 
-  const plans: SubscriptionPlan[] = [
-    {
-      type: 'monthly',
-      price: settings.monthlyPrice,
-      credits: settings.monthlyCredits,
-      savings: 0,
-      label: 'Monthly'
-    },
-    {
-      type: 'biannual',
-      price: settings.biannualPrice,
-      credits: settings.biannualCredits,
-      savings: Math.round(((settings.monthlyPrice * 6) - settings.biannualPrice) / (settings.monthlyPrice * 6) * 100),
-      label: '6 Months'
-    },
-    {
-      type: 'yearly',
-      price: settings.yearlyPrice,
-      credits: settings.yearlyCredits,
-      savings: Math.round(((settings.monthlyPrice * 12) - settings.yearlyPrice) / (settings.monthlyPrice * 12) * 100),
-      label: 'Yearly'
-    }
-  ];
+  // Build plans from dynamic tiers
+  const plans: SubscriptionPlan[] = dynamicTiers.map((tier, index) => {
+    const basePrice = parseInt(dynamicTiers[0]?.price || '1390');
+    const tierPrice = parseInt(tier.price);
+    const multiplier = index === 0 ? 1 : index === 1 ? 6 : 12;
+    const savings = index > 0 ? Math.round(((basePrice * multiplier) - tierPrice) / (basePrice * multiplier) * 100) : 0;
+    
+    return {
+      id: tier.id,
+      type: tier.key,
+      key: tier.key,
+      name: tier.name,
+      price: tierPrice,
+      credits: parseInt(tier.credits),
+      binaryVolume: parseInt(tier.binaryVolume),
+      savings: Math.max(0, savings),
+      label: tier.name,
+      icon: tier.icon
+    };
+  });
 
   const handleSubscribe = async () => {
     if (!user) {
