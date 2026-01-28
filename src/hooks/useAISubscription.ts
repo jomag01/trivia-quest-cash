@@ -15,6 +15,9 @@ interface AISubscription {
 interface FeatureRestriction {
   feature_key: string;
   is_hidden: boolean;
+  hidden_for_monthly: boolean;   // Student Plan
+  hidden_for_biannual: boolean;  // Business Plan
+  hidden_for_yearly: boolean;    // Elite Plan
 }
 
 export function useAISubscription() {
@@ -53,8 +56,7 @@ export function useAISubscription() {
     try {
       const { data } = await supabase
         .from('ai_monthly_restrictions')
-        .select('feature_key, is_hidden')
-        .eq('is_hidden', true);
+        .select('feature_key, is_hidden, hidden_for_monthly, hidden_for_biannual, hidden_for_yearly');
 
       setRestrictions(data || []);
     } catch (error) {
@@ -93,31 +95,49 @@ export function useAISubscription() {
   }, [user, fetchSubscription]);
 
   const hasActiveSubscription = !!subscription && subscription.status === 'active';
-  // All plans are now monthly - check if it's a pro tier for full access
-  const isProSubscriber = hasActiveSubscription && (
-    subscription?.plan_type === 'monthly_pro' || 
-    subscription?.plan_type === 'yearly' // Legacy support
+  
+  // New tier structure: Student, Business, Elite (all monthly)
+  const isEliteSubscriber = hasActiveSubscription && (
+    subscription?.plan_type === 'elite' || 
+    subscription?.plan_type === 'monthly_pro' ||  // Legacy
+    subscription?.plan_type === 'yearly'          // Legacy
   );
-  const isPlusSubscriber = hasActiveSubscription && (
-    subscription?.plan_type === 'monthly_plus' || 
-    subscription?.plan_type === 'biannual' // Legacy support
+  const isBusinessSubscriber = hasActiveSubscription && (
+    subscription?.plan_type === 'business' || 
+    subscription?.plan_type === 'monthly_plus' ||  // Legacy
+    subscription?.plan_type === 'biannual'         // Legacy
   );
-  const isBasicSubscriber = hasActiveSubscription && (
-    subscription?.plan_type === 'monthly_basic' || 
-    subscription?.plan_type === 'monthly' // Legacy support
+  const isStudentSubscriber = hasActiveSubscription && (
+    subscription?.plan_type === 'student' || 
+    subscription?.plan_type === 'monthly_basic' ||  // Legacy
+    subscription?.plan_type === 'monthly'           // Legacy
   );
+
+  // Legacy aliases
+  const isProSubscriber = isEliteSubscriber;
+  const isPlusSubscriber = isBusinessSubscriber;
+  const isBasicSubscriber = isStudentSubscriber;
 
   const isFeatureAvailable = useCallback((featureKey: string): boolean => {
     // No subscription = no access
     if (!hasActiveSubscription) return false;
     
-    // Pro subscribers have full access
-    if (isProSubscriber) return true;
-    
-    // Plus and Basic subscribers check restrictions
     const restriction = restrictions.find(r => r.feature_key === featureKey);
-    return !restriction?.is_hidden;
-  }, [hasActiveSubscription, isProSubscriber, restrictions]);
+    if (!restriction) return true; // No restriction = available
+    
+    // Check per-tier restrictions
+    if (isEliteSubscriber) {
+      return !restriction.hidden_for_yearly;
+    }
+    if (isBusinessSubscriber) {
+      return !restriction.hidden_for_biannual;
+    }
+    if (isStudentSubscriber) {
+      return !restriction.hidden_for_monthly;
+    }
+    
+    return !restriction.is_hidden;
+  }, [hasActiveSubscription, isEliteSubscriber, isBusinessSubscriber, isStudentSubscriber, restrictions]);
 
   const deductCredits = useCallback(async (amount: number): Promise<boolean> => {
     if (!user || !subscription) return false;
@@ -159,12 +179,16 @@ export function useAISubscription() {
     subscription,
     loading,
     hasActiveSubscription,
+    // New tier names
+    isEliteSubscriber,
+    isBusinessSubscriber,
+    isStudentSubscriber,
+    // Legacy aliases
     isProSubscriber,
     isPlusSubscriber,
     isBasicSubscriber,
-    // Legacy exports for backward compatibility
-    isYearlySubscriber: isProSubscriber,
-    isMonthlySubscriber: isBasicSubscriber,
+    isYearlySubscriber: isEliteSubscriber,
+    isMonthlySubscriber: isStudentSubscriber,
     isFeatureAvailable,
     deductCredits,
     getCreditsRemaining,

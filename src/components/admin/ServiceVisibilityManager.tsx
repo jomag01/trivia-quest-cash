@@ -8,6 +8,8 @@ import {
   Eye, 
   Loader2, 
   Calendar,
+  Hexagon,
+  Crown,
   Info
 } from 'lucide-react';
 import {
@@ -31,9 +33,9 @@ interface FeatureRestriction {
   feature_name: string;
   description: string;
   is_hidden: boolean;
-  hidden_for_monthly: boolean;
-  hidden_for_biannual: boolean;
-  hidden_for_yearly: boolean;
+  hidden_for_monthly: boolean;   // Student Plan
+  hidden_for_biannual: boolean;  // Business Plan
+  hidden_for_yearly: boolean;    // Elite Plan
 }
 
 export default function ServiceVisibilityManager() {
@@ -62,16 +64,24 @@ export default function ServiceVisibilityManager() {
     }
   };
 
-  const toggleVisibility = async (id: string, currentValue: boolean) => {
+  const toggleTierVisibility = async (
+    id: string, 
+    tier: 'student' | 'business' | 'elite', 
+    currentValue: boolean
+  ) => {
     try {
-      // Update all monthly fields together since all plans are now monthly
+      const fieldMap = {
+        student: 'hidden_for_monthly',
+        business: 'hidden_for_biannual',
+        elite: 'hidden_for_yearly'
+      };
+
+      const updateField = fieldMap[tier];
+
       const { error } = await supabase
         .from('ai_monthly_restrictions')
         .update({ 
-          hidden_for_monthly: !currentValue,
-          hidden_for_biannual: !currentValue,
-          hidden_for_yearly: !currentValue,
-          is_hidden: !currentValue,
+          [updateField]: !currentValue,
           updated_at: new Date().toISOString()
         })
         .eq('id', id);
@@ -81,14 +91,12 @@ export default function ServiceVisibilityManager() {
       setRestrictions(prev => prev.map(r => 
         r.id === id ? { 
           ...r, 
-          hidden_for_monthly: !currentValue,
-          hidden_for_biannual: !currentValue,
-          hidden_for_yearly: !currentValue,
-          is_hidden: !currentValue
+          [updateField]: !currentValue
         } : r
       ));
 
-      toast.success(`Feature ${!currentValue ? 'locked for' : 'unlocked for'} all subscribers`);
+      const tierName = tier.charAt(0).toUpperCase() + tier.slice(1);
+      toast.success(`${!currentValue ? 'Locked' : 'Unlocked'} for ${tierName} Plan`);
     } catch (error) {
       console.error('Error toggling visibility:', error);
       toast.error('Failed to update visibility');
@@ -113,10 +121,10 @@ export default function ServiceVisibilityManager() {
           Service Visibility Control
         </CardTitle>
         <CardDescription className="space-y-1">
-          <p>Control which AI Hub services are accessible to subscribers.</p>
+          <p>Control which AI Hub services are accessible per subscription tier.</p>
           <p className="text-xs text-orange-600 flex items-center gap-1">
             <Info className="h-3 w-3" />
-            Locked services are completely inaccessible - users cannot use them until unlocked.
+            Toggle ON to lock (hide) a service for that tier. Toggle OFF to unlock (show) it.
           </p>
         </CardDescription>
       </CardHeader>
@@ -125,10 +133,22 @@ export default function ServiceVisibilityManager() {
           <TableHeader>
             <TableRow>
               <TableHead>AI Hub Service</TableHead>
-              <TableHead className="text-center w-32">
-                <div className="flex items-center justify-center gap-1">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <span>Access</span>
+              <TableHead className="text-center w-28">
+                <div className="flex flex-col items-center gap-1">
+                  <Calendar className="h-4 w-4 text-blue-500" />
+                  <span className="text-xs">Student</span>
+                </div>
+              </TableHead>
+              <TableHead className="text-center w-28">
+                <div className="flex flex-col items-center gap-1">
+                  <Hexagon className="h-4 w-4 text-purple-500" />
+                  <span className="text-xs">Business</span>
+                </div>
+              </TableHead>
+              <TableHead className="text-center w-28">
+                <div className="flex flex-col items-center gap-1">
+                  <Crown className="h-4 w-4 text-amber-500" />
+                  <span className="text-xs">Elite</span>
                 </div>
               </TableHead>
             </TableRow>
@@ -142,24 +162,71 @@ export default function ServiceVisibilityManager() {
                     <p className="text-xs text-muted-foreground">{r.description}</p>
                   </div>
                 </TableCell>
+                {/* Student Plan */}
                 <TableCell className="text-center">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1">
                           <Switch
-                            checked={r.is_hidden || r.hidden_for_monthly}
-                            onCheckedChange={() => toggleVisibility(r.id, r.is_hidden || r.hidden_for_monthly)}
+                            checked={r.hidden_for_monthly}
+                            onCheckedChange={() => toggleTierVisibility(r.id, 'student', r.hidden_for_monthly)}
                           />
-                          {(r.is_hidden || r.hidden_for_monthly) ? (
-                            <EyeOff className="h-4 w-4 text-red-500" />
+                          {r.hidden_for_monthly ? (
+                            <EyeOff className="h-3 w-3 text-red-500" />
                           ) : (
-                            <Eye className="h-4 w-4 text-green-500" />
+                            <Eye className="h-3 w-3 text-green-500" />
                           )}
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {(r.is_hidden || r.hidden_for_monthly) ? 'Locked - Click to unlock' : 'Unlocked - Click to lock'}
+                        {r.hidden_for_monthly ? 'Locked for Student' : 'Unlocked for Student'}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
+                {/* Business Plan */}
+                <TableCell className="text-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center justify-center gap-1">
+                          <Switch
+                            checked={r.hidden_for_biannual}
+                            onCheckedChange={() => toggleTierVisibility(r.id, 'business', r.hidden_for_biannual)}
+                          />
+                          {r.hidden_for_biannual ? (
+                            <EyeOff className="h-3 w-3 text-red-500" />
+                          ) : (
+                            <Eye className="h-3 w-3 text-green-500" />
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {r.hidden_for_biannual ? 'Locked for Business' : 'Unlocked for Business'}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
+                {/* Elite Plan */}
+                <TableCell className="text-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center justify-center gap-1">
+                          <Switch
+                            checked={r.hidden_for_yearly}
+                            onCheckedChange={() => toggleTierVisibility(r.id, 'elite', r.hidden_for_yearly)}
+                          />
+                          {r.hidden_for_yearly ? (
+                            <EyeOff className="h-3 w-3 text-red-500" />
+                          ) : (
+                            <Eye className="h-3 w-3 text-green-500" />
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {r.hidden_for_yearly ? 'Locked for Elite' : 'Unlocked for Elite'}
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
