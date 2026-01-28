@@ -53,9 +53,9 @@ interface SubscriptionTier {
 }
 
 const defaultTiers: SubscriptionTier[] = [
-  { id: '1', key: 'monthly_basic', name: 'Basic Monthly', price: '1390', credits: '500', icon: 'calendar' },
-  { id: '2', key: 'monthly_plus', name: 'Plus Monthly', price: '2490', credits: '1200', icon: 'hexagon', bgClass: 'bg-gradient-to-br from-purple-500/5 to-pink-500/5' },
-  { id: '3', key: 'monthly_pro', name: 'Pro Monthly', price: '3990', credits: '2500', icon: 'crown', bgClass: 'bg-gradient-to-br from-yellow-500/5 to-orange-500/5' },
+  { id: '1', key: 'student', name: 'Student Plan', price: '599', credits: '200', icon: 'calendar' },
+  { id: '2', key: 'business', name: 'Business Plan', price: '1499', credits: '300', icon: 'hexagon', bgClass: 'bg-gradient-to-br from-purple-500/5 to-pink-500/5' },
+  { id: '3', key: 'elite', name: 'Elite Plan', price: '6990', credits: '1500', icon: 'crown', bgClass: 'bg-gradient-to-br from-yellow-500/5 to-orange-500/5' },
 ];
 
 export default function AISubscriptionManagement() {

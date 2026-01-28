@@ -39,16 +39,16 @@ interface DynamicTier {
 }
 
 const defaultTiers: DynamicTier[] = [
-  { id: '1', key: 'monthly', name: 'Monthly Plan', price: '1390', credits: '500', icon: 'calendar' },
-  { id: '2', key: 'biannual', name: '6-Month Plan', price: '6990', credits: '3500', icon: 'hexagon' },
-  { id: '3', key: 'yearly', name: 'Yearly Plan', price: '11990', credits: '6000', icon: 'crown' },
+  { id: '1', key: 'student', name: 'Student Plan', price: '599', credits: '200', icon: 'calendar' },
+  { id: '2', key: 'business', name: 'Business Plan', price: '1499', credits: '300', icon: 'hexagon' },
+  { id: '3', key: 'elite', name: 'Elite Plan', price: '6990', credits: '1500', icon: 'crown' },
 ];
 
 export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseComplete }: AISubscriptionDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string>('monthly');
+  const [selectedPlan, setSelectedPlan] = useState<string>('student');
   const [activeTab, setActiveTab] = useState<'subscription' | 'topup' | 'ads_package'>('subscription');
   const [paymentMethod, setPaymentMethod] = useState<'paymongo' | 'qrcode'>('paymongo');
   const [paymongoMethod, setPaymongoMethod] = useState<'gcash' | 'paymaya' | 'card'>('gcash');
@@ -191,12 +191,8 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
           return;
         }
 
-        // Create pending subscription
-        const expiresAt = selectedPlan === 'monthly' 
-          ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          : selectedPlan === 'biannual'
-          ? new Date(Date.now() + 180 * 24 * 60 * 60 * 1000)
-          : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+        // All plans are monthly (30 days)
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
         const { error } = await supabase.from('ai_subscriptions').insert({
           user_id: user.id,
@@ -446,22 +442,22 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
                       onClick={() => setSelectedPlan(plan.type)}
                       className={`relative cursor-pointer rounded-xl p-4 border-2 transition-all ${
                         selectedPlan === plan.type
-                          ? plan.type === 'yearly' 
+                          ? plan.type === 'elite' 
                             ? 'border-yellow-500 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 shadow-lg'
-                            : plan.type === 'biannual'
+                            : plan.type === 'business'
                             ? 'border-purple-500 bg-gradient-to-br from-purple-500/10 to-pink-500/10 shadow-lg'
                             : 'border-blue-500 bg-blue-500/10 shadow-lg'
                           : 'border-border hover:border-primary/50'
                       }`}
                     >
-                      {plan.type === 'yearly' && (
+                      {plan.type === 'elite' && (
                         <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0 text-xs">
                           Best Value
                         </Badge>
                       )}
-                      {plan.savings > 0 && plan.type !== 'yearly' && (
-                        <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 text-xs">
-                          Save {plan.savings}%
+                      {plan.type === 'business' && (
+                        <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-xs">
+                          Popular
                         </Badge>
                       )}
 
