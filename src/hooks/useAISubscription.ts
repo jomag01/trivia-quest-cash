@@ -93,20 +93,31 @@ export function useAISubscription() {
   }, [user, fetchSubscription]);
 
   const hasActiveSubscription = !!subscription && subscription.status === 'active';
-  const isYearlySubscriber = hasActiveSubscription && subscription?.plan_type === 'yearly';
-  const isMonthlySubscriber = hasActiveSubscription && subscription?.plan_type === 'monthly';
+  // All plans are now monthly - check if it's a pro tier for full access
+  const isProSubscriber = hasActiveSubscription && (
+    subscription?.plan_type === 'monthly_pro' || 
+    subscription?.plan_type === 'yearly' // Legacy support
+  );
+  const isPlusSubscriber = hasActiveSubscription && (
+    subscription?.plan_type === 'monthly_plus' || 
+    subscription?.plan_type === 'biannual' // Legacy support
+  );
+  const isBasicSubscriber = hasActiveSubscription && (
+    subscription?.plan_type === 'monthly_basic' || 
+    subscription?.plan_type === 'monthly' // Legacy support
+  );
 
   const isFeatureAvailable = useCallback((featureKey: string): boolean => {
     // No subscription = no access
     if (!hasActiveSubscription) return false;
     
-    // Yearly subscribers have full access
-    if (isYearlySubscriber) return true;
+    // Pro subscribers have full access
+    if (isProSubscriber) return true;
     
-    // Monthly subscribers check restrictions
+    // Plus and Basic subscribers check restrictions
     const restriction = restrictions.find(r => r.feature_key === featureKey);
     return !restriction?.is_hidden;
-  }, [hasActiveSubscription, isYearlySubscriber, restrictions]);
+  }, [hasActiveSubscription, isProSubscriber, restrictions]);
 
   const deductCredits = useCallback(async (amount: number): Promise<boolean> => {
     if (!user || !subscription) return false;
@@ -148,8 +159,12 @@ export function useAISubscription() {
     subscription,
     loading,
     hasActiveSubscription,
-    isYearlySubscriber,
-    isMonthlySubscriber,
+    isProSubscriber,
+    isPlusSubscriber,
+    isBasicSubscriber,
+    // Legacy exports for backward compatibility
+    isYearlySubscriber: isProSubscriber,
+    isMonthlySubscriber: isBasicSubscriber,
     isFeatureAvailable,
     deductCredits,
     getCreditsRemaining,
