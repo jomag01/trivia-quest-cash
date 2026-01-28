@@ -137,7 +137,6 @@ export default function AISubscriptionManagement() {
         if (s.key === 'ads_package_credits') setAdsPackageCredits(s.value || '300');
         if (s.key === 'ads_package_impressions') setAdsPackageImpressions(s.value || '10000');
         if (s.key === 'ads_package_days') setAdsPackageDays(s.value || '30');
-        if (s.key === 'ads_package_binary_volume') setAdsPackageBinaryVolume(s.value || '2500');
         if (s.key === 'ads_package_enabled') setAdsPackageEnabled(s.value === 'true');
       });
     } catch (error) {
@@ -225,7 +224,6 @@ export default function AISubscriptionManagement() {
         { key: 'ads_package_credits', value: adsPackageCredits },
         { key: 'ads_package_impressions', value: adsPackageImpressions },
         { key: 'ads_package_days', value: adsPackageDays },
-        { key: 'ads_package_binary_volume', value: adsPackageBinaryVolume },
         { key: 'ads_package_enabled', value: adsPackageEnabled ? 'true' : 'false' },
       ];
 
@@ -534,10 +532,6 @@ export default function AISubscriptionManagement() {
                 <div className="space-y-1">
                   <Label className="text-xs">Duration (Days)</Label>
                   <Input type="number" value={adsPackageDays} onChange={e => setAdsPackageDays(e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Binary Volume</Label>
-                  <Input type="number" value={adsPackageBinaryVolume} onChange={e => setAdsPackageBinaryVolume(e.target.value)} />
                 </div>
               </div>
             </div>
