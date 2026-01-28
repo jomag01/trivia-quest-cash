@@ -321,7 +321,6 @@ export const SalesAnalytics = () => {
     { name: "Unilevel (7-Level)", amount: salesData.unilevelPayouts, color: "from-blue-500 to-indigo-500", percentage: salesData.totalCommissions > 0 ? (salesData.unilevelPayouts / salesData.totalCommissions) * 100 : 0 },
     { name: "Stair-Step", amount: salesData.stairstepPayouts, color: "from-purple-500 to-pink-500", percentage: salesData.totalCommissions > 0 ? (salesData.stairstepPayouts / salesData.totalCommissions) * 100 : 0 },
     { name: "Breakaway", amount: salesData.breakawayPayouts, color: "from-orange-500 to-red-500", percentage: salesData.totalCommissions > 0 ? (salesData.breakawayPayouts / salesData.totalCommissions) * 100 : 0 },
-    { name: "Binary Affiliate", amount: salesData.binaryPayouts, color: "from-cyan-500 to-teal-500", percentage: salesData.totalCommissions > 0 ? (salesData.binaryPayouts / salesData.totalCommissions) * 100 : 0 },
     { name: "Leadership Override", amount: salesData.leadershipPayouts, color: "from-emerald-500 to-green-500", percentage: salesData.totalCommissions > 0 ? (salesData.leadershipPayouts / salesData.totalCommissions) * 100 : 0 },
     { name: "Seller Referrer", amount: salesData.sellerReferrerPayouts, color: "from-amber-500 to-orange-500", percentage: salesData.totalCommissions > 0 ? (salesData.sellerReferrerPayouts / salesData.totalCommissions) * 100 : 0 },
   ];
@@ -491,7 +490,7 @@ export const SalesAnalytics = () => {
               <CardTitle className="flex items-center gap-2 text-lg">
                 <GitBranch className="w-5 h-5 text-violet-600" />
                 <span className="bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
-                  AI Credit (Binary Affiliate) Cashflow
+                  AI Credit Affiliate Cashflow
                 </span>
               </CardTitle>
               <CardDescription>Complete breakdown of AI credit purchase money flow</CardDescription>
@@ -526,7 +525,7 @@ export const SalesAnalytics = () => {
 
                 <Card className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/30">
                   <CardContent className="pt-4">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Binary Affiliate Pool</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Affiliate Commission Pool</p>
                     <p className="text-xl font-bold text-cyan-600">{formatCurrency(salesData.aiCreditAffiliatePool, "PHP")}</p>
                     <p className="text-xs text-muted-foreground mt-1">Available for payouts</p>
                   </CardContent>
@@ -549,7 +548,7 @@ export const SalesAnalytics = () => {
                     <span>({formatCurrency(salesData.aiCreditAdminProfit, "PHP")})</span>
                   </div>
                   <div className="flex justify-between py-2 border-t font-semibold text-cyan-600">
-                    <span>= Binary Affiliate Pool</span>
+                    <span>= Affiliate Commission Pool</span>
                     <span>{formatCurrency(salesData.aiCreditAffiliatePool, "PHP")}</span>
                   </div>
                   <div className="flex justify-between py-1 text-amber-600">
