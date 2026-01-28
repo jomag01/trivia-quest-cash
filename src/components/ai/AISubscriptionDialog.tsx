@@ -24,7 +24,6 @@ interface SubscriptionPlan {
   name: string;
   price: number;
   credits: number;
-  binaryVolume: number;
   savings: number;
   label: string;
   icon: 'calendar' | 'hexagon' | 'crown';
@@ -36,14 +35,13 @@ interface DynamicTier {
   name: string;
   price: string;
   credits: string;
-  binaryVolume: string;
   icon: 'calendar' | 'hexagon' | 'crown';
 }
 
 const defaultTiers: DynamicTier[] = [
-  { id: '1', key: 'monthly', name: 'Monthly Plan', price: '1390', credits: '500', binaryVolume: '1000', icon: 'calendar' },
-  { id: '2', key: 'biannual', name: '6-Month Plan', price: '6990', credits: '3500', binaryVolume: '6000', icon: 'hexagon' },
-  { id: '3', key: 'yearly', name: 'Yearly Plan', price: '11990', credits: '6000', binaryVolume: '11000', icon: 'crown' },
+  { id: '1', key: 'monthly', name: 'Monthly Plan', price: '1390', credits: '500', icon: 'calendar' },
+  { id: '2', key: 'biannual', name: '6-Month Plan', price: '6990', credits: '3500', icon: 'hexagon' },
+  { id: '3', key: 'yearly', name: 'Yearly Plan', price: '11990', credits: '6000', icon: 'crown' },
 ];
 
 export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseComplete }: AISubscriptionDialogProps) {
@@ -169,7 +167,6 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
       name: tier.name,
       price: tierPrice,
       credits: parseInt(tier.credits),
-      binaryVolume: parseInt(tier.binaryVolume),
       savings: Math.max(0, savings),
       label: tier.name,
       icon: tier.icon
