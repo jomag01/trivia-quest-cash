@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Crown, Save, Loader2, Check, X, Calendar, Users, DollarSign, Sparkles, Settings, Eye, EyeOff, BarChart3, Hexagon, Layers, List } from 'lucide-react';
+import { Crown, Save, Loader2, Check, X, Calendar, Users, DollarSign, Sparkles, Settings, Eye, EyeOff, BarChart3, Hexagon, Layers, List, Trash2, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import ServiceVisibilityManager from './ServiceVisibilityManager';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface FeatureRestriction {
   id: string;
@@ -41,18 +42,32 @@ interface PendingTopup {
   profiles?: { display_name: string; email: string };
 }
 
+interface SubscriptionTier {
+  id: string;
+  key: string;
+  name: string;
+  price: string;
+  credits: string;
+  binaryVolume: string;
+  icon: 'calendar' | 'hexagon' | 'crown';
+  bgClass?: string;
+}
+
+const defaultTiers: SubscriptionTier[] = [
+  { id: '1', key: 'monthly', name: 'Monthly Plan', price: '1390', credits: '500', binaryVolume: '1000', icon: 'calendar' },
+  { id: '2', key: 'biannual', name: '6-Month Plan', price: '6990', credits: '3500', binaryVolume: '6000', icon: 'hexagon', bgClass: 'bg-gradient-to-br from-purple-500/5 to-pink-500/5' },
+  { id: '3', key: 'yearly', name: 'Yearly Plan', price: '11990', credits: '6000', binaryVolume: '11000', icon: 'crown', bgClass: 'bg-gradient-to-br from-yellow-500/5 to-orange-500/5' },
+];
+
 export default function AISubscriptionManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('tiers');
   
-  // Settings state
-  const [monthlyPrice, setMonthlyPrice] = useState('1390');
-  const [biannualPrice, setBiannualPrice] = useState('6990');
-  const [yearlyPrice, setYearlyPrice] = useState('11990');
-  const [monthlyCredits, setMonthlyCredits] = useState('500');
-  const [biannualCredits, setBiannualCredits] = useState('3500');
-  const [yearlyCredits, setYearlyCredits] = useState('6000');
+  // Dynamic tiers state
+  const [tiers, setTiers] = useState<SubscriptionTier[]>(defaultTiers);
+
+  // Top-up settings
   const [topupPricePerCredit, setTopupPricePerCredit] = useState('3');
   const [topupMinCredits, setTopupMinCredits] = useState('100');
   const [topupAdminProfit, setTopupAdminProfit] = useState('35');
@@ -60,9 +75,6 @@ export default function AISubscriptionManagement() {
   const [topupUnilevelPercent, setTopupUnilevelPercent] = useState('25');
   const [topupStairstepPercent, setTopupStairstepPercent] = useState('15');
   const [topupLeadershipPercent, setTopupLeadershipPercent] = useState('5');
-  const [binaryVolumeMonthly, setBinaryVolumeMonthly] = useState('1390');
-  const [binaryVolumeBiannual, setBinaryVolumeBiannual] = useState('6990');
-  const [binaryVolumeYearly, setBinaryVolumeYearly] = useState('11990');
 
   // Ads Package settings
   const [adsPackagePrice, setAdsPackagePrice] = useState('2500');
@@ -95,15 +107,26 @@ export default function AISubscriptionManagement() {
       const { data } = await supabase
         .from('app_settings')
         .select('key, value')
-        .like('key', 'ai_subscription_%');
+        .like('key', 'ai_%');
+
+      // Also fetch tiers data
+      const { data: tiersData } = await supabase
+        .from('app_settings')
+        .select('key, value')
+        .eq('key', 'ai_subscription_tiers');
+
+      if (tiersData && tiersData.length > 0 && tiersData[0].value) {
+        try {
+          const parsedTiers = JSON.parse(tiersData[0].value);
+          if (Array.isArray(parsedTiers) && parsedTiers.length > 0) {
+            setTiers(parsedTiers);
+          }
+        } catch (e) {
+          console.error('Error parsing tiers:', e);
+        }
+      }
 
       data?.forEach(s => {
-        if (s.key === 'ai_subscription_monthly_price') setMonthlyPrice(s.value || '1390');
-        if (s.key === 'ai_subscription_biannual_price') setBiannualPrice(s.value || '6990');
-        if (s.key === 'ai_subscription_yearly_price') setYearlyPrice(s.value || '11990');
-        if (s.key === 'ai_subscription_monthly_credits') setMonthlyCredits(s.value || '500');
-        if (s.key === 'ai_subscription_biannual_credits') setBiannualCredits(s.value || '3500');
-        if (s.key === 'ai_subscription_yearly_credits') setYearlyCredits(s.value || '6000');
         if (s.key === 'ai_topup_price_per_credit') setTopupPricePerCredit(s.value || '3');
         if (s.key === 'ai_topup_min_credits') setTopupMinCredits(s.value || '100');
         if (s.key === 'ai_topup_admin_profit') setTopupAdminProfit(s.value || '35');
@@ -111,9 +134,6 @@ export default function AISubscriptionManagement() {
         if (s.key === 'ai_topup_unilevel_percent') setTopupUnilevelPercent(s.value || '25');
         if (s.key === 'ai_topup_stairstep_percent') setTopupStairstepPercent(s.value || '15');
         if (s.key === 'ai_topup_leadership_percent') setTopupLeadershipPercent(s.value || '5');
-        if (s.key === 'ai_subscription_binary_volume_monthly') setBinaryVolumeMonthly(s.value || '1390');
-        if (s.key === 'ai_subscription_binary_volume_biannual') setBinaryVolumeBiannual(s.value || '6990');
-        if (s.key === 'ai_subscription_binary_volume_yearly') setBinaryVolumeYearly(s.value || '11990');
         // Ads Package settings
         if (s.key === 'ads_package_price') setAdsPackagePrice(s.value || '2500');
         if (s.key === 'ads_package_credits') setAdsPackageCredits(s.value || '300');
@@ -162,16 +182,40 @@ export default function AISubscriptionManagement() {
     }
   };
 
+  const updateTier = (tierId: string, field: keyof SubscriptionTier, value: string) => {
+    setTiers(prev => prev.map(tier => 
+      tier.id === tierId ? { ...tier, [field]: value } : tier
+    ));
+  };
+
+  const addNewTier = () => {
+    const newTier: SubscriptionTier = {
+      id: Date.now().toString(),
+      key: `tier_${tiers.length + 1}`,
+      name: `New Plan ${tiers.length + 1}`,
+      price: '0',
+      credits: '0',
+      binaryVolume: '0',
+      icon: 'calendar'
+    };
+    setTiers(prev => [...prev, newTier]);
+    toast.success('New tier added');
+  };
+
+  const deleteTier = (tierId: string) => {
+    if (tiers.length <= 1) {
+      toast.error('Cannot delete the last tier');
+      return;
+    }
+    setTiers(prev => prev.filter(tier => tier.id !== tierId));
+    toast.success('Tier deleted');
+  };
+
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
       const updates = [
-        { key: 'ai_subscription_monthly_price', value: monthlyPrice },
-        { key: 'ai_subscription_biannual_price', value: biannualPrice },
-        { key: 'ai_subscription_yearly_price', value: yearlyPrice },
-        { key: 'ai_subscription_monthly_credits', value: monthlyCredits },
-        { key: 'ai_subscription_biannual_credits', value: biannualCredits },
-        { key: 'ai_subscription_yearly_credits', value: yearlyCredits },
+        { key: 'ai_subscription_tiers', value: JSON.stringify(tiers) },
         { key: 'ai_topup_price_per_credit', value: topupPricePerCredit },
         { key: 'ai_topup_min_credits', value: topupMinCredits },
         { key: 'ai_topup_admin_profit', value: topupAdminProfit },
@@ -179,9 +223,6 @@ export default function AISubscriptionManagement() {
         { key: 'ai_topup_unilevel_percent', value: topupUnilevelPercent },
         { key: 'ai_topup_stairstep_percent', value: topupStairstepPercent },
         { key: 'ai_topup_leadership_percent', value: topupLeadershipPercent },
-        { key: 'ai_subscription_binary_volume_monthly', value: binaryVolumeMonthly },
-        { key: 'ai_subscription_binary_volume_biannual', value: binaryVolumeBiannual },
-        { key: 'ai_subscription_binary_volume_yearly', value: binaryVolumeYearly },
         // Ads Package settings
         { key: 'ads_package_price', value: adsPackagePrice },
         { key: 'ads_package_credits', value: adsPackageCredits },
@@ -225,11 +266,9 @@ export default function AISubscriptionManagement() {
   const approveSubscription = async (sub: PendingSubscription) => {
     setProcessing(sub.id);
     try {
-      const credits = sub.plan_type === 'monthly' 
-        ? parseInt(monthlyCredits) 
-        : sub.plan_type === 'biannual'
-        ? parseInt(biannualCredits)
-        : parseInt(yearlyCredits);
+      // Find the matching tier for credits
+      const matchedTier = tiers.find(t => t.key === sub.plan_type);
+      const credits = matchedTier ? parseInt(matchedTier.credits) : 500;
 
       // Update subscription to active
       await supabase
@@ -407,70 +446,68 @@ export default function AISubscriptionManagement() {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Subscription Plans */}
-            <div className="grid gap-6 md:grid-cols-3">
-              <div className="space-y-4 p-4 border rounded-lg">
-                <h4 className="font-medium flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-blue-500" />
-                  Monthly Plan
-                </h4>
-                <div className="grid gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Price (₱)</Label>
-                    <Input type="number" value={monthlyPrice} onChange={e => setMonthlyPrice(e.target.value)} />
+            {/* Subscription Plans - Dynamic Tiers */}
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-medium">Subscription Tiers</h4>
+              <Button onClick={addNewTier} size="sm" variant="outline" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Tier
+              </Button>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {tiers.map((tier) => {
+                const TierIcon = tier.icon === 'crown' ? Crown : tier.icon === 'hexagon' ? Hexagon : Calendar;
+                return (
+                  <div key={tier.id} className={`space-y-4 p-4 border rounded-lg relative ${tier.bgClass || ''}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TierIcon className="h-4 w-4 text-primary" />
+                        <Input 
+                          value={tier.name} 
+                          onChange={e => updateTier(tier.id, 'name', e.target.value)}
+                          className="font-medium h-8 text-sm"
+                          placeholder="Tier Name"
+                        />
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Tier?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{tier.name}"? This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteTier(tier.id)} className="bg-destructive text-destructive-foreground">
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                    <div className="grid gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Price (₱)</Label>
+                        <Input type="number" value={tier.price} onChange={e => updateTier(tier.id, 'price', e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Credits Included</Label>
+                        <Input type="number" value={tier.credits} onChange={e => updateTier(tier.id, 'credits', e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Binary Volume</Label>
+                        <Input type="number" value={tier.binaryVolume} onChange={e => updateTier(tier.id, 'binaryVolume', e.target.value)} />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Credits Included</Label>
-                    <Input type="number" value={monthlyCredits} onChange={e => setMonthlyCredits(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Binary Volume</Label>
-                    <Input type="number" value={binaryVolumeMonthly} onChange={e => setBinaryVolumeMonthly(e.target.value)} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4 p-4 border rounded-lg bg-gradient-to-br from-purple-500/5 to-pink-500/5">
-                <h4 className="font-medium flex items-center gap-2">
-                  <Hexagon className="h-4 w-4 text-purple-500" />
-                  6-Month Plan
-                </h4>
-                <div className="grid gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Price (₱)</Label>
-                    <Input type="number" value={biannualPrice} onChange={e => setBiannualPrice(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Credits Included</Label>
-                    <Input type="number" value={biannualCredits} onChange={e => setBiannualCredits(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Binary Volume</Label>
-                    <Input type="number" value={binaryVolumeBiannual} onChange={e => setBinaryVolumeBiannual(e.target.value)} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4 p-4 border rounded-lg bg-gradient-to-br from-yellow-500/5 to-orange-500/5">
-                <h4 className="font-medium flex items-center gap-2">
-                  <Crown className="h-4 w-4 text-yellow-500" />
-                  Yearly Plan
-                </h4>
-                <div className="grid gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Price (₱)</Label>
-                    <Input type="number" value={yearlyPrice} onChange={e => setYearlyPrice(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Credits Included</Label>
-                    <Input type="number" value={yearlyCredits} onChange={e => setYearlyCredits(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Binary Volume</Label>
-                    <Input type="number" value={binaryVolumeYearly} onChange={e => setBinaryVolumeYearly(e.target.value)} />
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
 
             {/* Ads Package Settings */}
