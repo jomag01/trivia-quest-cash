@@ -23,7 +23,7 @@ interface SocialShareMenuProps {
   showLabel?: boolean;
   className?: string;
   // For social media OG preview support
-  entityType?: 'product' | 'auction' | 'restaurant' | 'marketplace' | 'service';
+  entityType?: 'product' | 'auction' | 'restaurant' | 'marketplace' | 'service' | 'food';
   entityId?: string;
   imageUrl?: string;
 }
