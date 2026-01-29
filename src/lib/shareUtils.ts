@@ -241,7 +241,7 @@ export const generateProductShareUrl = (
  * This ensures social media platforms show the product image in link previews
  */
 export const generateSocialShareUrl = (
-  entityType: 'product' | 'auction' | 'restaurant' | 'marketplace' | 'service',
+  entityType: 'product' | 'auction' | 'restaurant' | 'marketplace' | 'service' | 'food',
   entityId: string,
   referralCode?: string | null
 ): string => {

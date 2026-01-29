@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Store, ShoppingBag, UtensilsCrossed, Bike, Truck } from "lucide-react";
@@ -11,11 +12,26 @@ import { RiderDashboard } from "@/components/food/RiderDashboard";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CreateRestaurantDialog } from "@/components/food/CreateRestaurantDialog";
 import { SponsoredListingsGrid } from "@/components/sponsored/SponsoredListingsGrid";
+import { FoodItemDetailDialog } from "@/components/food/FoodItemDetailDialog";
 
 const Food = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("browse");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedFoodItemId, setSelectedFoodItemId] = useState<string | null>(null);
+
+  // Handle deep link to specific food item
+  useEffect(() => {
+    const foodId = searchParams.get("food");
+    if (foodId) {
+      setSelectedFoodItemId(foodId);
+      // Clear the food param after opening
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("food");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -115,6 +131,13 @@ const Food = () => {
           <CreateRestaurantDialog onClose={() => setCreateDialogOpen(false)} />
         </DialogContent>
       </Dialog>
+
+      {/* Food Item Detail Dialog for deep links */}
+      <FoodItemDetailDialog
+        foodItemId={selectedFoodItemId}
+        open={!!selectedFoodItemId}
+        onOpenChange={(open) => !open && setSelectedFoodItemId(null)}
+      />
     </div>
   );
 };

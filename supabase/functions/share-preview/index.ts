@@ -42,12 +42,24 @@ Deno.serve(async (req) => {
       product: '/shop',
       auction: '/auction',
       restaurant: '/food',
+      food: '/food',
       marketplace: '/marketplace',
       service: '/booking',
       blog: '/blog',
     };
 
     const targetPath = pathMap[entityType] || '/shop';
+    
+    // Param key mapping for redirect URLs
+    const paramKeyMap: Record<string, string> = {
+      product: 'product',
+      auction: 'auction',
+      restaurant: 'restaurant',
+      food: 'food',
+      marketplace: 'marketplace',
+      service: 'service',
+      blog: 'blog',
+    };
 
     switch (entityType) {
       case 'product': {
@@ -180,7 +192,8 @@ Deno.serve(async (req) => {
 
     // Build redirect URL with all params
     const redirectParams = new URLSearchParams();
-    redirectParams.set(entityType, entityId);
+    const paramKey = paramKeyMap[entityType] || entityType;
+    redirectParams.set(paramKey, entityId);
     if (ref) redirectParams.set('ref', ref);
     redirectParams.set('src', src);
     
