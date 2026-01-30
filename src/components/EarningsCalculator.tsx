@@ -29,6 +29,7 @@ export default function EarningsCalculator() {
   
   // Downline stair step inputs
   const [downlineCounts, setDownlineCounts] = useState<{ [key: number]: number }>({});
+  const [stairstepMultiplier, setStairstepMultiplier] = useState<number>(5);
   const [downlineSales, setDownlineSales] = useState<{ [key: number]: number }>({});
 
   // Leadership breakaway inputs (21% leaders across 7 levels)
@@ -72,6 +73,19 @@ export default function EarningsCalculator() {
       Math.pow(leadershipMultiplier, i + 1)
     );
     setLeadershipCounts(newCounts);
+  };
+
+  // Apply stair-step multiplier to auto-populate downline counts
+  const applyStairstepMultiplier = () => {
+    const stepsBelow = stairSteps.filter(step => step.step_number < currentStep);
+    const newCounts: { [key: number]: number } = {};
+    
+    stepsBelow.forEach((step, index) => {
+      // Start from level 1 (closest to current step) going down
+      newCounts[step.step_number] = Math.pow(stairstepMultiplier, index + 1);
+    });
+    
+    setDownlineCounts(newCounts);
   };
 
   // Calculate 7-level network earnings
@@ -304,6 +318,31 @@ export default function EarningsCalculator() {
             <p className="text-xs text-muted-foreground">
               Calculate how much you earn from team members at lower steps (based on percentage difference)
             </p>
+
+            {/* Stair-Step Multiplier */}
+            <div className="border rounded-lg p-3 bg-orange-500/5 border-orange-500/30">
+              <Label htmlFor="stairstep-multiplier" className="text-sm font-medium">Auto-populate Downline Count in Multiples</Label>
+              <div className="flex gap-2 mt-2">
+                <Input
+                  id="stairstep-multiplier"
+                  type="number"
+                  min="1"
+                  value={stairstepMultiplier}
+                  onChange={(e) => setStairstepMultiplier(Number(e.target.value))}
+                  placeholder="5"
+                  className="w-24"
+                />
+                <button
+                  onClick={applyStairstepMultiplier}
+                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-md text-sm hover:opacity-90 transition-opacity"
+                >
+                  Apply
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Enter a multiplier (e.g., 5) to auto-populate downline counts exponentially per step level
+              </p>
+            </div>
             
             {stairSteps
               .filter(step => step.step_number < currentStep)
