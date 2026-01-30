@@ -18,6 +18,10 @@ interface StairStepConfig {
 export default function EarningsCalculator() {
   const [stairSteps, setStairSteps] = useState<StairStepConfig[]>([]);
   
+  // Unified Quick Simulation inputs
+  const [unifiedMultiplier, setUnifiedMultiplier] = useState<number>(5);
+  const [unifiedOrgSales, setUnifiedOrgSales] = useState<number>(100000);
+  
   // 7-level network inputs
   const [networkReferrals, setNetworkReferrals] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
   const [avgPurchaseAmount, setAvgPurchaseAmount] = useState<number>(1000);
@@ -29,7 +33,6 @@ export default function EarningsCalculator() {
   
   // Downline stair step inputs
   const [downlineCounts, setDownlineCounts] = useState<{ [key: number]: number }>({});
-  const [stairstepMultiplier, setStairstepMultiplier] = useState<number>(5);
   const [downlineSales, setDownlineSales] = useState<{ [key: number]: number }>({});
 
   // Leadership breakaway inputs (21% leaders across 7 levels)
@@ -59,6 +62,49 @@ export default function EarningsCalculator() {
     }
   };
 
+  // Unified simulation - populate all systems at once
+  const applyUnifiedSimulation = () => {
+    const multiplier = unifiedMultiplier;
+    const orgSales = unifiedOrgSales;
+    
+    // 1. Populate 7-level network referrals and set avg purchase
+    const newReferrals = Array.from({ length: 7 }, (_, i) => 
+      Math.pow(multiplier, i + 1)
+    );
+    setNetworkReferrals(newReferrals);
+    // Use orgSales distributed across all referrals as avg purchase
+    const totalReferrals = newReferrals.reduce((sum, n) => sum + n, 0);
+    if (totalReferrals > 0) {
+      setAvgPurchaseAmount(Math.round(orgSales / totalReferrals));
+    }
+    
+    // 2. Populate stair-step: set team sales and downline counts/sales
+    setSalesAmount(orgSales);
+    const stepsBelow = stairSteps.filter(step => step.step_number < currentStep);
+    const newDownlineCounts: { [key: number]: number } = {};
+    const newDownlineSales: { [key: number]: number } = {};
+    
+    stepsBelow.forEach((step, index) => {
+      const count = Math.pow(multiplier, index + 1);
+      newDownlineCounts[step.step_number] = count;
+      // Distribute org sales proportionally by level
+      newDownlineSales[step.step_number] = Math.round(orgSales / (stepsBelow.length || 1));
+    });
+    setDownlineCounts(newDownlineCounts);
+    setDownlineSales(newDownlineSales);
+    
+    // 3. Populate leadership breakaway counts and sales
+    const newLeadershipCounts = Array.from({ length: 7 }, (_, i) => 
+      Math.pow(multiplier, i + 1)
+    );
+    setLeadershipCounts(newLeadershipCounts);
+    // Distribute org sales across leadership levels
+    const newLeadershipSales = Array.from({ length: 7 }, () => 
+      Math.round(orgSales / 7)
+    );
+    setLeadershipSales(newLeadershipSales);
+  };
+
   // Apply network multiplier to auto-populate levels
   const applyNetworkMultiplier = () => {
     const newReferrals = Array.from({ length: 7 }, (_, i) => 
@@ -73,19 +119,6 @@ export default function EarningsCalculator() {
       Math.pow(leadershipMultiplier, i + 1)
     );
     setLeadershipCounts(newCounts);
-  };
-
-  // Apply stair-step multiplier to auto-populate downline counts
-  const applyStairstepMultiplier = () => {
-    const stepsBelow = stairSteps.filter(step => step.step_number < currentStep);
-    const newCounts: { [key: number]: number } = {};
-    
-    stepsBelow.forEach((step, index) => {
-      // Start from level 1 (closest to current step) going down
-      newCounts[step.step_number] = Math.pow(stairstepMultiplier, index + 1);
-    });
-    
-    setDownlineCounts(newCounts);
   };
 
   // Calculate 7-level network earnings
@@ -167,6 +200,65 @@ export default function EarningsCalculator() {
         </div>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
+
+        {/* Unified Quick Simulation */}
+        <div className="space-y-4 border-2 border-dashed border-primary/40 rounded-lg p-4 bg-gradient-to-br from-primary/5 to-secondary/5">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary to-secondary">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              Quick Simulation
+            </h3>
+            <Badge variant="secondary" className="ml-auto">All Systems</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Set a referral multiplier and total organization sales to auto-populate all earning systems at once
+          </p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="unified-multiplier" className="text-sm font-medium">Referral Multiplier</Label>
+              <Input
+                id="unified-multiplier"
+                type="number"
+                min="1"
+                value={unifiedMultiplier}
+                onChange={(e) => setUnifiedMultiplier(Number(e.target.value))}
+                placeholder="5"
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                e.g., 5 means 5, 25, 125... per level
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="unified-org-sales" className="text-sm font-medium">Total Organization Sales (₱)</Label>
+              <Input
+                id="unified-org-sales"
+                type="number"
+                min="0"
+                value={unifiedOrgSales}
+                onChange={(e) => setUnifiedOrgSales(Number(e.target.value))}
+                placeholder="100000"
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Distributed across all systems
+              </p>
+            </div>
+          </div>
+          
+          <button
+            onClick={applyUnifiedSimulation}
+            className="w-full px-4 py-3 bg-gradient-to-r from-primary via-purple-500 to-secondary text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Apply to All Systems
+          </button>
+        </div>
+
+        <Separator className="bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
         {/* 7-Level Network Calculator */}
         <div className="space-y-4">
@@ -318,31 +410,6 @@ export default function EarningsCalculator() {
             <p className="text-xs text-muted-foreground">
               Calculate how much you earn from team members at lower steps (based on percentage difference)
             </p>
-
-            {/* Stair-Step Multiplier */}
-            <div className="border rounded-lg p-3 bg-orange-500/5 border-orange-500/30">
-              <Label htmlFor="stairstep-multiplier" className="text-sm font-medium">Auto-populate Downline Count in Multiples</Label>
-              <div className="flex gap-2 mt-2">
-                <Input
-                  id="stairstep-multiplier"
-                  type="number"
-                  min="1"
-                  value={stairstepMultiplier}
-                  onChange={(e) => setStairstepMultiplier(Number(e.target.value))}
-                  placeholder="5"
-                  className="w-24"
-                />
-                <button
-                  onClick={applyStairstepMultiplier}
-                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-md text-sm hover:opacity-90 transition-opacity"
-                >
-                  Apply
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Enter a multiplier (e.g., 5) to auto-populate downline counts exponentially per step level
-              </p>
-            </div>
             
             {stairSteps
               .filter(step => step.step_number < currentStep)
