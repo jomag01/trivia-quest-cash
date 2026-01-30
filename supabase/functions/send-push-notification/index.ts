@@ -20,7 +20,57 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    // === SECURITY FIX: Add authentication and authorization ===
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error('Missing or invalid Authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create client with user's auth token to verify identity
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Validate JWT and get user claims
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error('JWT validation failed:', claimsError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const callerId = claimsData.claims.sub;
+    if (!callerId) {
+      console.error('No user ID in JWT claims');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Invalid user' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse request body
+    const { userId, title, body, data }: PushNotificationRequest = await req.json();
+
+    // Validate required fields
+    if (!userId || !title || !body) {
+      return new Response(
+        JSON.stringify({ error: 'Bad Request: userId, title, and body are required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create service role client for database operations
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
@@ -30,12 +80,26 @@ serve(async (req) => {
       }
     );
 
-    const { userId, title, body, data }: PushNotificationRequest = await req.json();
+    // === SECURITY FIX: Check authorization ===
+    // Check if caller is admin using the has_role function
+    const { data: isAdmin, error: roleError } = await supabaseAdmin.rpc('has_role', {
+      _user_id: callerId,
+      _role: 'admin'
+    });
 
-    console.log(`Sending push notification to user: ${userId}`);
+    // Allow if: caller is admin OR caller is sending notification to themselves
+    if (!isAdmin && callerId !== userId) {
+      console.warn(`Unauthorized attempt: User ${callerId} tried to send notification to ${userId}`);
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: You can only send notifications to yourself' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Sending push notification to user: ${userId} (caller: ${callerId}, isAdmin: ${isAdmin})`);
 
     // Get user's push subscriptions
-    const { data: subscriptions, error: fetchError } = await supabaseClient
+    const { data: subscriptions, error: fetchError } = await supabaseAdmin
       .from('push_subscriptions')
       .select('*')
       .eq('user_id', userId);
@@ -99,7 +163,7 @@ serve(async (req) => {
   } catch (error: any) {
     console.error('Error sending push notification:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Internal server error' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
