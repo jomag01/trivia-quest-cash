@@ -16554,6 +16554,10 @@ export type Database = {
         Args: { p_credits: number; p_user_id: string }
         Returns: boolean
       }
+      deduct_user_credits: {
+        Args: { p_amount: number; p_service_type?: string; p_user_id: string }
+        Returns: boolean
+      }
       deduct_wrong_answer_penalty: {
         Args: { p_category_id: string; p_user_id: string }
         Returns: undefined

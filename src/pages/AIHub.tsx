@@ -521,14 +521,19 @@ const AIHub = memo(() => {
       return false;
     }
     
-    // Legacy credits
+    // Legacy credits - use secure server-side RPC function
     try {
-      const { error } = await supabase.from('profiles').update({
-        credits: userCredits - amount
-      }).eq('id', user.id);
+      const { data, error } = await supabase.rpc('deduct_user_credits', {
+        p_user_id: user.id,
+        p_amount: amount,
+        p_service_type: type
+      });
       if (error) throw error;
-      setUserCredits(prev => prev - amount);
-      return true;
+      if (data === true) {
+        setUserCredits(prev => prev - amount);
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Error deducting credits:', error);
       return false;
@@ -572,14 +577,19 @@ const AIHub = memo(() => {
       }
     }
     
-    // Fall back to legacy credits from profiles table
+    // Fall back to legacy credits - use secure server-side RPC function
     try {
-      const { error } = await supabase.from('profiles').update({
-        credits: userCredits - amount
-      }).eq('id', user.id);
+      const { data, error } = await supabase.rpc('deduct_user_credits', {
+        p_user_id: user.id,
+        p_amount: amount,
+        p_service_type: type
+      });
       if (error) throw error;
-      setUserCredits(prev => prev - amount);
-      return true;
+      if (data === true) {
+        setUserCredits(prev => prev - amount);
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Error deducting credits:', error);
       return false;
