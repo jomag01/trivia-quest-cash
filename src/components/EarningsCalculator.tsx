@@ -20,7 +20,7 @@ export default function EarningsCalculator() {
   
   // Unified Quick Simulation inputs
   const [unifiedMultiplier, setUnifiedMultiplier] = useState<number>(5);
-  const [unifiedOrgSales, setUnifiedOrgSales] = useState<number>(100000);
+  const [unifiedAvgPurchase, setUnifiedAvgPurchase] = useState<number>(1000);
   
   // 7-level network inputs
   const [networkReferrals, setNetworkReferrals] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
@@ -65,21 +65,21 @@ export default function EarningsCalculator() {
   // Unified simulation - populate all systems at once
   const applyUnifiedSimulation = () => {
     const multiplier = unifiedMultiplier;
-    const orgSales = unifiedOrgSales;
+    const avgPurchase = unifiedAvgPurchase;
     
-    // 1. Populate 7-level network referrals and set avg purchase
+    // 1. Populate 7-level network referrals - people × avg purchase = sales per level
     const newReferrals = Array.from({ length: 7 }, (_, i) => 
       Math.pow(multiplier, i + 1)
     );
     setNetworkReferrals(newReferrals);
-    // Use orgSales distributed across all referrals as avg purchase
-    const totalReferrals = newReferrals.reduce((sum, n) => sum + n, 0);
-    if (totalReferrals > 0) {
-      setAvgPurchaseAmount(Math.round(orgSales / totalReferrals));
-    }
+    setAvgPurchaseAmount(avgPurchase);
     
-    // 2. Populate stair-step: set team sales and downline counts/sales
-    setSalesAmount(orgSales);
+    // 2. Populate stair-step: calculate total org sales from all referrals
+    const totalPeople = newReferrals.reduce((sum, n) => sum + n, 0);
+    const totalOrgSales = totalPeople * avgPurchase;
+    setSalesAmount(totalOrgSales);
+    
+    // Populate downline counts and sales (people × avg purchase per step level)
     const stepsBelow = stairSteps.filter(step => step.step_number < currentStep);
     const newDownlineCounts: { [key: number]: number } = {};
     const newDownlineSales: { [key: number]: number } = {};
@@ -87,21 +87,19 @@ export default function EarningsCalculator() {
     stepsBelow.forEach((step, index) => {
       const count = Math.pow(multiplier, index + 1);
       newDownlineCounts[step.step_number] = count;
-      // Distribute org sales proportionally by level
-      newDownlineSales[step.step_number] = Math.round(orgSales / (stepsBelow.length || 1));
+      // Sales = people × avg purchase
+      newDownlineSales[step.step_number] = count * avgPurchase;
     });
     setDownlineCounts(newDownlineCounts);
     setDownlineSales(newDownlineSales);
     
-    // 3. Populate leadership breakaway counts and sales
+    // 3. Populate leadership breakaway counts and sales (people × avg purchase per level)
     const newLeadershipCounts = Array.from({ length: 7 }, (_, i) => 
       Math.pow(multiplier, i + 1)
     );
     setLeadershipCounts(newLeadershipCounts);
-    // Distribute org sales across leadership levels
-    const newLeadershipSales = Array.from({ length: 7 }, () => 
-      Math.round(orgSales / 7)
-    );
+    // Sales = people × avg purchase per level
+    const newLeadershipSales = newLeadershipCounts.map(count => count * avgPurchase);
     setLeadershipSales(newLeadershipSales);
   };
 
@@ -213,7 +211,7 @@ export default function EarningsCalculator() {
             <Badge variant="secondary" className="ml-auto">All Systems</Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Set a referral multiplier and total organization sales to auto-populate all earning systems at once
+            Set a referral multiplier and average purchase amount to auto-calculate earnings across all systems (People × Avg Purchase × Commission %)
           </p>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -233,20 +231,31 @@ export default function EarningsCalculator() {
               </p>
             </div>
             <div>
-              <Label htmlFor="unified-org-sales" className="text-sm font-medium">Total Organization Sales (₱)</Label>
+              <Label htmlFor="unified-avg-purchase" className="text-sm font-medium">Average Purchase Amount (₱)</Label>
               <Input
-                id="unified-org-sales"
+                id="unified-avg-purchase"
                 type="number"
                 min="0"
-                value={unifiedOrgSales}
-                onChange={(e) => setUnifiedOrgSales(Number(e.target.value))}
-                placeholder="100000"
+                value={unifiedAvgPurchase}
+                onChange={(e) => setUnifiedAvgPurchase(Number(e.target.value))}
+                placeholder="1000"
                 className="mt-1"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Distributed across all systems
+                Per person purchase amount
               </p>
             </div>
+          </div>
+
+          {/* Preview calculation */}
+          <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-1">
+            <p className="font-medium text-muted-foreground">Formula Preview:</p>
+            <p className="text-muted-foreground">
+              Level 1: {unifiedMultiplier} people × ₱{unifiedAvgPurchase.toLocaleString()} = ₱{(unifiedMultiplier * unifiedAvgPurchase).toLocaleString()} sales
+            </p>
+            <p className="text-muted-foreground">
+              Total Network: {Array.from({ length: 7 }, (_, i) => Math.pow(unifiedMultiplier, i + 1)).reduce((a, b) => a + b, 0).toLocaleString()} people × ₱{unifiedAvgPurchase.toLocaleString()} = ₱{(Array.from({ length: 7 }, (_, i) => Math.pow(unifiedMultiplier, i + 1)).reduce((a, b) => a + b, 0) * unifiedAvgPurchase).toLocaleString()} total
+            </p>
           </div>
           
           <button
