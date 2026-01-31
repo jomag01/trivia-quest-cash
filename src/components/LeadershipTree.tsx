@@ -40,16 +40,16 @@ interface LeadershipTreeProps {
 }
 
 export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
-  const [lineOneTree, setLineOneTree] = useState<LeadershipNode | null>(null);
-  const [lineTwoTree, setLineTwoTree] = useState<LeadershipNode | null>(null);
+  // Unlimited lines - one per direct referral
+  const [lineTrees, setLineTrees] = useState<LeadershipNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<LeadershipNode | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [maxStep, setMaxStep] = useState(0);
-  const [activeLineTab, setActiveLineTab] = useState<string>('line1');
-  const [managerStats, setManagerStats] = useState({ line1Managers: 0, line2Managers: 0 });
+  const [activeLineTab, setActiveLineTab] = useState<string>('line-0');
+  const [lineManagerStats, setLineManagerStats] = useState<{ lineNumber: number; managers: number; directName: string }[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -87,36 +87,42 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
     try {
       setLoading(true);
       
+      // Fetch ALL direct referrals - unlimited lines
       const { data: directReferrals } = await supabase
         .from("profiles")
         .select("id, full_name, email, referral_code, created_at")
-        .eq("referred_by", userId);
+        .eq("referred_by", userId)
+        .order("created_at", { ascending: true });
 
       if (!directReferrals || directReferrals.length === 0) {
-        setLineOneTree(null);
-        setLineTwoTree(null);
+        setLineTrees([]);
+        setLineManagerStats([]);
         setLoading(false);
         return;
       }
 
-      let line1Managers = 0;
-      let line2Managers = 0;
+      const trees: LeadershipNode[] = [];
+      const stats: { lineNumber: number; managers: number; directName: string }[] = [];
 
-      if (directReferrals[0]) {
-        const line1 = await buildTree(directReferrals[0].id, 1, 1);
-        setLineOneTree(line1);
-        line1Managers = countManagers(line1);
-        setExpandedNodes(prev => new Set([...prev, line1.id]));
+      // Build tree for EACH direct referral (unlimited lines)
+      for (let i = 0; i < directReferrals.length; i++) {
+        const directRef = directReferrals[i];
+        const lineTree = await buildTree(directRef.id, 1, i + 1);
+        trees.push(lineTree);
+        
+        const managerCount = countManagers(lineTree);
+        stats.push({
+          lineNumber: i + 1,
+          managers: managerCount,
+          directName: directRef.full_name || directRef.email?.split('@')[0] || `Line ${i + 1}`
+        });
+        
+        setExpandedNodes(prev => new Set([...prev, lineTree.id]));
       }
 
-      if (directReferrals[1]) {
-        const line2 = await buildTree(directReferrals[1].id, 1, 2);
-        setLineTwoTree(line2);
-        line2Managers = countManagers(line2);
-        setExpandedNodes(prev => new Set([...prev, line2.id]));
-      }
-
-      setManagerStats({ line1Managers, line2Managers });
+      setLineTrees(trees);
+      setLineManagerStats(stats);
+      setActiveLineTab('line-0');
     } catch (error: any) {
       console.error("Error fetching leadership tree:", error);
       toast.error("Failed to load leadership tree");
@@ -208,15 +214,18 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
       return;
     }
     
-    const matches1 = searchNodes(lineOneTree, searchQuery);
-    const matches2 = searchNodes(lineTwoTree, searchQuery);
-    const allMatches = new Set([...matches1, ...matches2]);
+    // Search across all lines
+    const allMatches = new Set<string>();
+    lineTrees.forEach(tree => {
+      const matches = searchNodes(tree, searchQuery);
+      matches.forEach(m => allMatches.add(m));
+    });
     setHighlightedNodes(allMatches);
     
     if (allMatches.size > 0) {
       toast.success(`Found ${allMatches.size} matching member${allMatches.size !== 1 ? 's' : ''}`);
     }
-  }, [searchQuery, lineOneTree, lineTwoTree]);
+  }, [searchQuery, lineTrees]);
 
   const toggleNode = (nodeId: string) => {
     setExpandedNodes(prev => {
@@ -350,7 +359,7 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
     );
   }
 
-  if (!lineOneTree && !lineTwoTree) {
+  if (lineTrees.length === 0) {
     return (
       <Card className="overflow-hidden">
         <CardContent className="p-8 text-center">
@@ -364,40 +373,70 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
     );
   }
 
-  const qualifies2Line = managerStats.line1Managers > 0 && managerStats.line2Managers > 0;
+  const linesWithManagers = lineManagerStats.filter(s => s.managers > 0).length;
+  const totalManagers = lineManagerStats.reduce((sum, s) => sum + s.managers, 0);
+  const qualifies2Line = linesWithManagers >= 2;
+
+  // Generate colors for lines
+  const getLineColor = (index: number) => {
+    const colors = [
+      { from: 'blue-500', to: 'cyan-500' },
+      { from: 'purple-500', to: 'pink-500' },
+      { from: 'green-500', to: 'emerald-500' },
+      { from: 'orange-500', to: 'red-500' },
+      { from: 'indigo-500', to: 'violet-500' },
+      { from: 'teal-500', to: 'cyan-500' },
+      { from: 'rose-500', to: 'pink-500' },
+      { from: 'amber-500', to: 'yellow-500' },
+    ];
+    return colors[index % colors.length];
+  };
 
   return (
     <div className="space-y-4">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      {/* Stats Overview - Scrollable for many lines */}
+      <div className="overflow-x-auto pb-2">
+        <div className="flex gap-3 min-w-max">
+          {lineManagerStats.map((stat, index) => {
+            const color = getLineColor(index);
+            return (
+              <Card key={stat.lineNumber} className="overflow-hidden border-0 shadow-md min-w-[180px]">
+                <CardContent className={`p-4 bg-gradient-to-br from-${color.from}/10 to-${color.to}/5`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl bg-gradient-to-br from-${color.from} to-${color.to}`}>
+                      <Users className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground truncate max-w-[100px]">
+                        {stat.directName}
+                      </p>
+                      <p className={`text-xl font-bold bg-gradient-to-r from-${color.from} to-${color.to} bg-clip-text text-transparent`}>
+                        {stat.managers} Mgrs
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 gap-3">
         <Card className="overflow-hidden border-0 shadow-md">
-          <CardContent className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/5">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500">
-                <Users className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-muted-foreground">Line 1 Managers</p>
-                <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
-                  {managerStats.line1Managers}
-                </p>
-              </div>
+          <CardContent className="p-4 bg-gradient-to-br from-yellow-500/10 to-amber-500/5">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Total Lines</p>
+              <p className="text-2xl font-bold text-yellow-600">{lineTrees.length}</p>
             </div>
           </CardContent>
         </Card>
-
         <Card className="overflow-hidden border-0 shadow-md">
-          <CardContent className="p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/5">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
-                <Users className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-muted-foreground">Line 2 Managers</p>
-                <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                  {managerStats.line2Managers}
-                </p>
-              </div>
+          <CardContent className="p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/5">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Total Managers</p>
+              <p className="text-2xl font-bold text-green-600">{totalManagers}</p>
             </div>
           </CardContent>
         </Card>
@@ -412,12 +451,12 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
             </div>
             <div className="flex-1">
               <p className="font-semibold text-base sm:text-lg">
-                {qualifies2Line ? '✅ 2-Line Requirement Met!' : '⏳ 2-Line Requirement Pending'}
+                {qualifies2Line ? `✅ ${linesWithManagers} Lines with Managers!` : '⏳ 2-Line Requirement Pending'}
               </p>
               <p className="text-sm text-muted-foreground">
                 {qualifies2Line 
-                  ? 'You qualify for the 2% leadership bonus from your Manager downlines' 
-                  : 'Build managers in both lines to earn 2% leadership bonus'}
+                  ? `You qualify for the 2% leadership bonus from ${totalManagers} Manager(s) across ${linesWithManagers} lines` 
+                  : 'Build managers in at least 2 lines to earn 2% leadership bonus'}
               </p>
             </div>
           </div>
@@ -471,24 +510,26 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
             )}
           </div>
 
-          <Tabs value={activeLineTab} onValueChange={setActiveLineTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="line1" className="gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                Line 1
-                {managerStats.line1Managers > 0 && (
-                  <Badge variant="secondary" className="ml-1">{managerStats.line1Managers}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="line2" className="gap-2">
-                <div className="w-2 h-2 rounded-full bg-purple-500" />
-                Line 2
-                {managerStats.line2Managers > 0 && (
-                  <Badge variant="secondary" className="ml-1">{managerStats.line2Managers}</Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {/* Scrollable tabs for unlimited lines */}
+          <ScrollArea className="w-full">
+            <Tabs value={activeLineTab} onValueChange={setActiveLineTab}>
+              <TabsList className="inline-flex w-auto min-w-full">
+                {lineTrees.map((_, index) => {
+                  const stat = lineManagerStats[index];
+                  const color = getLineColor(index);
+                  return (
+                    <TabsTrigger key={index} value={`line-${index}`} className="gap-2 whitespace-nowrap">
+                      <div className={`w-2 h-2 rounded-full bg-${color.from}`} />
+                      <span className="truncate max-w-[80px]">{stat?.directName || `Line ${index + 1}`}</span>
+                      {stat?.managers > 0 && (
+                        <Badge variant="secondary" className="ml-1">{stat.managers}</Badge>
+                      )}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
+          </ScrollArea>
         </CardContent>
       </Card>
 
@@ -497,18 +538,15 @@ export const LeadershipTree = ({ userId }: LeadershipTreeProps) => {
         <Card className="lg:col-span-2 overflow-hidden">
           <ScrollArea className="h-[400px] sm:h-[500px] lg:h-[600px]">
             <div className="p-4 space-y-3">
-              {activeLineTab === 'line1' && lineOneTree && renderNodeCard(lineOneTree)}
-              {activeLineTab === 'line2' && lineTwoTree && renderNodeCard(lineTwoTree)}
-              {activeLineTab === 'line1' && !lineOneTree && (
+              {lineTrees.map((tree, index) => (
+                activeLineTab === `line-${index}` && (
+                  <div key={tree.id}>{renderNodeCard(tree)}</div>
+                )
+              ))}
+              {lineTrees.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No Line 1 data yet</p>
-                </div>
-              )}
-              {activeLineTab === 'line2' && !lineTwoTree && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No Line 2 data yet</p>
+                  <p>No lines yet</p>
                 </div>
               )}
             </div>
