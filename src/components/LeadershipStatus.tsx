@@ -42,6 +42,7 @@ interface LeadershipStats {
   isQualified: boolean;
   hasMinTwoLines: boolean;
   linesWithManagers: number;
+  totalLines: number;
   managerLines: ManagerProfile[][];
 }
 
@@ -65,11 +66,12 @@ async function findManagersInCompressedNetwork(
   const lineManagers = new Map<string, ManagerProfile[]>();
   const visited = new Set<string>();
   
-  // Get direct referrals first (these define the "lines")
+  // Get ALL direct referrals (unlimited lines)
   const { data: directReferrals } = await supabase
     .from("profiles")
     .select("id, full_name, email, avatar_url")
-    .eq("referred_by", userId);
+    .eq("referred_by", userId)
+    .order("created_at", { ascending: true });
 
   if (!directReferrals) return { managers, lineManagers };
 
@@ -148,6 +150,7 @@ export default function LeadershipStatus() {
     isQualified: false,
     hasMinTwoLines: false,
     linesWithManagers: 0,
+    totalLines: 0,
     managerLines: [],
   });
   const [commissions, setCommissions] = useState<LeadershipCommission[]>([]);
@@ -211,6 +214,14 @@ export default function LeadershipStatus() {
         managerLinesArray.push(managers);
       });
 
+      // Get total number of direct referrals (lines)
+      const { data: directReferrals } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("referred_by", user?.id);
+      
+      const totalLines = directReferrals?.length || 0;
+
       setStats({
         totalEarnings: canEarnLeadershipBonus ? totalEarnings : 0,
         activeLeaders: managers.length,
@@ -218,6 +229,7 @@ export default function LeadershipStatus() {
         isQualified,
         hasMinTwoLines,
         linesWithManagers,
+        totalLines,
         managerLines: managerLinesArray,
       });
 
@@ -273,7 +285,7 @@ export default function LeadershipStatus() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Total Leadership Earnings */}
             <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 rounded-lg p-4 border border-green-500/30">
               <div className="flex items-center gap-2 mb-2">
@@ -306,6 +318,22 @@ export default function LeadershipStatus() {
               </p>
             </div>
 
+            {/* Total Lines */}
+            <div className={`bg-gradient-to-br rounded-lg p-4 from-yellow-500/10 to-amber-500/5`}>
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-5 h-5 text-yellow-600" />
+                <span className="text-sm font-medium text-muted-foreground">
+                  Total Lines
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-yellow-600">
+                {stats.totalLines}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Direct referral lines (unlimited)
+              </p>
+            </div>
+
             {/* Lines with Managers */}
             <div className={`bg-gradient-to-br rounded-lg p-4 ${
               stats.hasMinTwoLines 
@@ -319,10 +347,10 @@ export default function LeadershipStatus() {
                 </span>
               </div>
               <div className={`text-2xl font-bold ${stats.hasMinTwoLines ? 'text-green-500' : 'text-orange-500'}`}>
-                {stats.linesWithManagers} / 2
+                {stats.linesWithManagers} / {Math.max(2, stats.totalLines)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {stats.hasMinTwoLines ? '✓ Requirement met' : 'Need 2 lines with managers'}
+                {stats.hasMinTwoLines ? '✓ Requirement met' : 'Need 2+ lines with managers'}
               </p>
             </div>
 
@@ -416,55 +444,75 @@ export default function LeadershipStatus() {
             </div>
           ) : (
             <div className="space-y-4">
-              {stats.managerLines.slice(0, 2).map((managers, lineIndex) => (
-                <div key={lineIndex} className={`p-4 rounded-lg border ${
-                  lineIndex === 0 ? 'bg-blue-500/5 border-blue-500/20' : 'bg-purple-500/5 border-purple-500/20'
-                }`}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Badge variant={lineIndex === 0 ? "default" : "secondary"}>
-                      Line {lineIndex + 1}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {managers.length} Manager(s) • Up to Level {Math.min(managers.length, 7)}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    {managers.slice(0, 7).map((manager) => (
-                      <div key={manager.id} className="flex items-center gap-2 bg-background rounded-lg p-2 pr-4">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={manager.avatar_url || undefined} />
-                          <AvatarFallback>
-                            <User className="h-4 w-4" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">
-                            {manager.full_name || manager.email?.split('@')[0]}
-                          </p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Crown className="h-3 w-3 text-yellow-500" />
-                            Level {manager.compressed_level}
-                          </p>
+              {/* Show ALL lines with managers (unlimited) */}
+              {stats.managerLines.map((managers, lineIndex) => {
+                const colors = [
+                  { bg: 'blue-500/5', border: 'blue-500/20', gradient: 'blue' },
+                  { bg: 'purple-500/5', border: 'purple-500/20', gradient: 'purple' },
+                  { bg: 'green-500/5', border: 'green-500/20', gradient: 'green' },
+                  { bg: 'orange-500/5', border: 'orange-500/20', gradient: 'orange' },
+                  { bg: 'pink-500/5', border: 'pink-500/20', gradient: 'pink' },
+                  { bg: 'teal-500/5', border: 'teal-500/20', gradient: 'teal' },
+                  { bg: 'indigo-500/5', border: 'indigo-500/20', gradient: 'indigo' },
+                  { bg: 'rose-500/5', border: 'rose-500/20', gradient: 'rose' },
+                ];
+                const color = colors[lineIndex % colors.length];
+                
+                return (
+                  <div key={lineIndex} className={`p-4 rounded-lg border bg-${color.bg} border-${color.border}`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge variant={lineIndex < 2 ? "default" : "secondary"}>
+                        Line {lineIndex + 1}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {managers.length} Manager(s) • Up to Level {Math.min(managers.length, 7)}
+                      </span>
+                      {lineIndex < 2 && (
+                        <Badge variant="outline" className="text-green-600 border-green-500/30 text-xs">
+                          Counts for 2% Bonus
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      {managers.slice(0, 7).map((manager) => (
+                        <div key={manager.id} className="flex items-center gap-2 bg-background rounded-lg p-2 pr-4">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={manager.avatar_url || undefined} />
+                            <AvatarFallback>
+                              <User className="h-4 w-4" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {manager.full_name || manager.email?.split('@')[0]}
+                            </p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Crown className="h-3 w-3 text-yellow-500" />
+                              Level {manager.compressed_level}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {managers.length > 7 && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <ChevronRight className="h-4 w-4" />
-                        +{managers.length - 7} beyond 7 levels
-                      </div>
-                    )}
+                      ))}
+                      {managers.length > 7 && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <ChevronRight className="h-4 w-4" />
+                          +{managers.length - 7} beyond 7 levels
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-              {stats.managerLines.length < 2 && (
+                );
+              })}
+              
+              {/* Show placeholder if less than 2 lines with managers */}
+              {stats.linesWithManagers < 2 && stats.totalLines > stats.linesWithManagers && (
                 <div className="p-4 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20">
                   <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline">Line {stats.managerLines.length + 1}</Badge>
-                    <span className="text-sm text-muted-foreground">Needed</span>
+                    <Badge variant="outline">Need {2 - stats.linesWithManagers} more line(s) with managers</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Build another referral line with at least one Manager Level affiliate to unlock leadership bonus.
+                    You have {stats.totalLines - stats.linesWithManagers} line(s) without managers yet. 
+                    Help them reach Manager Level to unlock your leadership bonus.
                   </p>
                 </div>
               )}
