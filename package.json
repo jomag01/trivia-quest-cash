@@ -56,6 +56,7 @@
     "framer-motion": "^11.18.2",
     "hls.js": "^1.6.15",
     "input-otp": "^1.4.2",
+    "jspdf": "^4.0.0",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "pixi.js": "^7.4.3",
