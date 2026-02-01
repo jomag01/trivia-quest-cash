@@ -402,6 +402,7 @@ const Shop = () => {
         product_referrer_id: referrerId,
         referrer_code: referrerCode,
         total_diamond_credits: diamondCredits,
+        seller_id: selectedProduct.seller_id,
       }).select().single();
       if (orderError) throw orderError;
 
