@@ -4,21 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { processSellerReferrerCommission } from "@/lib/sellerReferralCommission";
+import jsPDF from "jspdf";
 
 import { 
   Package, 
   Truck, 
-  CheckCircle, 
   Clock,
   Printer,
   MapPin,
@@ -29,10 +28,13 @@ import {
   Filter,
   Send,
   Box,
-  QrCode,
   Scan,
   PackageCheck,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Undo2,
+  FileDown,
+  CheckCircle2
 } from "lucide-react";
 
 const formatMoney = (amount: number) => `₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
@@ -53,7 +55,10 @@ interface Order {
   notes: string | null;
   customer_notes: string | null;
   referrer_code: string | null;
+  commission_status: string | null;
+  return_reason: string | null;
   items: OrderItem[];
+  courier_status?: string | null;
 }
 
 interface OrderItem {
@@ -74,6 +79,7 @@ export const COURIERS = [
   { value: "shopee", label: "Shopee Xpress" },
   { value: "lazada", label: "Lazada Logistics" },
   { value: "flash", label: "Flash Express" },
+  { value: "triviabees", label: "Triviabees Courier" },
   { value: "other", label: "Other" }
 ];
 
@@ -87,6 +93,7 @@ const ORDER_STATUSES = [
   { value: "return_faulty", label: "Return (Faulty)", color: "bg-red-400" },
   { value: "reshipped", label: "Reshipped", color: "bg-cyan-500" },
   { value: "redelivered", label: "Redelivered", color: "bg-emerald-500" },
+  { value: "refunded", label: "Refunded", color: "bg-rose-600" },
   { value: "cancelled", label: "Cancelled", color: "bg-red-500" }
 ];
 
@@ -102,56 +109,51 @@ export default function SellerOrderProcessing() {
   const [printLabelDialog, setPrintLabelDialog] = useState(false);
   const [scanTrackingDialog, setScanTrackingDialog] = useState(false);
   const [manualTrackingInput, setManualTrackingInput] = useState("");
+  const [refundDialog, setRefundDialog] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Fetch seller orders with order items
-  const { data: orders = [], isLoading } = useQuery({
+  // Fetch seller orders with order items and courier sync
+  const { data: orders = [], isLoading, refetch } = useQuery({
     queryKey: ["seller-orders", user?.id],
     queryFn: async () => {
       if (!user) return [];
 
-      // Fetch orders where seller_id matches or products in order belong to seller
       const { data: orderData, error } = await supabase
         .from("orders")
         .select(`
-          id,
-          order_number,
-          status,
-          total_amount,
-          shipping_fee,
-          created_at,
-          shipping_address,
-          customer_name,
-          customer_email,
-          customer_phone,
-          tracking_number,
-          courier,
-          notes,
-          customer_notes,
-          referrer_code,
-          seller_id
+          id, order_number, status, total_amount, shipping_fee, created_at,
+          shipping_address, customer_name, customer_email, customer_phone,
+          tracking_number, courier, notes, customer_notes, referrer_code,
+          seller_id, commission_status, return_reason
         `)
         .eq("seller_id", user.id)
         .order("created_at", { ascending: false });
       
       if (error) throw error;
 
-      // Fetch order items for each order
+      // Fetch order items and courier status for each order
       const ordersWithItems = await Promise.all(
         (orderData || []).map(async (order) => {
           const { data: items } = await supabase
             .from("order_items")
-            .select(`
-              id,
-              quantity,
-              unit_price,
-              variant_name,
-              products(name)
-            `)
+            .select(`id, quantity, unit_price, variant_name, products(name)`)
             .eq("order_id", order.id);
+          
+          // Check courier_shipments for live status sync
+          let courierStatus = null;
+          if (order.tracking_number) {
+            const { data: shipment } = await supabase
+              .from("courier_shipments")
+              .select("status")
+              .eq("order_id", order.id)
+              .maybeSingle();
+            courierStatus = shipment?.status;
+          }
           
           return {
             ...order,
+            courier_status: courierStatus,
             items: (items || []).map((item: any) => ({
               id: item.id,
               product_name: item.products?.name || "Unknown Product",
@@ -165,7 +167,8 @@ export default function SellerOrderProcessing() {
 
       return ordersWithItems as Order[];
     },
-    enabled: !!user
+    enabled: !!user,
+    refetchInterval: 30000 // Auto-refresh every 30s for courier sync
   });
 
   // Update order status mutation
@@ -177,30 +180,31 @@ export default function SellerOrderProcessing() {
         ...(status === "delivered" && { delivered_at: new Date().toISOString() }),
       };
 
-      // Handle return/refund status - put commission on hold
       if (status === "return_faulty") {
         const holdUntil = new Date();
-        holdUntil.setDate(holdUntil.getDate() + 15); // 15 days hold period
+        holdUntil.setDate(holdUntil.getDate() + 15);
         updateData.commission_status = 'on_hold';
         updateData.commission_hold_until = holdUntil.toISOString();
         updateData.return_requested_at = new Date().toISOString();
       }
 
-      // Handle reship/redeliver - release commission hold
       if (status === "redelivered") {
         updateData.commission_status = 'released';
         updateData.commission_hold_until = null;
       }
 
-      // Update order status
+      if (status === "refunded") {
+        updateData.commission_status = 'cancelled';
+        updateData.return_reason = notes || 'Refunded by seller';
+      }
+
       const { error: orderError } = await supabase
         .from("orders")
         .update(updateData)
         .eq("id", orderId);
       if (orderError) throw orderError;
 
-      // Add to status history
-      const { error: historyError } = await supabase
+      await supabase
         .from("order_status_history")
         .insert({
           order_id: orderId,
@@ -208,11 +212,8 @@ export default function SellerOrderProcessing() {
           notes: notes || `Status updated to ${status}`,
           updated_by: user?.id
         });
-      if (historyError) console.error("Failed to add status history:", historyError);
 
-      // Process seller referrer commission when order is delivered or redelivered
       if ((status === "delivered" || status === "redelivered") && user?.id && totalAmount) {
-        console.log("Processing seller referrer commission for delivered order:", orderId);
         await processSellerReferrerCommission(user.id, orderId, totalAmount, 'products');
       }
     },
@@ -243,7 +244,6 @@ export default function SellerOrderProcessing() {
         .eq("id", selectedOrder.id);
       if (error) throw error;
 
-      // Add to status history
       await supabase
         .from("order_status_history")
         .insert({
@@ -255,7 +255,7 @@ export default function SellerOrderProcessing() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["seller-orders"] });
-      toast.success("Shipment info added and order marked as shipped!");
+      toast.success("Shipment info added!");
       setShipmentDialog(false);
       setTrackingNumber("");
       setSelectedCourier("");
@@ -266,13 +266,29 @@ export default function SellerOrderProcessing() {
     }
   });
 
+  // Refund mutation
+  const processRefund = useMutation({
+    mutationFn: async () => {
+      if (!selectedOrder) throw new Error("No order selected");
+      
+      await updateStatus.mutateAsync({
+        orderId: selectedOrder.id,
+        status: "refunded",
+        notes: refundReason || "Refunded by seller",
+        totalAmount: selectedOrder.total_amount
+      });
+    },
+    onSuccess: () => {
+      toast.success("Order refunded successfully");
+      setRefundDialog(false);
+      setRefundReason("");
+      setSelectedOrder(null);
+    }
+  });
+
   const getStatusBadge = (status: string) => {
     const statusInfo = ORDER_STATUSES.find(s => s.value === status) || ORDER_STATUSES[0];
-    return (
-      <Badge className={`${statusInfo.color} text-white`}>
-        {statusInfo.label}
-      </Badge>
-    );
+    return <Badge className={`${statusInfo.color} text-white`}>{statusInfo.label}</Badge>;
   };
 
   const getCourierLabel = (courierValue: string | null) => {
@@ -289,45 +305,82 @@ export default function SellerOrderProcessing() {
     return matchesTab && matchesSearch;
   });
 
-  const handlePrint = () => {
-    const printContent = printRef.current;
-    if (!printContent) return;
+  // Generate PDF Waybill
+  const generatePDFWaybill = (order: Order) => {
+    const doc = new jsPDF();
     
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error("Please allow popups to print the label");
-      return;
+    // Header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("SHIPPING WAYBILL", 105, 20, { align: "center" });
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Order #${order.order_number}`, 105, 30, { align: "center" });
+    doc.text(new Date(order.created_at).toLocaleDateString(), 105, 37, { align: "center" });
+    
+    // Divider
+    doc.setLineWidth(0.5);
+    doc.line(20, 45, 190, 45);
+    
+    // From Section
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("FROM:", 20, 55);
+    doc.setFont("helvetica", "normal");
+    doc.text(profile?.full_name || "Seller", 20, 62);
+    doc.text(profile?.email || "", 20, 69);
+    
+    // To Section (boxed)
+    doc.setFillColor(245, 245, 245);
+    doc.rect(20, 80, 170, 50, "F");
+    doc.setFont("helvetica", "bold");
+    doc.text("SHIP TO:", 25, 90);
+    doc.setFontSize(14);
+    doc.text(order.customer_name || "Customer", 25, 100);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    
+    const addressLines = doc.splitTextToSize(order.shipping_address || "", 160);
+    doc.text(addressLines, 25, 110);
+    
+    if (order.customer_phone) {
+      doc.text(`Phone: ${order.customer_phone}`, 25, 125);
     }
     
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Shipping Label - ${selectedOrder?.order_number}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .label { border: 2px dashed #000; padding: 20px; max-width: 400px; margin: 0 auto; }
-            .header { text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 15px; margin-bottom: 15px; }
-            .header h1 { font-size: 18px; margin: 0 0 5px 0; }
-            .header p { font-size: 14px; margin: 0; font-family: monospace; }
-            .section { margin-bottom: 15px; }
-            .section-label { font-size: 11px; color: #666; margin-bottom: 3px; }
-            .section-content { font-size: 14px; }
-            .to-section { background: #f5f5f5; padding: 15px; border-radius: 5px; }
-            .to-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
-            .items { font-size: 12px; text-align: center; color: #666; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc; }
-            .tracking { text-align: center; font-family: monospace; margin-top: 10px; }
-            .barcode { text-align: center; font-size: 24px; letter-spacing: 5px; margin-top: 10px; }
-            @media print { body { margin: 0; } }
-          </style>
-        </head>
-        <body>
-          ${printContent.innerHTML}
-          <script>window.onload = function() { window.print(); window.close(); }</script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    // Items Section
+    doc.setFont("helvetica", "bold");
+    doc.text("ITEMS:", 20, 145);
+    doc.setFont("helvetica", "normal");
+    
+    let yPos = 152;
+    order.items.forEach((item, index) => {
+      const itemText = `${index + 1}. ${item.product_name}${item.variant_name ? ` (${item.variant_name})` : ""} x${item.quantity} - ${formatMoney(item.unit_price * item.quantity)}`;
+      doc.text(itemText, 25, yPos);
+      yPos += 7;
+    });
+    
+    // Total
+    doc.line(20, yPos + 5, 190, yPos + 5);
+    doc.setFont("helvetica", "bold");
+    doc.text(`TOTAL: ${formatMoney(order.total_amount)}`, 20, yPos + 15);
+    doc.text(`Shipping: ${formatMoney(order.shipping_fee || 0)}`, 120, yPos + 15);
+    
+    // Tracking section
+    if (order.tracking_number) {
+      doc.setFontSize(12);
+      doc.text(`Courier: ${getCourierLabel(order.courier)}`, 20, yPos + 30);
+      doc.setFontSize(16);
+      doc.text(`Tracking: ${order.tracking_number}`, 20, yPos + 40);
+    }
+    
+    // Barcode placeholder
+    doc.setFontSize(24);
+    doc.setFont("courier", "bold");
+    doc.text(order.order_number, 105, 270, { align: "center" });
+    
+    doc.save(`waybill-${order.order_number}.pdf`);
+    toast.success("PDF Waybill downloaded!");
   };
 
   const handleScanTracking = () => {
@@ -355,9 +408,7 @@ export default function SellerOrderProcessing() {
         <div className="text-center py-8">
           <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-semibold mb-2">Seller Verification Required</h3>
-          <p className="text-muted-foreground">
-            You need to be a verified seller to access order management.
-          </p>
+          <p className="text-muted-foreground">You need to be a verified seller to access order management.</p>
         </div>
       </Card>
     );
@@ -366,8 +417,8 @@ export default function SellerOrderProcessing() {
   return (
     <div className="space-y-6">
       {/* Header Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {ORDER_STATUSES.slice(0, 5).map((status) => {
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        {ORDER_STATUSES.slice(0, 6).map((status) => {
           const count = orders.filter(o => o.status === status.value).length;
           return (
             <Card 
@@ -386,8 +437,8 @@ export default function SellerOrderProcessing() {
       </div>
 
       {/* Search and Filter */}
-      <div className="flex gap-4">
-        <div className="relative flex-1">
+      <div className="flex gap-4 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
             placeholder="Search by order #, customer, or tracking..."
@@ -404,12 +455,14 @@ export default function SellerOrderProcessing() {
           <SelectContent>
             <SelectItem value="all">All Orders</SelectItem>
             {ORDER_STATUSES.map((status) => (
-              <SelectItem key={status.value} value={status.value}>
-                {status.label}
-              </SelectItem>
+              <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <Button variant="outline" onClick={() => refetch()}>
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Sync
+        </Button>
       </div>
 
       {/* Orders List */}
@@ -431,10 +484,15 @@ export default function SellerOrderProcessing() {
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="font-mono font-semibold text-lg">#{order.order_number}</span>
                       {getStatusBadge(order.status)}
-                      {order.tracking_number && (
-                        <Badge variant="outline" className="flex items-center gap-1">
+                      {order.courier_status && (
+                        <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-300">
                           <Truck className="w-3 h-3" />
-                          {getCourierLabel(order.courier)}
+                          Courier: {order.courier_status}
+                        </Badge>
+                      )}
+                      {order.commission_status === 'on_hold' && (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                          ⏳ Commission Held
                         </Badge>
                       )}
                     </div>
@@ -479,7 +537,6 @@ export default function SellerOrderProcessing() {
                       </div>
                     </div>
 
-                    {/* Customer Notes */}
                     {order.customer_notes && (
                       <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                         <p className="text-xs font-medium text-yellow-800 dark:text-yellow-300 mb-1">📝 Customer Notes:</p>
@@ -487,50 +544,33 @@ export default function SellerOrderProcessing() {
                       </div>
                     )}
 
-                    {/* Referrer Code for Commission Tracking */}
-                    {order.referrer_code && (
-                      <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <span className="text-xs text-blue-600 dark:text-blue-400">Referrer:</span>
-                        <Badge variant="outline" className="font-mono text-xs bg-blue-100 text-blue-700 border-blue-300">
-                          {order.referrer_code}
-                        </Badge>
-                      </div>
-                    )}
-
-                    {/* Tracking Info */}
                     {order.tracking_number && (
                       <div className="flex items-center gap-2 p-2 bg-primary/5 rounded-lg">
                         <Box className="w-4 h-4 text-primary" />
                         <span className="text-sm font-mono">{order.tracking_number}</span>
+                        <span className="text-xs text-muted-foreground">({getCourierLabel(order.courier)})</span>
                       </div>
                     )}
                   </div>
 
                   {/* Amount and Actions */}
-                  <div className="flex flex-col items-end gap-3 min-w-[200px]">
+                  <div className="flex flex-col items-end gap-3 min-w-[220px]">
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-primary">
-                        {formatMoney(order.total_amount)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Shipping: {formatMoney(order.shipping_fee || 0)}
-                      </p>
+                      <p className="text-2xl font-bold text-primary">{formatMoney(order.total_amount)}</p>
+                      <p className="text-xs text-muted-foreground">Shipping: {formatMoney(order.shipping_fee || 0)}</p>
                     </div>
                     
                     <div className="flex gap-2 flex-wrap justify-end">
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setPrintLabelDialog(true);
-                        }}
+                        onClick={() => generatePDFWaybill(order)}
                       >
-                        <Printer className="w-4 h-4 mr-1" />
-                        Waybill
+                        <FileDown className="w-4 h-4 mr-1" />
+                        PDF
                       </Button>
                       
-                      {!order.tracking_number && order.status !== "cancelled" && order.status !== "delivered" && (
+                      {!order.tracking_number && order.status !== "cancelled" && order.status !== "delivered" && order.status !== "refunded" && (
                         <>
                           <Button 
                             variant="outline"
@@ -554,6 +594,20 @@ export default function SellerOrderProcessing() {
                             Ship
                           </Button>
                         </>
+                      )}
+                      
+                      {(order.status === "return_faulty" || order.status === "delivered") && (
+                        <Button 
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setRefundDialog(true);
+                          }}
+                        >
+                          <Undo2 className="w-4 h-4 mr-1" />
+                          Refund
+                        </Button>
                       )}
                     </div>
 
@@ -603,9 +657,7 @@ export default function SellerOrderProcessing() {
               <Truck className="w-5 h-5" />
               Add Shipment Details
             </DialogTitle>
-            <DialogDescription>
-              Enter the courier and tracking number after printing your waybill
-            </DialogDescription>
+            <DialogDescription>Enter the courier and tracking number after printing your waybill</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-3 bg-muted rounded-lg">
@@ -620,9 +672,7 @@ export default function SellerOrderProcessing() {
                 </SelectTrigger>
                 <SelectContent>
                   {COURIERS.map((courier) => (
-                    <SelectItem key={courier.value} value={courier.value}>
-                      {courier.label}
-                    </SelectItem>
+                    <SelectItem key={courier.value} value={courier.value}>{courier.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -634,19 +684,11 @@ export default function SellerOrderProcessing() {
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                Get this from your courier's waybill after dropping off the package
-              </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShipmentDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => addShipment.mutate()}
-              disabled={!trackingNumber || !selectedCourier || addShipment.isPending}
-            >
+            <Button variant="outline" onClick={() => setShipmentDialog(false)}>Cancel</Button>
+            <Button onClick={() => addShipment.mutate()} disabled={!trackingNumber || !selectedCourier || addShipment.isPending}>
               <Send className="w-4 h-4 mr-2" />
               Ship Order
             </Button>
@@ -662,9 +704,7 @@ export default function SellerOrderProcessing() {
               <Scan className="w-5 h-5" />
               Enter Tracking Number
             </DialogTitle>
-            <DialogDescription>
-              Scan or manually enter the tracking number from your waybill
-            </DialogDescription>
+            <DialogDescription>Scan or manually enter the tracking number from your waybill</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-3 bg-muted rounded-lg">
@@ -682,13 +722,8 @@ export default function SellerOrderProcessing() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setScanTrackingDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleScanTracking}
-              disabled={!manualTrackingInput}
-            >
+            <Button variant="outline" onClick={() => setScanTrackingDialog(false)}>Cancel</Button>
+            <Button onClick={handleScanTracking} disabled={!manualTrackingInput}>
               <PackageCheck className="w-4 h-4 mr-2" />
               Continue
             </Button>
@@ -696,71 +731,37 @@ export default function SellerOrderProcessing() {
         </DialogContent>
       </Dialog>
 
-      {/* Print Label Dialog */}
-      <Dialog open={printLabelDialog} onOpenChange={setPrintLabelDialog}>
-        <DialogContent className="max-w-md">
+      {/* Refund Dialog */}
+      <Dialog open={refundDialog} onOpenChange={setRefundDialog}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Printer className="w-5 h-5" />
-              Shipping Waybill
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Undo2 className="w-5 h-5" />
+              Process Refund
             </DialogTitle>
-            <DialogDescription>
-              Print this label and attach it to your package
-            </DialogDescription>
+            <DialogDescription>This will refund the order and cancel any pending commissions.</DialogDescription>
           </DialogHeader>
-          {selectedOrder && (
-            <div ref={printRef} className="label border-2 border-dashed p-4 space-y-4">
-              <div className="header text-center border-b pb-3">
-                <h1 className="font-bold text-lg">SHIPPING LABEL</h1>
-                <p className="font-mono text-sm">#{selectedOrder.order_number}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {new Date(selectedOrder.created_at).toLocaleDateString()}
-                </p>
-              </div>
-              
-              <div className="section space-y-1">
-                <p className="section-label text-xs text-muted-foreground">FROM:</p>
-                <p className="font-medium">{profile?.full_name || "Seller"}</p>
-                <p className="text-sm text-muted-foreground">
-                  {profile?.email}
-                </p>
-              </div>
-
-              <div className="to-section bg-muted p-3 rounded-lg space-y-1">
-                <p className="text-xs text-muted-foreground">SHIP TO:</p>
-                <p className="to-name font-bold text-lg">{selectedOrder.customer_name}</p>
-                <p className="text-sm whitespace-pre-wrap">{selectedOrder.shipping_address}</p>
-                {selectedOrder.customer_phone && (
-                  <p className="text-sm flex items-center gap-1 mt-2">
-                    <Phone className="w-3 h-3" />
-                    {selectedOrder.customer_phone}
-                  </p>
-                )}
-              </div>
-
-              <div className="items text-center pt-3 border-t border-dashed">
-                <p className="text-xs text-muted-foreground">
-                  Items: {selectedOrder.items.length} | 
-                  Total: {formatMoney(selectedOrder.total_amount)}
-                </p>
-                {selectedOrder.tracking_number && (
-                  <div className="tracking mt-2">
-                    <p className="text-xs text-muted-foreground">{getCourierLabel(selectedOrder.courier)}</p>
-                    <p className="barcode font-mono text-lg tracking-widest mt-1">
-                      {selectedOrder.tracking_number}
-                    </p>
-                  </div>
-                )}
-              </div>
+          <div className="space-y-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="font-medium">Order #{selectedOrder?.order_number}</p>
+              <p className="text-sm text-muted-foreground">{selectedOrder?.customer_name}</p>
+              <p className="text-lg font-bold text-destructive mt-2">{formatMoney(selectedOrder?.total_amount || 0)}</p>
             </div>
-          )}
+            <div className="space-y-2">
+              <Label>Refund Reason</Label>
+              <Textarea 
+                placeholder="Enter reason for refund..."
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPrintLabelDialog(false)}>
-              Close
-            </Button>
-            <Button onClick={handlePrint}>
-              <Printer className="w-4 h-4 mr-2" />
-              Print Waybill
+            <Button variant="outline" onClick={() => setRefundDialog(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => processRefund.mutate()} disabled={processRefund.isPending}>
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Confirm Refund
             </Button>
           </DialogFooter>
         </DialogContent>

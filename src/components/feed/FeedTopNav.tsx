@@ -217,10 +217,10 @@ export default function FeedTopNav({ onSearchChange, showSearch = true }: FeedTo
                 ) : (
                   <button
                     onClick={() => handleMenuItemClick("/auth")}
-                    className="flex items-center gap-4 w-full px-4 py-3 rounded-full hover:bg-zinc-900 transition-colors text-white"
+                    className="flex items-center gap-4 w-full px-5 py-4 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 transition-all text-black shadow-lg shadow-amber-500/30 animate-pulse-gentle"
                   >
-                    <LogIn className="w-5 h-5 text-amber-400" />
-                    <span className="font-semibold text-lg">Sign In 🐝</span>
+                    <LogIn className="w-6 h-6" />
+                    <span className="font-bold text-xl">Sign In 🐝</span>
                   </button>
                 )}
               </nav>
