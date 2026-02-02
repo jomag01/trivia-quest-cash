@@ -32,6 +32,7 @@ const CartView = lazy(() => import("@/components/CartView").then(m => ({ default
 const WishlistView = lazy(() => import("@/components/WishlistView").then(m => ({ default: m.WishlistView })));
 const AIProductRecommendations = lazy(() => import("@/components/shop/AIProductRecommendations"));
 const ServicesList = lazy(() => import("@/components/booking/ServicesList"));
+const TravelBookingSystem = lazy(() => import("@/components/booking/TravelBookingSystem"));
 const AIHealthConsultant = lazy(() => import("@/components/shop/AIHealthConsultant"));
 const MarketplaceListings = lazy(() => import("@/components/marketplace/MarketplaceListings"));
 const AuctionProducts = lazy(() => import("@/components/shop/AuctionProducts"));
@@ -634,6 +635,43 @@ const Shop = () => {
               </p>
             </div>
 
+            {/* Booking Services - MOVED UP (below Affiliates/Disclaimer) */}
+            <button 
+              onClick={() => setShowBookings(!showBookings)}
+              className="w-full flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 hover:from-primary/15 hover:to-primary/10 transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="w-5 h-5 text-primary" />
+                <span className="text-sm font-semibold">Book Services</span>
+                <Badge variant="secondary" className="text-[10px]">Travel, Tours & More</Badge>
+              </div>
+              {showBookings ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {showBookings && (
+              <div className="space-y-4 p-3 bg-card rounded-lg border border-border/50">
+                <Tabs defaultValue="travel" className="w-full">
+                  <TabsList className="w-full grid grid-cols-2 h-9">
+                    <TabsTrigger value="travel" className="text-xs">✈️ Travel Booking</TabsTrigger>
+                    <TabsTrigger value="services" className="text-xs">🔧 All Services</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="travel" className="mt-3">
+                    <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded" />}>
+                      <TravelBookingSystem />
+                    </Suspense>
+                  </TabsContent>
+                  <TabsContent value="services" className="mt-3">
+                    <Suspense fallback={<div className="h-24 animate-pulse bg-muted rounded" />}>
+                      <ServicesList />
+                    </Suspense>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
+
             {/* Retargeted Products Section */}
             <Suspense fallback={null}>
               <RetargetedProductsSection />
@@ -659,28 +697,7 @@ const Shop = () => {
               <SellerAdsSlider />
             </Suspense>
 
-            {/* Booking Services - Collapsible */}
-            <button 
-              onClick={() => setShowBookings(!showBookings)}
-              className="w-full flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <CalendarCheck className="w-4 h-4 text-primary" />
-                <span className="text-xs font-medium">Book Services</span>
-              </div>
-              {showBookings ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              )}
-            </button>
-            {showBookings && (
-              <div className="p-2 bg-card rounded-lg border border-border/50">
-                <Suspense fallback={<div className="h-24 animate-pulse bg-muted rounded" />}>
-                  <ServicesList />
-                </Suspense>
-              </div>
-            )}
+            {/* Booking section moved above - this space intentionally removed */}
 
             {/* Main Product Grid - Infinite Scroll */}
             <div className="pt-1">

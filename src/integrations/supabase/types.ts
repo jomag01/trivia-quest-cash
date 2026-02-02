@@ -12264,14 +12264,30 @@ export type Database = {
       service_bookings: {
         Row: {
           booking_date: string
+          booking_type: string | null
+          check_in_date: string | null
+          check_out_date: string | null
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
           customer_id: string
+          downpayment_amount: number | null
+          downpayment_paid_at: string | null
           end_time: string | null
+          full_payment_amount: number | null
+          full_payment_paid_at: string | null
+          guest_names: Json | null
           id: string
           notes: string | null
+          number_of_guests: number | null
+          payment_method: string | null
+          payment_reference: string | null
+          payment_status: string | null
           provider_id: string
           referrer_id: string | null
+          room_type: string | null
           service_id: string
+          special_requests: string | null
           start_time: string
           status: string | null
           total_amount: number
@@ -12279,14 +12295,30 @@ export type Database = {
         }
         Insert: {
           booking_date: string
+          booking_type?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           customer_id: string
+          downpayment_amount?: number | null
+          downpayment_paid_at?: string | null
           end_time?: string | null
+          full_payment_amount?: number | null
+          full_payment_paid_at?: string | null
+          guest_names?: Json | null
           id?: string
           notes?: string | null
+          number_of_guests?: number | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
           provider_id: string
           referrer_id?: string | null
+          room_type?: string | null
           service_id: string
+          special_requests?: string | null
           start_time: string
           status?: string | null
           total_amount?: number
@@ -12294,14 +12326,30 @@ export type Database = {
         }
         Update: {
           booking_date?: string
+          booking_type?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           customer_id?: string
+          downpayment_amount?: number | null
+          downpayment_paid_at?: string | null
           end_time?: string | null
+          full_payment_amount?: number | null
+          full_payment_paid_at?: string | null
+          guest_names?: Json | null
           id?: string
           notes?: string | null
+          number_of_guests?: number | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
           provider_id?: string
           referrer_id?: string | null
+          room_type?: string | null
           service_id?: string
+          special_requests?: string | null
           start_time?: string
           status?: string | null
           total_amount?: number
@@ -14600,6 +14648,178 @@ export type Database = {
           value?: string | null
         }
         Relationships: []
+      }
+      travel_availability: {
+        Row: {
+          available_date: string
+          available_slots: number | null
+          booked_slots: number | null
+          created_at: string
+          id: string
+          is_blocked: boolean | null
+          package_id: string | null
+          price_override: number | null
+        }
+        Insert: {
+          available_date: string
+          available_slots?: number | null
+          booked_slots?: number | null
+          created_at?: string
+          id?: string
+          is_blocked?: boolean | null
+          package_id?: string | null
+          price_override?: number | null
+        }
+        Update: {
+          available_date?: string
+          available_slots?: number | null
+          booked_slots?: number | null
+          created_at?: string
+          id?: string
+          is_blocked?: boolean | null
+          package_id?: string | null
+          price_override?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_availability_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "travel_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      travel_booking_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_type: string | null
+          setting_value: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_type?: string | null
+          setting_value?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_type?: string | null
+          setting_value?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      travel_packages: {
+        Row: {
+          address: string | null
+          amenities: Json | null
+          check_in_time: string | null
+          check_out_time: string | null
+          created_at: string
+          destination: string
+          exclusions: Json | null
+          gallery_images: Json | null
+          id: string
+          inclusions: Json | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          latitude: number | null
+          longitude: number | null
+          max_guests: number | null
+          max_nights: number | null
+          min_guests: number | null
+          min_nights: number | null
+          package_name: string
+          package_type: string | null
+          policies: Json | null
+          price_per_night: number | null
+          price_per_person: number | null
+          provider_id: string
+          rating_average: number | null
+          review_count: number | null
+          service_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          amenities?: Json | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string
+          destination: string
+          exclusions?: Json | null
+          gallery_images?: Json | null
+          id?: string
+          inclusions?: Json | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          max_guests?: number | null
+          max_nights?: number | null
+          min_guests?: number | null
+          min_nights?: number | null
+          package_name: string
+          package_type?: string | null
+          policies?: Json | null
+          price_per_night?: number | null
+          price_per_person?: number | null
+          provider_id: string
+          rating_average?: number | null
+          review_count?: number | null
+          service_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          amenities?: Json | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string
+          destination?: string
+          exclusions?: Json | null
+          gallery_images?: Json | null
+          id?: string
+          inclusions?: Json | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          max_guests?: number | null
+          max_nights?: number | null
+          min_guests?: number | null
+          min_nights?: number | null
+          package_name?: string
+          package_type?: string | null
+          policies?: Json | null
+          price_per_night?: number | null
+          price_per_person?: number | null
+          provider_id?: string
+          rating_average?: number | null
+          review_count?: number | null
+          service_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_packages_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       treasure_admin_settings: {
         Row: {
