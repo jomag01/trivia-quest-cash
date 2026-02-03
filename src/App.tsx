@@ -43,6 +43,7 @@ const Warehouse = lazy(() => import("./pages/Warehouse"));
 const ShareholderRegistration = lazy(() => import("./pages/ShareholderRegistration"));
 const BeesMate = lazy(() => import("./pages/ChatMates"));
 const LinkRedirect = lazy(() => import("./pages/LinkRedirect"));
+const BookService = lazy(() => import("./pages/BookService"));
 
 // Courier system pages
 const CourierAdmin = lazy(() => import("./components/courier/admin/CourierAdminDashboard"));
@@ -166,6 +167,7 @@ const App = () => (
               <Route path="/shareholder-registration" element={<ShareholderRegistration />} />
               <Route path="/bees-mate" element={<BeesMate />} />
               <Route path="/s/:code" element={<LinkRedirect />} />
+              <Route path="/book/:serviceId" element={<BookService />} />
               {/* Courier system routes */}
               <Route path="/courier-admin" element={<CourierAdmin />} />
               <Route path="/courier-hub" element={<CourierHub />} />

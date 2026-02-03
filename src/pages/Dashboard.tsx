@@ -53,6 +53,7 @@ import { CommissionNotificationsCard } from "@/components/dashboard/CommissionNo
 import { BlockedUserDialog } from "@/components/BlockedUserDialog";
 import RiderMobileApp from "@/components/courier/rider/RiderMobileApp";
 import UserWhiteLabelHub from "@/components/dashboard/whitelabel/UserWhiteLabelHub";
+import DashboardBookingServices from "@/components/booking/DashboardBookingServices";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -824,6 +825,10 @@ const Dashboard = () => {
 
       <TabsContent value="suggested-products">
         <SuggestedProductsToPromote />
+      </TabsContent>
+
+      <TabsContent value="booking-services">
+        <DashboardBookingServices />
       </TabsContent>
 
       <TabsContent value="supplier-products">
