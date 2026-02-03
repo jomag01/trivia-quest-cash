@@ -31,6 +31,7 @@ import {
   Settings,
   LogOut,
   Users,
+  CalendarCheck,
   type LucideIcon
 } from "lucide-react";
 
@@ -155,6 +156,7 @@ const navItems: NavItem[] = [
     icon: Building2,
     color: "text-slate-500",
     children: [
+      { id: "booking-services", label: "Booking Services", icon: CalendarCheck, color: "text-blue-500" },
       { id: "suggested-products", label: "Products to Promote", icon: Share2, color: "text-amber-500" },
       { id: "supplier-products", label: "Supplier Products", icon: Truck, color: "text-slate-400" },
       { id: "my-listings", label: "My Listings", icon: Building2, color: "text-stone-500" },
