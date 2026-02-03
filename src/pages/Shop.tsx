@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, lazy, Suspense, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShoppingCart, Package, Search, Store, CalendarCheck, ChevronDown, ChevronUp, UtensilsCrossed, Building, Truck, Gavel } from "lucide-react";
