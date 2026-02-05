@@ -16852,6 +16852,16 @@ export type Database = {
             }
             Returns: undefined
           }
+      distribute_universal_commission: {
+        Args: {
+          p_amount: number
+          p_buyer_id: string
+          p_seller_id?: string
+          p_source_id?: string
+          p_source_type: string
+        }
+        Returns: Json
+      }
       freeze_aspn_user: {
         Args: { p_reason: string; p_user_id: string }
         Returns: undefined
@@ -16870,6 +16880,7 @@ export type Database = {
       generate_tracking_number: { Args: never; Returns: string }
       get_ai_subscription_type: { Args: { p_user_id: string }; Returns: string }
       get_referral_count: { Args: { p_user_id: string }; Returns: number }
+      get_sales_analytics_aggregated: { Args: never; Returns: Json }
       get_store_support_user_id: { Args: never; Returns: string }
       get_supplier_id: { Args: { _user_id: string }; Returns: string }
       get_unlocked_categories_count: {
@@ -16922,6 +16933,15 @@ export type Database = {
         Returns: string
       }
       process_monthly_rank_reversion: { Args: never; Returns: undefined }
+      process_seller_referrer_commission: {
+        Args: {
+          p_amount: number
+          p_order_id: string
+          p_seller_id: string
+          p_source_type: string
+        }
+        Returns: boolean
+      }
       process_upline_transfer: {
         Args: {
           p_admin_id: string
