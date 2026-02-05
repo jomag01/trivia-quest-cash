@@ -89,18 +89,46 @@ export function BeesMatePremiumUpgrade({ open, onOpenChange, currentTierKey = 'f
       expiresAt.setDate(expiresAt.getDate() + tier.duration_days);
 
       // Create subscription
-      const { error } = await supabase.from('beesmate_subscriptions').insert({
+      const { data: subData, error } = await supabase.from('beesmate_subscriptions').insert({
         user_id: user.id,
         tier_id: tier.id,
         status: 'active',
         expires_at: expiresAt.toISOString(),
-        payment_method: 'credits' // Can be extended to support other methods
-      });
+        payment_method: 'credits'
+      }).select().single();
 
       if (error) throw error;
 
-      // TODO: Distribute commissions via affiliate system
-      // This would call an edge function to handle unilevel/stairstep/leadership
+      // Distribute commissions via universal commission RPC
+      const { data: commissionResult, error: commissionError } = await supabase.rpc(
+        'distribute_universal_commission',
+        {
+          p_buyer_id: user.id,
+          p_amount: tier.price_php,
+          p_source_type: 'beesmate',
+          p_source_id: subData?.id || null,
+          p_seller_id: null
+        }
+      );
+
+      if (commissionError) {
+        console.error('Commission distribution error:', commissionError);
+      } else {
+        console.log('Commission distributed:', commissionResult);
+      }
+
+      // Record payment for analytics
+      await supabase.from('beesmate_subscription_payments').insert({
+        user_id: user.id,
+        subscription_id: subData?.id,
+        tier_id: tier.id,
+        amount_paid: tier.price_php,
+        admin_profit: tier.price_php * 0.35,
+        unilevel_pool: tier.price_php * 0.65 * 0.40,
+        stairstep_pool: tier.price_php * 0.65 * 0.35,
+        leadership_pool: tier.price_php * 0.65 * 0.25,
+        status: 'completed'
+      });
 
       toast.success(`Upgraded to ${tier.tier_name}!`);
       onOpenChange(false);
