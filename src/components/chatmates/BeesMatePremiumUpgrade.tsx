@@ -117,11 +117,11 @@ export function BeesMatePremiumUpgrade({ open, onOpenChange, currentTierKey = 'f
         console.log('Commission distributed:', commissionResult);
       }
 
-      // Record payment for analytics
+      // Record payment for analytics - use correct column name
       await supabase.from('beesmate_subscription_payments').insert({
         user_id: user.id,
         subscription_id: subData?.id,
-        tier_id: tier.id,
+        plan_type: tier.tier_key,
         amount_paid: tier.price_php,
         admin_profit: tier.price_php * 0.35,
         unilevel_pool: tier.price_php * 0.65 * 0.40,

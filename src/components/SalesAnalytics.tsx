@@ -120,7 +120,7 @@ export const SalesAnalytics = () => {
         return;
       }
 
-      const data = rpcData || {};
+      const data = (rpcData as Record<string, number>) || {};
       
       // Calculate totals from aggregated data
       const totalCommissions = 
