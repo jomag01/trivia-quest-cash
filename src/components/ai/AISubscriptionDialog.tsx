@@ -475,9 +475,7 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
 
                       <div className="mb-2">
                         <span className="text-xl font-bold">₱{plan.price.toLocaleString()}</span>
-                        <span className="text-muted-foreground text-xs">
-                          /{plan.type === 'monthly' ? 'month' : plan.type === 'biannual' ? '6mo' : 'year'}
-                        </span>
+                        <span className="text-muted-foreground text-xs">/month</span>
                       </div>
 
                       <div className="flex items-center gap-1 text-xs">
@@ -485,7 +483,7 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
                         <span>{plan.credits.toLocaleString()} credits</span>
                       </div>
 
-                      {plan.type === 'yearly' && (
+                      {plan.type === 'elite' && (
                         <p className="text-[10px] text-muted-foreground mt-1">
                           All features unlocked
                         </p>
