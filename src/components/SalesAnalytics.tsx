@@ -110,187 +110,175 @@ export const SalesAnalytics = () => {
   const fetchSalesAnalytics = async () => {
     setLoading(true);
     try {
-      // Fetch product sales (delivered orders from shop)
-      const { data: orders } = await supabase
-        .from("orders")
-        .select("total_amount")
-        .eq("status", "delivered");
-      const productSales = orders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
-
-      // Fetch food order sales (delivered)
-      const { data: foodOrders } = await supabase
-        .from("food_orders")
-        .select("total_amount")
-        .eq("status", "delivered");
-      const foodOrderSales = foodOrders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
-
-      // Fetch booking sales (completed) - simplified
-      const { data: bookings } = await supabase
-        .from("service_bookings")
-        .select("id")
-        .eq("status", "completed");
-      const bookingSales = (bookings?.length || 0) * 500; // Estimate avg booking value
-
-      // Fetch marketplace sales (completed inquiries with price)
-      const { data: marketplaceInquiries } = await supabase
-        .from("marketplace_inquiries")
-        .select("listing_id")
-        .eq("status", "accepted");
+      // Use optimized server-side aggregation RPC
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_sales_analytics_aggregated');
       
-      let marketplaceSales = 0;
-      if (marketplaceInquiries && marketplaceInquiries.length > 0) {
-        const listingIds = marketplaceInquiries.map(i => i.listing_id);
-        const { data: listings } = await supabase
-          .from("marketplace_listings")
-          .select("price")
-          .in("id", listingIds);
-        marketplaceSales = listings?.reduce((sum, listing) => sum + Number(listing.price || 0), 0) || 0;
+      if (rpcError) {
+        console.error("RPC error, falling back to client-side:", rpcError);
+        // Fallback to minimal client queries if RPC fails
+        await fetchSalesAnalyticsFallback();
+        return;
       }
 
-      // Fetch credit purchases (approved)
-      const { data: creditPurchases } = await supabase
-        .from("credit_purchases")
-        .select("amount")
-        .eq("status", "approved");
-      const creditCashins = creditPurchases?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
-
-      // Fetch diamond transactions (completed)
-      const { data: diamondTxns } = await supabase
-        .from("diamond_transactions")
-        .select("total_price")
-        .eq("status", "completed");
-      const diamondCashins = diamondTxns?.reduce((sum, txn) => sum + Number(txn.total_price), 0) || 0;
-
-      // Fetch AI Credit purchases (approved) - from ai_credit_topups instead of binary_ai_purchases
-      const { data: aiPurchases } = await supabase
-        .from("ai_credit_topups")
-        .select("amount, credits_purchased")
-        .eq("status", "approved");
-      const aiCreditPurchases = aiPurchases?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
-
-      // Fetch Auction sales (released escrows)
-      const { data: auctionEscrows } = await supabase
-        .from("auction_escrow")
-        .select("amount, platform_fee")
-        .eq("status", "released");
-      const auctionSales = auctionEscrows?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
-
-      // Fetch Ad purchases (approved)
-      const { data: adRequests } = await supabase
-        .from("ad_spend_requests")
-        .select("total_budget")
-        .eq("status", "approved");
-      const adPurchases = adRequests?.reduce((sum, ad) => sum + Number(ad.total_budget), 0) || 0;
-
-      // Fetch Supplier Markup (retailer commission from supplier products)
-      const { data: supplierCommissions } = await supabase
-        .from("retailer_supplier_commissions")
-        .select("commission_amount");
-      const supplierMarkup = supplierCommissions?.reduce((sum, c) => sum + Number(c.commission_amount), 0) || 0;
-
-      // Fetch commissions by type
-      const { data: commissions } = await supabase
-        .from("commissions")
-        .select("amount, commission_type, level");
-
-      const unilevelPayouts = commissions?.filter(c => c.commission_type === "purchase" && c.level >= 1 && c.level <= 7)
-        .reduce((sum, c) => sum + Number(c.amount), 0) || 0;
-      const stairstepPayouts = commissions?.filter(c => c.commission_type === "stair_step")
-        .reduce((sum, c) => sum + Number(c.amount), 0) || 0;
-      const breakawayPayouts = commissions?.filter(c => c.commission_type === "breakaway")
-        .reduce((sum, c) => sum + Number(c.amount), 0) || 0;
-
-      // Binary commissions removed - set to 0
-      const binaryPayouts = 0;
-
-      // Fetch leadership commissions
-      const { data: leadershipCommissions } = await supabase
-        .from("leadership_commissions")
-        .select("amount");
-      const leadershipPayouts = leadershipCommissions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
-
-      // Fetch seller referrer commissions
-      const { data: sellerReferrerCommissions } = await supabase
-        .from("seller_referrer_earnings")
-        .select("referrer_commission");
-      const sellerReferrerPayouts = sellerReferrerCommissions?.reduce((sum, c) => sum + Number(c.referrer_commission), 0) || 0;
-
-      // Fetch AI settings for cost calculation
-      const { data: settingsData } = await supabase
-        .from("app_settings")
-        .select("key, value")
-        .or("key.eq.binary_admin_safety_net,key.like.ai_credit_tier_%,key.eq.binary_selected_tier_index");
-
-      let adminSafetyNet = 35;
-      let selectedTierIndex = 0;
-      let tierCost = 0;
-
-      if (settingsData) {
-        const safetyNetSetting = settingsData.find(s => s.key === 'binary_admin_safety_net');
-        if (safetyNetSetting) adminSafetyNet = parseFloat(safetyNetSetting.value || '35');
-
-        const tierIndexSetting = settingsData.find(s => s.key === 'binary_selected_tier_index');
-        if (tierIndexSetting) selectedTierIndex = parseInt(tierIndexSetting.value || '0');
-
-        const tierCostSetting = settingsData.find(s => s.key === `ai_credit_tier_${selectedTierIndex + 1}_cost`);
-        if (tierCostSetting) tierCost = parseFloat(tierCostSetting.value || '0');
-      }
-
-      const purchaseCount = aiPurchases?.length || 0;
-      const aiCreditCosts = tierCost * purchaseCount;
-      const adminKeepsTotal = (aiCreditPurchases * adminSafetyNet) / 100;
-      const aiCreditAdminProfit = Math.max(0, adminKeepsTotal - aiCreditCosts);
-      const aiCreditAffiliatePool = Math.max(0, aiCreditPurchases - aiCreditCosts - aiCreditAdminProfit);
-
-      // Fetch BeesMate subscription payments
-      const { data: beesmatePayments } = await supabase
-        .from("beesmate_subscription_payments")
-        .select("amount_paid, admin_profit, unilevel_pool, stairstep_pool, leadership_pool")
-        .eq("status", "completed");
+      const data = (rpcData as Record<string, number>) || {};
       
-      const beesmateRevenue = beesmatePayments?.reduce((sum, p) => sum + Number(p.amount_paid), 0) || 0;
-      const beesmateAdminProfit = beesmatePayments?.reduce((sum, p) => sum + Number(p.admin_profit), 0) || 0;
-      const beesmateUnilevelPool = beesmatePayments?.reduce((sum, p) => sum + Number(p.unilevel_pool), 0) || 0;
-      const beesmateStairstepPool = beesmatePayments?.reduce((sum, p) => sum + Number(p.stairstep_pool), 0) || 0;
-      const beesmateLeadershipPool = beesmatePayments?.reduce((sum, p) => sum + Number(p.leadership_pool), 0) || 0;
+      // Calculate totals from aggregated data
+      const totalCommissions = 
+        Number(data.unilevelPayouts || 0) + 
+        Number(data.stairstepPayouts || 0) + 
+        Number(data.breakawayPayouts || 0) + 
+        Number(data.leadershipPayouts || 0) + 
+        Number(data.sellerReferrerPayouts || 0);
 
-      const totalCommissions = unilevelPayouts + stairstepPayouts + breakawayPayouts + binaryPayouts + leadershipPayouts + sellerReferrerPayouts;
-      const totalSales = productSales + foodOrderSales + bookingSales + marketplaceSales + creditCashins + diamondCashins + aiCreditPurchases + auctionSales + adPurchases + supplierMarkup + beesmateRevenue;
-      const netProfit = totalSales - totalCommissions - aiCreditCosts;
+      const totalSales = 
+        Number(data.productSales || 0) + 
+        Number(data.foodOrderSales || 0) + 
+        Number(data.bookingSales || 0) + 
+        Number(data.marketplaceSales || 0) + 
+        Number(data.creditCashins || 0) + 
+        Number(data.diamondCashins || 0) + 
+        Number(data.aiCreditPurchases || 0) + 
+        Number(data.auctionSales || 0) + 
+        Number(data.adPurchases || 0) + 
+        Number(data.supplierMarkup || 0) + 
+        Number(data.beesmateRevenue || 0);
+
+      const netProfit = totalSales - totalCommissions - Number(data.aiCreditCosts || 0);
+      
+      // AI credit profit calculation
+      const aiCreditPurchases = Number(data.aiCreditPurchases || 0);
+      const aiCreditCosts = Number(data.aiCreditCosts || 0);
+      const aiCreditAdminProfit = Math.max(0, aiCreditPurchases * 0.35 - aiCreditCosts);
+      const aiCreditAffiliatePool = Math.max(0, aiCreditPurchases * 0.65);
+
+      setSalesData({
+        totalSales,
+        productSales: Number(data.productSales || 0),
+        foodOrderSales: Number(data.foodOrderSales || 0),
+        bookingSales: Number(data.bookingSales || 0),
+        marketplaceSales: Number(data.marketplaceSales || 0),
+        creditCashins: Number(data.creditCashins || 0),
+        diamondCashins: Number(data.diamondCashins || 0),
+        aiCreditPurchases: Number(data.aiCreditPurchases || 0),
+        auctionSales: Number(data.auctionSales || 0),
+        adPurchases: Number(data.adPurchases || 0),
+        supplierMarkup: Number(data.supplierMarkup || 0),
+        unilevelPayouts: Number(data.unilevelPayouts || 0),
+        stairstepPayouts: Number(data.stairstepPayouts || 0),
+        breakawayPayouts: Number(data.breakawayPayouts || 0),
+        binaryPayouts: 0,
+        leadershipPayouts: Number(data.leadershipPayouts || 0),
+        sellerReferrerPayouts: Number(data.sellerReferrerPayouts || 0),
+        totalCommissions,
+        aiCreditCosts,
+        netProfit,
+        aiCreditAdminProfit,
+        aiCreditAffiliatePool,
+        beesmateRevenue: Number(data.beesmateRevenue || 0),
+        beesmateAdminProfit: Number(data.beesmateAdminProfit || 0),
+        beesmateUnilevelPool: Number(data.beesmateUnilevelPool || 0),
+        beesmateStairstepPool: Number(data.beesmateStairstepPool || 0),
+        beesmateLeadershipPool: Number(data.beesmateLeadershipPool || 0),
+      });
+    } catch (error: any) {
+      console.error("Error fetching sales analytics:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fallback function using batched parallel queries for resilience
+  const fetchSalesAnalyticsFallback = async () => {
+    try {
+      // Run all queries in parallel for speed
+      const [
+        ordersRes,
+        foodOrdersRes,
+        bookingsRes,
+        creditPurchasesRes,
+        diamondTxnsRes,
+        aiPurchasesRes,
+        auctionEscrowsRes,
+        adRequestsRes,
+        commissionsRes,
+        leadershipRes,
+        sellerReferrerRes,
+        beesmateRes
+      ] = await Promise.all([
+        supabase.from("orders").select("total_amount").eq("status", "delivered"),
+        supabase.from("food_orders").select("total_amount").eq("status", "delivered"),
+        supabase.from("service_bookings").select("id", { count: 'exact', head: true }).eq("status", "completed"),
+        supabase.from("credit_purchases").select("amount").eq("status", "approved"),
+        supabase.from("diamond_transactions").select("total_price").eq("status", "completed"),
+        supabase.from("ai_credit_topups").select("amount").eq("status", "approved"),
+        supabase.from("auction_escrow").select("amount").eq("status", "released"),
+        supabase.from("ad_spend_requests").select("total_budget").eq("status", "approved"),
+        supabase.from("commissions").select("amount, commission_type, level"),
+        supabase.from("leadership_commissions").select("amount"),
+        supabase.from("seller_referrer_earnings").select("referrer_commission"),
+        supabase.from("beesmate_subscription_payments").select("amount_paid, admin_profit, unilevel_pool, stairstep_pool, leadership_pool").eq("status", "completed")
+      ]);
+
+      const productSales = ordersRes.data?.reduce((sum, o) => sum + Number(o.total_amount), 0) || 0;
+      const foodOrderSales = foodOrdersRes.data?.reduce((sum, o) => sum + Number(o.total_amount), 0) || 0;
+      const bookingSales = (bookingsRes.count || 0) * 500;
+      const creditCashins = creditPurchasesRes.data?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+      const diamondCashins = diamondTxnsRes.data?.reduce((sum, t) => sum + Number(t.total_price), 0) || 0;
+      const aiCreditPurchases = aiPurchasesRes.data?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+      const auctionSales = auctionEscrowsRes.data?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      const adPurchases = adRequestsRes.data?.reduce((sum, a) => sum + Number(a.total_budget), 0) || 0;
+      
+      const commissions = commissionsRes.data || [];
+      const unilevelPayouts = commissions.filter(c => ['purchase', 'unilevel', 'unilevel_commission'].includes(c.commission_type) && c.level >= 1 && c.level <= 7)
+        .reduce((sum, c) => sum + Number(c.amount), 0);
+      const stairstepPayouts = commissions.filter(c => ['stair_step', 'stairstep', 'stairstep_commission'].includes(c.commission_type))
+        .reduce((sum, c) => sum + Number(c.amount), 0);
+      const breakawayPayouts = commissions.filter(c => c.commission_type === 'breakaway')
+        .reduce((sum, c) => sum + Number(c.amount), 0);
+      const leadershipPayouts = leadershipRes.data?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+      const sellerReferrerPayouts = sellerReferrerRes.data?.reduce((sum, c) => sum + Number(c.referrer_commission), 0) || 0;
+      
+      const beesmateData = beesmateRes.data || [];
+      const beesmateRevenue = beesmateData.reduce((sum, p) => sum + Number(p.amount_paid), 0);
+      const beesmateAdminProfit = beesmateData.reduce((sum, p) => sum + Number(p.admin_profit), 0);
+      const beesmateUnilevelPool = beesmateData.reduce((sum, p) => sum + Number(p.unilevel_pool), 0);
+      const beesmateStairstepPool = beesmateData.reduce((sum, p) => sum + Number(p.stairstep_pool), 0);
+      const beesmateLeadershipPool = beesmateData.reduce((sum, p) => sum + Number(p.leadership_pool), 0);
+
+      const totalCommissions = unilevelPayouts + stairstepPayouts + breakawayPayouts + leadershipPayouts + sellerReferrerPayouts;
+      const totalSales = productSales + foodOrderSales + bookingSales + creditCashins + diamondCashins + aiCreditPurchases + auctionSales + adPurchases + beesmateRevenue;
 
       setSalesData({
         totalSales,
         productSales,
         foodOrderSales,
         bookingSales,
-        marketplaceSales,
+        marketplaceSales: 0,
         creditCashins,
         diamondCashins,
         aiCreditPurchases,
         auctionSales,
         adPurchases,
-        supplierMarkup,
+        supplierMarkup: 0,
         unilevelPayouts,
         stairstepPayouts,
         breakawayPayouts,
-        binaryPayouts,
+        binaryPayouts: 0,
         leadershipPayouts,
         sellerReferrerPayouts,
         totalCommissions,
-        aiCreditCosts,
-        netProfit,
-        aiCreditAdminProfit,
-        aiCreditAffiliatePool,
+        aiCreditCosts: 0,
+        netProfit: totalSales - totalCommissions,
+        aiCreditAdminProfit: aiCreditPurchases * 0.35,
+        aiCreditAffiliatePool: aiCreditPurchases * 0.65,
         beesmateRevenue,
         beesmateAdminProfit,
         beesmateUnilevelPool,
         beesmateStairstepPool,
         beesmateLeadershipPool,
       });
-    } catch (error: any) {
-      console.error("Error fetching sales analytics:", error);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error("Fallback analytics error:", error);
     }
   };
 
