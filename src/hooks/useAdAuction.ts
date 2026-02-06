@@ -219,9 +219,8 @@ export const useAdAuction = () => {
       const newRemaining = Math.max((current?.impressions_remaining || 0) - 1, 0);
       const newSpent = newImpressions * (current?.cost_per_impression || 0);
       
-      // Auto-pause when impressions exhausted
+      // Auto-complete when impressions exhausted (triggers commission distribution)
       const deliveryStatus = newRemaining <= 0 ? 'exhausted' : 'delivering';
-      const newStatus = newRemaining <= 0 ? 'paused' : undefined;
       
       const updateData: any = { 
         impressions: newImpressions,
@@ -230,8 +229,8 @@ export const useAdAuction = () => {
         delivery_status: deliveryStatus
       };
       
-      if (newStatus) {
-        updateData.status = newStatus;
+      if (newRemaining <= 0) {
+        updateData.status = 'completed';
       }
       
       await supabase
