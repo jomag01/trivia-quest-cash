@@ -54,6 +54,7 @@ import { BlockedUserDialog } from "@/components/BlockedUserDialog";
 import RiderMobileApp from "@/components/courier/rider/RiderMobileApp";
 import UserWhiteLabelHub from "@/components/dashboard/whitelabel/UserWhiteLabelHub";
 import DashboardBookingServices from "@/components/booking/DashboardBookingServices";
+import RecommendedAdsViewer from "@/components/dashboard/RecommendedAdsViewer";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -829,6 +830,10 @@ const Dashboard = () => {
 
       <TabsContent value="booking-services">
         <DashboardBookingServices />
+      </TabsContent>
+
+      <TabsContent value="recommended-ads">
+        <RecommendedAdsViewer />
       </TabsContent>
 
       <TabsContent value="supplier-products">

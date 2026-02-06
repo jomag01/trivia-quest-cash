@@ -15067,6 +15067,47 @@ export type Database = {
         }
         Relationships: []
       }
+      user_ad_views: {
+        Row: {
+          ad_id: string
+          id: string
+          is_valid_view: boolean | null
+          sponsored_product_id: string | null
+          user_id: string
+          view_date: string
+          view_duration_seconds: number | null
+          viewed_at: string
+        }
+        Insert: {
+          ad_id: string
+          id?: string
+          is_valid_view?: boolean | null
+          sponsored_product_id?: string | null
+          user_id: string
+          view_date?: string
+          view_duration_seconds?: number | null
+          viewed_at?: string
+        }
+        Update: {
+          ad_id?: string
+          id?: string
+          is_valid_view?: boolean | null
+          sponsored_product_id?: string | null
+          user_id?: string
+          view_date?: string
+          view_duration_seconds?: number | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_ad_views_sponsored_product_id_fkey"
+            columns: ["sponsored_product_id"]
+            isOneToOne: false
+            referencedRelation: "sponsored_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_ads: {
         Row: {
           admin_notes: string | null
@@ -16669,6 +16710,10 @@ export type Database = {
           flag_type: string
           severity: string
         }[]
+      }
+      check_daily_ad_views_completed: {
+        Args: { p_user_id: string }
+        Returns: Json
       }
       check_level5_bonus: { Args: { player_id: string }; Returns: undefined }
       check_marketplace_eligibility: {

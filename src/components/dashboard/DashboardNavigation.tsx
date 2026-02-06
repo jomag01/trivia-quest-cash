@@ -156,6 +156,7 @@ const navItems: NavItem[] = [
     icon: Building2,
     color: "text-slate-500",
     children: [
+      { id: "recommended-ads", label: "Recommended Ads", icon: Megaphone, color: "text-rose-500" },
       { id: "booking-services", label: "Booking Services", icon: CalendarCheck, color: "text-blue-500" },
       { id: "suggested-products", label: "Products to Promote", icon: Share2, color: "text-amber-500" },
       { id: "supplier-products", label: "Supplier Products", icon: Truck, color: "text-slate-400" },
