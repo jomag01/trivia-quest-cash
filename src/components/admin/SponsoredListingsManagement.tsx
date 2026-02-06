@@ -102,16 +102,32 @@ export default function SponsoredListingsManagement() {
     try {
       const { error } = await supabase
         .from("sponsored_products")
-        .update({
-          status: "paused"
-        })
+        .update({ status: "paused" })
         .eq("id", listing.id);
 
       if (error) throw error;
-
       toast.success("Sponsorship request paused");
       setSelectedListing(null);
       setAdminNotes("");
+      fetchListings();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleMarkCompleted = async (listing: any) => {
+    setProcessing(true);
+    try {
+      const { error } = await supabase
+        .from("sponsored_products")
+        .update({ status: "completed", delivery_status: "exhausted" })
+        .eq("id", listing.id);
+
+      if (error) throw error;
+      toast.success("Ad marked as completed. Affiliate commissions will be distributed.");
+      setSelectedListing(null);
       fetchListings();
     } catch (error: any) {
       toast.error(error.message);
@@ -301,6 +317,16 @@ export default function SponsoredListingsManagement() {
                 {processing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <X className="h-4 w-4 mr-1" />}
                 Reject
               </Button>
+              {selectedListing?.status === 'active' && (
+                <Button
+                  variant="outline"
+                  onClick={() => handleMarkCompleted(selectedListing)}
+                  disabled={processing}
+                >
+                  {processing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Check className="h-4 w-4 mr-1" />}
+                  Mark Completed
+                </Button>
+              )}
               <Button
                 onClick={() => handleApprove(selectedListing)}
                 disabled={processing}
