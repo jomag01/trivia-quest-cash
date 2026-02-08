@@ -19,7 +19,7 @@ import { EditListingDialog } from "@/components/marketplace/EditListingDialog";
 import { PromoteToSliderDialog } from "@/components/seller/PromoteToSliderDialog";
 import { useGeolocation, calculateDistance } from "@/hooks/useGeolocation";
 import { 
-  Home, Car, Package, Hotel, BedDouble, Building, 
+  Car, Package, Building, 
   Plus, Search, Heart, Eye, MapPin, Calendar,
   Phone, Mail, DollarSign, Clock, Star, Filter,
   ChevronLeft, ChevronRight, Lock, AlertCircle,
@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { SponsoredListingsGrid } from "@/components/sponsored/SponsoredListingsGrid";
 
-type MarketplaceCategory = 'property_sale' | 'vehicle_sale' | 'secondhand_items' | 'property_rent' | 'room_rent' | 'hotel_staycation';
+type MarketplaceCategory = 'property_sale' | 'vehicle_sale' | 'secondhand_items';
 
 interface MarketplaceListing {
   id: string;
@@ -79,9 +79,6 @@ const CATEGORIES = [
   { id: 'property_sale', label: 'Properties for Sale', icon: Building, color: 'from-blue-500 to-blue-600' },
   { id: 'vehicle_sale', label: 'Vehicles', icon: Car, color: 'from-red-500 to-red-600' },
   { id: 'secondhand_items', label: 'Second Hand', icon: Package, color: 'from-green-500 to-green-600' },
-  { id: 'property_rent', label: 'Property Rental', icon: Home, color: 'from-purple-500 to-purple-600' },
-  { id: 'room_rent', label: 'Room Rental', icon: BedDouble, color: 'from-orange-500 to-orange-600' },
-  { id: 'hotel_staycation', label: 'Hotel & Staycation', icon: Hotel, color: 'from-pink-500 to-pink-600' },
 ];
 
 const CONDITIONS = [
@@ -516,7 +513,7 @@ const MarketplaceListings = () => {
       };
 
       // Add category-specific fields
-      if (newListing.category === 'property_sale' || newListing.category === 'property_rent') {
+      if (newListing.category === 'property_sale') {
         listingData.bedrooms = newListing.bedrooms ? parseInt(newListing.bedrooms) : null;
         listingData.bathrooms = newListing.bathrooms ? parseInt(newListing.bathrooms) : null;
         listingData.area_sqm = newListing.area_sqm ? parseFloat(newListing.area_sqm) : null;
@@ -531,12 +528,7 @@ const MarketplaceListings = () => {
         listingData.transmission = newListing.transmission || null;
       }
 
-      if (newListing.category === 'hotel_staycation' || newListing.category === 'room_rent') {
-        listingData.min_stay_nights = newListing.min_stay_nights ? parseInt(newListing.min_stay_nights) : null;
-        listingData.max_guests = newListing.max_guests ? parseInt(newListing.max_guests) : null;
-        listingData.bedrooms = newListing.bedrooms ? parseInt(newListing.bedrooms) : null;
-        listingData.bathrooms = newListing.bathrooms ? parseInt(newListing.bathrooms) : null;
-      }
+      // Hotel/Room rental categories moved to Booking Services
 
       const { error } = await supabase
         .from('marketplace_listings')
@@ -1247,7 +1239,7 @@ const MarketplaceListings = () => {
             </div>
 
             {/* Category-specific fields */}
-            {(newListing.category === 'property_sale' || newListing.category === 'property_rent') && (
+            {(newListing.category === 'property_sale') && (
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label>Bedrooms</Label>
@@ -1355,46 +1347,7 @@ const MarketplaceListings = () => {
               </>
             )}
 
-            {(newListing.category === 'hotel_staycation' || newListing.category === 'room_rent') && (
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <Label>Min Stay (nights)</Label>
-                  <Input
-                    type="number"
-                    placeholder="1"
-                    value={newListing.min_stay_nights}
-                    onChange={e => setNewListing(prev => ({ ...prev, min_stay_nights: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>Max Guests</Label>
-                  <Input
-                    type="number"
-                    placeholder="2"
-                    value={newListing.max_guests}
-                    onChange={e => setNewListing(prev => ({ ...prev, max_guests: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>Bedrooms</Label>
-                  <Input
-                    type="number"
-                    placeholder="1"
-                    value={newListing.bedrooms}
-                    onChange={e => setNewListing(prev => ({ ...prev, bedrooms: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>Bathrooms</Label>
-                  <Input
-                    type="number"
-                    placeholder="1"
-                    value={newListing.bathrooms}
-                    onChange={e => setNewListing(prev => ({ ...prev, bathrooms: e.target.value }))}
-                  />
-                </div>
-              </div>
-            )}
+            {/* Hotel/Room rental categories moved to Booking Services */}
 
             {newListing.category === 'secondhand_items' && (
               <div>

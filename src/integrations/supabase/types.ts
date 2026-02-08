@@ -3253,6 +3253,45 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_commission_settings: {
+        Row: {
+          admin_profit_percent: number
+          category_name: string
+          commission_percent: number
+          created_at: string
+          id: string
+          is_active: boolean
+          leadership_percent: number
+          stairstep_percent: number
+          unilevel_percent: number
+          updated_at: string
+        }
+        Insert: {
+          admin_profit_percent?: number
+          category_name: string
+          commission_percent?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          leadership_percent?: number
+          stairstep_percent?: number
+          unilevel_percent?: number
+          updated_at?: string
+        }
+        Update: {
+          admin_profit_percent?: number
+          category_name?: string
+          commission_percent?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          leadership_percent?: number
+          stairstep_percent?: number
+          unilevel_percent?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       campaign_metrics: {
         Row: {
           campaign_id: string
@@ -12477,8 +12516,15 @@ export type Database = {
           admin_notes: string | null
           admin_price_override: number | null
           admin_referral_diamond_override: number | null
+          amenities: string[] | null
           approval_status: string | null
+          area_sqm: number | null
+          bathrooms: number | null
+          bedrooms: number | null
           category: string | null
+          check_in_time: string | null
+          check_out_time: string | null
+          city: string | null
           created_at: string
           custom_data: Json | null
           description: string | null
@@ -12487,17 +12533,23 @@ export type Database = {
           duration_minutes: number | null
           exclusions: Json | null
           gallery_images: Json | null
+          house_rules: string | null
           id: string
           image_url: string | null
           inclusions: Json | null
           is_active: boolean | null
           latitude: number | null
+          location_address: string | null
           longitude: number | null
           max_guests: number | null
+          max_guests_rental: number | null
           meeting_point: string | null
           min_guests: number | null
+          min_stay_nights: number | null
           price: number
+          price_type: string | null
           provider_id: string
+          province: string | null
           referral_commission_diamonds: number | null
           service_radius_km: number | null
           title: string
@@ -12511,8 +12563,15 @@ export type Database = {
           admin_notes?: string | null
           admin_price_override?: number | null
           admin_referral_diamond_override?: number | null
+          amenities?: string[] | null
           approval_status?: string | null
+          area_sqm?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
           category?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          city?: string | null
           created_at?: string
           custom_data?: Json | null
           description?: string | null
@@ -12521,17 +12580,23 @@ export type Database = {
           duration_minutes?: number | null
           exclusions?: Json | null
           gallery_images?: Json | null
+          house_rules?: string | null
           id?: string
           image_url?: string | null
           inclusions?: Json | null
           is_active?: boolean | null
           latitude?: number | null
+          location_address?: string | null
           longitude?: number | null
           max_guests?: number | null
+          max_guests_rental?: number | null
           meeting_point?: string | null
           min_guests?: number | null
+          min_stay_nights?: number | null
           price?: number
+          price_type?: string | null
           provider_id: string
+          province?: string | null
           referral_commission_diamonds?: number | null
           service_radius_km?: number | null
           title: string
@@ -12545,8 +12610,15 @@ export type Database = {
           admin_notes?: string | null
           admin_price_override?: number | null
           admin_referral_diamond_override?: number | null
+          amenities?: string[] | null
           approval_status?: string | null
+          area_sqm?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
           category?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          city?: string | null
           created_at?: string
           custom_data?: Json | null
           description?: string | null
@@ -12555,17 +12627,23 @@ export type Database = {
           duration_minutes?: number | null
           exclusions?: Json | null
           gallery_images?: Json | null
+          house_rules?: string | null
           id?: string
           image_url?: string | null
           inclusions?: Json | null
           is_active?: boolean | null
           latitude?: number | null
+          location_address?: string | null
           longitude?: number | null
           max_guests?: number | null
+          max_guests_rental?: number | null
           meeting_point?: string | null
           min_guests?: number | null
+          min_stay_nights?: number | null
           price?: number
+          price_type?: string | null
           provider_id?: string
+          province?: string | null
           referral_commission_diamonds?: number | null
           service_radius_km?: number | null
           title?: string
