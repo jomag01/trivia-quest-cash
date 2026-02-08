@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Plus, Briefcase, Clock } from "lucide-react";
+import { Calendar, Plus, Briefcase, Clock, Hotel } from "lucide-react";
 import ServicesList from "@/components/booking/ServicesList";
+import RentalListings from "@/components/booking/RentalListings";
 import MyServices from "@/components/booking/MyServices";
 import MyBookings from "@/components/booking/MyBookings";
 import CreateServiceDialog from "@/components/booking/CreateServiceDialog";
@@ -21,7 +22,7 @@ const Booking = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold">Book Services</h1>
-              <p className="text-sm text-muted-foreground">Find and book services from providers</p>
+              <p className="text-sm text-muted-foreground">Find and book services, hotels & rentals</p>
             </div>
             {user && (
               <Button onClick={() => setShowCreateService(true)} size="sm">
@@ -36,14 +37,18 @@ const Booking = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="browse" className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Browse</span>
+              <span className="hidden sm:inline">Services</span>
+            </TabsTrigger>
+            <TabsTrigger value="rentals" className="flex items-center gap-1">
+              <Hotel className="h-4 w-4" />
+              <span className="hidden sm:inline">Rentals</span>
             </TabsTrigger>
             <TabsTrigger value="my-bookings" className="flex items-center gap-1">
               <Clock className="h-4 w-4" />
-              <span className="hidden sm:inline">My Bookings</span>
+              <span className="hidden sm:inline">Bookings</span>
             </TabsTrigger>
             <TabsTrigger value="my-services" className="flex items-center gap-1">
               <Briefcase className="h-4 w-4" />
@@ -53,6 +58,10 @@ const Booking = () => {
 
           <TabsContent value="browse">
             <ServicesList />
+          </TabsContent>
+
+          <TabsContent value="rentals">
+            <RentalListings />
           </TabsContent>
 
           <TabsContent value="my-bookings">

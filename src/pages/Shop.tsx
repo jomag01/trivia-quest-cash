@@ -34,6 +34,7 @@ const WishlistView = lazy(() => import("@/components/WishlistView").then(m => ({
 const AIProductRecommendations = lazy(() => import("@/components/shop/AIProductRecommendations"));
 const ServicesList = lazy(() => import("@/components/booking/ServicesList"));
 const TravelBookingSystem = lazy(() => import("@/components/booking/TravelBookingSystem"));
+const RentalListings = lazy(() => import("@/components/booking/RentalListings"));
 const AIHealthConsultant = lazy(() => import("@/components/shop/AIHealthConsultant"));
 const MarketplaceListings = lazy(() => import("@/components/marketplace/MarketplaceListings"));
 const AuctionProducts = lazy(() => import("@/components/shop/AuctionProducts"));
@@ -655,13 +656,19 @@ const Shop = () => {
             {showBookings && (
               <div className="space-y-4 p-3 bg-card rounded-lg border border-border/50">
                 <Tabs defaultValue="travel" className="w-full">
-                  <TabsList className="w-full grid grid-cols-2 h-9">
-                    <TabsTrigger value="travel" className="text-xs">✈️ Travel Booking</TabsTrigger>
-                    <TabsTrigger value="services" className="text-xs">🔧 All Services</TabsTrigger>
+                  <TabsList className="w-full grid grid-cols-3 h-9">
+                    <TabsTrigger value="travel" className="text-xs">✈️ Travel</TabsTrigger>
+                    <TabsTrigger value="rentals" className="text-xs">🏨 Rentals</TabsTrigger>
+                    <TabsTrigger value="services" className="text-xs">🔧 Services</TabsTrigger>
                   </TabsList>
                   <TabsContent value="travel" className="mt-3">
                     <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded" />}>
                       <TravelBookingSystem />
+                    </Suspense>
+                  </TabsContent>
+                  <TabsContent value="rentals" className="mt-3">
+                    <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded" />}>
+                      <RentalListings />
                     </Suspense>
                   </TabsContent>
                   <TabsContent value="services" className="mt-3">
