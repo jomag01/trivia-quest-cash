@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { format, addMinutes, parse, isBefore, isAfter, startOfDay } from "date-fns";
+import { format, addMinutes, parse, isBefore, startOfDay, differenceInDays, differenceInCalendarMonths, addDays } from "date-fns";
 import { Clock, Calendar as CalendarIcon, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ interface Service {
   description: string;
   category: string;
   price: number;
+  price_type?: string | null;
   duration_minutes: number;
   image_url: string | null;
   diamond_reward: number;
@@ -46,35 +47,44 @@ const TIME_SLOTS = [
 const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogProps) => {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [blockoutDates, setBlockoutDates] = useState<Date[]>([]);
   const [existingBookings, setExistingBookings] = useState<string[]>([]);
 
+  const isDurationBased = service?.price_type && ['per_day', 'per_night', 'per_month'].includes(service.price_type);
+
   useEffect(() => {
     if (service && open) {
       fetchBlockoutDates();
       setSelectedDate(undefined);
+      setCheckOutDate(undefined);
       setSelectedTime("");
       setNotes("");
     }
   }, [service, open]);
 
   useEffect(() => {
-    if (selectedDate && service) {
+    if (selectedDate && service && !isDurationBased) {
       fetchExistingBookings();
     }
   }, [selectedDate, service]);
 
+  // Auto-set minimum checkout date
+  useEffect(() => {
+    if (selectedDate && isDurationBased && !checkOutDate) {
+      setCheckOutDate(addDays(selectedDate, 1));
+    }
+  }, [selectedDate, isDurationBased]);
+
   const fetchBlockoutDates = async () => {
     if (!service) return;
-    
     const { data } = await supabase
       .from("service_blockout_dates")
       .select("blockout_date")
       .eq("provider_id", service.provider_id);
-    
     if (data) {
       setBlockoutDates(data.map(d => new Date(d.blockout_date)));
     }
@@ -82,14 +92,12 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
 
   const fetchExistingBookings = async () => {
     if (!selectedDate || !service) return;
-
     const { data } = await supabase
       .from("service_bookings")
       .select("start_time")
       .eq("service_id", service.id)
       .eq("booking_date", format(selectedDate, "yyyy-MM-dd"))
       .in("status", ["pending", "confirmed"]);
-
     if (data) {
       setExistingBookings(data.map(b => b.start_time));
     }
@@ -98,7 +106,15 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
   const isDateDisabled = (date: Date) => {
     const today = startOfDay(new Date());
     if (isBefore(date, today)) return true;
-    return blockoutDates.some(d => 
+    return blockoutDates.some(d =>
+      format(d, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+    );
+  };
+
+  const isCheckOutDisabled = (date: Date) => {
+    if (!selectedDate) return true;
+    if (isBefore(date, addDays(selectedDate, 1))) return true;
+    return blockoutDates.some(d =>
       format(d, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
     );
   };
@@ -107,46 +123,82 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
     return !existingBookings.includes(time + ":00");
   };
 
+  const durationInfo = useMemo(() => {
+    if (!isDurationBased || !selectedDate || !checkOutDate || !service) return null;
+
+    const days = differenceInDays(checkOutDate, selectedDate);
+    const months = differenceInCalendarMonths(checkOutDate, selectedDate);
+
+    if (service.price_type === 'per_month') {
+      const effectiveMonths = Math.max(months, 1);
+      return {
+        quantity: effectiveMonths,
+        unit: effectiveMonths === 1 ? 'month' : 'months',
+        total: service.price * effectiveMonths,
+      };
+    }
+
+    // per_day or per_night
+    const effectiveDays = Math.max(days, 1);
+    return {
+      quantity: effectiveDays,
+      unit: service.price_type === 'per_night'
+        ? (effectiveDays === 1 ? 'night' : 'nights')
+        : (effectiveDays === 1 ? 'day' : 'days'),
+      total: service.price * effectiveDays,
+    };
+  }, [isDurationBased, selectedDate, checkOutDate, service]);
+
+  const totalAmount = isDurationBased ? (durationInfo?.total ?? service?.price ?? 0) : (service?.price ?? 0);
+
+  const formatPriceLabel = () => {
+    if (!service) return '';
+    const p = `₱${service.price.toLocaleString()}`;
+    if (service.price_type === 'per_night') return `${p} / night`;
+    if (service.price_type === 'per_day') return `${p} / day`;
+    if (service.price_type === 'per_month') return `${p} / month`;
+    return p;
+  };
+
+  const canBook = isDurationBased
+    ? !!selectedDate && !!checkOutDate
+    : !!selectedDate && !!selectedTime;
+
   const handleBook = async () => {
-    if (!user) {
-      toast.error("Please log in to book a service");
-      return;
-    }
-
-    if (!service || !selectedDate || !selectedTime) {
-      toast.error("Please select a date and time");
-      return;
-    }
-
-    if (service.provider_id === user.id) {
-      toast.error("You cannot book your own service");
-      return;
-    }
+    if (!user) { toast.error("Please log in to book a service"); return; }
+    if (!service) return;
+    if (!canBook) { toast.error("Please complete all fields"); return; }
+    if (service.provider_id === user.id) { toast.error("You cannot book your own service"); return; }
 
     setLoading(true);
 
-    // Check for referrer from URL or localStorage
     const urlParams = new URLSearchParams(window.location.search);
     const referrerId = urlParams.get('ref') || localStorage.getItem('booking_referrer');
 
-    const endTime = format(
-      addMinutes(parse(selectedTime, "HH:mm", new Date()), service.duration_minutes),
-      "HH:mm"
-    );
-
-    const { error } = await supabase.from("service_bookings").insert({
+    let bookingData: any = {
       service_id: service.id,
       customer_id: user.id,
       provider_id: service.provider_id,
-      booking_date: format(selectedDate, "yyyy-MM-dd"),
-      start_time: selectedTime + ":00",
-      end_time: endTime + ":00",
-      total_amount: service.price,
+      booking_date: format(selectedDate!, "yyyy-MM-dd"),
+      total_amount: totalAmount,
       notes: notes || null,
       referrer_id: referrerId || null,
       status: "pending"
-    });
+    };
 
+    if (isDurationBased) {
+      bookingData.start_time = "14:00:00"; // Default check-in
+      bookingData.end_time = "12:00:00";   // Default check-out
+    } else {
+      const endTime = format(
+        addMinutes(parse(selectedTime, "HH:mm", new Date()), service.duration_minutes),
+        "HH:mm"
+      );
+      bookingData.start_time = selectedTime + ":00";
+      bookingData.end_time = endTime + ":00";
+    }
+
+    const { error } = await supabase.from("service_bookings").insert(bookingData);
     setLoading(false);
 
     if (error) {
@@ -187,11 +239,13 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
                 <span>{service.profiles?.full_name || "Provider"}</span>
               </div>
               <div className="flex items-center gap-3 mt-1">
-                <span className="font-bold text-primary">₱{service.price}</span>
-                <Badge variant="secondary" className="text-xs">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {service.duration_minutes} min
-                </Badge>
+                <span className="font-bold text-primary">{formatPriceLabel()}</span>
+                {!isDurationBased && (
+                  <Badge variant="secondary" className="text-xs">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {service.duration_minutes} min
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -203,46 +257,94 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
             </div>
           )}
 
-          {/* Date Selection */}
-          <div>
-            <Label className="flex items-center gap-2 mb-2">
-              <CalendarIcon className="h-4 w-4" />
-              Select Date
-            </Label>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              disabled={isDateDisabled}
-              className={cn("rounded-md border pointer-events-auto")}
-            />
-          </div>
-
-          {/* Time Selection */}
-          {selectedDate && (
-            <div>
-              <Label className="flex items-center gap-2 mb-2">
-                <Clock className="h-4 w-4" />
-                Select Time
-              </Label>
-              <div className="grid grid-cols-4 gap-2">
-                {TIME_SLOTS.map(time => {
-                  const available = isTimeSlotAvailable(time);
-                  return (
-                    <Button
-                      key={time}
-                      variant={selectedTime === time ? "default" : "outline"}
-                      size="sm"
-                      disabled={!available}
-                      onClick={() => setSelectedTime(time)}
-                      className="text-xs"
-                    >
-                      {time}
-                    </Button>
-                  );
-                })}
+          {/* Duration-based: Check-in & Check-out */}
+          {isDurationBased ? (
+            <div className="space-y-4">
+              <div>
+                <Label className="flex items-center gap-2 mb-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  Check-in Date
+                </Label>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(d) => {
+                    setSelectedDate(d);
+                    setCheckOutDate(undefined);
+                  }}
+                  disabled={isDateDisabled}
+                  className={cn("rounded-md border pointer-events-auto")}
+                />
               </div>
+
+              {selectedDate && (
+                <div>
+                  <Label className="flex items-center gap-2 mb-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    Check-out Date
+                  </Label>
+                  <Calendar
+                    mode="single"
+                    selected={checkOutDate}
+                    onSelect={setCheckOutDate}
+                    disabled={isCheckOutDisabled}
+                    className={cn("rounded-md border pointer-events-auto")}
+                  />
+                </div>
+              )}
+
+              {durationInfo && (
+                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>₱{service.price.toLocaleString()} × {durationInfo.quantity} {durationInfo.unit}</span>
+                    <span className="font-semibold">₱{durationInfo.total.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
             </div>
+          ) : (
+            <>
+              {/* Fixed price: Date + Time */}
+              <div>
+                <Label className="flex items-center gap-2 mb-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  Select Date
+                </Label>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  disabled={isDateDisabled}
+                  className={cn("rounded-md border pointer-events-auto")}
+                />
+              </div>
+
+              {selectedDate && (
+                <div>
+                  <Label className="flex items-center gap-2 mb-2">
+                    <Clock className="h-4 w-4" />
+                    Select Time
+                  </Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {TIME_SLOTS.map(time => {
+                      const available = isTimeSlotAvailable(time);
+                      return (
+                        <Button
+                          key={time}
+                          variant={selectedTime === time ? "default" : "outline"}
+                          size="sm"
+                          disabled={!available}
+                          onClick={() => setSelectedTime(time)}
+                          className="text-xs"
+                        >
+                          {time}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* Notes */}
@@ -257,20 +359,25 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
           </div>
 
           {/* Summary */}
-          {selectedDate && selectedTime && (
+          {canBook && (
             <div className="p-3 bg-muted/50 rounded-lg space-y-1 text-sm">
-              <p><strong>Date:</strong> {format(selectedDate, "EEEE, MMMM d, yyyy")}</p>
-              <p><strong>Time:</strong> {selectedTime}</p>
-              <p><strong>Total:</strong> ₱{service.price}</p>
+              <p><strong>{isDurationBased ? 'Check-in:' : 'Date:'}</strong> {format(selectedDate!, "EEEE, MMMM d, yyyy")}</p>
+              {isDurationBased && checkOutDate && (
+                <p><strong>Check-out:</strong> {format(checkOutDate, "EEEE, MMMM d, yyyy")}</p>
+              )}
+              {!isDurationBased && selectedTime && (
+                <p><strong>Time:</strong> {selectedTime}</p>
+              )}
+              <p><strong>Total:</strong> ₱{totalAmount.toLocaleString()}</p>
             </div>
           )}
 
-          <Button 
-            onClick={handleBook} 
-            disabled={loading || !selectedDate || !selectedTime}
+          <Button
+            onClick={handleBook}
+            disabled={loading || !canBook}
             className="w-full"
           >
-            {loading ? "Booking..." : "Confirm Booking"}
+            {loading ? "Booking..." : `Confirm Booking · ₱${totalAmount.toLocaleString()}`}
           </Button>
         </div>
       </DialogContent>
