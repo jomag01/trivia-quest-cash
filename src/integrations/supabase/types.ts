@@ -7850,6 +7850,104 @@ export type Database = {
         }
         Relationships: []
       }
+      installment_applications: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          id: string
+          interest_rate: number
+          monthly_payment: number
+          order_id: string | null
+          product_id: string
+          provider_id: string
+          status: string
+          term_months: number
+          total_amount: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          id?: string
+          interest_rate?: number
+          monthly_payment: number
+          order_id?: string | null
+          product_id: string
+          provider_id: string
+          status?: string
+          term_months: number
+          total_amount: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          id?: string
+          interest_rate?: number
+          monthly_payment?: number
+          order_id?: string | null
+          product_id?: string
+          provider_id?: string
+          status?: string
+          term_months?: number
+          total_amount?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installment_applications_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "installment_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      installment_providers: {
+        Row: {
+          available_terms: number[] | null
+          created_at: string | null
+          description: string | null
+          id: string
+          interest_rate_percent: number | null
+          is_active: boolean | null
+          logo_url: string | null
+          max_amount: number | null
+          min_amount: number | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          available_terms?: number[] | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          interest_rate_percent?: number | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          max_amount?: number | null
+          min_amount?: number | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          available_terms?: number[] | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          interest_rate_percent?: number | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          max_amount?: number | null
+          min_amount?: number | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           barcode: string | null
@@ -10449,6 +10547,44 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_installment_settings: {
+        Row: {
+          created_at: string | null
+          custom_interest_rate: number | null
+          custom_terms: number[] | null
+          id: string
+          is_enabled: boolean | null
+          product_id: string
+          provider_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          custom_interest_rate?: number | null
+          custom_terms?: number[] | null
+          id?: string
+          is_enabled?: boolean | null
+          product_id: string
+          provider_id: string
+        }
+        Update: {
+          created_at?: string | null
+          custom_interest_rate?: number | null
+          custom_terms?: number[] | null
+          id?: string
+          is_enabled?: boolean | null
+          product_id?: string
+          provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_installment_settings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "installment_providers"
             referencedColumns: ["id"]
           },
         ]

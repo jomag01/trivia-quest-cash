@@ -111,6 +111,7 @@ import SponsoredListingsManagement from "@/components/admin/SponsoredListingsMan
 import SponsoredListingsSettings from "@/components/admin/SponsoredListingsSettings";
 import WhiteLabelManagement from "@/components/admin/WhiteLabelManagement";
 import PromotableItemsManagement from "@/components/admin/PromotableItemsManagement";
+import InstallmentManagement from "@/components/admin/InstallmentManagement";
 
 interface MenuItem {
   id: string;
@@ -214,6 +215,7 @@ const Admin = () => {
         { id: "suppliers", label: "Supplier Management", icon: Building2 },
         { id: "auctions", label: "Auctions", icon: Gavel },
         { id: "promotable-items", label: "Promotable Items", icon: Sparkles },
+        { id: "installments", label: "Installment Plans", icon: CreditCard },
       ],
     },
     {
@@ -906,6 +908,7 @@ const Admin = () => {
           {activeTab === "sponsored-listings" && <SponsoredListingsManagement />}
           {activeTab === "sponsored-settings" && <SponsoredListingsSettings />}
           {activeTab === "promotable-items" && <PromotableItemsManagement />}
+          {activeTab === "installments" && <InstallmentManagement />}
           {activeTab === "warehouse" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
