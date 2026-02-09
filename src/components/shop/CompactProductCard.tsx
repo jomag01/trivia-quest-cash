@@ -1,5 +1,6 @@
 import { memo, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Heart, Star, Zap, Brain, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ interface Product {
   ai_pick?: boolean;
   trending?: boolean;
   fast_seller?: boolean;
+  has_installment?: boolean;
 }
 
 interface CompactProductCardProps {
@@ -193,6 +195,15 @@ const CompactProductCard = memo(({
             </span>
           )}
         </div>
+
+        {/* Installment Badge */}
+        {product.has_installment && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-primary/40 text-primary">
+              Installment Available
+            </Badge>
+          </div>
+        )}
 
         {/* Sales Count */}
         {product.combined_sales && product.combined_sales > 0 && (

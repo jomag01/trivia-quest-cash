@@ -18,6 +18,7 @@ interface Product {
   ai_pick?: boolean;
   trending?: boolean;
   fast_seller?: boolean;
+  has_installment?: boolean;
 }
 
 interface InfiniteProductGridProps {
