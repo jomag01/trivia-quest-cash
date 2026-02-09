@@ -52,6 +52,7 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
     description: "",
     category: "",
     price: "",
+    price_type: "fixed",
     duration_minutes: "60",
     diamond_reward: "0",
     referral_commission_diamonds: "0",
@@ -199,6 +200,7 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
       description: formData.description,
       category: formData.category,
       price: parseFloat(formData.price),
+      price_type: formData.price_type === 'fixed' ? null : formData.price_type,
       duration_minutes: parseInt(formData.duration_minutes),
       diamond_reward: parseInt(formData.diamond_reward),
       referral_commission_diamonds: parseInt(formData.referral_commission_diamonds),
@@ -238,6 +240,7 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
       description: "",
       category: "",
       price: "",
+      price_type: "fixed",
       duration_minutes: "60",
       diamond_reward: "0",
       referral_commission_diamonds: "0",
@@ -420,7 +423,7 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
             </Select>
           </div>
 
-          {/* Price & Duration */}
+          {/* Price, Price Type & Duration */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="price">Price (₱) *</Label>
@@ -435,6 +438,26 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
                 required
               />
             </div>
+            <div>
+              <Label>Pricing Type *</Label>
+              <Select 
+                value={formData.price_type} 
+                onValueChange={(v) => setFormData({ ...formData, price_type: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fixed">Fixed Price</SelectItem>
+                  <SelectItem value="per_day">Per Day</SelectItem>
+                  <SelectItem value="per_night">Per Night</SelectItem>
+                  <SelectItem value="per_month">Per Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {formData.price_type === 'fixed' && (
             <div>
               <Label htmlFor="duration">Duration (mins)</Label>
               <Select 
@@ -454,7 +477,7 @@ const CreateServiceDialog = ({ open, onOpenChange }: CreateServiceDialogProps) =
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          )}
 
           {/* Travel/Tour Specific Fields */}
           {isTravelCategory && (
