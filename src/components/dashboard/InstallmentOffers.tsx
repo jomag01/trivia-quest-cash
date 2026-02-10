@@ -40,11 +40,11 @@ const InstallmentOffers = () => {
   const fetchWallet = async () => {
     if (!user) return;
     const { data } = await supabase
-      .from("profiles")
-      .select("cash_wallet_balance")
-      .eq("id", user.id)
+      .from("cash_wallets")
+      .select("balance")
+      .eq("user_id", user.id)
       .maybeSingle();
-    setWalletBalance(data?.cash_wallet_balance || 0);
+    setWalletBalance(data?.balance || 0);
   };
 
   const fetchOffers = async () => {
