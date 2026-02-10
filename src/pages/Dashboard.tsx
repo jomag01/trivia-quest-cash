@@ -48,6 +48,7 @@ import { CurrencyConversionDialog } from "@/components/CurrencyConversionDialog"
 import CashWalletCard from "@/components/CashWalletCard";
 import { useHiddenTabs } from "@/hooks/useHiddenTabs";
 import SellerOrderProcessing from "@/components/dashboard/SellerOrderProcessing";
+import InstallmentOffers from "@/components/dashboard/InstallmentOffers";
 import { CommissionEarningsCard } from "@/components/dashboard/CommissionEarningsCard";
 import { CommissionNotificationsCard } from "@/components/dashboard/CommissionNotificationsCard";
 import { BlockedUserDialog } from "@/components/BlockedUserDialog";
@@ -534,6 +535,9 @@ const Dashboard = () => {
 
         {/* Seller Referral Earnings */}
         <CommissionEarningsCard />
+
+        {/* Installment Offers for Affiliates */}
+        <InstallmentOffers />
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Referral Network */}
