@@ -115,23 +115,46 @@ const InstallmentManagement = () => {
 
   const handleAssignProduct = async () => {
     if (!selectedProductId || !selectedProviderId) return;
-    console.log("Assigning product:", selectedProductId, "to provider:", selectedProviderId);
-    const { data, error } = await supabase.from("product_installment_settings").upsert({
-      product_id: selectedProductId,
-      provider_id: selectedProviderId,
-      is_enabled: true,
-    }, { onConflict: "product_id,provider_id" });
-    console.log("Upsert result:", { data, error });
-    if (error) { 
-      console.error("Installment assign error:", error);
-      toast.error("Failed to assign: " + error.message); 
-      return; 
+    
+    try {
+      // Check if assignment already exists
+      const { data: existing } = await supabase
+        .from("product_installment_settings")
+        .select("id")
+        .eq("product_id", selectedProductId)
+        .eq("provider_id", selectedProviderId)
+        .maybeSingle();
+
+      let error;
+      if (existing) {
+        ({ error } = await supabase
+          .from("product_installment_settings")
+          .update({ is_enabled: true })
+          .eq("id", existing.id));
+      } else {
+        ({ error } = await supabase
+          .from("product_installment_settings")
+          .insert({
+            product_id: selectedProductId,
+            provider_id: selectedProviderId,
+            is_enabled: true,
+          }));
+      }
+
+      if (error) {
+        console.error("Installment assign error:", error);
+        toast.error("Failed to assign: " + error.message);
+        return;
+      }
+      toast.success("Product assigned to installment");
+      setAssignDialogOpen(false);
+      setSelectedProductId("");
+      setSelectedProviderId("");
+      fetchAll();
+    } catch (err: any) {
+      console.error("Installment assign exception:", err);
+      toast.error("Error: " + err.message);
     }
-    toast.success("Product assigned to installment");
-    setAssignDialogOpen(false);
-    setSelectedProductId("");
-    setSelectedProviderId("");
-    fetchAll();
   };
 
   const handleRemoveAssignment = async (id: string) => {
