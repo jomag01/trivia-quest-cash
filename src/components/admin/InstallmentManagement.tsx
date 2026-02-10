@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2, Package, CreditCard, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Package, CreditCard, Loader2, UserPlus } from "lucide-react";
 
 interface Provider {
   id: string;
@@ -29,8 +29,6 @@ interface ProductInstallment {
   product_id: string;
   provider_id: string;
   is_enabled: boolean;
-  product_name?: string;
-  provider_name?: string;
 }
 
 const InstallmentManagement = () => {
@@ -38,6 +36,8 @@ const InstallmentManagement = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [productInstallments, setProductInstallments] = useState<ProductInstallment[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
+  const [userOffers, setUserOffers] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
@@ -45,6 +45,14 @@ const InstallmentManagement = () => {
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedProviderId, setSelectedProviderId] = useState("");
   const [searchProducts, setSearchProducts] = useState("");
+
+  // User offer assignment state
+  const [offerDialogOpen, setOfferDialogOpen] = useState(false);
+  const [offerUserId, setOfferUserId] = useState("");
+  const [offerProductId, setOfferProductId] = useState("");
+  const [offerProviderId, setOfferProviderId] = useState("");
+  const [searchUsers, setSearchUsers] = useState("");
+  const [searchOfferProducts, setSearchOfferProducts] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -63,16 +71,20 @@ const InstallmentManagement = () => {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [provRes, prodRes, settingsRes, appRes] = await Promise.all([
+    const [provRes, prodRes, settingsRes, appRes, offersRes, profilesRes] = await Promise.all([
       supabase.from("installment_providers").select("*").order("created_at", { ascending: false }),
       supabase.from("products").select("id, name, base_price, image_url").order("name"),
       supabase.from("product_installment_settings").select("*"),
       supabase.from("installment_applications").select("*").order("created_at", { ascending: false }).limit(50),
+      supabase.from("user_installment_offers").select("*").order("created_at", { ascending: false }),
+      supabase.from("profiles").select("id, full_name, email, avatar_url").limit(500),
     ]);
     if (provRes.data) setProviders(provRes.data as Provider[]);
     if (prodRes.data) setProducts(prodRes.data);
     if (settingsRes.data) setProductInstallments(settingsRes.data as ProductInstallment[]);
     if (appRes.data) setApplications(appRes.data);
+    if (offersRes.data) setUserOffers(offersRes.data);
+    if (profilesRes.data) setProfiles(profilesRes.data);
     setLoading(false);
   };
 
@@ -97,7 +109,7 @@ const InstallmentManagement = () => {
     }
 
     if (error) {
-      toast.error("Failed to save provider");
+      toast.error("Failed to save provider: " + error.message);
       return;
     }
     toast.success(editingProvider ? "Provider updated" : "Provider added");
@@ -117,7 +129,6 @@ const InstallmentManagement = () => {
     if (!selectedProductId || !selectedProviderId) return;
     
     try {
-      // Check if assignment already exists
       const { data: existing } = await supabase
         .from("product_installment_settings")
         .select("id")
@@ -169,6 +180,51 @@ const InstallmentManagement = () => {
     fetchAll();
   };
 
+  const handleAssignUserOffer = async () => {
+    if (!offerUserId || !offerProductId || !offerProviderId) return;
+    
+    try {
+      const { data: existing } = await supabase
+        .from("user_installment_offers")
+        .select("id")
+        .eq("user_id", offerUserId)
+        .eq("product_id", offerProductId)
+        .eq("provider_id", offerProviderId)
+        .maybeSingle();
+
+      if (existing) {
+        toast.error("This offer is already assigned to this user");
+        return;
+      }
+
+      const { error } = await supabase.from("user_installment_offers").insert({
+        user_id: offerUserId,
+        product_id: offerProductId,
+        provider_id: offerProviderId,
+        status: "active",
+      });
+
+      if (error) {
+        toast.error("Failed to assign offer: " + error.message);
+        return;
+      }
+      toast.success("Installment offer assigned to user");
+      setOfferDialogOpen(false);
+      setOfferUserId("");
+      setOfferProductId("");
+      setOfferProviderId("");
+      fetchAll();
+    } catch (err: any) {
+      toast.error("Error: " + err.message);
+    }
+  };
+
+  const handleRemoveUserOffer = async (id: string) => {
+    await supabase.from("user_installment_offers").delete().eq("id", id);
+    toast.success("Offer removed");
+    fetchAll();
+  };
+
   const resetForm = () => {
     setEditingProvider(null);
     setForm({ name: "", logo_url: "", description: "", interest_rate_percent: 0, min_amount: 0, max_amount: "", available_terms: "3,6,12", is_active: true });
@@ -193,8 +249,18 @@ const InstallmentManagement = () => {
     p.name?.toLowerCase().includes(searchProducts.toLowerCase())
   );
 
+  const filteredOfferProducts = products.filter(p =>
+    p.name?.toLowerCase().includes(searchOfferProducts.toLowerCase())
+  );
+
+  const filteredUsers = profiles.filter(p =>
+    (p.full_name?.toLowerCase().includes(searchUsers.toLowerCase()) || 
+     p.email?.toLowerCase().includes(searchUsers.toLowerCase()))
+  );
+
   const getProductName = (pid: string) => products.find(p => p.id === pid)?.name || pid.slice(0, 8);
   const getProviderName = (pid: string) => providers.find(p => p.id === pid)?.name || pid.slice(0, 8);
+  const getUserName = (uid: string) => profiles.find(p => p.id === uid)?.full_name || uid.slice(0, 8);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>;
 
@@ -208,9 +274,10 @@ const InstallmentManagement = () => {
       </div>
 
       <Tabs defaultValue="providers">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="providers"><Building2 className="w-4 h-4 mr-1" /> Providers</TabsTrigger>
           <TabsTrigger value="products"><Package className="w-4 h-4 mr-1" /> Product Assignments</TabsTrigger>
+          <TabsTrigger value="user-offers"><UserPlus className="w-4 h-4 mr-1" /> User Offers</TabsTrigger>
           <TabsTrigger value="applications"><CreditCard className="w-4 h-4 mr-1" /> Applications</TabsTrigger>
         </TabsList>
 
@@ -253,7 +320,7 @@ const InstallmentManagement = () => {
                     <Input type="number" value={form.max_amount} onChange={e => setForm(f => ({ ...f, max_amount: e.target.value }))} placeholder="No limit" />
                   </div>
                   <div>
-                    <Label>Terms (months, comma-separated)</Label>
+                    <Label>Terms (months)</Label>
                     <Input value={form.available_terms} onChange={e => setForm(f => ({ ...f, available_terms: e.target.value }))} placeholder="3,6,12" />
                   </div>
                 </div>
@@ -350,17 +417,90 @@ const InstallmentManagement = () => {
           </div>
         </TabsContent>
 
+        {/* USER OFFERS TAB */}
+        <TabsContent value="user-offers" className="space-y-3">
+          <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><UserPlus className="w-4 h-4 mr-1" /> Assign Offer to User</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader><DialogTitle>Assign Installment Offer to User</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <Label>Search User</Label>
+                  <Input value={searchUsers} onChange={e => setSearchUsers(e.target.value)} placeholder="Search by name or email..." />
+                  <div className="max-h-32 overflow-y-auto border rounded mt-1">
+                    {filteredUsers.slice(0, 20).map(u => (
+                      <button key={u.id} onClick={() => setOfferUserId(u.id)}
+                        className={`w-full text-left text-sm px-3 py-2 hover:bg-muted ${offerUserId === u.id ? "bg-primary/10 font-medium" : ""}`}>
+                        {u.full_name || "No Name"} · {u.email}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label>Search Product</Label>
+                  <Input value={searchOfferProducts} onChange={e => setSearchOfferProducts(e.target.value)} placeholder="Search product..." />
+                  <div className="max-h-32 overflow-y-auto border rounded mt-1">
+                    {filteredOfferProducts.slice(0, 20).map(p => (
+                      <button key={p.id} onClick={() => setOfferProductId(p.id)}
+                        className={`w-full text-left text-sm px-3 py-2 hover:bg-muted ${offerProductId === p.id ? "bg-primary/10 font-medium" : ""}`}>
+                        {p.name} · ₱{p.base_price?.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label>Provider</Label>
+                  <div className="space-y-1 mt-1">
+                    {providers.filter(p => p.is_active).map(p => (
+                      <button key={p.id} onClick={() => setOfferProviderId(p.id)}
+                        className={`w-full text-left text-sm px-3 py-2 rounded border hover:bg-muted ${offerProviderId === p.id ? "bg-primary/10 border-primary" : ""}`}>
+                        {p.name} · {p.interest_rate_percent}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Button className="w-full" onClick={handleAssignUserOffer} disabled={!offerUserId || !offerProductId || !offerProviderId}>
+                  Assign Offer
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <div className="grid gap-2">
+            {userOffers.map((offer: any) => (
+              <Card key={offer.id} className="p-3 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">{getUserName(offer.user_id)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {getProductName(offer.product_id)} · via {getProviderName(offer.provider_id)}
+                  </p>
+                  <Badge variant={offer.status === "active" ? "default" : "secondary"} className="mt-1">{offer.status}</Badge>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => handleRemoveUserOffer(offer.id)}>
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </Button>
+              </Card>
+            ))}
+            {userOffers.length === 0 && <p className="text-center text-muted-foreground py-8">No user offers assigned yet</p>}
+          </div>
+        </TabsContent>
+
         {/* APPLICATIONS TAB */}
         <TabsContent value="applications" className="space-y-3">
           {applications.map((app: any) => (
             <Card key={app.id} className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-sm">{getProductName(app.product_id)}</p>
+                  <p className="font-medium text-sm">{getUserName(app.user_id)} — {getProductName(app.product_id)}</p>
                   <p className="text-xs text-muted-foreground">
                     {app.term_months} months · ₱{app.monthly_payment?.toLocaleString()}/mo · Total ₱{app.total_amount?.toLocaleString()}
                   </p>
                   <p className="text-xs text-muted-foreground">via {getProviderName(app.provider_id)}</p>
+                  {app.downpayment_amount > 0 && (
+                    <p className="text-xs text-primary">Downpayment: ₱{app.downpayment_amount?.toLocaleString()} {app.downpayment_paid ? "✓ Paid" : "· Pending"}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={app.status === "approved" ? "default" : app.status === "rejected" ? "destructive" : "secondary"}>
