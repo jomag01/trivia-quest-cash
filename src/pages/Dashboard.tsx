@@ -536,6 +536,9 @@ const Dashboard = () => {
         {/* Seller Referral Earnings */}
         <CommissionEarningsCard />
 
+        {/* Installment Offers for Affiliates */}
+        <InstallmentOffers />
+
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Referral Network */}
           <Card className="p-6 gradient-accent border-primary/20 shadow-card">
