@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CreditCard, Loader2, Calculator } from "lucide-react";
+import { CreditCard, Loader2, Calculator, PackageX } from "lucide-react";
 import { toast } from "sonner";
 
-interface InstallmentProduct {
+interface UserOffer {
+  id: string;
   product_id: string;
   product_name: string;
   product_price: number;
@@ -23,29 +24,48 @@ interface InstallmentProduct {
 
 const InstallmentOffers = () => {
   const { user } = useAuth();
-  const [offers, setOffers] = useState<InstallmentProduct[]>([]);
+  const [offers, setOffers] = useState<UserOffer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [applyDialog, setApplyDialog] = useState<InstallmentProduct | null>(null);
+  const [applyDialog, setApplyDialog] = useState<UserOffer | null>(null);
   const [selectedTerm, setSelectedTerm] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
 
   useEffect(() => {
     if (!user) return;
     fetchOffers();
+    fetchWallet();
   }, [user]);
 
+  const fetchWallet = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("cash_wallets")
+      .select("balance")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    setWalletBalance(data?.balance || 0);
+  };
+
   const fetchOffers = async () => {
+    if (!user) return;
     setLoading(true);
-    // Get all enabled installment settings
-    const { data: settings } = await supabase
-      .from("product_installment_settings")
-      .select("product_id, provider_id, is_enabled")
-      .eq("is_enabled", true);
 
-    if (!settings?.length) { setLoading(false); return; }
+    // Get offers assigned to this user by admin
+    const { data: userOffers } = await supabase
+      .from("user_installment_offers")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("status", "active");
 
-    const productIds = [...new Set(settings.map(s => s.product_id))];
-    const providerIds = [...new Set(settings.map(s => s.provider_id))];
+    if (!userOffers?.length) {
+      setOffers([]);
+      setLoading(false);
+      return;
+    }
+
+    const productIds = [...new Set(userOffers.map(o => o.product_id))];
+    const providerIds = [...new Set(userOffers.map(o => o.provider_id))];
 
     const [prodRes, provRes] = await Promise.all([
       supabase.from("products").select("id, name, base_price, image_url").in("id", productIds),
@@ -55,13 +75,13 @@ const InstallmentOffers = () => {
     const products = prodRes.data || [];
     const providers = provRes.data || [];
 
-    const mapped: InstallmentProduct[] = [];
-    for (const s of settings) {
-      const product = products.find(p => p.id === s.product_id);
-      const provider = providers.find(p => p.id === s.provider_id);
+    const mapped: UserOffer[] = [];
+    for (const o of userOffers) {
+      const product = products.find(p => p.id === o.product_id);
+      const provider = providers.find(p => p.id === o.provider_id);
       if (!product || !provider) continue;
-      if (product.base_price < (provider.min_amount || 0)) continue;
       mapped.push({
+        id: o.id,
         product_id: product.id,
         product_name: product.name,
         product_price: product.base_price,
@@ -88,6 +108,7 @@ const InstallmentOffers = () => {
     const term = parseInt(selectedTerm);
     const monthly = calcMonthly(applyDialog.product_price, applyDialog.interest_rate, term);
     const total = monthly * term;
+    const downpayment = Math.round(monthly * 100) / 100; // First month as downpayment
 
     const { error } = await supabase.from("installment_applications").insert({
       user_id: user.id,
@@ -96,53 +117,67 @@ const InstallmentOffers = () => {
       term_months: term,
       monthly_payment: Math.round(monthly * 100) / 100,
       total_amount: Math.round(total * 100) / 100,
+      downpayment_amount: downpayment,
       status: "pending",
+      offer_id: applyDialog.id,
     });
 
     setSubmitting(false);
     if (error) {
-      toast.error("Failed to submit application");
+      console.error("Application error:", error);
+      toast.error("Failed to submit application: " + error.message);
       return;
     }
-    toast.success("Installment application submitted! Waiting for admin approval.");
+    toast.success("Installment application submitted! Waiting for admin approval. Downpayment will be deducted from your wallet upon approval.");
     setApplyDialog(null);
     setSelectedTerm("");
   };
 
   if (loading) return <Card className="p-6"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></Card>;
-  if (!offers.length) return null;
 
   return (
     <Card className="p-6 border-primary/20">
       <div className="flex items-center gap-2 mb-4">
         <CreditCard className="w-5 h-5 text-primary" />
         <h3 className="text-lg font-bold">Installment Offers</h3>
-        <Badge variant="secondary" className="ml-auto">{offers.length} available</Badge>
+        {offers.length > 0 && (
+          <Badge variant="secondary" className="ml-auto">{offers.length} available</Badge>
+        )}
       </div>
-      <p className="text-sm text-muted-foreground mb-4">Products available for installment payment plans</p>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {offers.map((offer, i) => (
-          <Card key={`${offer.product_id}-${offer.provider_id}-${i}`} className="p-3 flex gap-3">
-            {offer.product_image ? (
-              <img src={offer.product_image} alt="" className="w-16 h-16 rounded object-cover shrink-0" />
-            ) : (
-              <div className="w-16 h-16 rounded bg-muted shrink-0" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{offer.product_name}</p>
-              <p className="text-xs text-muted-foreground">₱{offer.product_price.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">via {offer.provider_name} · {offer.interest_rate}%</p>
-              <p className="text-xs text-primary font-medium">
-                From ₱{Math.round(calcMonthly(offer.product_price, offer.interest_rate, Math.max(...offer.available_terms))).toLocaleString()}/mo
-              </p>
-            </div>
-            <Button size="sm" variant="outline" className="self-center shrink-0" onClick={() => { setApplyDialog(offer); setSelectedTerm(""); }}>
-              <Calculator className="w-3.5 h-3.5 mr-1" /> Apply
-            </Button>
-          </Card>
-        ))}
-      </div>
+      {offers.length === 0 ? (
+        <div className="text-center py-8">
+          <PackageX className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">No installment offers available for you yet.</p>
+          <p className="text-xs text-muted-foreground mt-1">Admin will assign installment offers when you qualify.</p>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-muted-foreground mb-4">Products available for installment payment — assigned by admin</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {offers.map((offer) => (
+              <Card key={offer.id} className="p-3 flex gap-3">
+                {offer.product_image ? (
+                  <img src={offer.product_image} alt="" className="w-16 h-16 rounded object-cover shrink-0" />
+                ) : (
+                  <div className="w-16 h-16 rounded bg-muted shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{offer.product_name}</p>
+                  <p className="text-xs text-muted-foreground">₱{offer.product_price.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">via {offer.provider_name} · {offer.interest_rate}%</p>
+                  <p className="text-xs text-primary font-medium">
+                    From ₱{Math.round(calcMonthly(offer.product_price, offer.interest_rate, Math.max(...offer.available_terms))).toLocaleString()}/mo
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" className="self-center shrink-0" onClick={() => { setApplyDialog(offer); setSelectedTerm(""); }}>
+                  <Calculator className="w-3.5 h-3.5 mr-1" /> Apply
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Apply Dialog */}
       <Dialog open={!!applyDialog} onOpenChange={(v) => { if (!v) setApplyDialog(null); }}>
@@ -169,17 +204,28 @@ const InstallmentOffers = () => {
                 </Select>
               </div>
               {selectedTerm && (
-                <Card className="p-3 bg-muted/50">
+                <Card className="p-3 bg-muted/50 space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span>Monthly</span>
+                    <span>Monthly Payment</span>
                     <span className="font-bold">₱{Math.round(calcMonthly(applyDialog.product_price, applyDialog.interest_rate, parseInt(selectedTerm))).toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-sm mt-1">
-                    <span>Total</span>
+                  <div className="flex justify-between text-sm">
+                    <span>Total Amount</span>
                     <span className="font-bold">₱{Math.round(calcMonthly(applyDialog.product_price, applyDialog.interest_rate, parseInt(selectedTerm)) * parseInt(selectedTerm)).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-primary">
+                    <span>Downpayment (1st month)</span>
+                    <span className="font-bold">₱{Math.round(calcMonthly(applyDialog.product_price, applyDialog.interest_rate, parseInt(selectedTerm))).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground pt-1 border-t">
+                    <span>Your Wallet Balance</span>
+                    <span>₱{walletBalance.toLocaleString()}</span>
                   </div>
                 </Card>
               )}
+              <p className="text-xs text-muted-foreground">
+                Upon admin approval, the downpayment (1st month) will be deducted from your cash wallet balance.
+              </p>
               <Button className="w-full" onClick={handleApply} disabled={!selectedTerm || submitting}>
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
                 Submit Application

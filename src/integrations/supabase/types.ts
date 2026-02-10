@@ -7854,9 +7854,12 @@ export type Database = {
         Row: {
           admin_notes: string | null
           created_at: string | null
+          downpayment_amount: number | null
+          downpayment_paid: boolean | null
           id: string
           interest_rate: number
           monthly_payment: number
+          offer_id: string | null
           order_id: string | null
           product_id: string
           provider_id: string
@@ -7869,9 +7872,12 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           created_at?: string | null
+          downpayment_amount?: number | null
+          downpayment_paid?: boolean | null
           id?: string
           interest_rate?: number
           monthly_payment: number
+          offer_id?: string | null
           order_id?: string | null
           product_id: string
           provider_id: string
@@ -7884,9 +7890,12 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           created_at?: string | null
+          downpayment_amount?: number | null
+          downpayment_paid?: boolean | null
           id?: string
           interest_rate?: number
           monthly_payment?: number
+          offer_id?: string | null
           order_id?: string | null
           product_id?: string
           provider_id?: string
@@ -7897,6 +7906,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "installment_applications_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "user_installment_offers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "installment_applications_provider_id_fkey"
             columns: ["provider_id"]
@@ -15649,6 +15665,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_installment_offers: {
+        Row: {
+          assigned_by: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          product_id: string
+          provider_id: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          product_id: string
+          provider_id: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string
+          provider_id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_installment_offers_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "installment_providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_interactions: {
         Row: {
