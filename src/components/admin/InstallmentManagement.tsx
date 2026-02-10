@@ -115,14 +115,22 @@ const InstallmentManagement = () => {
 
   const handleAssignProduct = async () => {
     if (!selectedProductId || !selectedProviderId) return;
-    const { error } = await supabase.from("product_installment_settings").upsert({
+    console.log("Assigning product:", selectedProductId, "to provider:", selectedProviderId);
+    const { data, error } = await supabase.from("product_installment_settings").upsert({
       product_id: selectedProductId,
       provider_id: selectedProviderId,
       is_enabled: true,
     }, { onConflict: "product_id,provider_id" });
-    if (error) { toast.error("Failed to assign"); return; }
+    console.log("Upsert result:", { data, error });
+    if (error) { 
+      console.error("Installment assign error:", error);
+      toast.error("Failed to assign: " + error.message); 
+      return; 
+    }
     toast.success("Product assigned to installment");
     setAssignDialogOpen(false);
+    setSelectedProductId("");
+    setSelectedProviderId("");
     fetchAll();
   };
 
