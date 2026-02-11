@@ -45,6 +45,7 @@ const InstallmentManagement = () => {
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedProviderId, setSelectedProviderId] = useState("");
   const [searchProducts, setSearchProducts] = useState("");
+  const [assignLoading, setAssignLoading] = useState(false);
 
   // User offer assignment state
   const [offerDialogOpen, setOfferDialogOpen] = useState(false);
@@ -126,15 +127,26 @@ const InstallmentManagement = () => {
   };
 
   const handleAssignProduct = async () => {
-    if (!selectedProductId || !selectedProviderId) return;
+    if (!selectedProductId || !selectedProviderId) {
+      toast.error("Please select both a product and a provider");
+      return;
+    }
     
+    setAssignLoading(true);
     try {
-      const { data: existing } = await supabase
+      const { data: existing, error: fetchError } = await supabase
         .from("product_installment_settings")
         .select("id")
         .eq("product_id", selectedProductId)
         .eq("provider_id", selectedProviderId)
         .maybeSingle();
+
+      if (fetchError) {
+        console.error("Fetch existing error:", fetchError);
+        toast.error("Failed to check existing: " + fetchError.message);
+        setAssignLoading(false);
+        return;
+      }
 
       let error;
       if (existing) {
@@ -153,8 +165,9 @@ const InstallmentManagement = () => {
       }
 
       if (error) {
-        console.error("Installment assign error:", error);
+        console.error("Installment assign error:", JSON.stringify(error));
         toast.error("Failed to assign: " + error.message);
+        setAssignLoading(false);
         return;
       }
       toast.success("Product assigned to installment");
@@ -165,6 +178,8 @@ const InstallmentManagement = () => {
     } catch (err: any) {
       console.error("Installment assign exception:", err);
       toast.error("Error: " + err.message);
+    } finally {
+      setAssignLoading(false);
     }
   };
 
@@ -364,7 +379,19 @@ const InstallmentManagement = () => {
 
         {/* PRODUCT ASSIGNMENTS TAB */}
         <TabsContent value="products" className="space-y-3">
-          <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+          <Dialog open={assignDialogOpen} onOpenChange={(open) => {
+            setAssignDialogOpen(open);
+            if (open) {
+              setSelectedProductId("");
+              setSelectedProviderId("");
+              setSearchProducts("");
+              // Auto-select if only one active provider
+              const activeProviders = providers.filter(p => p.is_active);
+              if (activeProviders.length === 1) {
+                setSelectedProviderId(activeProviders[0].id);
+              }
+            }
+          }}>
             <DialogTrigger asChild>
               <Button><Plus className="w-4 h-4 mr-1" /> Assign Product</Button>
             </DialogTrigger>
@@ -388,14 +415,14 @@ const InstallmentManagement = () => {
                   <div className="space-y-1 mt-1">
                     {providers.filter(p => p.is_active).map(p => (
                       <button key={p.id} onClick={() => setSelectedProviderId(p.id)}
-                        className={`w-full text-left text-sm px-3 py-2 rounded border hover:bg-muted ${selectedProviderId === p.id ? "bg-primary/10 border-primary" : ""}`}>
+                        className={`w-full text-left text-sm px-3 py-2 rounded border hover:bg-muted ${selectedProviderId === p.id ? "bg-primary/10 border-primary font-medium" : ""}`}>
                         {p.name} · {p.interest_rate_percent}%
                       </button>
                     ))}
                   </div>
                 </div>
-                <Button className="w-full" onClick={handleAssignProduct} disabled={!selectedProductId || !selectedProviderId}>
-                  Enable Installment
+                <Button className="w-full" onClick={handleAssignProduct} disabled={!selectedProductId || !selectedProviderId || assignLoading}>
+                  {assignLoading ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Enabling...</> : "Enable Installment"}
                 </Button>
               </div>
             </DialogContent>
