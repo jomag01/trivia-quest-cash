@@ -2,13 +2,16 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ShoppingCart, Heart, ChevronLeft, ChevronRight, Sparkles, CreditCard } from "lucide-react";
 import SellerChat from "./shop/SellerChat";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductReviews } from "./ProductReviews";
 import { useInteractionTracking } from "@/hooks/useInteractionTracking";
 import { VirtualTryOn } from "./shop/VirtualTryOn";
 import ProductAvatarSpeaker from "./shop/ProductAvatarSpeaker";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface Product {
   id: string;
@@ -65,7 +68,11 @@ export const ProductDetailDialog = ({
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, ProductVariant>>({});
   const [sellerInfo, setSellerInfo] = useState<{ id: string; name: string } | null>(null);
+  const [hasInstallment, setHasInstallment] = useState(false);
+  const [isQualifiedForInstallment, setIsQualifiedForInstallment] = useState(false);
   const { trackInteraction } = useInteractionTracking();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Check if product is in a fashion/clothing category
   const isFashionItem = () => {
@@ -93,9 +100,52 @@ export const ProductDetailDialog = ({
       fetchProductImages();
       fetchProductVariants();
       fetchSellerInfo();
+      checkInstallmentAvailability();
       setSelectedVariants({});
     }
   }, [product?.id, open]);
+
+  const checkInstallmentAvailability = async () => {
+    if (!product) return;
+    // Check if product has installment enabled
+    const { data: settings } = await supabase
+      .from("product_installment_settings")
+      .select("id")
+      .eq("product_id", product.id)
+      .eq("is_enabled", true)
+      .limit(1);
+    
+    const enabled = !!(settings && settings.length > 0);
+    setHasInstallment(enabled);
+
+    // Check if current user is qualified (has an active offer for this product)
+    if (enabled && user) {
+      const { data: offers } = await supabase
+        .from("user_installment_offers")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("product_id", product.id)
+        .eq("status", "active")
+        .limit(1);
+      setIsQualifiedForInstallment(!!(offers && offers.length > 0));
+    } else {
+      setIsQualifiedForInstallment(false);
+    }
+  };
+
+  const handleBuyOnInstallment = () => {
+    if (!user) {
+      toast.error("Please login first");
+      return;
+    }
+    if (!isQualifiedForInstallment) {
+      toast.error("Installment is not available for your account. Please contact support or apply for financing.");
+      return;
+    }
+    // Navigate to dashboard installment offers
+    onOpenChange(false);
+    navigate("/dashboard?tab=installments");
+  };
 
   const fetchSellerInfo = async () => {
     if (!product?.id) {
@@ -377,6 +427,11 @@ export const ProductDetailDialog = ({
                   💎 Earn {product.diamond_reward} {product.diamond_reward === 1 ? 'Diamond' : 'Diamonds'} on delivery
                 </Badge>
               )}
+              {hasInstallment && (
+                <Badge variant="secondary" className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0">
+                  <CreditCard className="w-3 h-3 mr-1" /> Installment Available
+                </Badge>
+              )}
             </div>
 
             <div>
@@ -494,6 +549,17 @@ export const ProductDetailDialog = ({
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 {product.stock_quantity > 0 ? "Buy Now" : "Out of Stock"}
               </Button>
+
+              {hasInstallment && (
+                <Button
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+                  onClick={handleBuyOnInstallment}
+                  disabled={!product.stock_quantity || product.stock_quantity === 0}
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Buy on Installment
+                </Button>
+              )}
               
               <div className="grid grid-cols-2 gap-2">
                 <Button
