@@ -7852,17 +7852,29 @@ export type Database = {
       }
       installment_applications: {
         Row: {
+          address: string | null
           admin_notes: string | null
+          birthdate: string | null
           created_at: string | null
           downpayment_amount: number | null
           downpayment_paid: boolean | null
+          full_name: string | null
           id: string
+          id_document_url: string | null
+          id_number: string | null
+          id_type: string | null
           interest_rate: number
           monthly_payment: number
           offer_id: string | null
           order_id: string | null
+          payment_method: string | null
+          payment_proof_url: string | null
+          payment_reference: string | null
+          phone_number: string | null
           product_id: string
+          proof_of_income_url: string | null
           provider_id: string
+          selfie_url: string | null
           status: string
           term_months: number
           total_amount: number
@@ -7870,17 +7882,29 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          address?: string | null
           admin_notes?: string | null
+          birthdate?: string | null
           created_at?: string | null
           downpayment_amount?: number | null
           downpayment_paid?: boolean | null
+          full_name?: string | null
           id?: string
+          id_document_url?: string | null
+          id_number?: string | null
+          id_type?: string | null
           interest_rate?: number
           monthly_payment: number
           offer_id?: string | null
           order_id?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          phone_number?: string | null
           product_id: string
+          proof_of_income_url?: string | null
           provider_id: string
+          selfie_url?: string | null
           status?: string
           term_months: number
           total_amount: number
@@ -7888,17 +7912,29 @@ export type Database = {
           user_id: string
         }
         Update: {
+          address?: string | null
           admin_notes?: string | null
+          birthdate?: string | null
           created_at?: string | null
           downpayment_amount?: number | null
           downpayment_paid?: boolean | null
+          full_name?: string | null
           id?: string
+          id_document_url?: string | null
+          id_number?: string | null
+          id_type?: string | null
           interest_rate?: number
           monthly_payment?: number
           offer_id?: string | null
           order_id?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          phone_number?: string | null
           product_id?: string
+          proof_of_income_url?: string | null
           provider_id?: string
+          selfie_url?: string | null
           status?: string
           term_months?: number
           total_amount?: number
