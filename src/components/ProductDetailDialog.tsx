@@ -141,13 +141,12 @@ export const ProductDetailDialog = ({
       toast.error("Please login first");
       return;
     }
-    if (!isQualifiedForInstallment) {
+    if (!isQualifiedForInstallment || !qualifiedOfferId || !product) {
       toast.error("Installment is not available for your account. Please contact support or apply for financing.");
       return;
     }
-    // Navigate to dashboard installment offers
     onOpenChange(false);
-    navigate("/dashboard?tab=installments");
+    navigate(`/installment-apply?offer=${qualifiedOfferId}&product=${product.id}`);
   };
 
   const fetchSellerInfo = async () => {
