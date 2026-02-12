@@ -7958,6 +7958,39 @@ export type Database = {
           },
         ]
       }
+      installment_payment_methods: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_enabled: boolean
+          method_key: string
+          method_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_enabled?: boolean
+          method_key: string
+          method_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_enabled?: boolean
+          method_key?: string
+          method_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       installment_providers: {
         Row: {
           available_terms: number[] | null
