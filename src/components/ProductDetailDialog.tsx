@@ -129,8 +129,10 @@ export const ProductDetailDialog = ({
         .eq("status", "active")
         .limit(1);
       setIsQualifiedForInstallment(!!(offers && offers.length > 0));
+      setQualifiedOfferId(offers?.[0]?.id || null);
     } else {
       setIsQualifiedForInstallment(false);
+      setQualifiedOfferId(null);
     }
   };
 
