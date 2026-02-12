@@ -70,6 +70,7 @@ export const ProductDetailDialog = ({
   const [sellerInfo, setSellerInfo] = useState<{ id: string; name: string } | null>(null);
   const [hasInstallment, setHasInstallment] = useState(false);
   const [isQualifiedForInstallment, setIsQualifiedForInstallment] = useState(false);
+  const [qualifiedOfferId, setQualifiedOfferId] = useState<string | null>(null);
   const { trackInteraction } = useInteractionTracking();
   const { user } = useAuth();
   const navigate = useNavigate();
