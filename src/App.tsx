@@ -174,6 +174,7 @@ const App = () => (
               <Route path="/courier-rider" element={<CourierRider />} />
               <Route path="/courier-cod" element={<CourierCOD />} />
               <Route path="/track/:trackingNumber" element={<CourierTracking />} />
+              <Route path="/installment-apply" element={<InstallmentApply />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
