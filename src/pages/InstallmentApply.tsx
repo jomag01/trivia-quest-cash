@@ -98,6 +98,11 @@ const InstallmentApply = () => {
     setProduct(productRes.data);
     setProvider(providerRes.data);
     setWalletBalance(walletRes.data?.balance || 0);
+    const keys = (pmRes.data || []).map((r: any) => r.method_key);
+    setEnabledMethods(keys);
+    if (keys.length > 0 && !keys.includes(paymentMethod)) {
+      setPaymentMethod(keys[0]);
+    }
 
     // Pre-fill from profile
     if (profileRes.data) {
