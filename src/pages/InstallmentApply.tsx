@@ -46,6 +46,7 @@ const InstallmentApply = () => {
   const [provider, setProvider] = useState<any>(null);
   const [walletBalance, setWalletBalance] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [enabledMethods, setEnabledMethods] = useState<string[]>([]);
 
   // Form fields
   const [fullName, setFullName] = useState("");
