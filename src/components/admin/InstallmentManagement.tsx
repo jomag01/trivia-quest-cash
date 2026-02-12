@@ -81,6 +81,7 @@ const InstallmentManagement = () => {
       supabase.from("installment_applications").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("user_installment_offers").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, full_name, email, avatar_url").limit(500),
+      supabase.from("installment_payment_methods").select("*").order("display_order"),
     ]);
     if (provRes.data) setProviders(provRes.data as Provider[]);
     if (prodRes.data) setProducts(prodRes.data);
@@ -88,6 +89,8 @@ const InstallmentManagement = () => {
     if (appRes.data) setApplications(appRes.data);
     if (offersRes.data) setUserOffers(offersRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
+    const pmRes = arguments[0] ? undefined : undefined; // handled below
+    const lastRes = [provRes, prodRes, settingsRes, appRes, offersRes, profilesRes][6];
     setLoading(false);
   };
 
