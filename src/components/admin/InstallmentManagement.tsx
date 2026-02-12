@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2, Package, CreditCard, Loader2, UserPlus } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Package, CreditCard, Loader2, UserPlus, Wallet } from "lucide-react";
 
 interface Provider {
   id: string;
