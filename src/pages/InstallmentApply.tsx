@@ -100,8 +100,8 @@ const InstallmentApply = () => {
     // Pre-fill from profile
     if (profileRes.data) {
       if (profileRes.data.full_name) setFullName(profileRes.data.full_name);
-      if (profileRes.data.phone) setPhone(profileRes.data.phone);
-      if (profileRes.data.address) setAddress(profileRes.data.address);
+      if (profileRes.data.phone_number) setPhone(profileRes.data.phone_number);
+      if (profileRes.data.location) setAddress(profileRes.data.location);
     }
 
     setLoading(false);
