@@ -55,6 +55,8 @@ const InstallmentManagement = () => {
   const [searchUsers, setSearchUsers] = useState("");
   const [searchOfferProducts, setSearchOfferProducts] = useState("");
 
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+
   const [form, setForm] = useState({
     name: "",
     logo_url: "",
