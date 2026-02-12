@@ -24,7 +24,7 @@ const ID_TYPES = [
   "Postal ID",
 ];
 
-const PAYMENT_METHODS = [
+const ALL_PAYMENT_METHODS = [
   { value: "cash_wallet", label: "Cash Wallet (Auto-deduct)", icon: Wallet },
   { value: "gcash", label: "GCash", icon: CreditCard },
   { value: "maya", label: "Maya / PayMaya", icon: CreditCard },
@@ -46,6 +46,7 @@ const InstallmentApply = () => {
   const [provider, setProvider] = useState<any>(null);
   const [walletBalance, setWalletBalance] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [enabledMethods, setEnabledMethods] = useState<string[]>([]);
 
   // Form fields
   const [fullName, setFullName] = useState("");
@@ -77,11 +78,12 @@ const InstallmentApply = () => {
     }
     setLoading(true);
 
-    const [offerRes, productRes, walletRes, profileRes] = await Promise.all([
+    const [offerRes, productRes, walletRes, profileRes, pmRes] = await Promise.all([
       supabase.from("user_installment_offers").select("*").eq("id", offerId).eq("user_id", user.id).eq("status", "active").maybeSingle(),
       supabase.from("products").select("id, name, base_price, image_url").eq("id", productId).maybeSingle(),
       supabase.from("cash_wallets").select("balance").eq("user_id", user.id).maybeSingle(),
       supabase.from("profiles").select("full_name, phone_number, location").eq("id", user.id).maybeSingle(),
+      supabase.from("installment_payment_methods").select("method_key").eq("is_enabled", true),
     ]);
 
     if (!offerRes.data || !productRes.data) {
@@ -96,6 +98,11 @@ const InstallmentApply = () => {
     setProduct(productRes.data);
     setProvider(providerRes.data);
     setWalletBalance(walletRes.data?.balance || 0);
+    const keys = (pmRes.data || []).map((r: any) => r.method_key);
+    setEnabledMethods(keys);
+    if (keys.length > 0 && !keys.includes(paymentMethod)) {
+      setPaymentMethod(keys[0]);
+    }
 
     // Pre-fill from profile
     if (profileRes.data) {
@@ -374,7 +381,7 @@ const InstallmentApply = () => {
             <Wallet className="w-4 h-4" /> Payment Method for Downpayment
           </h3>
           <div className="space-y-2">
-            {PAYMENT_METHODS.map(pm => (
+            {ALL_PAYMENT_METHODS.filter(pm => enabledMethods.includes(pm.value)).map(pm => (
               <label
                 key={pm.value}
                 className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === pm.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}

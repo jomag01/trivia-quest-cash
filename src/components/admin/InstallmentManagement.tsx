@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2, Package, CreditCard, Loader2, UserPlus } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Package, CreditCard, Loader2, UserPlus, Wallet } from "lucide-react";
 
 interface Provider {
   id: string;
@@ -55,6 +55,8 @@ const InstallmentManagement = () => {
   const [searchUsers, setSearchUsers] = useState("");
   const [searchOfferProducts, setSearchOfferProducts] = useState("");
 
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+
   const [form, setForm] = useState({
     name: "",
     logo_url: "",
@@ -72,13 +74,14 @@ const InstallmentManagement = () => {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [provRes, prodRes, settingsRes, appRes, offersRes, profilesRes] = await Promise.all([
+    const [provRes, prodRes, settingsRes, appRes, offersRes, profilesRes, pmRes] = await Promise.all([
       supabase.from("installment_providers").select("*").order("created_at", { ascending: false }),
       supabase.from("products").select("id, name, base_price, image_url").order("name"),
       supabase.from("product_installment_settings").select("*"),
       supabase.from("installment_applications").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("user_installment_offers").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, full_name, email, avatar_url").limit(500),
+      supabase.from("installment_payment_methods").select("*").order("display_order"),
     ]);
     if (provRes.data) setProviders(provRes.data as Provider[]);
     if (prodRes.data) setProducts(prodRes.data);
@@ -86,6 +89,7 @@ const InstallmentManagement = () => {
     if (appRes.data) setApplications(appRes.data);
     if (offersRes.data) setUserOffers(offersRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
+    if (pmRes.data) setPaymentMethods(pmRes.data);
     setLoading(false);
   };
 
@@ -245,6 +249,19 @@ const InstallmentManagement = () => {
     setForm({ name: "", logo_url: "", description: "", interest_rate_percent: 0, min_amount: 0, max_amount: "", available_terms: "3,6,12", is_active: true });
   };
 
+  const handleTogglePaymentMethod = async (id: string, currentEnabled: boolean) => {
+    const { error } = await supabase
+      .from("installment_payment_methods")
+      .update({ is_enabled: !currentEnabled, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      toast.error("Failed to update: " + error.message);
+      return;
+    }
+    setPaymentMethods(prev => prev.map(m => m.id === id ? { ...m, is_enabled: !currentEnabled } : m));
+    toast.success(`Payment method ${!currentEnabled ? "enabled" : "disabled"}`);
+  };
+
   const openEdit = (p: Provider) => {
     setEditingProvider(p);
     setForm({
@@ -292,6 +309,7 @@ const InstallmentManagement = () => {
         <TabsList className="flex-wrap">
           <TabsTrigger value="providers"><Building2 className="w-4 h-4 mr-1" /> Providers</TabsTrigger>
           <TabsTrigger value="products"><Package className="w-4 h-4 mr-1" /> Product Assignments</TabsTrigger>
+          <TabsTrigger value="payment-methods"><Wallet className="w-4 h-4 mr-1" /> Payment Methods</TabsTrigger>
           <TabsTrigger value="user-offers"><UserPlus className="w-4 h-4 mr-1" /> User Offers</TabsTrigger>
           <TabsTrigger value="applications"><CreditCard className="w-4 h-4 mr-1" /> Applications</TabsTrigger>
         </TabsList>
@@ -441,6 +459,26 @@ const InstallmentManagement = () => {
               </Card>
             ))}
             {productInstallments.length === 0 && <p className="text-center text-muted-foreground py-8">No products assigned to installment yet</p>}
+          </div>
+        </TabsContent>
+
+        {/* PAYMENT METHODS TAB */}
+        <TabsContent value="payment-methods" className="space-y-3">
+          <p className="text-sm text-muted-foreground">Toggle payment methods on or off for installment payments. Disabled methods will not appear as options for buyers.</p>
+          <div className="grid gap-2">
+            {paymentMethods.map((pm: any) => (
+              <Card key={pm.id} className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">{pm.method_name}</p>
+                  <p className="text-xs text-muted-foreground">{pm.description}</p>
+                </div>
+                <Switch
+                  checked={pm.is_enabled}
+                  onCheckedChange={() => handleTogglePaymentMethod(pm.id, pm.is_enabled)}
+                />
+              </Card>
+            ))}
+            {paymentMethods.length === 0 && <p className="text-center text-muted-foreground py-8">No payment methods configured</p>}
           </div>
         </TabsContent>
 
