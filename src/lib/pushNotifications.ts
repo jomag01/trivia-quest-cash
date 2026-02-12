@@ -27,7 +27,7 @@ export const subscribeToPushNotifications = async (userId: string): Promise<bool
     await navigator.serviceWorker.ready;
 
     // Subscribe to push notifications
-    const subscription = await registration.pushManager.subscribe({
+    const subscription = await (registration as any).pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(
         // This should be your VAPID public key
