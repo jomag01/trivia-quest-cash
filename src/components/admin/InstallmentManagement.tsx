@@ -462,6 +462,26 @@ const InstallmentManagement = () => {
           </div>
         </TabsContent>
 
+        {/* PAYMENT METHODS TAB */}
+        <TabsContent value="payment-methods" className="space-y-3">
+          <p className="text-sm text-muted-foreground">Toggle payment methods on or off for installment payments. Disabled methods will not appear as options for buyers.</p>
+          <div className="grid gap-2">
+            {paymentMethods.map((pm: any) => (
+              <Card key={pm.id} className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">{pm.method_name}</p>
+                  <p className="text-xs text-muted-foreground">{pm.description}</p>
+                </div>
+                <Switch
+                  checked={pm.is_enabled}
+                  onCheckedChange={() => handleTogglePaymentMethod(pm.id, pm.is_enabled)}
+                />
+              </Card>
+            ))}
+            {paymentMethods.length === 0 && <p className="text-center text-muted-foreground py-8">No payment methods configured</p>}
+          </div>
+        </TabsContent>
+
         {/* USER OFFERS TAB */}
         <TabsContent value="user-offers" className="space-y-3">
           <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>
