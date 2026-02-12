@@ -51,6 +51,7 @@ const CourierHub = lazy(() => import("./components/courier/hub/HubOperationsPage
 const CourierRider = lazy(() => import("./components/courier/rider/RiderMobileApp"));
 const CourierCOD = lazy(() => import("./components/courier/cod/CODManagementPage"));
 const CourierTracking = lazy(() => import("./components/courier/tracking/PublicTrackingPage"));
+const InstallmentApply = lazy(() => import("./pages/InstallmentApply"));
 
 // Configure QueryClient with aggressive caching
 const queryClient = new QueryClient({
