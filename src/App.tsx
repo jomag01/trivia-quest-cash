@@ -51,6 +51,7 @@ const CourierHub = lazy(() => import("./components/courier/hub/HubOperationsPage
 const CourierRider = lazy(() => import("./components/courier/rider/RiderMobileApp"));
 const CourierCOD = lazy(() => import("./components/courier/cod/CODManagementPage"));
 const CourierTracking = lazy(() => import("./components/courier/tracking/PublicTrackingPage"));
+const InstallmentApply = lazy(() => import("./pages/InstallmentApply"));
 
 // Configure QueryClient with aggressive caching
 const queryClient = new QueryClient({
@@ -174,6 +175,7 @@ const App = () => (
               <Route path="/courier-rider" element={<CourierRider />} />
               <Route path="/courier-cod" element={<CourierCOD />} />
               <Route path="/track/:trackingNumber" element={<CourierTracking />} />
+              <Route path="/installment-apply" element={<InstallmentApply />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -70,6 +70,7 @@ export const ProductDetailDialog = ({
   const [sellerInfo, setSellerInfo] = useState<{ id: string; name: string } | null>(null);
   const [hasInstallment, setHasInstallment] = useState(false);
   const [isQualifiedForInstallment, setIsQualifiedForInstallment] = useState(false);
+  const [qualifiedOfferId, setQualifiedOfferId] = useState<string | null>(null);
   const { trackInteraction } = useInteractionTracking();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -128,8 +129,10 @@ export const ProductDetailDialog = ({
         .eq("status", "active")
         .limit(1);
       setIsQualifiedForInstallment(!!(offers && offers.length > 0));
+      setQualifiedOfferId(offers?.[0]?.id || null);
     } else {
       setIsQualifiedForInstallment(false);
+      setQualifiedOfferId(null);
     }
   };
 
@@ -138,13 +141,12 @@ export const ProductDetailDialog = ({
       toast.error("Please login first");
       return;
     }
-    if (!isQualifiedForInstallment) {
+    if (!isQualifiedForInstallment || !qualifiedOfferId || !product) {
       toast.error("Installment is not available for your account. Please contact support or apply for financing.");
       return;
     }
-    // Navigate to dashboard installment offers
     onOpenChange(false);
-    navigate("/dashboard?tab=installments");
+    navigate(`/installment-apply?offer=${qualifiedOfferId}&product=${product.id}`);
   };
 
   const fetchSellerInfo = async () => {
