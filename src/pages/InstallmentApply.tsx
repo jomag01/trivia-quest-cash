@@ -381,7 +381,7 @@ const InstallmentApply = () => {
             <Wallet className="w-4 h-4" /> Payment Method for Downpayment
           </h3>
           <div className="space-y-2">
-            {PAYMENT_METHODS.map(pm => (
+            {ALL_PAYMENT_METHODS.filter(pm => enabledMethods.includes(pm.value)).map(pm => (
               <label
                 key={pm.value}
                 className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === pm.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}
