@@ -74,7 +74,7 @@ const InstallmentManagement = () => {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [provRes, prodRes, settingsRes, appRes, offersRes, profilesRes] = await Promise.all([
+    const [provRes, prodRes, settingsRes, appRes, offersRes, profilesRes, pmRes] = await Promise.all([
       supabase.from("installment_providers").select("*").order("created_at", { ascending: false }),
       supabase.from("products").select("id, name, base_price, image_url").order("name"),
       supabase.from("product_installment_settings").select("*"),
@@ -89,8 +89,7 @@ const InstallmentManagement = () => {
     if (appRes.data) setApplications(appRes.data);
     if (offersRes.data) setUserOffers(offersRes.data);
     if (profilesRes.data) setProfiles(profilesRes.data);
-    const pmRes = arguments[0] ? undefined : undefined; // handled below
-    const lastRes = [provRes, prodRes, settingsRes, appRes, offersRes, profilesRes][6];
+    if (pmRes.data) setPaymentMethods(pmRes.data);
     setLoading(false);
   };
 
