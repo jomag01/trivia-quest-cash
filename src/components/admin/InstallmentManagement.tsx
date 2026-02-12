@@ -309,6 +309,7 @@ const InstallmentManagement = () => {
         <TabsList className="flex-wrap">
           <TabsTrigger value="providers"><Building2 className="w-4 h-4 mr-1" /> Providers</TabsTrigger>
           <TabsTrigger value="products"><Package className="w-4 h-4 mr-1" /> Product Assignments</TabsTrigger>
+          <TabsTrigger value="payment-methods"><Wallet className="w-4 h-4 mr-1" /> Payment Methods</TabsTrigger>
           <TabsTrigger value="user-offers"><UserPlus className="w-4 h-4 mr-1" /> User Offers</TabsTrigger>
           <TabsTrigger value="applications"><CreditCard className="w-4 h-4 mr-1" /> Applications</TabsTrigger>
         </TabsList>
