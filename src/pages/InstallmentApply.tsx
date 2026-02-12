@@ -78,11 +78,12 @@ const InstallmentApply = () => {
     }
     setLoading(true);
 
-    const [offerRes, productRes, walletRes, profileRes] = await Promise.all([
+    const [offerRes, productRes, walletRes, profileRes, pmRes] = await Promise.all([
       supabase.from("user_installment_offers").select("*").eq("id", offerId).eq("user_id", user.id).eq("status", "active").maybeSingle(),
       supabase.from("products").select("id, name, base_price, image_url").eq("id", productId).maybeSingle(),
       supabase.from("cash_wallets").select("balance").eq("user_id", user.id).maybeSingle(),
       supabase.from("profiles").select("full_name, phone_number, location").eq("id", user.id).maybeSingle(),
+      supabase.from("installment_payment_methods").select("method_key").eq("is_enabled", true),
     ]);
 
     if (!offerRes.data || !productRes.data) {
