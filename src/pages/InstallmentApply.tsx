@@ -24,7 +24,7 @@ const ID_TYPES = [
   "Postal ID",
 ];
 
-const PAYMENT_METHODS = [
+const ALL_PAYMENT_METHODS = [
   { value: "cash_wallet", label: "Cash Wallet (Auto-deduct)", icon: Wallet },
   { value: "gcash", label: "GCash", icon: CreditCard },
   { value: "maya", label: "Maya / PayMaya", icon: CreditCard },
