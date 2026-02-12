@@ -249,6 +249,19 @@ const InstallmentManagement = () => {
     setForm({ name: "", logo_url: "", description: "", interest_rate_percent: 0, min_amount: 0, max_amount: "", available_terms: "3,6,12", is_active: true });
   };
 
+  const handleTogglePaymentMethod = async (id: string, currentEnabled: boolean) => {
+    const { error } = await supabase
+      .from("installment_payment_methods")
+      .update({ is_enabled: !currentEnabled, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      toast.error("Failed to update: " + error.message);
+      return;
+    }
+    setPaymentMethods(prev => prev.map(m => m.id === id ? { ...m, is_enabled: !currentEnabled } : m));
+    toast.success(`Payment method ${!currentEnabled ? "enabled" : "disabled"}`);
+  };
+
   const openEdit = (p: Provider) => {
     setEditingProvider(p);
     setForm({
