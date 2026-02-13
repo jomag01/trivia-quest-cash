@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Wallet, ArrowUpCircle, ArrowDownCircle, History, Shield, Loader2, Coins, Banknote } from 'lucide-react';
+import { Wallet, ArrowUpCircle, ArrowDownCircle, History, Shield, Loader2, Coins, Banknote, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import CashDepositDialog from './CashDepositDialog';
 import CashTransactionHistory from './CashTransactionHistory';
@@ -11,6 +11,7 @@ import CashConversionDialog from './CashConversionDialog';
 import CashPinSetupDialog from './CashPinSetupDialog';
 import CashWithdrawDialog from './CashWithdrawDialog';
 import ConsolidateEarningsDialog from './ConsolidateEarningsDialog';
+import CashTransferDialog from './CashTransferDialog';
 
 interface CashWalletCardProps {
   userId: string;
@@ -23,6 +24,7 @@ export default function CashWalletCard({ userId }: CashWalletCardProps) {
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [showConsolidate, setShowConsolidate] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
 
   const { data: wallet, isLoading, refetch } = useQuery({
     queryKey: ['cash-wallet', userId],
@@ -142,7 +144,16 @@ export default function CashWalletCard({ userId }: CashWalletCardProps) {
           </div>
 
           {/* Secondary Actions */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              variant="secondary"
+              className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm"
+              onClick={() => setShowTransfer(true)}
+              disabled={currentBalance <= 0}
+            >
+              <Send className="w-4 h-4 mr-1" />
+              Transfer
+            </Button>
             <Button
               variant="secondary"
               className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm"
@@ -227,6 +238,15 @@ export default function CashWalletCard({ userId }: CashWalletCardProps) {
         open={showConsolidate}
         onOpenChange={setShowConsolidate}
         userId={userId}
+        onSuccess={() => refetch()}
+      />
+
+      <CashTransferDialog
+        open={showTransfer}
+        onOpenChange={setShowTransfer}
+        userId={userId}
+        currentBalance={currentBalance}
+        hasPin={!!hasPin}
         onSuccess={() => refetch()}
       />
     </>

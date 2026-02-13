@@ -17355,6 +17355,16 @@ export type Database = {
         Args: { p_reason?: string; p_source_id: string; p_source_type: string }
         Returns: undefined
       }
+      transfer_wallet_balance: {
+        Args: {
+          p_amount: number
+          p_note?: string
+          p_pin: string
+          p_recipient_username: string
+          p_sender_id: string
+        }
+        Returns: Json
+      }
       unlock_category: {
         Args: { p_category_id: string; p_user_id: string }
         Returns: Json
