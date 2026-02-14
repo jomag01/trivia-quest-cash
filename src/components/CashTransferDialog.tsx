@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Send, Search, User, Shield, Loader2, CheckCircle2, AlertTriangle
+  Send, Search, User, Shield, Loader2, CheckCircle2, AlertTriangle, Copy
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +23,13 @@ interface CashTransferDialogProps {
 
 type Step = "recipient" | "amount" | "confirm" | "pin" | "success";
 
+interface FeeSettings {
+  enabled: boolean;
+  type: string;
+  value: number;
+  minAmount: number;
+}
+
 export default function CashTransferDialog({
   open, onOpenChange, userId, currentBalance, hasPin, onSuccess
 }: CashTransferDialogProps) {
@@ -34,7 +41,34 @@ export default function CashTransferDialog({
   const [note, setNote] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ recipient_name: string; amount: number; new_balance: number } | null>(null);
+  const [result, setResult] = useState<{
+    recipient_name: string; amount: number; new_balance: number;
+    fee: number; total_deducted: number; reference_code: string;
+  } | null>(null);
+  const [feeSettings, setFeeSettings] = useState<FeeSettings>({
+    enabled: false, type: "percentage", value: 0, minAmount: 1
+  });
+
+  useEffect(() => {
+    if (open) {
+      supabase
+        .from("app_settings")
+        .select("key, value")
+        .in("key", ["transfer_fee_enabled", "transfer_fee_type", "transfer_fee_value", "transfer_min_amount"])
+        .then(({ data }) => {
+          if (data) {
+            const map: Record<string, string> = {};
+            data.forEach((s) => (map[s.key] = s.value || ""));
+            setFeeSettings({
+              enabled: map.transfer_fee_enabled === "true",
+              type: map.transfer_fee_type || "percentage",
+              value: Number(map.transfer_fee_value) || 0,
+              minAmount: Number(map.transfer_min_amount) || 1,
+            });
+          }
+        });
+    }
+  }, [open]);
 
   const reset = () => {
     setStep("recipient");
@@ -68,26 +102,29 @@ export default function CashTransferDialog({
         toast.error("No user found with that username or referral code");
         return;
       }
-      if (data.length === 1) {
-        setRecipient(data[0]);
-      } else {
-        // show list — for now pick first exact match or show all
-        const exact = data.find(
-          (u) =>
-            u.username?.toLowerCase() === searchQuery.trim().toLowerCase()
-        );
-        if (exact) {
-          setRecipient(exact);
-        } else {
-          setRecipient(data[0]);
-        }
-      }
-    } catch (e: any) {
+      const exact = data.find(
+        (u) => u.username?.toLowerCase() === searchQuery.trim().toLowerCase()
+      );
+      setRecipient(exact || data[0]);
+    } catch {
       toast.error("Search failed");
     } finally {
       setSearching(false);
     }
   };
+
+  const parsedAmount = Number(amount);
+
+  const calcFee = (amt: number) => {
+    if (!feeSettings.enabled || feeSettings.value <= 0) return 0;
+    if (feeSettings.type === "percentage") {
+      return Math.round(amt * feeSettings.value / 100 * 100) / 100;
+    }
+    return feeSettings.value;
+  };
+
+  const feeAmount = calcFee(parsedAmount);
+  const totalDeduct = parsedAmount + feeAmount;
 
   const handleTransfer = async () => {
     if (!recipient || !amount || !pin) return;
@@ -96,7 +133,7 @@ export default function CashTransferDialog({
       const { data, error } = await supabase.rpc("transfer_wallet_balance", {
         p_sender_id: userId,
         p_recipient_username: recipient.username,
-        p_amount: Number(amount),
+        p_amount: parsedAmount,
         p_pin: pin,
         p_note: note || null,
       });
@@ -106,13 +143,18 @@ export default function CashTransferDialog({
       const res = data as any;
       if (!res.success) {
         toast.error(res.error);
-        if (res.error === "Invalid PIN") {
-          setPin("");
-        }
+        if (res.error === "Invalid PIN") setPin("");
         return;
       }
 
-      setResult({ recipient_name: res.recipient_name, amount: res.amount, new_balance: res.new_balance });
+      setResult({
+        recipient_name: res.recipient_name,
+        amount: res.amount,
+        new_balance: res.new_balance,
+        fee: res.fee || 0,
+        total_deducted: res.total_deducted || res.amount,
+        reference_code: res.reference_code || "",
+      });
       setStep("success");
       onSuccess();
     } catch (e: any) {
@@ -122,7 +164,10 @@ export default function CashTransferDialog({
     }
   };
 
-  const parsedAmount = Number(amount);
+  const copyRef = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast.success("Reference code copied!");
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -217,11 +262,33 @@ export default function CashTransferDialog({
             <div className="space-y-2">
               <Label>Amount (PHP)</Label>
               <Input
-                type="number" min="1" step="0.01" max={currentBalance}
+                type="number" min={feeSettings.minAmount} step="0.01" max={currentBalance}
                 value={amount} onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount to transfer"
+                placeholder={`Min ₱${feeSettings.minAmount}`}
               />
             </div>
+
+            {parsedAmount > 0 && feeSettings.enabled && feeAmount > 0 && (
+              <Card className="border-amber-500/20 bg-amber-500/5">
+                <CardContent className="p-3 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Transfer Amount</span>
+                    <span>₱{parsedAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Fee ({feeSettings.type === "percentage" ? `${feeSettings.value}%` : `₱${feeSettings.value}`})
+                    </span>
+                    <span className="text-amber-600">₱{feeAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <hr className="border-border" />
+                  <div className="flex justify-between font-semibold">
+                    <span>Total Deducted</span>
+                    <span>₱{totalDeduct.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="space-y-2">
               <Label>Note (optional)</Label>
@@ -232,7 +299,7 @@ export default function CashTransferDialog({
               <Button variant="outline" onClick={() => setStep("recipient")} className="flex-1">Back</Button>
               <Button
                 onClick={() => setStep("confirm")}
-                disabled={!amount || parsedAmount <= 0 || parsedAmount > currentBalance || parsedAmount < 1}
+                disabled={!amount || parsedAmount <= 0 || totalDeduct > currentBalance || parsedAmount < feeSettings.minAmount}
                 className="flex-1"
               >
                 Next
@@ -255,9 +322,20 @@ export default function CashTransferDialog({
                   <span>@{recipient?.username}</span>
                 </div>
                 <hr className="border-border" />
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Amount</span>
+                  <span>₱{parsedAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                </div>
+                {feeSettings.enabled && feeAmount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Transfer Fee</span>
+                    <span className="text-amber-600">₱{feeAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+                <hr className="border-border" />
                 <div className="flex justify-between text-lg font-bold">
-                  <span>Amount</span>
-                  <span className="text-primary">₱{parsedAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                  <span>Total Deducted</span>
+                  <span className="text-primary">₱{totalDeduct.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
                 </div>
                 {note && (
                   <div className="flex justify-between text-sm">
@@ -314,6 +392,30 @@ export default function CashTransferDialog({
                 ₱{result.amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })} sent to {result.recipient_name}
               </p>
             </div>
+
+            {/* Reference Code */}
+            {result.reference_code && (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="p-3 space-y-1">
+                  <span className="text-xs text-muted-foreground">Reference Code</span>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-lg font-mono font-bold tracking-wider">{result.reference_code}</span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyRef(result.reference_code)}>
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Save this code for tracking and dispute resolution</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {result.fee > 0 && (
+              <div className="text-xs text-muted-foreground">
+                Fee charged: ₱{result.fee.toLocaleString("en-PH", { minimumFractionDigits: 2 })} · 
+                Total deducted: ₱{result.total_deducted.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+              </div>
+            )}
+
             <Card className="bg-muted/50">
               <CardContent className="p-3">
                 <span className="text-xs text-muted-foreground">New Balance</span>
