@@ -25,7 +25,8 @@ import {
   ArrowLeft,
   PiggyBank,
   UserCog,
-  Ban
+  Ban,
+  ArrowLeftRight
 } from "lucide-react";
 import {
   Dialog,
@@ -92,6 +93,7 @@ import { VisitorAnalytics } from "@/components/admin/VisitorAnalytics";
 import SliderAdsManagement from "@/components/admin/SliderAdsManagement";
 import ListingFeaturesManagement from "@/components/admin/ListingFeaturesManagement";
 import CashDepositManagement from "@/components/admin/CashDepositManagement";
+import TransferFeeSettings from "@/components/admin/TransferFeeSettings";
 import AdRevenueSettings from "@/components/admin/AdRevenueSettings";
 import PayoutAccountsManagement from "@/components/admin/PayoutAccountsManagement";
 import BlogManagement from "@/components/admin/BlogManagement";
@@ -182,6 +184,7 @@ const Admin = () => {
         { id: "payout-accounts", label: "Payout Accounts", icon: Wallet },
         { id: "qr-payment", label: "QR Payment Settings", icon: CreditCard },
         { id: "cash-deposits", label: "Cash Deposit Requests", icon: DollarSign },
+        { id: "transfer-fees", label: "Transfer Fee Settings", icon: ArrowLeftRight },
       ],
     },
     {
@@ -881,6 +884,7 @@ const Admin = () => {
           {activeTab === "newsletter" && <NewsletterManagement />}
           {activeTab === "qr-payment" && <QRPaymentSettings />}
           {activeTab === "cash-deposits" && <CashDepositManagement />}
+          {activeTab === "transfer-fees" && <TransferFeeSettings />}
           {activeTab === "payout-accounts" && <PayoutAccountsManagement />}
           {activeTab === "member-activation" && <MemberActivationManagement />}
           {activeTab === "product-affiliate-exclusion" && <ProductAffiliateExclusion />}
