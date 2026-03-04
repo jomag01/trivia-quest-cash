@@ -7,6 +7,7 @@ import RentalListings from "@/components/booking/RentalListings";
 import MyServices from "@/components/booking/MyServices";
 import MyBookings from "@/components/booking/MyBookings";
 import CreateServiceDialog from "@/components/booking/CreateServiceDialog";
+import BookingQRCode from "@/components/booking/BookingQRCode";
 import { Button } from "@/components/ui/button";
 
 const Booking = () => {
@@ -35,7 +36,8 @@ const Booking = () => {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-4 space-y-4">
+        <BookingQRCode />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="browse" className="flex items-center gap-1">
