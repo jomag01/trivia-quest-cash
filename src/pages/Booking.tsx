@@ -7,6 +7,7 @@ import RentalListings from "@/components/booking/RentalListings";
 import MyServices from "@/components/booking/MyServices";
 import MyBookings from "@/components/booking/MyBookings";
 import CreateServiceDialog from "@/components/booking/CreateServiceDialog";
+import BookingQRCode from "@/components/booking/BookingQRCode";
 import { Button } from "@/components/ui/button";
 
 const Booking = () => {
