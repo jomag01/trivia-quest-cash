@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { QrCode, Download, Share2, X } from "lucide-react";
+import { QrCode, Download, Share2, Copy, Check } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface BookingQRCodeProps {
   bookingUrl?: string;
@@ -13,9 +16,35 @@ const BookingQRCode = ({
   bookingUrl, 
   title = "Scan to Book or Order" 
 }: BookingQRCodeProps) => {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const url = bookingUrl || `${window.location.origin}/booking`;
+  useEffect(() => {
+    const fetchReferralCode = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("referral_code")
+        .eq("id", user.id)
+        .single();
+      if (data?.referral_code) {
+        setReferralCode(data.referral_code);
+      }
+    };
+    fetchReferralCode();
+  }, [user]);
+
+  const baseUrl = bookingUrl || `${window.location.origin}/booking`;
+  const url = referralCode ? `${baseUrl}?ref=${referralCode}` : baseUrl;
+
+  const handleCopyLink = async () => {
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success("Affiliate link copied!");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleDownload = () => {
     const svg = document.getElementById("booking-qr-svg");
@@ -106,7 +135,17 @@ const BookingQRCode = ({
                     Share
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground break-all text-center">{url}</p>
+                <div className="flex items-center gap-2 w-full">
+                  <p className="text-xs text-muted-foreground break-all text-center flex-1">{url}</p>
+                  <Button onClick={handleCopyLink} variant="ghost" size="sm" className="shrink-0">
+                    {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                  </Button>
+                </div>
+                {referralCode && (
+                  <p className="text-xs text-primary font-medium">
+                    🐝 Your affiliate referral is embedded in this QR code
+                  </p>
+                )}
               </div>
             </DialogContent>
           </Dialog>
@@ -117,7 +156,9 @@ const BookingQRCode = ({
               <h3 className="font-semibold text-sm">Scan QR to Book or Order</h3>
             </div>
             <p className="text-xs text-muted-foreground">
-              Tap the QR code to enlarge, download, or share it with customers
+              {referralCode 
+                ? "QR includes your affiliate link — earn commissions on referrals!" 
+                : "Tap the QR code to enlarge, download, or share it with customers"}
             </p>
           </div>
         </div>
