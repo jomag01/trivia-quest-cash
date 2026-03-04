@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Store, ShoppingBag, UtensilsCrossed, Bike, Truck } from "lucide-react";
+import BookingQRCode from "@/components/booking/BookingQRCode";
 import { RestaurantList } from "@/components/food/RestaurantList";
 import { FoodCart } from "@/components/food/FoodCart";
 import { MyFoodOrders } from "@/components/food/MyFoodOrders";
@@ -44,6 +45,13 @@ const Food = () => {
           </div>
           <FoodCart />
         </div>
+      </div>
+
+      <div className="px-4 pt-4">
+        <BookingQRCode 
+          bookingUrl={`${window.location.origin}/food`}
+          title="Scan to Order Food" 
+        />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
