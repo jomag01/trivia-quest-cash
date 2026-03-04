@@ -36,8 +36,8 @@ const Booking = () => {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <div className="container mx-auto px-4 py-4 space-y-4">
+        <BookingQRCode />
           <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="browse" className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
