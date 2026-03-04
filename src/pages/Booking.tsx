@@ -37,7 +37,10 @@ const Booking = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4 space-y-4">
-        <BookingQRCode />
+        <BookingQRCode 
+          bookingUrl={`${window.location.origin}/booking`}
+          title="Scan to Book Services"
+        />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="browse" className="flex items-center gap-1">
