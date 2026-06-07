@@ -356,6 +356,55 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
             </>
           )}
 
+          {/* Pax Names (Tours only) */}
+          {isTour && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Passenger Names
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                List the full name of every person joining the trip. Used to verify guests on the day of the tour.
+              </p>
+              <div className="space-y-2">
+                {paxNames.map((name, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <Input
+                      value={name}
+                      placeholder={`Pax ${idx + 1} full name`}
+                      onChange={(e) => {
+                        const next = [...paxNames];
+                        next[idx] = e.target.value;
+                        setPaxNames(next);
+                      }}
+                    />
+                    {paxNames.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setPaxNames(paxNames.filter((_, i) => i !== idx))}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPaxNames([...paxNames, ""])}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add passenger
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Total passengers: <strong>{cleanedPax.length}</strong>
+              </p>
+            </div>
+          )}
+
           {/* Notes */}
           <div>
             <Label>Notes (Optional)</Label>
