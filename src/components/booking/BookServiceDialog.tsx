@@ -67,6 +67,7 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
       setCheckOutDate(undefined);
       setSelectedTime("");
       setNotes("");
+      setPaxNames([""]);
     }
   }, [service, open]);
 
