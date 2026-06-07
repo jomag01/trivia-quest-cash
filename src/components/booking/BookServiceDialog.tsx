@@ -165,9 +165,12 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
     return p;
   };
 
-  const canBook = isDurationBased
+  const cleanedPax = paxNames.map(n => n.trim()).filter(Boolean);
+  const paxValid = !isTour || cleanedPax.length > 0;
+
+  const canBook = (isDurationBased
     ? !!selectedDate && !!checkOutDate
-    : !!selectedDate && !!selectedTime;
+    : !!selectedDate && !!selectedTime) && paxValid;
 
   const handleBook = async () => {
     if (!user) { toast.error("Please log in to book a service"); return; }
