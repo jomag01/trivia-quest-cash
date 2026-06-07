@@ -11,7 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format, addMinutes, parse, isBefore, startOfDay, differenceInDays, differenceInCalendarMonths, addDays } from "date-fns";
-import { Clock, Calendar as CalendarIcon, DollarSign } from "lucide-react";
+import { Clock, Calendar as CalendarIcon, DollarSign, Users, Plus, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface Service {
