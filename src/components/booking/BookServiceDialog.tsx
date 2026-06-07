@@ -54,6 +54,9 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
   const [loading, setLoading] = useState(false);
   const [blockoutDates, setBlockoutDates] = useState<Date[]>([]);
   const [existingBookings, setExistingBookings] = useState<string[]>([]);
+  const [paxNames, setPaxNames] = useState<string[]>([""]);
+
+  const isTour = !!service?.category && /tour|travel|trip|tourism/i.test(service.category);
 
   const isDurationBased = service?.price_type && ['per_day', 'per_night', 'per_month'].includes(service.price_type);
 
