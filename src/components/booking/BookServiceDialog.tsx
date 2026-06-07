@@ -191,6 +191,7 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
       total_amount: totalAmount,
       notes: notes || null,
       referrer_id: referrerId || null,
+      pax_names: cleanedPax,
       status: "pending"
     };
 
