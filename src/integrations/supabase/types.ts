@@ -12540,6 +12540,7 @@ export type Database = {
           id: string
           notes: string | null
           number_of_guests: number | null
+          pax_names: string[] | null
           payment_method: string | null
           payment_reference: string | null
           payment_status: string | null
@@ -12571,6 +12572,7 @@ export type Database = {
           id?: string
           notes?: string | null
           number_of_guests?: number | null
+          pax_names?: string[] | null
           payment_method?: string | null
           payment_reference?: string | null
           payment_status?: string | null
@@ -12602,6 +12604,7 @@ export type Database = {
           id?: string
           notes?: string | null
           number_of_guests?: number | null
+          pax_names?: string[] | null
           payment_method?: string | null
           payment_reference?: string | null
           payment_status?: string | null

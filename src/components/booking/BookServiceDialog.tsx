@@ -11,7 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format, addMinutes, parse, isBefore, startOfDay, differenceInDays, differenceInCalendarMonths, addDays } from "date-fns";
-import { Clock, Calendar as CalendarIcon, DollarSign } from "lucide-react";
+import { Clock, Calendar as CalendarIcon, DollarSign, Users, Plus, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface Service {
@@ -53,6 +54,9 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
   const [loading, setLoading] = useState(false);
   const [blockoutDates, setBlockoutDates] = useState<Date[]>([]);
   const [existingBookings, setExistingBookings] = useState<string[]>([]);
+  const [paxNames, setPaxNames] = useState<string[]>([""]);
+
+  const isTour = !!service?.category && /tour|travel|trip|tourism/i.test(service.category);
 
   const isDurationBased = service?.price_type && ['per_day', 'per_night', 'per_month'].includes(service.price_type);
 
@@ -63,6 +67,7 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
       setCheckOutDate(undefined);
       setSelectedTime("");
       setNotes("");
+      setPaxNames([""]);
     }
   }, [service, open]);
 
@@ -160,9 +165,12 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
     return p;
   };
 
-  const canBook = isDurationBased
+  const cleanedPax = paxNames.map(n => n.trim()).filter(Boolean);
+  const paxValid = !isTour || cleanedPax.length > 0;
+
+  const canBook = (isDurationBased
     ? !!selectedDate && !!checkOutDate
-    : !!selectedDate && !!selectedTime;
+    : !!selectedDate && !!selectedTime) && paxValid;
 
   const handleBook = async () => {
     if (!user) { toast.error("Please log in to book a service"); return; }
@@ -183,6 +191,7 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
       total_amount: totalAmount,
       notes: notes || null,
       referrer_id: referrerId || null,
+      pax_names: cleanedPax,
       status: "pending"
     };
 
@@ -345,6 +354,55 @@ const BookServiceDialog = ({ open, onOpenChange, service }: BookServiceDialogPro
                 </div>
               )}
             </>
+          )}
+
+          {/* Pax Names (Tours only) */}
+          {isTour && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Passenger Names
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                List the full name of every person joining the trip. Used to verify guests on the day of the tour.
+              </p>
+              <div className="space-y-2">
+                {paxNames.map((name, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <Input
+                      value={name}
+                      placeholder={`Pax ${idx + 1} full name`}
+                      onChange={(e) => {
+                        const next = [...paxNames];
+                        next[idx] = e.target.value;
+                        setPaxNames(next);
+                      }}
+                    />
+                    {paxNames.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setPaxNames(paxNames.filter((_, i) => i !== idx))}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPaxNames([...paxNames, ""])}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add passenger
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Total passengers: <strong>{cleanedPax.length}</strong>
+              </p>
+            </div>
           )}
 
           {/* Notes */}
