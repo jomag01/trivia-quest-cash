@@ -302,6 +302,7 @@ const AIHub = memo(() => {
     { id: 'market-analysis', label: 'Markets', icon: TrendingUp, gradient: 'from-blue-500 to-indigo-600', iconColor: 'text-blue-500', premium: true, unlockCost: 30 },
     { id: 'email-marketing', label: 'Email', icon: Mail, gradient: 'from-rose-400 to-pink-500', iconColor: 'text-rose-500', premium: true, unlockCost: 25 },
     { id: 'link-shortener', label: 'Links', icon: Link2, gradient: 'from-blue-400 to-indigo-500', iconColor: 'text-blue-500' },
+    { id: 'lesson-plan', label: 'Lesson Plan', icon: GraduationCap, gradient: 'from-emerald-400 to-green-600', iconColor: 'text-emerald-500' },
     { id: 'contact', label: 'Contact', icon: MessageSquare, gradient: 'from-teal-400 to-blue-500', iconColor: 'text-teal-500' },
   ];
 
