@@ -1655,6 +1655,15 @@ const AIHub = memo(() => {
             </div>
           )}
 
+          {/* Teacher's Lesson Plan Generator */}
+          {activeTab === 'lesson-plan' && (
+            <div className="p-4 md:p-6 max-w-4xl mx-auto">
+              <LessonPlanGenerator userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
+          )}
+
+
+
           {/* Text to Image */}
           {activeTab === 'text-to-image' && (
             <div className="p-4 md:p-6 max-w-4xl mx-auto">
