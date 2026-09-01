@@ -41,6 +41,7 @@ import { ManualBrushEraser } from '@/components/ai/ManualBrushEraser';
 import { BrandGenerator } from '@/components/ai/BrandGenerator';
 import { LeadGenerator } from '@/components/ai/LeadGenerator';
 import LinkShortener from '@/components/ai/LinkShortener';
+import LessonPlanGenerator from '@/components/ai/LessonPlanGenerator';
 import { SponsoredAIHubAd } from '@/components/ads/SponsoredAIHubAd';
 // GuestAITrialPopup removed per user request
 import { Suspense } from 'react';
