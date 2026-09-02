@@ -61,7 +61,7 @@ const CORE_VALUES = [
 ];
 
 export default function LessonPlanGenerator({ userCredits, onCreditsChange }: LessonPlanGeneratorProps) {
-  const [format, setFormat] = useState("DLP");
+  const [format, setFormat] = useState("ILAW");
   const [gradeLevel, setGradeLevel] = useState("Grade 7");
   const [subject, setSubject] = useState("English");
   const [quarter, setQuarter] = useState("1st Quarter");
@@ -152,11 +152,13 @@ export default function LessonPlanGenerator({ userCredits, onCreditsChange }: Le
           <CardTitle className="flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-emerald-500" />
             Teacher's Lesson Plan Generator
-            <Badge variant="secondary">DepEd Ready</Badge>
+            <Badge variant="secondary">MATATAG · ILAW Ready</Badge>
           </CardTitle>
           <CardDescription>
-            Generate DepEd-aligned Detailed Lesson Plans (DLP) and Daily Lesson Logs (DLL) with MELC codes,
-            values integration, differentiated activities, assessments and rubrics — built for Philippine teachers.
+            Generate lesson plans aligned with the ILAW Framework (Intentions, Learning Experience, Assessing
+            Learning, Ways Forward) under DepEd Order No. 016, s. 2026 — with MATATAG curriculum codes, values
+            integration, differentiated activities, assessments and rubrics. Legacy DLP/DLL formats are also
+            available (allowed until end of Term 1, SY 2026–2027).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -166,8 +168,10 @@ export default function LessonPlanGenerator({ userCredits, onCreditsChange }: Le
               <Select value={format} onValueChange={setFormat}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DLP">Detailed Lesson Plan (DLP)</SelectItem>
-                  <SelectItem value="DLL">Daily Lesson Log (DLL) — weekly</SelectItem>
+                  <SelectItem value="ILAW">ILAW Lesson Plan (MATATAG · DO 016, s. 2026)</SelectItem>
+                  <SelectItem value="ILAW-WEEKLY">ILAW — Weekly (5 sessions)</SelectItem>
+                  <SelectItem value="DLP">Legacy: Detailed Lesson Plan (DLP)</SelectItem>
+                  <SelectItem value="DLL">Legacy: Daily Lesson Log (DLL)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -210,9 +214,9 @@ export default function LessonPlanGenerator({ userCredits, onCreditsChange }: Le
           </div>
 
           <div className="space-y-2">
-            <Label>Learning Competency / MELC Code (optional)</Label>
+            <Label>Learning Competency / MATATAG Code (optional)</Label>
             <Textarea
-              placeholder="e.g. EN7RC-I-a-1: Use predictive and anticipatory devices to activate prior knowledge…"
+              placeholder="e.g. EN7RC-I-1: Use predictive and anticipatory devices to activate prior knowledge…"
               value={competency}
               onChange={(e) => setCompetency(e.target.value)}
               rows={2}

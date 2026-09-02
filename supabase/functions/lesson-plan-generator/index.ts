@@ -20,7 +20,7 @@ serve(async (req) => {
     }
 
     const {
-      format = "DLP",
+      format = "ILAW",
       gradeLevel,
       subject,
       topic,
@@ -46,16 +46,41 @@ serve(async (req) => {
     }
 
     const systemPrompt = `You are an expert Philippine DepEd master teacher and curriculum writer.
-You produce classroom-ready lesson plans that strictly follow Philippine DepEd standards:
-- DepEd Order No. 42, s. 2016 (Policy Guidelines on Daily Lesson Preparation) for DLP/DLL structure
-- MATATAG Curriculum and MELCs (Most Essential Learning Competencies) coding, e.g. EN7RC-I-a-1
-- K to 12 Basic Education Program content and performance standards
-- Values integration (Makabansa / Edukasyon sa Pagpapakatao), 21st-century skills, and Inclusive Education
-Use Philippine classroom context: local examples, Filipino names, barangay/community references, low-cost improvised instructional materials, large class sizes, limited technology.`;
+You produce classroom-ready lesson plans that strictly follow current Philippine DepEd standards:
+- DepEd Order No. 016, s. 2026 (Guidelines on Lesson Planning and Learning Design), which prescribes the ILAW Framework — I: Intentions, L: Learning Experience, A: Assessing Learning, W: Ways Forward — and repeals DO 42, s. 2016
+- The MATATAG Curriculum: use MATATAG Curriculum Guide content standards, performance standards and learning competencies with their official codes (e.g. EN7LC-I-1), NOT the old MELC lists, whenever the grade level is covered by MATATAG
+- Values integration (Makabansa / Edukasyon sa Pagpapakatao), 21st-century skills, GMRC, and Inclusive Education
+Use Philippine classroom context: local examples, Filipino names, barangay/community references, low-cost improvised instructional materials, large class sizes, limited technology.
+Note in a short footer that the plan is an AI-assisted draft and, per Section 23 of DO 016, s. 2026, the teacher must review, contextualize and exercise professional judgment before use.`;
+
+    const ilawStructure = `Produce a lesson plan following the ILAW Framework of DepEd Order No. 016, s. 2026, using exactly these four main sections and sub-parts:
+
+**I — INTENTIONS**
+- Learning Competency (with official MATATAG curriculum code)
+- Learning Objectives (unpacked, focused, manageable, observable; aligned to learner readiness and available time)
+- Learner Context (readiness, prior knowledge, class profile, language and cultural context)
+
+**L — LEARNING EXPERIENCE**
+- Pre-Lesson (activating prior knowledge, setting the purpose, short review/diagnostic)
+- Lesson Flow / Lesson Proper (During-Lesson) — organized with the ${strategy} approach, with clear teacher moves, learner tasks, key questions, and estimated timing per part
+- Learning Resources (MATATAG Teacher's Guide / Learner's Material pages, textbooks, LR Portal, improvised materials)
+- Integration Opportunities (values, GMRC, cross-curricular, ICT, real-life/community application)
+
+**A — ASSESSING LEARNING**
+- Formative Assessment aligned to each objective (what evidence of learning will be gathered and how)
+- Criteria / rubric and how results will inform the next lesson
+
+**W — WAYS FORWARD**
+- Extended Learning Opportunities (remediation, reinforcement, enrichment, home/community tasks)
+- Reflections (teacher reflection prompts on learner progress, what worked, and adjustments)`;
 
     const structure = format === "DLL"
-      ? `Produce a Daily Lesson Log (DLL) covering the week with the official DepEd parts: I. Objectives (Content Standards, Performance Standards, Learning Competencies/Objectives with MELC code), II. Content, III. Learning Resources (References: Teacher's Guide pages, Learner's Material pages, Textbook pages, LR portal, Other resources), IV. Procedures (A. Reviewing previous lesson/presenting the new lesson, B. Establishing a purpose, C. Presenting examples/instances, D. Discussing new concepts and practicing new skills #1, E. Discussing new concepts and practicing new skills #2, F. Developing mastery, G. Finding practical applications, H. Making generalizations and abstractions, I. Evaluating learning, J. Additional activities for application or remediation), V. Remarks, VI. Reflection (all 6 standard reflection items).`
-      : `Produce a Detailed Lesson Plan (DLP) with: I. Objectives (Knowledge, Skills, Attitude - written in SMART form with MELC code), II. Subject Matter (Topic, References, Materials, Values Integration), III. Procedure using the ${strategy} approach with detailed teacher and learner activities and estimated timing per part, IV. Evaluation, V. Assignment/Agreement.`;
+      ? `Produce a Daily Lesson Log (DLL) covering the week with the official DepEd parts: I. Objectives (Content Standards, Performance Standards, Learning Competencies/Objectives with curriculum code), II. Content, III. Learning Resources, IV. Procedures (A–J), V. Remarks, VI. Reflection (all 6 standard reflection items). Note that DLL is a legacy format allowed only until the end of Term 1, SY 2026–2027.`
+      : format === "DLP"
+      ? `Produce a Detailed Lesson Plan (DLP) with: I. Objectives (Knowledge, Skills, Attitude in SMART form with curriculum code), II. Subject Matter, III. Procedure using the ${strategy} approach with detailed teacher and learner activities and timing, IV. Evaluation, V. Assignment/Agreement. Note that DLP is a legacy format allowed only until the end of Term 1, SY 2026–2027.`
+      : format === "ILAW-WEEKLY"
+      ? `${ilawStructure}\n\nCover a whole week (5 daily sessions). Repeat the L (Learning Experience) and A (Assessing Learning) sections per day (Day 1–Day 5) under one shared set of Intentions, and close with a single Ways Forward section for the week.`
+      : ilawStructure;
 
     const extras = [
       includeIMs && "Suggest low-cost, improvised instructional materials available in Philippine public schools.",
@@ -66,13 +91,16 @@ Use Philippine classroom context: local examples, Filipino names, barangay/commu
       "Add ICT/Integration notes and cross-curricular links.",
     ].filter(Boolean).join("\n");
 
-    const userPrompt = `Create a ${format} lesson plan.
+    const isIlaw = format === "ILAW" || format === "ILAW-WEEKLY";
+
+    const userPrompt = `Create a ${isIlaw ? "MATATAG-aligned ILAW" : format} lesson plan.
+${isIlaw ? "CRITICAL: The output MUST use the four ILAW sections exactly as headings — \"I — INTENTIONS\", \"L — LEARNING EXPERIENCE\", \"A — ASSESSING LEARNING\", \"W — WAYS FORWARD\". Do NOT output the old DLP/DLL structure (no \"I. Objectives / II. Subject Matter / III. Procedure / IV. Evaluation / V. Assignment\"). Place any extra sections as sub-parts inside the matching ILAW section.\n" : ""}
 
 Grade Level: ${gradeLevel || "not specified"}
 Learning Area / Subject: ${subject || "not specified"}
 Quarter: ${quarter || "not specified"}
 Topic: ${topic || "derive from the competency"}
-Learning Competency / MELC: ${competency || "identify the most appropriate MELC and its official code"}
+Learning Competency (MATATAG): ${competency || "identify the most appropriate MATATAG learning competency and its official code"}
 Class Duration: ${duration}
 Teaching Strategy: ${strategy}
 Language of Instruction: ${language}
