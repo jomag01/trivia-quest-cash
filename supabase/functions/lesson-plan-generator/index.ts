@@ -91,7 +91,10 @@ Note in a short footer that the plan is an AI-assisted draft and, per Section 23
       "Add ICT/Integration notes and cross-curricular links.",
     ].filter(Boolean).join("\n");
 
-    const userPrompt = `Create a ${format} lesson plan.
+    const isIlaw = format === "ILAW" || format === "ILAW-WEEKLY";
+
+    const userPrompt = `Create a ${isIlaw ? "MATATAG-aligned ILAW" : format} lesson plan.
+${isIlaw ? "CRITICAL: The output MUST use the four ILAW sections exactly as headings — \"I — INTENTIONS\", \"L — LEARNING EXPERIENCE\", \"A — ASSESSING LEARNING\", \"W — WAYS FORWARD\". Do NOT output the old DLP/DLL structure (no \"I. Objectives / II. Subject Matter / III. Procedure / IV. Evaluation / V. Assignment\"). Place any extra sections as sub-parts inside the matching ILAW section.\n" : ""}
 
 Grade Level: ${gradeLevel || "not specified"}
 Learning Area / Subject: ${subject || "not specified"}
