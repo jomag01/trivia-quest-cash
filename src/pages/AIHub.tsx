@@ -17,7 +17,7 @@ import { useAISubscription } from '@/hooks/useAISubscription';
 import CreditSourceDialog from '@/components/ai/CreditSourceDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, ShoppingBag, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp, BookOpen, CloudSun, Mail, Minimize2, Link2, ClipboardList } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, ShoppingBag, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, ChevronDown, School, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp, BookOpen, CloudSun, Mail, Minimize2, Link2, ClipboardList } from 'lucide-react';
 import { GraduationCap } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import WebsiteBuilder from '@/components/ai/WebsiteBuilder';
@@ -85,6 +85,7 @@ const AIHub = memo(() => {
   // Check if user is on a public tab
   const isPublicTab = PUBLIC_TABS.includes(activeTab);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(['teachers-resources']));
   const [prompt, setPrompt] = useState('');
   const [homeInputValue, setHomeInputValue] = useState('');
   const [initialResearchQuery, setInitialResearchQuery] = useState('');
@@ -276,7 +277,17 @@ const AIHub = memo(() => {
   };
 
   // Navigation items for sidebar with colorful gradients
-  const navItems = [
+  type NavItem = {
+    id: string;
+    label: string;
+    icon: any;
+    gradient: string;
+    iconColor: string;
+    premium?: boolean;
+    unlockCost?: number;
+    children?: NavItem[];
+  };
+  const navItems: NavItem[] = [
     { id: 'home', label: 'Home', icon: Sparkles, gradient: 'from-yellow-400 to-orange-500', iconColor: 'text-yellow-500' },
     // Only show affiliate tab for affiliates or users looking to buy credits
     ...(isPaidAffiliate || user ? [{ id: 'affiliate', label: 'Affiliate', icon: GitBranch, gradient: 'from-green-400 to-emerald-500', iconColor: 'text-green-500' }] : []),
@@ -304,8 +315,13 @@ const AIHub = memo(() => {
     { id: 'market-analysis', label: 'Markets', icon: TrendingUp, gradient: 'from-blue-500 to-indigo-600', iconColor: 'text-blue-500', premium: true, unlockCost: 30 },
     { id: 'email-marketing', label: 'Email', icon: Mail, gradient: 'from-rose-400 to-pink-500', iconColor: 'text-rose-500', premium: true, unlockCost: 25 },
     { id: 'link-shortener', label: 'Links', icon: Link2, gradient: 'from-blue-400 to-indigo-500', iconColor: 'text-blue-500' },
-    { id: 'lesson-plan', label: 'Lesson Plan', icon: GraduationCap, gradient: 'from-emerald-400 to-green-600', iconColor: 'text-emerald-500' },
-    { id: 'exam-generator', label: 'Exam Maker', icon: ClipboardList, gradient: 'from-green-400 to-teal-600', iconColor: 'text-green-500' },
+    {
+      id: 'teachers-resources', label: "Teachers' Resources", icon: School, gradient: 'from-emerald-400 to-teal-600', iconColor: 'text-emerald-500',
+      children: [
+        { id: 'lesson-plan', label: 'Lesson Plan', icon: GraduationCap, gradient: 'from-emerald-400 to-green-600', iconColor: 'text-emerald-500' },
+        { id: 'exam-generator', label: 'Exam Maker', icon: ClipboardList, gradient: 'from-green-400 to-teal-600', iconColor: 'text-green-500' },
+      ],
+    },
     { id: 'contact', label: 'Contact', icon: MessageSquare, gradient: 'from-teal-400 to-blue-500', iconColor: 'text-teal-500' },
   ];
 
@@ -1357,9 +1373,108 @@ const AIHub = memo(() => {
           <nav className="space-y-1.5 px-2">
             <TooltipProvider delayDuration={0}>
               {navItems.map((item) => {
+                const hasChildren = item.children && item.children.length > 0;
                 const isLocked = item.premium && !unlockedFeatures.has(item.id);
                 const unlockCost = (item as any).unlockCost || 0;
-                
+                const isExpanded = expandedGroups.has(item.id);
+                const isGroupActive = hasChildren && item.children!.some(c => c.id === activeTab);
+
+                if (hasChildren) {
+                  return (
+                    <div key={item.id} className="space-y-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => setExpandedGroups(prev => {
+                              const next = new Set(prev);
+                              if (next.has(item.id)) next.delete(item.id);
+                              else next.add(item.id);
+                              return next;
+                            })}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden",
+                              isGroupActive
+                                ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg`
+                                : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                            )}
+                          >
+                            <div className={cn(
+                              "flex items-center justify-center w-8 h-8 rounded-lg transition-all relative",
+                              isGroupActive ? "bg-white/20" : `bg-gradient-to-br ${item.gradient} shadow-sm`
+                            )}>
+                              <item.icon className="h-4 w-4 flex-shrink-0 text-white" />
+                            </div>
+                            <span className={cn("flex-1 text-left", !sidebarOpen && "md:hidden")}>
+                              {item.label}
+                            </span>
+                            {isExpanded ? (
+                              <ChevronDown className={cn("h-4 w-4 flex-shrink-0", !sidebarOpen && "md:hidden")} />
+                            ) : (
+                              <ChevronLeft className={cn("h-4 w-4 flex-shrink-0 rotate-180", !sidebarOpen && "md:hidden")} />
+                            )}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="right"
+                          className={cn("bg-background border shadow-lg z-50", sidebarOpen && "md:hidden")}
+                        >
+                          <p className="font-medium">{item.label}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      {isExpanded && item.children!.map((child) => {
+                        const childLocked = child.premium && !unlockedFeatures.has(child.id);
+                        const childUnlockCost = (child as any).unlockCost || 0;
+                        return (
+                          <Tooltip key={child.id}>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => handlePremiumFeatureClick(child)}
+                                className={cn(
+                                  "w-[calc(100%-1rem)] flex items-center gap-3 px-3 py-2 ml-4 rounded-lg text-sm font-medium transition-all duration-200",
+                                  activeTab === child.id
+                                    ? `bg-gradient-to-r ${child.gradient} text-white shadow-md`
+                                    : childLocked
+                                    ? "text-muted-foreground/60 hover:bg-amber-500/10 hover:text-amber-600"
+                                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                                )}
+                              >
+                                <div className={cn(
+                                  "flex items-center justify-center w-7 h-7 rounded-lg transition-all",
+                                  activeTab === child.id ? "bg-white/20" : childLocked ? "bg-gradient-to-br from-gray-400 to-gray-500 shadow-sm" : `bg-gradient-to-br ${child.gradient} shadow-sm`
+                                )}>
+                                  {childLocked ? (
+                                    <Lock className="h-3.5 w-3.5 text-white" />
+                                  ) : (
+                                    <child.icon className="h-3.5 w-3.5 flex-shrink-0 text-white" />
+                                  )}
+                                </div>
+                                <span className={cn("flex-1 text-left", !sidebarOpen && "md:hidden")}>
+                                  {child.label}
+                                </span>
+                                {childLocked && (
+                                  <div className={cn("flex items-center gap-1", !sidebarOpen && "md:hidden")}>
+                                    <Lock className="h-3 w-3 text-amber-500" />
+                                    <span className="text-xs text-amber-500">{childUnlockCost}c</span>
+                                  </div>
+                                )}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="right"
+                              className={cn("bg-background border shadow-lg z-50", sidebarOpen && "md:hidden")}
+                            >
+                              <p className="font-medium">{child.label}</p>
+                              {childLocked ? (
+                                <p className="text-xs text-amber-500">🔒 Unlock for {childUnlockCost} credits</p>
+                              ) : null}
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+
                 return (
                   <Tooltip key={item.id}>
                     <TooltipTrigger asChild>
