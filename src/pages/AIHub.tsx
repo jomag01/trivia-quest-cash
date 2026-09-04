@@ -17,7 +17,7 @@ import { useAISubscription } from '@/hooks/useAISubscription';
 import CreditSourceDialog from '@/components/ai/CreditSourceDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, ShoppingBag, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp, BookOpen, CloudSun, Mail, Minimize2, Link2, ClipboardList } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, ShoppingBag, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, ChevronDown, School, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp, BookOpen, CloudSun, Mail, Minimize2, Link2, ClipboardList } from 'lucide-react';
 import { GraduationCap } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import WebsiteBuilder from '@/components/ai/WebsiteBuilder';
@@ -85,6 +85,7 @@ const AIHub = memo(() => {
   // Check if user is on a public tab
   const isPublicTab = PUBLIC_TABS.includes(activeTab);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(['teachers-resources']));
   const [prompt, setPrompt] = useState('');
   const [homeInputValue, setHomeInputValue] = useState('');
   const [initialResearchQuery, setInitialResearchQuery] = useState('');
@@ -276,7 +277,17 @@ const AIHub = memo(() => {
   };
 
   // Navigation items for sidebar with colorful gradients
-  const navItems = [
+  type NavItem = {
+    id: string;
+    label: string;
+    icon: any;
+    gradient: string;
+    iconColor: string;
+    premium?: boolean;
+    unlockCost?: number;
+    children?: NavItem[];
+  };
+  const navItems: NavItem[] = [
     { id: 'home', label: 'Home', icon: Sparkles, gradient: 'from-yellow-400 to-orange-500', iconColor: 'text-yellow-500' },
     // Only show affiliate tab for affiliates or users looking to buy credits
     ...(isPaidAffiliate || user ? [{ id: 'affiliate', label: 'Affiliate', icon: GitBranch, gradient: 'from-green-400 to-emerald-500', iconColor: 'text-green-500' }] : []),
@@ -304,8 +315,13 @@ const AIHub = memo(() => {
     { id: 'market-analysis', label: 'Markets', icon: TrendingUp, gradient: 'from-blue-500 to-indigo-600', iconColor: 'text-blue-500', premium: true, unlockCost: 30 },
     { id: 'email-marketing', label: 'Email', icon: Mail, gradient: 'from-rose-400 to-pink-500', iconColor: 'text-rose-500', premium: true, unlockCost: 25 },
     { id: 'link-shortener', label: 'Links', icon: Link2, gradient: 'from-blue-400 to-indigo-500', iconColor: 'text-blue-500' },
-    { id: 'lesson-plan', label: 'Lesson Plan', icon: GraduationCap, gradient: 'from-emerald-400 to-green-600', iconColor: 'text-emerald-500' },
-    { id: 'exam-generator', label: 'Exam Maker', icon: ClipboardList, gradient: 'from-green-400 to-teal-600', iconColor: 'text-green-500' },
+    {
+      id: 'teachers-resources', label: "Teachers' Resources", icon: School, gradient: 'from-emerald-400 to-teal-600', iconColor: 'text-emerald-500',
+      children: [
+        { id: 'lesson-plan', label: 'Lesson Plan', icon: GraduationCap, gradient: 'from-emerald-400 to-green-600', iconColor: 'text-emerald-500' },
+        { id: 'exam-generator', label: 'Exam Maker', icon: ClipboardList, gradient: 'from-green-400 to-teal-600', iconColor: 'text-green-500' },
+      ],
+    },
     { id: 'contact', label: 'Contact', icon: MessageSquare, gradient: 'from-teal-400 to-blue-500', iconColor: 'text-teal-500' },
   ];
 
