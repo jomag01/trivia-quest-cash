@@ -1373,9 +1373,108 @@ const AIHub = memo(() => {
           <nav className="space-y-1.5 px-2">
             <TooltipProvider delayDuration={0}>
               {navItems.map((item) => {
+                const hasChildren = item.children && item.children.length > 0;
                 const isLocked = item.premium && !unlockedFeatures.has(item.id);
                 const unlockCost = (item as any).unlockCost || 0;
-                
+                const isExpanded = expandedGroups.has(item.id);
+                const isGroupActive = hasChildren && item.children!.some(c => c.id === activeTab);
+
+                if (hasChildren) {
+                  return (
+                    <div key={item.id} className="space-y-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => setExpandedGroups(prev => {
+                              const next = new Set(prev);
+                              if (next.has(item.id)) next.delete(item.id);
+                              else next.add(item.id);
+                              return next;
+                            })}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden",
+                              isGroupActive
+                                ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg`
+                                : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                            )}
+                          >
+                            <div className={cn(
+                              "flex items-center justify-center w-8 h-8 rounded-lg transition-all relative",
+                              isGroupActive ? "bg-white/20" : `bg-gradient-to-br ${item.gradient} shadow-sm`
+                            )}>
+                              <item.icon className="h-4 w-4 flex-shrink-0 text-white" />
+                            </div>
+                            <span className={cn("flex-1 text-left", !sidebarOpen && "md:hidden")}>
+                              {item.label}
+                            </span>
+                            {isExpanded ? (
+                              <ChevronDown className={cn("h-4 w-4 flex-shrink-0", !sidebarOpen && "md:hidden")} />
+                            ) : (
+                              <ChevronLeft className={cn("h-4 w-4 flex-shrink-0 rotate-180", !sidebarOpen && "md:hidden")} />
+                            )}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="right"
+                          className={cn("bg-background border shadow-lg z-50", sidebarOpen && "md:hidden")}
+                        >
+                          <p className="font-medium">{item.label}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      {isExpanded && item.children!.map((child) => {
+                        const childLocked = child.premium && !unlockedFeatures.has(child.id);
+                        const childUnlockCost = (child as any).unlockCost || 0;
+                        return (
+                          <Tooltip key={child.id}>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => handlePremiumFeatureClick(child)}
+                                className={cn(
+                                  "w-[calc(100%-1rem)] flex items-center gap-3 px-3 py-2 ml-4 rounded-lg text-sm font-medium transition-all duration-200",
+                                  activeTab === child.id
+                                    ? `bg-gradient-to-r ${child.gradient} text-white shadow-md`
+                                    : childLocked
+                                    ? "text-muted-foreground/60 hover:bg-amber-500/10 hover:text-amber-600"
+                                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                                )}
+                              >
+                                <div className={cn(
+                                  "flex items-center justify-center w-7 h-7 rounded-lg transition-all",
+                                  activeTab === child.id ? "bg-white/20" : childLocked ? "bg-gradient-to-br from-gray-400 to-gray-500 shadow-sm" : `bg-gradient-to-br ${child.gradient} shadow-sm`
+                                )}>
+                                  {childLocked ? (
+                                    <Lock className="h-3.5 w-3.5 text-white" />
+                                  ) : (
+                                    <child.icon className="h-3.5 w-3.5 flex-shrink-0 text-white" />
+                                  )}
+                                </div>
+                                <span className={cn("flex-1 text-left", !sidebarOpen && "md:hidden")}>
+                                  {child.label}
+                                </span>
+                                {childLocked && (
+                                  <div className={cn("flex items-center gap-1", !sidebarOpen && "md:hidden")}>
+                                    <Lock className="h-3 w-3 text-amber-500" />
+                                    <span className="text-xs text-amber-500">{childUnlockCost}c</span>
+                                  </div>
+                                )}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="right"
+                              className={cn("bg-background border shadow-lg z-50", sidebarOpen && "md:hidden")}
+                            >
+                              <p className="font-medium">{child.label}</p>
+                              {childLocked ? (
+                                <p className="text-xs text-amber-500">🔒 Unlock for {childUnlockCost} credits</p>
+                              ) : null}
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+
                 return (
                   <Tooltip key={item.id}>
                     <TooltipTrigger asChild>
