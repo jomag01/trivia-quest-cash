@@ -17,7 +17,7 @@ import { useAISubscription } from '@/hooks/useAISubscription';
 import CreditSourceDialog from '@/components/ai/CreditSourceDialog';
 import ContentCreator from '@/components/ai/ContentCreator';
 import { VideoEditor } from '@/components/ai/VideoEditor';
-import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, ShoppingBag, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp, BookOpen, CloudSun, Mail, Minimize2, Link2 } from 'lucide-react';
+import { ImageIcon, VideoIcon, TypeIcon, Sparkles, Upload, Loader2, Download, Copy, Wand2, Crown, X, ImagePlus, ShoppingCart, ShoppingBag, Film, Music, Play, Pause, Megaphone, Eraser, Palette, Sun, Trash2, Scissors, Briefcase, Brain, MessageSquare, Lock, Menu, ChevronLeft, Send, ArrowUp, GitBranch, Globe, BarChart3, Users, Image, CheckCircle, Code, Newspaper, TrendingUp, BookOpen, CloudSun, Mail, Minimize2, Link2, ClipboardList } from 'lucide-react';
 import { GraduationCap } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import WebsiteBuilder from '@/components/ai/WebsiteBuilder';
@@ -43,6 +43,7 @@ import { BrandGenerator } from '@/components/ai/BrandGenerator';
 import { LeadGenerator } from '@/components/ai/LeadGenerator';
 import LinkShortener from '@/components/ai/LinkShortener';
 import LessonPlanGenerator from '@/components/ai/LessonPlanGenerator';
+import ExamGenerator from '@/components/ai/ExamGenerator';
 import { SponsoredAIHubAd } from '@/components/ads/SponsoredAIHubAd';
 // GuestAITrialPopup removed per user request
 import { Suspense } from 'react';
@@ -304,6 +305,7 @@ const AIHub = memo(() => {
     { id: 'email-marketing', label: 'Email', icon: Mail, gradient: 'from-rose-400 to-pink-500', iconColor: 'text-rose-500', premium: true, unlockCost: 25 },
     { id: 'link-shortener', label: 'Links', icon: Link2, gradient: 'from-blue-400 to-indigo-500', iconColor: 'text-blue-500' },
     { id: 'lesson-plan', label: 'Lesson Plan', icon: GraduationCap, gradient: 'from-emerald-400 to-green-600', iconColor: 'text-emerald-500' },
+    { id: 'exam-generator', label: 'Exam Maker', icon: ClipboardList, gradient: 'from-green-400 to-teal-600', iconColor: 'text-green-500' },
     { id: 'contact', label: 'Contact', icon: MessageSquare, gradient: 'from-teal-400 to-blue-500', iconColor: 'text-teal-500' },
   ];
 
@@ -1659,6 +1661,13 @@ const AIHub = memo(() => {
           {activeTab === 'lesson-plan' && (
             <div className="p-4 md:p-6 max-w-4xl mx-auto">
               <LessonPlanGenerator userCredits={userCredits} onCreditsChange={fetchUserCredits} />
+            </div>
+          )}
+
+          {/* Teacher's Exam Generator */}
+          {activeTab === 'exam-generator' && (
+            <div className="p-4 md:p-6 max-w-4xl mx-auto">
+              <ExamGenerator userCredits={userCredits} onCreditsChange={fetchUserCredits} />
             </div>
           )}
 
