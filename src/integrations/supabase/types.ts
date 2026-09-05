@@ -14951,6 +14951,81 @@ export type Database = {
         }
         Relationships: []
       }
+      teachers_resource_commission_settings: {
+        Row: {
+          commission_type: string
+          commission_value: number
+          created_at: string
+          id: string
+          is_active: boolean
+          resource_label: string
+          resource_type: string
+          service_price: number
+          updated_at: string
+        }
+        Insert: {
+          commission_type?: string
+          commission_value?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          resource_label: string
+          resource_type: string
+          service_price?: number
+          updated_at?: string
+        }
+        Update: {
+          commission_type?: string
+          commission_value?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          resource_label?: string
+          resource_type?: string
+          service_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teachers_resource_referral_earnings: {
+        Row: {
+          commission_amount: number
+          commission_type: string
+          commission_value: number
+          created_at: string
+          id: string
+          referred_user_id: string
+          referrer_id: string
+          resource_type: string
+          service_amount: number
+          status: string
+        }
+        Insert: {
+          commission_amount?: number
+          commission_type?: string
+          commission_value?: number
+          created_at?: string
+          id?: string
+          referred_user_id: string
+          referrer_id: string
+          resource_type: string
+          service_amount?: number
+          status?: string
+        }
+        Update: {
+          commission_amount?: number
+          commission_type?: string
+          commission_value?: number
+          created_at?: string
+          id?: string
+          referred_user_id?: string
+          referrer_id?: string
+          resource_type?: string
+          service_amount?: number
+          status?: string
+        }
+        Relationships: []
+      }
       travel_availability: {
         Row: {
           available_date: string
@@ -17004,6 +17079,10 @@ export type Database = {
       approve_cash_deposit: {
         Args: { p_admin_id: string; p_request_id: string }
         Returns: boolean
+      }
+      award_teachers_resource_commission: {
+        Args: { _resource_type: string }
+        Returns: Json
       }
       binary_apply_purchase_volume:
         | {
