@@ -78,7 +78,19 @@ ${includeRubric ? `5. **RUBRIC** for essay / performance-based items with criter
 ${includeAnswerKey ? `6. **ANSWER KEY** — complete, numbered 1 to ${totalItems}, with brief justifications for higher-order items.` : ""}
 ${includeItemAnalysisSheet ? `7. **ITEM ANALYSIS SHEET** — a blank Markdown table for recording item number, competency, cognitive level, number of correct responses, difficulty index, discrimination index and remarks.` : ""}
 
-Write everything in ${language}. Output only the examination materials, no extra commentary.`;
+Write everything in ${language}.
+
+FORMATTING RULES (must be followed exactly, like an official DepEd printed test paper):
+- Output clean GitHub-flavored Markdown only. No code fences, no commentary.
+- Start with an "# " title line, then a two-column Markdown table with the columns: Item | Details \u2014 School, Teacher, Learning Area, Grade Level & Section, Term, School Year, Date, Total Points, Time Allotment.
+- Immediately after it, add a learner information table with the columns: Name | Grade & Section | Date | Score, each cell containing a blank underscore line.
+- Use "## " for every major section (Table of Specification, General Directions, Part I, Part II, Rubric, Answer Key, Item Analysis Sheet) and "### " for sub-parts. Never bold text in place of a heading.
+- The Table of Specification MUST be a Markdown table with the required columns and a bold TOTAL row.
+- Each exam part starts with a "## " heading that states the item type, the item range and the points, followed by an italic Directions line, then the numbered items. Multiple-choice options go on one line as: A. \u2026  B. \u2026  C. \u2026  D. \u2026
+- The Answer Key MUST be a compact table with the columns: Item No. | Answer | Cognitive Level, covering items 1\u2013${totalItems}.
+- The rubric MUST be a table with the columns: Criteria | Excellent (4) | Good (3) | Fair (2) | Needs Improvement (1) | Points.
+- Keep every table cell short and single-line; use "<br>" if a cell truly needs two lines. Never leave a table cell empty \u2014 write a dash.
+- End with a signature block table with the columns: Prepared by: | Checked by: | Noted by: with blank underscore lines, followed by the AI-assisted draft note.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

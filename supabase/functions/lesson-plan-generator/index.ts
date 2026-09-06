@@ -112,7 +112,18 @@ ${structure}
 
 ${extras}
 
-Write everything in ${language}. Format the output as clean, well-structured Markdown with clear headings, tables where useful, and ready-to-say teacher scripts in the procedure. Do not add commentary outside the lesson plan.`;
+Write everything in ${language}.
+
+FORMATTING RULES (must be followed exactly, like an official DepEd printed lesson plan):
+- Output clean GitHub-flavored Markdown only. No code fences, no commentary.
+- Start with an "# " title line, then a two-column Markdown table of the lesson details with the columns: Item | Details — containing School, Teacher, Grade Level, Learning Area, Teaching Date/Time, Quarter/Term, Duration, Lesson Format.
+- Use "## " for every main section (the ILAW letters or the numbered legacy parts) and "### " for sub-parts. Never bold text in place of a heading.
+- The Lesson Flow / Lesson Proper MUST be a Markdown table with these columns: Phase / Time | Teacher\u2019s Activity | Learners\u2019 Activity | Instructional Materials — one row per lesson phase, with ready-to-say teacher scripts inside the Teacher\u2019s Activity cell.
+- Objectives must be a numbered list; Learning Resources a bulleted list.
+- Differentiated instruction MUST be a table with the columns: Learner Group | Task / Support | Expected Output.
+- The assessment MUST be a numbered list of items, with the answer key as a table (Item No. | Answer) and the rubric as a table (Criteria | Excellent (4) | Good (3) | Fair (2) | Needs Improvement (1) | Points).
+- Keep every table cell short and single-line; use "<br>" if a cell truly needs two lines. Never leave a table cell empty \u2014 write a dash.
+- End with a signature block table with the columns: Prepared by: | Checked by: | Noted by: and blank underscore lines for names and positions, followed by the DO 016 s. 2026 AI-assisted draft note.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
