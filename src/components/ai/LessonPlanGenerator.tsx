@@ -308,23 +308,12 @@ export default function LessonPlanGenerator({ userCredits, onCreditsChange }: Le
       </Card>
 
       {lessonPlan && (
-        <Card className="border-border/50">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-            <CardTitle className="text-lg">
-              {format} — {subject}, {gradeLevel}
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={copyPlan}><Copy className="w-4 h-4" /></Button>
-              <Button variant="outline" size="sm" onClick={downloadPlan}><Download className="w-4 h-4" /></Button>
-              <Button variant="outline" size="sm" onClick={printPlan}><Printer className="w-4 h-4" /></Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed font-sans">
-              {lessonPlan}
-            </pre>
-          </CardContent>
-        </Card>
+        <TeachersDocumentView
+          title={`${format} — ${subject}, ${gradeLevel}`}
+          subtitle={`${quarter || ""} ${topic ? `· ${topic}` : ""}`.trim()}
+          content={lessonPlan}
+          fileName={`${format}-${subject}-${gradeLevel}`.replace(/\s+/g, "-").toLowerCase()}
+        />
       )}
     </div>
   );
