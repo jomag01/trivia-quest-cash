@@ -15,7 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { GraduationCap, Loader2, Copy, Download, Printer, Sparkles } from "lucide-react";
+import { GraduationCap, Loader2, Sparkles } from "lucide-react";
+import { TeachersDocumentView } from "./TeachersDocumentView";
 
 interface LessonPlanGeneratorProps {
   userCredits: number;
@@ -118,32 +119,8 @@ export default function LessonPlanGenerator({ userCredits, onCreditsChange }: Le
     }
   };
 
-  const copyPlan = () => {
-    navigator.clipboard.writeText(lessonPlan);
-    toast.success("Lesson plan copied");
-  };
 
-  const downloadPlan = () => {
-    const blob = new Blob([lessonPlan], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${format}-${subject}-${gradeLevel}`.replace(/\s+/g, "-").toLowerCase() + ".md";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
-  const printPlan = () => {
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.write(
-      `<html><head><title>${format} - ${subject} - ${gradeLevel}</title>
-      <style>body{font-family:Georgia,serif;padding:32px;line-height:1.6;white-space:pre-wrap;}</style>
-      </head><body>${lessonPlan.replace(/[<>]/g, (c) => (c === "<" ? "&lt;" : "&gt;"))}</body></html>`
-    );
-    w.document.close();
-    w.print();
-  };
 
   return (
     <div className="space-y-6">
@@ -308,23 +285,12 @@ export default function LessonPlanGenerator({ userCredits, onCreditsChange }: Le
       </Card>
 
       {lessonPlan && (
-        <Card className="border-border/50">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-            <CardTitle className="text-lg">
-              {format} — {subject}, {gradeLevel}
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={copyPlan}><Copy className="w-4 h-4" /></Button>
-              <Button variant="outline" size="sm" onClick={downloadPlan}><Download className="w-4 h-4" /></Button>
-              <Button variant="outline" size="sm" onClick={printPlan}><Printer className="w-4 h-4" /></Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed font-sans">
-              {lessonPlan}
-            </pre>
-          </CardContent>
-        </Card>
+        <TeachersDocumentView
+          title={`${format} — ${subject}, ${gradeLevel}`}
+          subtitle={`${quarter || ""} ${topic ? `· ${topic}` : ""}`.trim()}
+          content={lessonPlan}
+          fileName={`${format}-${subject}-${gradeLevel}`.replace(/\s+/g, "-").toLowerCase()}
+        />
       )}
     </div>
   );
