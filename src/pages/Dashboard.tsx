@@ -50,6 +50,7 @@ import { useHiddenTabs } from "@/hooks/useHiddenTabs";
 import SellerOrderProcessing from "@/components/dashboard/SellerOrderProcessing";
 import InstallmentOffers from "@/components/dashboard/InstallmentOffers";
 import { CommissionEarningsCard } from "@/components/dashboard/CommissionEarningsCard";
+import { TeachersResourceEarningsCard } from "@/components/dashboard/TeachersResourceEarningsCard";
 import { CommissionNotificationsCard } from "@/components/dashboard/CommissionNotificationsCard";
 import { BlockedUserDialog } from "@/components/BlockedUserDialog";
 import RiderMobileApp from "@/components/courier/rider/RiderMobileApp";
@@ -535,6 +536,9 @@ const Dashboard = () => {
 
         {/* Seller Referral Earnings */}
         <CommissionEarningsCard />
+
+        {/* Teachers' Resources Referral Income */}
+        <TeachersResourceEarningsCard />
 
         {/* Installment Offers for Affiliates */}
         <InstallmentOffers />
