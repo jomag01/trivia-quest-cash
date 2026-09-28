@@ -16,6 +16,7 @@ import {
   QUALITY_PRESETS 
 } from "@/lib/streaming";
 import type { ConnectionState } from "@/lib/streaming/SFUConnection";
+import LiveBasketManager from "./LiveBasketManager";
 interface BroadcasterViewProps {
   streamId: string;
   onEndStream: () => void;
@@ -431,32 +432,16 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         )}
 
         <Button
-          className="absolute bottom-20 left-4 bg-orange-500 hover:bg-orange-600 z-10 text-xs px-3"
+          className="absolute bottom-20 left-4 z-10 text-xs px-3"
           size="sm"
           onClick={() => setShowProducts(!showProducts)}
         >
           <ShoppingBag className="w-4 h-4 mr-1" />
-          ({products.length})
+          Basket
         </Button>
 
         {showProducts && (
-          <div className="absolute bottom-32 left-4 right-20 max-h-32 z-10">
-            <ScrollArea className="h-full">
-              <div className="flex gap-2 p-2">
-                {products.map((product) => (
-                  <Card key={product.id} className="flex-shrink-0 w-20 p-1.5 bg-white/10 backdrop-blur">
-                    <img
-                      src={product.image_url || "/placeholder.svg"}
-                      alt={product.name}
-                      className="w-full h-12 object-cover rounded mb-1"
-                    />
-                    <p className="text-white text-[8px] truncate">{product.name}</p>
-                    <p className="text-orange-400 font-bold text-[10px]">₱{product.final_price}</p>
-                  </Card>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
+          <LiveBasketManager streamId={streamId} onClose={() => setShowProducts(false)} />
         )}
 
         <div className="absolute bottom-20 right-4 w-56 max-h-36 z-10">

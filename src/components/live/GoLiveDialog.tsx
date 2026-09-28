@@ -108,6 +108,7 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
           stream_id: stream.id,
           product_id: productId,
           display_order: index,
+          basket_number: index + 1,
           streamer_id: user.id // Track who's sharing for commission purposes
         }));
 
@@ -243,8 +244,8 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                               className="w-full h-20 object-cover rounded"
                             />
                             {selectedProducts.includes(product.id) && (
-                              <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                                ✓
+                              <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full min-w-5 h-5 px-1 flex items-center justify-center text-xs font-bold">
+                                #{selectedProducts.indexOf(product.id) + 1}
                               </div>
                             )}
                           </div>
