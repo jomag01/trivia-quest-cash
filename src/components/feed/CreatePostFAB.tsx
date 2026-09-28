@@ -19,7 +19,7 @@ export default function CreatePostFAB({ onPostCreated }: CreatePostFABProps) {
   const [showComposer, setShowComposer] = useState(false);
   const [composerMode, setComposerMode] = useState<"text" | "image" | "video">("text");
   const [showGoLive, setShowGoLive] = useState(false);
-  const canGoLive = useCanGoLive(user?.id);
+  const { canGoLive } = useCanGoLive(user?.id);
 
   if (!user) return null;
 
