@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import XPostComposer from "./XPostComposer";
 import GoLiveDialog from "@/components/live/GoLiveDialog";
+import { useCanGoLive } from "@/hooks/useCanGoLive";
 
 interface CreatePostFABProps {
   onPostCreated?: () => void;
@@ -18,6 +19,7 @@ export default function CreatePostFAB({ onPostCreated }: CreatePostFABProps) {
   const [showComposer, setShowComposer] = useState(false);
   const [composerMode, setComposerMode] = useState<"text" | "image" | "video">("text");
   const [showGoLive, setShowGoLive] = useState(false);
+  const canGoLive = useCanGoLive(user?.id);
 
   if (!user) return null;
 
@@ -33,7 +35,7 @@ export default function CreatePostFAB({ onPostCreated }: CreatePostFABProps) {
   };
 
   const menuItems = [
-    { label: "Go Live", icon: Radio, action: handleGoLive, color: "text-red-400" },
+    ...(canGoLive ? [{ label: "Go Live", icon: Radio, action: handleGoLive, color: "text-red-400" }] : []),
     { label: "Photos", icon: Image, action: () => handleOpenComposer("image"), color: "text-green-400" },
     { label: "Post", icon: Feather, action: () => handleOpenComposer("text"), color: "text-blue-400" },
   ];

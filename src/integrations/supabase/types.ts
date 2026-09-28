@@ -8514,6 +8514,27 @@ export type Database = {
           },
         ]
       }
+      live_selling_access: {
+        Row: {
+          approved_by: string | null
+          is_approved: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_by?: string | null
+          is_approved?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_by?: string | null
+          is_approved?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       live_stream_comments: {
         Row: {
           content: string
@@ -17118,6 +17139,7 @@ export type Database = {
       }
       can_become_seller: { Args: { p_user_id: string }; Returns: boolean }
       can_create_ads: { Args: { user_id_param: string }; Returns: boolean }
+      can_go_live: { Args: { _user_id: string }; Returns: boolean }
       can_view_binary_network: {
         Args: { _node_id: string; _requester: string }
         Returns: boolean

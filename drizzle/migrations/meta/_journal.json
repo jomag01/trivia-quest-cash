@@ -15,6 +15,13 @@
       "when": 1790633547295,
       "tag": "0001_live_selling_baskets",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790634028758,
+      "tag": "0002_live_selling_access",
+      "breakpoints": true
     }
   ]
 }

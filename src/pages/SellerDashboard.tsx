@@ -22,6 +22,7 @@ import { PrintOnDemandManager } from "@/components/seller/PrintOnDemandManager";
 import GoLiveDialog from "@/components/live/GoLiveDialog";
 import BroadcasterView from "@/components/live/BroadcasterView";
 import { Radio } from "lucide-react";
+import { useCanGoLive } from "@/hooks/useCanGoLive";
 export default function SellerDashboard() {
   const {
     user,
@@ -30,6 +31,7 @@ export default function SellerDashboard() {
   } = useAuth();
   const [loading, setLoading] = useState(true);
   const [showGoLive, setShowGoLive] = useState(false);
+  const canGoLive = useCanGoLive(user?.id);
   const [liveStreamId, setLiveStreamId] = useState<string | null>(null);
   const [canBecomeSeller, setCanBecomeSeller] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
@@ -259,7 +261,7 @@ export default function SellerDashboard() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2 text-[#010101]"><Store className="h-6 md:h-8 w-6 md:w-8" />Seller Dashboard</h1>
         <div className="flex gap-2">
-          {profile?.is_verified_seller && (
+          {canGoLive && (
             <Button variant="destructive" onClick={() => setShowGoLive(true)} className="gap-2">
               <Radio className="h-4 w-4" />
               Go Live
@@ -275,6 +277,29 @@ export default function SellerDashboard() {
           <BroadcasterView streamId={liveStreamId} onEndStream={() => setLiveStreamId(null)} />
         )}
       </div>
+      {profile?.is_verified_seller && (
+        canGoLive ? (
+          <button
+            onClick={() => setShowGoLive(true)}
+            className="w-full mb-6 rounded-2xl p-5 flex items-center gap-4 text-left bg-destructive text-destructive-foreground shadow-lg active:scale-[0.99] transition-transform"
+          >
+            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-background/20">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-background/30 animate-ping" />
+              <Radio className="h-7 w-7 relative" />
+            </span>
+            <span className="flex-1">
+              <span className="block text-xl font-bold">Start Live Selling</span>
+              <span className="block text-sm opacity-90">Go live, add basket numbers and pin products for viewers</span>
+            </span>
+            <span className="hidden sm:inline font-semibold">GO LIVE →</span>
+          </button>
+        ) : (
+          <Alert className="mb-6">
+            <Radio className="h-4 w-4" />
+            <AlertDescription>Live Selling is not enabled for your account yet. An admin must approve you before the Go Live button appears.</AlertDescription>
+          </Alert>
+        )
+      )}
       {!profile?.is_verified_seller && <Card className="mb-6">
           <CardHeader><CardTitle>Seller Verification</CardTitle></CardHeader>
           <CardContent>

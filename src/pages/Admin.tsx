@@ -94,6 +94,7 @@ import SliderAdsManagement from "@/components/admin/SliderAdsManagement";
 import ListingFeaturesManagement from "@/components/admin/ListingFeaturesManagement";
 import CashDepositManagement from "@/components/admin/CashDepositManagement";
 import TransferFeeSettings from "@/components/admin/TransferFeeSettings";
+import LiveSellingAccessSettings from "@/components/admin/LiveSellingAccessSettings";
 import AdRevenueSettings from "@/components/admin/AdRevenueSettings";
 import PayoutAccountsManagement from "@/components/admin/PayoutAccountsManagement";
 import BlogManagement from "@/components/admin/BlogManagement";
@@ -185,6 +186,7 @@ const Admin = () => {
         { id: "qr-payment", label: "QR Payment Settings", icon: CreditCard },
         { id: "cash-deposits", label: "Cash Deposit Requests", icon: DollarSign },
         { id: "transfer-fees", label: "Transfer Fee Settings", icon: ArrowLeftRight },
+        { id: "live-selling-access", label: "Live Selling Access", icon: Megaphone },
       ],
     },
     {
@@ -885,6 +887,7 @@ const Admin = () => {
           {activeTab === "qr-payment" && <QRPaymentSettings />}
           {activeTab === "cash-deposits" && <CashDepositManagement />}
           {activeTab === "transfer-fees" && <TransferFeeSettings />}
+          {activeTab === "live-selling-access" && <LiveSellingAccessSettings />}
           {activeTab === "payout-accounts" && <PayoutAccountsManagement />}
           {activeTab === "member-activation" && <MemberActivationManagement />}
           {activeTab === "product-affiliate-exclusion" && <ProductAffiliateExclusion />}
