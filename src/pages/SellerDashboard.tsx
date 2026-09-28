@@ -31,6 +31,7 @@ export default function SellerDashboard() {
   } = useAuth();
   const [loading, setLoading] = useState(true);
   const [showGoLive, setShowGoLive] = useState(false);
+  const canGoLive = useCanGoLive(user?.id);
   const [liveStreamId, setLiveStreamId] = useState<string | null>(null);
   const [canBecomeSeller, setCanBecomeSeller] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
