@@ -5,17 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Pin, PinOff, Plus, Trash2, ShoppingBag, X } from "lucide-react";
+import { Pin, PinOff, Plus, Trash2, ShoppingBag, X, Check, Loader2 } from "lucide-react";
 import { useLiveBasket } from "./useLiveBasket";
 
-/** Seller-side basket control during a live: add products, set basket #, pin one. */
+/** Seller-side basket control during a live: one-tap add, set basket #, pin one. */
 export default function LiveBasketManager({ streamId, onClose }: { streamId: string; onClose: () => void }) {
   const { user } = useAuth();
   const { items, reload } = useLiveBasket(streamId);
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
   const [catalog, setCatalog] = useState<any[]>([]);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
+  // Load the seller's catalog as soon as the panel opens — no extra tap needed.
   useEffect(() => {
     if (!adding || !user) return;
     supabase.from("products").select("id, name, final_price, image_url, seller_id")
@@ -44,12 +46,16 @@ export default function LiveBasketManager({ streamId, onClose }: { streamId: str
     reload();
   };
 
+  // One tap on a product card adds it to the basket immediately.
   const add = async (productId: string) => {
+    if (pendingId) return;
     if (items.some((i) => i.product.id === productId)) return toast.info("Already in basket");
+    setPendingId(productId);
     const next = Math.max(0, ...items.map((i) => i.basket)) + 1;
     const { error } = await supabase.from("live_stream_products").insert({
       stream_id: streamId, product_id: productId, display_order: next - 1, basket_number: next, streamer_id: user?.id,
     });
+    setPendingId(null);
     if (error) return toast.error(error.message);
     toast.success(`Added as basket #${next}`);
     reload();
@@ -69,17 +75,38 @@ export default function LiveBasketManager({ streamId, onClose }: { streamId: str
       <ScrollArea className="flex-1 p-2">
         {adding ? (
           <div className="space-y-2">
-            <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} />
-            {catalog.map((p) => (
-              <div key={p.id} className="flex items-center gap-2 p-1.5 rounded border">
-                <img src={p.image_url || "/placeholder.svg"} className="w-10 h-10 rounded object-cover" alt={p.name} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{p.name}</p>
-                  <p className="text-xs text-primary font-bold">₱{p.final_price?.toLocaleString()}</p>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => add(p.id)}>Add</Button>
-              </div>
-            ))}
+            <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />
+            <p className="text-xs text-muted-foreground">Tap a product to add it instantly.</p>
+            {catalog.map((p) => {
+              const inBasket = items.some((i) => i.product.id === p.id);
+              const basketNo = items.find((i) => i.product.id === p.id)?.basket;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  disabled={inBasket || pendingId === p.id}
+                  onClick={() => add(p.id)}
+                  className={`w-full flex items-center gap-2 p-1.5 rounded border text-left transition-colors ${
+                    inBasket ? "opacity-60 bg-muted" : "hover:bg-accent active:bg-accent"
+                  }`}
+                >
+                  <img src={p.image_url || "/placeholder.svg"} className="w-10 h-10 rounded object-cover" alt={p.name} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate">{p.name}</p>
+                    <p className="text-xs text-primary font-bold">₱{p.final_price?.toLocaleString()}</p>
+                  </div>
+                  {pendingId === p.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  ) : inBasket ? (
+                    <span className="flex items-center gap-1 text-xs font-bold text-green-600">
+                      <Check className="w-4 h-4" /> #{basketNo}
+                    </span>
+                  ) : (
+                    <Plus className="w-4 h-4 text-primary" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         ) : items.length === 0 ? (
           <p className="text-center text-muted-foreground text-sm py-8">No products yet — tap Add.</p>
