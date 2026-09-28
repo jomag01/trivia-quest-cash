@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Shield, LogOut } from "lucide-react";
+import { Trophy, Users, DollarSign, Target, TrendingUp, Award, Copy, Clock, Package, Shield, LogOut, Radio } from "lucide-react";
 import { DashboardNavigation } from "@/components/dashboard/DashboardNavigation";
 import { toast } from "sonner";
 import RetailerSupplierProducts from "@/components/dashboard/RetailerSupplierProducts";
@@ -57,6 +57,7 @@ import RiderMobileApp from "@/components/courier/rider/RiderMobileApp";
 import UserWhiteLabelHub from "@/components/dashboard/whitelabel/UserWhiteLabelHub";
 import DashboardBookingServices from "@/components/booking/DashboardBookingServices";
 import RecommendedAdsViewer from "@/components/dashboard/RecommendedAdsViewer";
+import { useCanGoLive } from "@/hooks/useCanGoLive";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -68,6 +69,7 @@ const Dashboard = () => {
     signOut
   } = useAuth();
   const { hiddenTabs } = useHiddenTabs();
+  const { canGoLive } = useCanGoLive(user?.id);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [showCashOut, setShowCashOut] = useState(false);
   const [showGenealogy, setShowGenealogy] = useState(false);
@@ -412,6 +414,30 @@ const Dashboard = () => {
           />
 
           <TabsContent value="overview" className="space-y-8">
+            {canGoLive && (
+              <Card className="border-destructive bg-destructive text-destructive-foreground shadow-card overflow-hidden">
+                <div className="flex items-center gap-3 p-4 sm:p-5">
+                  <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-background/20">
+                    <span className="absolute h-full w-full rounded-full bg-background/30 motion-safe:animate-ping" />
+                    <Radio className="relative h-6 w-6" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg font-bold">Start Live Selling</h2>
+                    <p className="text-xs opacity-90 sm:text-sm">Show products live and add numbered items to your basket.</p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0 gap-2"
+                    onClick={() => navigate("/seller")}
+                  >
+                    <Radio className="h-4 w-4" />
+                    <span className="hidden sm:inline">Open Live Selling</span>
+                    <span className="sm:hidden">Go Live</span>
+                  </Button>
+                </div>
+              </Card>
+            )}
             {/* Main Stats Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {/* Cash Wallet */}

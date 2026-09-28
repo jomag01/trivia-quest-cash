@@ -31,7 +31,7 @@ export default function SellerDashboard() {
   } = useAuth();
   const [loading, setLoading] = useState(true);
   const [showGoLive, setShowGoLive] = useState(false);
-  const canGoLive = useCanGoLive(user?.id);
+  const { canGoLive, loading: liveAccessLoading } = useCanGoLive(user?.id);
   const [liveStreamId, setLiveStreamId] = useState<string | null>(null);
   const [canBecomeSeller, setCanBecomeSeller] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
@@ -277,8 +277,7 @@ export default function SellerDashboard() {
           <BroadcasterView streamId={liveStreamId} onEndStream={() => setLiveStreamId(null)} />
         )}
       </div>
-      {profile?.is_verified_seller && (
-        canGoLive ? (
+      {canGoLive ? (
           <button
             onClick={() => setShowGoLive(true)}
             className="w-full mb-6 rounded-2xl p-5 flex items-center gap-4 text-left bg-destructive text-destructive-foreground shadow-lg active:scale-[0.99] transition-transform"
@@ -293,13 +292,12 @@ export default function SellerDashboard() {
             </span>
             <span className="hidden sm:inline font-semibold">GO LIVE →</span>
           </button>
-        ) : (
+        ) : profile?.is_verified_seller && !liveAccessLoading ? (
           <Alert className="mb-6">
             <Radio className="h-4 w-4" />
             <AlertDescription>Live Selling is not enabled for your account yet. An admin must approve you before the Go Live button appears.</AlertDescription>
           </Alert>
-        )
-      )}
+        ) : null}
       {!profile?.is_verified_seller && <Card className="mb-6">
           <CardHeader><CardTitle>Seller Verification</CardTitle></CardHeader>
           <CardContent>
