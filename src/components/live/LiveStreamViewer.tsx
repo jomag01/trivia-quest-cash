@@ -18,6 +18,8 @@ import {
 import { LiveStreamShareButton } from "./LiveStreamShareButton";
 import { SFUViewer, QUALITY_PRESETS, detectOptimalQuality } from "@/lib/streaming";
 import type { ConnectionState } from "@/lib/streaming/SFUConnection";
+import { useLiveBasket } from "./useLiveBasket";
+import PinnedProductCard from "./PinnedProductCard";
 
 interface LiveStream {
   id: string;
@@ -80,6 +82,11 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const { items: basketItems, pinned } = useLiveBasket(stream.id);
+  const basketNo = new Map(basketItems.map((b) => [b.product.id, b.basket]));
+  useEffect(() => {
+    if (basketItems.length) setProducts(basketItems.map((b) => b.product as unknown as Product));
+  }, [basketItems]);
   const [newComment, setNewComment] = useState("");
   const [isFollowing, setIsFollowing] = useState(false);
   const [viewerCount, setViewerCount] = useState(stream.viewer_count || 0);
@@ -739,6 +746,14 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
           </div>
         </div>
 
+        {pinned && !showProducts && !showGiftPanel && (
+          <PinnedProductCard
+            item={pinned}
+            onView={() => handleViewProduct(pinned.product.id)}
+            onBuy={() => handleBuyProduct((products.find((p) => p.id === pinned.product.id) || pinned.product) as Product)}
+          />
+        )}
+
         {/* Side action icons */}
         <div className="absolute right-2 bottom-3 flex flex-col gap-2 z-20">
           <button 
@@ -817,6 +832,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
                         src={product.image_url || "/placeholder.svg"}
                         alt={product.name}
                         className="w-full h-16 object-cover rounded mb-1"
+                        data-basket={basketNo.get(product.id) ?? ""}
                       />
                       <p className="text-white text-[10px] truncate font-medium">{product.name}</p>
                       <p className="text-orange-400 font-bold text-xs">₱{product.final_price?.toLocaleString()}</p>
