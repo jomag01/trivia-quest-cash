@@ -832,9 +832,11 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
                         src={product.image_url || "/placeholder.svg"}
                         alt={product.name}
                         className="w-full h-16 object-cover rounded mb-1"
-                        data-basket={basketNo.get(product.id) ?? ""}
                       />
-                      <p className="text-white text-[10px] truncate font-medium">{product.name}</p>
+                      <p className="text-white text-[10px] truncate font-medium">
+                        {basketNo.get(product.id) && <span className="text-orange-400 font-bold mr-1">#{basketNo.get(product.id)}</span>}
+                        {product.name}
+                      </p>
                       <p className="text-orange-400 font-bold text-xs">₱{product.final_price?.toLocaleString()}</p>
                       <Button 
                         size="sm" 

@@ -19,6 +19,9 @@ import { ProductImageGallery } from "@/components/ProductImageGallery";
 import AdsPromoPopup from "@/components/seller/AdsPromoPopup";
 import ConvertToAuctionDialog from "@/components/auction/ConvertToAuctionDialog";
 import { PrintOnDemandManager } from "@/components/seller/PrintOnDemandManager";
+import GoLiveDialog from "@/components/live/GoLiveDialog";
+import BroadcasterView from "@/components/live/BroadcasterView";
+import { Radio } from "lucide-react";
 export default function SellerDashboard() {
   const {
     user,
@@ -26,6 +29,8 @@ export default function SellerDashboard() {
     isAdmin
   } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [showGoLive, setShowGoLive] = useState(false);
+  const [liveStreamId, setLiveStreamId] = useState<string | null>(null);
   const [canBecomeSeller, setCanBecomeSeller] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -253,10 +258,22 @@ export default function SellerDashboard() {
   return <div className="container mx-auto p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2 text-[#010101]"><Store className="h-6 md:h-8 w-6 md:w-8" />Seller Dashboard</h1>
-        <Button variant="outline" onClick={() => window.location.href = '/warehouse'} className="gap-2">
-          <Warehouse className="h-4 w-4" />
-          <span className="hidden sm:inline">Warehouse</span>
-        </Button>
+        <div className="flex gap-2">
+          {profile?.is_verified_seller && (
+            <Button variant="destructive" onClick={() => setShowGoLive(true)} className="gap-2">
+              <Radio className="h-4 w-4" />
+              Go Live
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => window.location.href = '/warehouse'} className="gap-2">
+            <Warehouse className="h-4 w-4" />
+            <span className="hidden sm:inline">Warehouse</span>
+          </Button>
+        </div>
+        <GoLiveDialog open={showGoLive} onOpenChange={setShowGoLive} onGoLive={(id) => setLiveStreamId(id)} />
+        {liveStreamId && (
+          <BroadcasterView streamId={liveStreamId} onEndStream={() => setLiveStreamId(null)} />
+        )}
       </div>
       {!profile?.is_verified_seller && <Card className="mb-6">
           <CardHeader><CardTitle>Seller Verification</CardTitle></CardHeader>
