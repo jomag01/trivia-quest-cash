@@ -8604,28 +8604,34 @@ export type Database = {
       }
       live_stream_products: {
         Row: {
+          basket_number: number | null
           created_at: string
           display_order: number | null
           id: string
           is_featured: boolean | null
+          pinned_at: string | null
           product_id: string
           stream_id: string
           streamer_id: string | null
         }
         Insert: {
+          basket_number?: number | null
           created_at?: string
           display_order?: number | null
           id?: string
           is_featured?: boolean | null
+          pinned_at?: string | null
           product_id: string
           stream_id: string
           streamer_id?: string | null
         }
         Update: {
+          basket_number?: number | null
           created_at?: string
           display_order?: number | null
           id?: string
           is_featured?: boolean | null
+          pinned_at?: string | null
           product_id?: string
           stream_id?: string
           streamer_id?: string | null
