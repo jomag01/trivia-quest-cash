@@ -4,10 +4,10 @@ const config: CapacitorConfig = {
   appId: 'app.lovable.c512181307b84e4689a38c4951e10c56',
   appName: 'triviabees',
   webDir: 'dist',
-  server: {
-    url: 'https://c5121813-07b8-4e46-89a3-8c4951e10c56.lovableproject.com?forceHideBadge=true',
-    cleartext: true
-  },
+  // Store builds bundle the app from /dist. For live-reload testing only, run with CAP_LIVE_RELOAD=1.
+  ...(process.env.CAP_LIVE_RELOAD
+    ? { server: { url: 'https://c5121813-07b8-4e46-89a3-8c4951e10c56.lovableproject.com?forceHideBadge=true', cleartext: true } }
+    : { server: { androidScheme: 'https', iosScheme: 'capacitor' } }),
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
