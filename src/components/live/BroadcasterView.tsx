@@ -517,7 +517,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         </>)}
       </div>
 
-      <div className={minimized ? "hidden" : "bg-black p-3 flex"} items-center justify-center gap-3">
+      <div className={minimized ? "hidden" : "bg-black p-3 flex items-center justify-center gap-3"}>
         <Button 
           variant={isVideoOn ? "outline" : "destructive"} 
           size="icon"
