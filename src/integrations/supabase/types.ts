@@ -12233,6 +12233,50 @@ export type Database = {
           },
         ]
       }
+      seller_pending_earnings: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          order_id: string
+          release_at: string
+          released_at: string | null
+          seller_id: string
+          source: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          order_id: string
+          release_at?: string
+          released_at?: string | null
+          seller_id: string
+          source?: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          order_id?: string
+          release_at?: string
+          released_at?: string | null
+          seller_id?: string
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_pending_earnings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_referrer_commissions: {
         Row: {
           admin_markup_percent: number
@@ -17426,6 +17470,20 @@ export type Database = {
         Returns: boolean
       }
       is_warehouse_staff: { Args: { _warehouse_id: string }; Returns: boolean }
+      live_create_order: {
+        Args: {
+          _address: string
+          _method: string
+          _name: string
+          _phone: string
+          _product_id: string
+          _qty: number
+          _stream_id: string
+        }
+        Returns: Json
+      }
+      live_mark_order_paid: { Args: { _order_id: string }; Returns: undefined }
+      live_pay_with_wallet: { Args: { _order_id: string }; Returns: Json }
       place_user_in_binary_network: {
         Args: { _sponsor_user_id: string; _user_id: string }
         Returns: string
@@ -17461,6 +17519,7 @@ export type Database = {
         }
         Returns: string
       }
+      release_my_seller_earnings: { Args: never; Returns: number }
       reverse_aspn_on_refund: {
         Args: { p_reason?: string; p_source_id: string; p_source_type: string }
         Returns: undefined
