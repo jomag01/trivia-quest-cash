@@ -146,7 +146,7 @@ Return ONLY a valid JSON array, no markdown.`;
      let content = '';
      while (true) {
        const { done, value } = await reader.read();
-       buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+       buffer += decoder.decode(value || new Uint8Array(), { stream: !done }).replace(/\r\n/g, '\n');
        const events = buffer.split('\n\n');
        buffer = events.pop() || '';
        for (const event of events) {
