@@ -31,7 +31,46 @@ serve(async (req) => {
       throw new Error("Not authenticated");
     }
 
-    const { amount, paymentMethod, description, metadata } = await req.json();
+    const body = await req.json();
+    let { amount, paymentMethod, description, metadata } = body;
+
+    // Live selling order: price comes from the server-side order, never the client
+    if (metadata?.purchase_type === "live_order") {
+      const orderId = String(metadata.order_id || "");
+      if (!/^[0-9a-f-]{36}$/i.test(orderId)) throw new Error("Invalid order");
+      const { data: order } = await supabaseClient
+        .from("orders")
+        .select("id, total_amount, order_number, user_id, commission_status")
+        .eq("id", orderId)
+        .maybeSingle();
+      if (!order || order.user_id !== user.id || order.commission_status !== "awaiting_payment") {
+        throw new Error("Order not payable");
+      }
+      amount = Number(order.total_amount);
+      description = `Live order ${order.order_number}`;
+      const appUrl = Deno.env.get("APP_URL") || "https://triviabees.com";
+      const secret = Deno.env.get("PAYMONGO_SECRET_KEY");
+      if (!secret) throw new Error("Payment provider not configured");
+      const res = await fetch("https://api.paymongo.com/v1/checkout_sessions", {
+        method: "POST",
+        headers: { Authorization: `Basic ${btoa(secret + ":")}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ data: { attributes: {
+          send_email_receipt: true, show_description: true, show_line_items: true, description,
+          line_items: [{ currency: "PHP", amount: Math.round(amount * 100), name: description, quantity: 1 }],
+          payment_method_types: ["gcash", "paymaya", "card", "grab_pay"],
+          success_url: `${appUrl}/live?payment=success&order=${orderId}`,
+          cancel_url: `${appUrl}/live?payment=cancelled`,
+          metadata: { user_id: user.id, purchase_type: "live_order", order_id: orderId },
+        } } }),
+      });
+      const text = await res.text();
+      if (!res.ok) { console.error("PayMongo live order error:", text); throw new Error("Could not start payment"); }
+      const session = JSON.parse(text);
+      return new Response(JSON.stringify({ success: true, checkout_url: session.data.attributes.checkout_url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
     if (!amount || amount <= 0) {
       throw new Error("Invalid amount");

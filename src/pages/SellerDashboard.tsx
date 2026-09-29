@@ -23,6 +23,7 @@ import GoLiveDialog from "@/components/live/GoLiveDialog";
 import BroadcasterView from "@/components/live/BroadcasterView";
 import { Radio } from "lucide-react";
 import { useCanGoLive } from "@/hooks/useCanGoLive";
+import LiveSellerEarningsCard from "@/components/live/LiveSellerEarningsCard";
 export default function SellerDashboard() {
   const {
     user,
@@ -298,6 +299,7 @@ export default function SellerDashboard() {
             <AlertDescription>Live Selling is not enabled for your account yet. An admin must approve you before the Go Live button appears.</AlertDescription>
           </Alert>
         ) : null}
+      {profile?.is_verified_seller && <div className="mb-6"><LiveSellerEarningsCard /></div>}
       {!profile?.is_verified_seller && <Card className="mb-6">
           <CardHeader><CardTitle>Seller Verification</CardTitle></CardHeader>
           <CardContent>

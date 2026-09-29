@@ -22,6 +22,7 @@ import { useMetaTags } from "@/hooks/useMetaTags";
 import SwipeableCategorySlider from "@/components/shop/SwipeableCategorySlider";
 import InfiniteProductGrid from "@/components/shop/InfiniteProductGrid";
 import QuickTabs, { type QuickTabType } from "@/components/shop/QuickTabs";
+import LiveNowButton from "@/components/shop/LiveNowButton";
 
 // Lazy load heavy components - not needed on initial render
 const SupplierApplication = lazy(() => import("@/components/shop/SupplierApplication"));
@@ -493,6 +494,7 @@ const Shop = () => {
         {/* Sticky Search Header - Amazon/Lazada style */}
         <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/50 shadow-sm px-3 py-2">
           <div className="flex items-center gap-2 max-w-7xl mx-auto">
+            <LiveNowButton />
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
