@@ -82,7 +82,19 @@ serve(async (req) => {
     console.log("Verified webhook received:", payload.data?.attributes?.type);
 
     const eventType = payload.data?.attributes?.type;
-    
+    const eventObj = payload.data?.attributes?.data;
+    const evMeta = eventObj?.attributes?.metadata
+      || eventObj?.attributes?.payment_intent?.attributes?.metadata;
+
+    // Live selling orders: mark paid and credit seller (on hold)
+    if ((eventType === "checkout_session.payment.paid" || eventType === "payment.paid") && evMeta?.purchase_type === "live_order") {
+      const { error } = await supabaseClient.rpc("live_mark_order_paid", { _order_id: evMeta.order_id });
+      if (error) { console.error("live_mark_order_paid failed:", error); throw error; }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (eventType === "payment.paid") {
       const paymentIntent = payload.data.attributes.data;
       const transactionId = paymentIntent.attributes.metadata?.transaction_id;
