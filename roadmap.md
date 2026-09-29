@@ -1,3 +1,3 @@
 - [x] Shop: Live now icon/tab
 - [x] Seller sees viewer DMs overlaid on live video
-- [ ] Make AI Services > Ads accessible and let users create social-media ad drafts from a short business brief or website
+- [x] Make AI Services > Ads accessible and let users create social-media ad drafts from a short business brief or website
