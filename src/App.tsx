@@ -44,6 +44,7 @@ const ShareholderRegistration = lazy(() => import("./pages/ShareholderRegistrati
 const BeesMate = lazy(() => import("./pages/ChatMates"));
 const LinkRedirect = lazy(() => import("./pages/LinkRedirect"));
 const BookService = lazy(() => import("./pages/BookService"));
+const Live = lazy(() => import("./pages/Live"));
 
 // Courier system pages
 const CourierAdmin = lazy(() => import("./components/courier/admin/CourierAdminDashboard"));
@@ -149,6 +150,7 @@ const App = () => (
               <Route path="/diamond-marketplace" element={<DiamondMarketplace />} />
               <Route path="/community" element={<Community />} />
               <Route path="/shop" element={<Shop />} />
+              <Route path="/live" element={<Live />} />
               <Route path="/booking" element={<Booking />} />
               <Route path="/food" element={<Food />} />
               <Route path="/chess" element={<Chess />} />
