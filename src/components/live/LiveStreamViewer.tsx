@@ -20,6 +20,7 @@ import { SFUViewer, QUALITY_PRESETS, detectOptimalQuality } from "@/lib/streamin
 import type { ConnectionState } from "@/lib/streaming/SFUConnection";
 import { useLiveBasket } from "./useLiveBasket";
 import PinnedProductCard from "./PinnedProductCard";
+import ProviderChat from "@/components/chat/ProviderChat";
 
 interface LiveStream {
   id: string;
@@ -735,6 +736,20 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
             </Button>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
+            {user?.id !== stream.user_id && (
+              <ProviderChat
+                providerId={stream.user_id}
+                providerName={stream.profiles?.full_name || "Seller"}
+                providerAvatar={stream.profiles?.avatar_url}
+                providerType="shop"
+                referenceId={stream.id}
+                referenceTitle={`Live: ${stream.title}`}
+                buttonVariant="default"
+                buttonSize="sm"
+                buttonClassName="h-6 px-2 text-[10px]"
+                availableProducts={products.map((p) => ({ id: p.id, name: p.name, image_url: p.image_url || undefined, price: p.final_price }))}
+              />
+            )}
             {user && (
               <Badge variant="outline" className="text-white border-white/50 text-[9px] px-1.5 h-5">
                 💎 {userDiamonds.toLocaleString()}
