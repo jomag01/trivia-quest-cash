@@ -75,6 +75,11 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
   } = useAICredits();
   
   const [websiteUrl, setWebsiteUrl] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [product, setProduct] = useState('');
+  const [audience, setAudience] = useState('');
+  const [offer, setOffer] = useState('');
+  const [goal, setGoal] = useState('Visit website');
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
   const [brandData, setBrandData] = useState<BrandData | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['facebook', 'instagram']);
@@ -124,6 +129,22 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
     } finally {
       setIsScrapingWebsite(false);
     }
+  };
+
+  const useBusinessBrief = () => {
+    if (!businessName.trim() || !product.trim()) {
+      toast.error('Add your business name and what you are advertising.');
+      return;
+    }
+    const description = [product.trim(), audience.trim() && `For: ${audience.trim()}`, offer.trim() && `Offer: ${offer.trim()}`, `Goal: ${goal}`].filter(Boolean).join('. ');
+    setBrandData({
+      url: websiteUrl.trim(),
+      title: businessName.trim(),
+      description,
+      markdown: `Business: ${businessName.trim()}. ${description}`,
+      images: [],
+    });
+    toast.success('Ad brief ready. Choose the social channels below.');
   };
 
   const togglePlatform = (platformId: string) => {
@@ -246,7 +267,7 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
       if (error) throw error;
 
       if (data?.ads) {
-        const adsWithType = data.ads.map((ad: any) => ({ ...ad, adType: adType }));
+        const adsWithType = data.ads.map((ad: any) => ({ ...ad, adType, ...(selectedProductImage ? { generatedImageUrl: selectedProductImage } : {}) }));
         setGeneratedAds(adsWithType);
         toast.success(`Generated ${data.ads.length} unique ad ideas!`);
         onCreditsChange();
@@ -492,8 +513,7 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
           TriviaBees AI Ads Maker
         </h1>
         <p className="text-white/90 max-w-2xl mx-auto text-sm md:text-base">
-          Create stunning image & video ads for all social media platforms. 
-          Upload your products or let AI suggest visuals for you!
+          Make ad drafts for Facebook, Instagram, TikTok, YouTube, LinkedIn and X.
         </p>
         
         {/* Credits Display */}
@@ -523,12 +543,12 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
           </Badge>
           <Badge className="bg-white/20 text-white border-white/30 px-3 py-1">
             <Share2 className="h-3 w-3 mr-1" />
-            Direct Publish
+             Share drafts
           </Badge>
         </div>
       </div>
 
-      {/* Step 1: Website Input */}
+       {/* Step 1: Business brief or website */}
       <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 shadow-lg overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-purple-500 to-pink-500" />
         <CardHeader>
@@ -536,15 +556,43 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
             <div className="p-2 rounded-lg bg-purple-500/10">
               <Globe className="h-5 w-5 text-purple-500" />
             </div>
-            Step 1: Enter Your Website
+             Step 1: Tell us what to advertise
           </CardTitle>
           <CardDescription>
-            Drop your website link and our AI will analyze your brand
+             Start with your business details, or analyze your website below.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+         <CardContent className="space-y-5">
+           <div className="grid gap-4 sm:grid-cols-2">
+             <div className="space-y-2">
+               <Label htmlFor="ad-business">Business name</Label>
+               <Input id="ad-business" value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="Your business name" maxLength={100} />
+             </div>
+             <div className="space-y-2">
+               <Label htmlFor="ad-product">Product or service</Label>
+               <Input id="ad-product" value={product} onChange={e => setProduct(e.target.value)} placeholder="What are you promoting?" maxLength={180} />
+             </div>
+             <div className="space-y-2">
+               <Label htmlFor="ad-audience">Who is it for? (optional)</Label>
+               <Input id="ad-audience" value={audience} onChange={e => setAudience(e.target.value)} placeholder="e.g. local shoppers" maxLength={180} />
+             </div>
+             <div className="space-y-2">
+               <Label htmlFor="ad-offer">Offer or key detail (optional)</Label>
+               <Input id="ad-offer" value={offer} onChange={e => setOffer(e.target.value)} placeholder="Only include details you can verify" maxLength={180} />
+             </div>
+           </div>
+           <div className="space-y-2">
+             <Label htmlFor="ad-goal">What should people do?</Label>
+             <select id="ad-goal" value={goal} onChange={e => setGoal(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground">
+               <option>Visit website</option><option>Send a message</option><option>Shop now</option><option>Book now</option><option>Sign up</option>
+             </select>
+           </div>
+           <Button onClick={useBusinessBrief} disabled={!businessName.trim() || !product.trim()}><Sparkles className="h-4 w-4 mr-2" /> Continue with this brief</Button>
+           <div className="border-t border-border pt-4 space-y-2">
+             <Label htmlFor="ad-website">Or analyze your website</Label>
           <div className="flex flex-col sm:flex-row gap-3">
             <Input
+               id="ad-website"
               placeholder="https://yourwebsite.com"
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
@@ -568,6 +616,7 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
               )}
             </Button>
           </div>
+           </div>
 
           {brandData && (
             <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-300 dark:border-green-700">
@@ -575,7 +624,7 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
                 <div className="p-1 rounded-full bg-green-500">
                   <CheckCircle className="h-4 w-4 text-white" />
                 </div>
-                <span className="font-bold text-green-700 dark:text-green-400">Brand Analyzed Successfully!</span>
+              <span className="font-bold text-green-700 dark:text-green-400">Ad brief ready</span>
               </div>
               <div className="space-y-2 text-sm">
                 <p className="font-medium text-green-800 dark:text-green-300">{brandData.title || 'Unknown Brand'}</p>
@@ -838,14 +887,14 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
         <Card className="border-2 border-cyan-200 dark:border-cyan-800 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30 shadow-lg overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-cyan-500 to-blue-500" />
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300">
+             <CardTitle className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300">
               <div className="p-2 rounded-lg bg-cyan-500/10">
                 <Megaphone className="h-5 w-5 text-cyan-500" />
               </div>
-              Step 4: Review, Edit & Publish Your Ads
+               Step 4: Review, Edit & Share Your Ads
             </CardTitle>
             <CardDescription>
-              Customize the ads to your liking, generate media, and publish when ready
+               Edit your copy and visuals, then download or share when ready. Sharing does not start a paid campaign.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -984,7 +1033,7 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
                           className="bg-gradient-to-r from-blue-500 to-purple-500 text-white"
                         >
                           <Share2 className="h-4 w-4 mr-1" />
-                          Publish
+                           Share
                         </Button>
                         <Button
                           size="sm"
@@ -1096,7 +1145,7 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Share2 className="h-5 w-5 text-blue-500" />
-              Publish Your Ad
+               Share Your Ad
             </DialogTitle>
             <DialogDescription>
               Share your ad to {selectedAdForPublish?.platform || 'social media'} and other platforms

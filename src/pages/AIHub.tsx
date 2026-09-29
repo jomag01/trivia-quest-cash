@@ -309,7 +309,7 @@ const AIHub = memo(() => {
     { id: 'website-builder', label: 'Website', icon: Code, gradient: 'from-emerald-400 to-teal-500', iconColor: 'text-emerald-500', premium: true, unlockCost: 50 },
     { id: 'creator-analytics', label: 'Analytics', icon: Crown, gradient: 'from-yellow-400 to-amber-500', iconColor: 'text-yellow-500', premium: true, unlockCost: 30 },
     { id: 'social-media', label: 'Social', icon: Users, gradient: 'from-indigo-400 to-violet-500', iconColor: 'text-indigo-500', premium: true, unlockCost: 40 },
-    ...(isPaidAffiliate ? [{ id: 'ads-maker', label: 'Ads', icon: Megaphone, gradient: 'from-orange-400 to-red-500', iconColor: 'text-orange-500', premium: true, unlockCost: 35 }] : []),
+    { id: 'ads-maker', label: 'Ads', icon: Megaphone, gradient: 'from-orange-400 to-red-500', iconColor: 'text-orange-500', premium: true, unlockCost: 35 },
     { id: 'blog-maker', label: 'Blog', icon: Newspaper, gradient: 'from-orange-400 to-amber-500', iconColor: 'text-orange-500', premium: true, unlockCost: 20 },
     { id: 'blog', label: 'Read Blog', icon: BookOpen, gradient: 'from-teal-400 to-emerald-500', iconColor: 'text-teal-500' },
     { id: 'weather', label: 'Weather', icon: CloudSun, gradient: 'from-sky-400 to-blue-500', iconColor: 'text-sky-500' },
