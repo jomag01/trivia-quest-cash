@@ -23,7 +23,8 @@ export default function LiveCheckoutDialog({ open, onOpenChange, streamId, produ
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [balance, setBalance] = useState(0);
-  const [busy, setBusy] = useState<null | "wallet" | "online">(null);
+  const [busy, setBusy] = useState<null | "wallet" | "online" | "cod">(null);
+  const [mode, setMode] = useState<"both" | "cod" | "ewallet">("both");
 
   useEffect(() => {
     if (!open || !user) return;
@@ -38,9 +39,17 @@ export default function LiveCheckoutDialog({ open, onOpenChange, streamId, produ
       });
   }, [open, user]);
 
+  useEffect(() => {
+    if (!open || !product) return;
+    supabase.from("live_stream_products").select("payment_mode").eq("stream_id", streamId).eq("product_id", product.id).maybeSingle()
+      .then(({ data }: any) => setMode((data?.payment_mode as any) || "both"));
+  }, [open, product, streamId]);
+
   if (!product) return null;
   const subtotal = (product.final_price || 0) * qty;
   const canWallet = balance >= subtotal;
+  const allowCod = mode !== "ewallet";
+  const allowEwallet = mode !== "cod";
 
   const createOrder = async (method: string) => {
     const { data, error } = await supabase.rpc("live_create_order" as any, {
