@@ -43,6 +43,13 @@
       "when": 1790722197954,
       "tag": "0005_live_basket_payment_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790722212975,
+      "tag": "0006_live_cod_notify_fix",
+      "breakpoints": true
     }
   ]
 }
