@@ -274,9 +274,6 @@ export default function SellerDashboard() {
           </Button>
         </div>
         <GoLiveDialog open={showGoLive} onOpenChange={setShowGoLive} onGoLive={(id) => startBroadcast(id)} />
-        {liveStreamId && (
-          <BroadcasterView streamId={liveStreamId} onEndStream={() => setLiveStreamId(null)} />
-        )}
       </div>
       {canGoLive ? (
           <button
