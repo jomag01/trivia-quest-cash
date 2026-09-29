@@ -21,6 +21,7 @@ import type { ConnectionState } from "@/lib/streaming/SFUConnection";
 import { useLiveBasket } from "./useLiveBasket";
 import PinnedProductCard from "./PinnedProductCard";
 import ProviderChat from "@/components/chat/ProviderChat";
+import LiveCheckoutDialog from "./LiveCheckoutDialog";
 
 interface LiveStream {
   id: string;
@@ -83,6 +84,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [checkoutProduct, setCheckoutProduct] = useState<Product | null>(null);
   const { items: basketItems, pinned } = useLiveBasket(stream.id);
   const basketNo = new Map(basketItems.map((b) => [b.product.id, b.basket]));
   useEffect(() => {
@@ -420,11 +422,17 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
     }
   };
 
-  const handleBuyProduct = async (product: Product) => {
+  const handleBuyProduct = (product: Product) => {
     if (!user) {
       toast.error("Please login to purchase");
       return;
     }
+    setCheckoutProduct(product);
+  };
+
+  // Legacy add-to-cart path (kept for reference, unused)
+  const addToCartLegacy = async (product: Product) => {
+    if (!user) return;
 
     const { data: existingItem } = await supabase
       .from('cart')
@@ -995,6 +1003,13 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
           </div>
         </div>
       )}
+
+      <LiveCheckoutDialog
+        open={!!checkoutProduct}
+        onOpenChange={(o) => { if (!o) setCheckoutProduct(null); }}
+        streamId={stream.id}
+        product={checkoutProduct}
+      />
 
       <style>{`
         @keyframes float-up {
