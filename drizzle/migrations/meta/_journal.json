@@ -29,6 +29,13 @@
       "when": 1790721245450,
       "tag": "0003_live_selling_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790721376930,
+      "tag": "0004_seller_earnings_realtime",
+      "breakpoints": true
     }
   ]
 }
