@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Settings, Eye, ShoppingBag, Video, VideoOff, Mic, MicOff, Loader2, Wifi, WifiOff, Signal, SwitchCamera } from "lucide-react";
+import { Settings, Eye, ShoppingBag, Video, VideoOff, Mic, MicOff, Loader2, Wifi, WifiOff, Signal, SwitchCamera, Minimize2, Maximize2 } from "lucide-react";
 import { 
   SFUBroadcaster, 
   StreamStats,
@@ -68,6 +68,35 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [minimized, setMinimized] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{ sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
+  const MINI_W = 120, MINI_H = 200;
+  const minimize = () => {
+    setPos({ x: window.innerWidth - MINI_W - 12, y: window.innerHeight - MINI_H - 90 });
+    setShowProducts(false);
+    setMinimized(true);
+  };
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (!minimized) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y, moved: false };
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+    if (Math.abs(dx) + Math.abs(dy) > 5) d.moved = true;
+    setPos({
+      x: Math.min(Math.max(0, d.ox + dx), window.innerWidth - MINI_W),
+      y: Math.min(Math.max(0, d.oy + dy), window.innerHeight - MINI_H),
+    });
+  };
+  const onPointerUp = () => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (d && !d.moved) setMinimized(false);
+  };
   const broadcasterConnectionRef = useRef<SFUBroadcaster | null>(null);
 
   useEffect(() => {
@@ -353,8 +382,23 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   };
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      <div className="relative flex-1 bg-gray-900">
+    <div
+      className={minimized
+        ? "fixed z-[60] rounded-xl overflow-hidden shadow-2xl ring-2 ring-destructive bg-black touch-none select-none"
+        : "fixed inset-0 bg-black z-50 flex flex-col"}
+      style={minimized ? { left: pos.x, top: pos.y, width: MINI_W, height: MINI_H } : undefined}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+    >
+      {minimized && (
+        <div className="absolute top-1 left-1 right-1 z-30 flex items-center justify-between pointer-events-none">
+          <Badge variant="destructive" className="text-[9px] px-1 py-0 animate-pulse">● LIVE</Badge>
+          <span className="text-white text-[10px] flex items-center gap-0.5 bg-black/50 rounded px-1"><Eye className="w-3 h-3" />{viewerCount}</span>
+          <Maximize2 className="w-4 h-4 text-white" />
+        </div>
+      )}
+      <div className={minimized ? "relative w-full h-full" : "relative flex-1 bg-gray-900"}>
         {isConnecting && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-20">
             <div className="text-center">
@@ -363,7 +407,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
             </div>
           </div>
         )}
-        <LiveDMOverlay />
+        {!minimized && <LiveDMOverlay />}
         <video 
           ref={videoRef}
           autoPlay
@@ -378,6 +422,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           </div>
         )}
 
+        {!minimized && (<>
         {/* Gift/Reaction Notifications - visible to broadcaster */}
         <div className="absolute top-20 left-4 right-4 space-y-2 z-20 pointer-events-none">
           {gifts.map((gift) => (
@@ -415,9 +460,14 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
               )}
             </span>
           </div>
-          <Button variant="destructive" size="sm" onClick={handleEndStream}>
-            End
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={minimize} aria-label="Minimize live">
+              <Minimize2 className="w-4 h-4 mr-1" /> Minimize
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleEndStream}>
+              End
+            </Button>
+          </div>
         </div>
         
         {/* Stream stats overlay */}
@@ -464,9 +514,10 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
             </div>
           </ScrollArea>
         </div>
+        </>)}
       </div>
 
-      <div className="bg-black p-3 flex items-center justify-center gap-3">
+      <div className={minimized ? "hidden" : "bg-black p-3 flex items-center justify-center gap-3"}>
         <Button 
           variant={isVideoOn ? "outline" : "destructive"} 
           size="icon"

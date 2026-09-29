@@ -20,7 +20,7 @@ import AdsPromoPopup from "@/components/seller/AdsPromoPopup";
 import ConvertToAuctionDialog from "@/components/auction/ConvertToAuctionDialog";
 import { PrintOnDemandManager } from "@/components/seller/PrintOnDemandManager";
 import GoLiveDialog from "@/components/live/GoLiveDialog";
-import BroadcasterView from "@/components/live/BroadcasterView";
+import { useLiveBroadcast } from "@/contexts/LiveBroadcastContext";
 import { Radio } from "lucide-react";
 import { useCanGoLive } from "@/hooks/useCanGoLive";
 import LiveSellerEarningsCard from "@/components/live/LiveSellerEarningsCard";
@@ -33,7 +33,7 @@ export default function SellerDashboard() {
   const [loading, setLoading] = useState(true);
   const [showGoLive, setShowGoLive] = useState(false);
   const { canGoLive, loading: liveAccessLoading } = useCanGoLive(user?.id);
-  const [liveStreamId, setLiveStreamId] = useState<string | null>(null);
+  const { startBroadcast } = useLiveBroadcast();
   const [canBecomeSeller, setCanBecomeSeller] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -273,10 +273,7 @@ export default function SellerDashboard() {
             <span className="hidden sm:inline">Warehouse</span>
           </Button>
         </div>
-        <GoLiveDialog open={showGoLive} onOpenChange={setShowGoLive} onGoLive={(id) => setLiveStreamId(id)} />
-        {liveStreamId && (
-          <BroadcasterView streamId={liveStreamId} onEndStream={() => setLiveStreamId(null)} />
-        )}
+        <GoLiveDialog open={showGoLive} onOpenChange={setShowGoLive} onGoLive={(id) => startBroadcast(id)} />
       </div>
       {canGoLive ? (
           <button
