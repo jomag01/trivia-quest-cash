@@ -6,14 +6,14 @@ import { useCanGoLive } from "@/hooks/useCanGoLive";
 import LiveStreamList from "@/components/live/LiveStreamList";
 import LiveStreamViewer from "@/components/live/LiveStreamViewer";
 import GoLiveDialog from "@/components/live/GoLiveDialog";
-import BroadcasterView from "@/components/live/BroadcasterView";
+import { useLiveBroadcast } from "@/contexts/LiveBroadcastContext";
 
 export default function Live() {
   const { user } = useAuth();
   const { canGoLive } = useCanGoLive(user?.id);
   const [selected, setSelected] = useState<any>(null);
   const [showGoLive, setShowGoLive] = useState(false);
-  const [liveStreamId, setLiveStreamId] = useState<string | null>(null);
+  const { startBroadcast } = useLiveBroadcast();
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -34,8 +34,7 @@ export default function Live() {
       </main>
 
       {selected && <LiveStreamViewer stream={selected} onClose={() => setSelected(null)} />}
-      <GoLiveDialog open={showGoLive} onOpenChange={setShowGoLive} onGoLive={(id) => setLiveStreamId(id)} />
-      {liveStreamId && <BroadcasterView streamId={liveStreamId} onEndStream={() => setLiveStreamId(null)} />}
+      <GoLiveDialog open={showGoLive} onOpenChange={setShowGoLive} onGoLive={(id) => startBroadcast(id)} />
     </div>
   );
 }

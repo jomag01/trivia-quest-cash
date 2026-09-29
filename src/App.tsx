@@ -130,6 +130,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <LiveBroadcastProvider>
           <CookieTracker />
           <PageTracker />
           <Navigation />
@@ -182,6 +183,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          </LiveBroadcastProvider>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
