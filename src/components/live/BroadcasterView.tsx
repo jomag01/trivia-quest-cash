@@ -17,6 +17,7 @@ import {
 } from "@/lib/streaming";
 import type { ConnectionState } from "@/lib/streaming/SFUConnection";
 import LiveBasketManager from "./LiveBasketManager";
+import LiveDMOverlay from "./LiveDMOverlay";
 interface BroadcasterViewProps {
   streamId: string;
   onEndStream: () => void;
@@ -362,7 +363,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
             </div>
           </div>
         )}
-        
+        <LiveDMOverlay />
         <video 
           ref={videoRef}
           autoPlay
