@@ -1,0 +1,2 @@
+- [ ] Shop: Live now icon/tab
+- [ ] Seller sees viewer DMs overlaid on live video
