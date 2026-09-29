@@ -8630,6 +8630,7 @@ export type Database = {
           display_order: number | null
           id: string
           is_featured: boolean | null
+          payment_mode: string
           pinned_at: string | null
           product_id: string
           stream_id: string
@@ -8641,6 +8642,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_featured?: boolean | null
+          payment_mode?: string
           pinned_at?: string | null
           product_id: string
           stream_id: string
@@ -8652,6 +8654,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_featured?: boolean | null
+          payment_mode?: string
           pinned_at?: string | null
           product_id?: string
           stream_id?: string

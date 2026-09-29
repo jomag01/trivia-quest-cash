@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export type PaymentMode = "ewallet" | "cod" | "both";
 export interface BasketItem {
   rowId: string;
   basket: number;
   pinned: boolean;
+  paymentMode: PaymentMode;
   product: { id: string; name: string; final_price: number; image_url: string | null; seller_id?: string | null };
 }
 
@@ -16,7 +18,7 @@ export function useLiveBasket(streamId: string | undefined) {
     if (!streamId) return;
     const { data: rows } = await supabase
       .from("live_stream_products")
-      .select("id, product_id, display_order, basket_number, pinned_at")
+      .select("id, product_id, display_order, basket_number, pinned_at, payment_mode")
       .eq("stream_id", streamId)
       .order("display_order");
     if (!rows?.length) return setItems([]);
@@ -34,6 +36,7 @@ export function useLiveBasket(streamId: string | undefined) {
           rowId: r.id,
           basket: r.basket_number ?? (r.display_order ?? i) + 1,
           pinned: !!latestPin && r.pinned_at === latestPin,
+          paymentMode: ((r as any).payment_mode || "both") as PaymentMode,
           product: map.get(r.product_id) as BasketItem["product"],
         }))
         .sort((a, b) => a.basket - b.basket)

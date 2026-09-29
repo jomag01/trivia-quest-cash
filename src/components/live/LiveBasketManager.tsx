@@ -41,6 +41,13 @@ export default function LiveBasketManager({ streamId, onClose }: { streamId: str
     await supabase.from("live_stream_products").update({ basket_number: n }).eq("id", rowId);
   };
 
+  const setMode = async (rowId: string, mode: string) => {
+    const { error } = await supabase.from("live_stream_products").update({ payment_mode: mode } as any).eq("id", rowId);
+    if (error) return toast.error(error.message);
+    toast.success(mode === "cod" ? "COD only" : mode === "ewallet" ? "E-wallet only" : "COD + E-wallet");
+    reload();
+  };
+
   const remove = async (rowId: string) => {
     await supabase.from("live_stream_products").delete().eq("id", rowId);
     reload();
@@ -120,6 +127,16 @@ export default function LiveBasketManager({ streamId, onClose }: { streamId: str
                 <div className="flex-1 min-w-0">
                   <p className="text-sm truncate">{it.product.name}</p>
                   <p className="text-xs text-primary font-bold">₱{it.product.final_price?.toLocaleString()}</p>
+                  <select
+                    value={it.paymentMode}
+                    onChange={(e) => setMode(it.rowId, e.target.value)}
+                    className="mt-0.5 h-6 w-full rounded border bg-background text-[11px] px-1"
+                    aria-label="Payment option"
+                  >
+                    <option value="both">COD + E-wallet</option>
+                    <option value="cod">COD only</option>
+                    <option value="ewallet">E-wallet only</option>
+                  </select>
                 </div>
                 <Button size="icon" variant={it.pinned ? "default" : "outline"} className="h-8 w-8"
                   onClick={() => pin(it.rowId, !it.pinned)} aria-label="Pin">

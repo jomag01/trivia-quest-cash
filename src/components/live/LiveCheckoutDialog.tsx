@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Wallet, CreditCard, Minus, Plus } from "lucide-react";
+import { Loader2, Wallet, CreditCard, Minus, Plus, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,7 +23,8 @@ export default function LiveCheckoutDialog({ open, onOpenChange, streamId, produ
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [balance, setBalance] = useState(0);
-  const [busy, setBusy] = useState<null | "wallet" | "online">(null);
+  const [busy, setBusy] = useState<null | "wallet" | "online" | "cod">(null);
+  const [mode, setMode] = useState<"both" | "cod" | "ewallet">("both");
 
   useEffect(() => {
     if (!open || !user) return;
@@ -38,9 +39,17 @@ export default function LiveCheckoutDialog({ open, onOpenChange, streamId, produ
       });
   }, [open, user]);
 
+  useEffect(() => {
+    if (!open || !product) return;
+    supabase.from("live_stream_products").select("payment_mode").eq("stream_id", streamId).eq("product_id", product.id).maybeSingle()
+      .then(({ data }: any) => setMode((data?.payment_mode as any) || "both"));
+  }, [open, product, streamId]);
+
   if (!product) return null;
   const subtotal = (product.final_price || 0) * qty;
   const canWallet = balance >= subtotal;
+  const allowCod = mode !== "ewallet";
+  const allowEwallet = mode !== "cod";
 
   const createOrder = async (method: string) => {
     const { data, error } = await supabase.rpc("live_create_order" as any, {
@@ -51,12 +60,15 @@ export default function LiveCheckoutDialog({ open, onOpenChange, streamId, produ
     return data as { order_id: string; total: number };
   };
 
-  const pay = async (mode: "wallet" | "online") => {
+  const pay = async (how: "wallet" | "online" | "cod") => {
     if (!user) return toast.error("Please sign in to buy");
-    setBusy(mode);
+    setBusy(how);
     try {
-      const order = await createOrder(mode === "wallet" ? "cash_wallet" : "paymongo");
-      if (mode === "wallet") {
+      const order = await createOrder(how === "wallet" ? "cash_wallet" : how === "cod" ? "cod" : "paymongo");
+      if (how === "cod") {
+        toast.success("Order placed! Pay cash when your item arrives.");
+        onOpenChange(false);
+      } else if (how === "wallet") {
         const { error } = await supabase.rpc("live_pay_with_wallet" as any, { _order_id: order.order_id });
         if (error) throw error;
         toast.success("Paid! Your order is confirmed.");
@@ -99,15 +111,28 @@ export default function LiveCheckoutDialog({ open, onOpenChange, streamId, produ
           <div><Label>Delivery address</Label><Input value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} /></div>
         </div>
         <p className="text-xs text-muted-foreground">Subtotal ₱{subtotal.toLocaleString()} + shipping (if any). Cash Wallet: ₱{balance.toLocaleString()}</p>
+        <p className="text-xs font-medium">
+          Seller accepts: {mode === "cod" ? "Cash on Delivery only" : mode === "ewallet" ? "E-wallet only" : "Cash on Delivery or E-wallet"}
+        </p>
         <div className="grid gap-2">
-          <Button disabled={!canWallet || !!busy} onClick={() => pay("wallet")}>
-            {busy === "wallet" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wallet className="h-4 w-4 mr-2" />}
-            {canWallet ? "Pay with Cash Wallet" : "Not enough wallet balance"}
-          </Button>
-          <Button variant="outline" disabled={!!busy} onClick={() => pay("online")}>
-            {busy === "online" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CreditCard className="h-4 w-4 mr-2" />}
-            GCash / Maya / Card
-          </Button>
+          {allowCod && (
+            <Button disabled={!!busy} onClick={() => pay("cod")}>
+              {busy === "cod" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Truck className="h-4 w-4 mr-2" />}
+              Cash on Delivery
+            </Button>
+          )}
+          {allowEwallet && (
+            <>
+              <Button variant={allowCod ? "outline" : "default"} disabled={!canWallet || !!busy} onClick={() => pay("wallet")}>
+                {busy === "wallet" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wallet className="h-4 w-4 mr-2" />}
+                {canWallet ? "Pay with Cash Wallet" : "Not enough wallet balance"}
+              </Button>
+              <Button variant="outline" disabled={!!busy} onClick={() => pay("online")}>
+                {busy === "online" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CreditCard className="h-4 w-4 mr-2" />}
+                GCash / Maya / Card
+              </Button>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
