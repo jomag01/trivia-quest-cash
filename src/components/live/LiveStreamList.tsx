@@ -97,12 +97,10 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
       .eq('status', 'live')
       .order('created_at', { ascending: false });
 
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: ended } = await supabase
       .from('live_streams')
       .select('*')
       .eq('status', 'ended')
-      .gte('ended_at', twentyFourHoursAgo)
       .order('ended_at', { ascending: false })
       .limit(10);
 

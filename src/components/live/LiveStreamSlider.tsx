@@ -62,13 +62,11 @@ export default function LiveStreamSlider({ onSelectStream }: LiveStreamSliderPro
         .eq('status', 'live')
         .order('viewer_count', { ascending: false });
 
-      // Fetch recently ended streams (last 24 hours)
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      // Keep the latest finished streams visible with their actual ended status.
       const { data: endedStreams } = await supabase
         .from('live_streams')
         .select('*')
         .eq('status', 'ended')
-        .gte('ended_at', twentyFourHoursAgo)
         .order('ended_at', { ascending: false })
         .limit(5);
 
