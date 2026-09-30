@@ -18,6 +18,7 @@ import {
 import type { ConnectionState } from "@/lib/streaming/SFUConnection";
 import LiveBasketManager from "./LiveBasketManager";
 import LiveDMOverlay from "./LiveDMOverlay";
+import { uploadToAWS } from "@/lib/awsMedia";
 interface BroadcasterViewProps {
   streamId: string;
   onEndStream: () => void;
@@ -98,6 +99,37 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
     if (d && !d.moved) setMinimized(false);
   };
   const broadcasterConnectionRef = useRef<SFUBroadcaster | null>(null);
+
+  const saveThumbnail = async (camera: MediaStream) => {
+    const track = camera.getVideoTracks()[0];
+    if (!track || !user) return;
+    try {
+      // A temporary video lets us capture a frame even before the local preview paints.
+      const preview = document.createElement('video');
+      preview.srcObject = camera;
+      preview.muted = true;
+      preview.playsInline = true;
+      await preview.play();
+      if (!preview.videoWidth) await new Promise<void>(resolve => {
+        preview.onloadeddata = () => resolve();
+        setTimeout(resolve, 2000);
+      });
+      if (!preview.videoWidth || track.readyState !== 'live') return;
+      const canvas = document.createElement('canvas');
+      canvas.width = 360;
+      canvas.height = Math.round(360 * preview.videoHeight / preview.videoWidth);
+      canvas.getContext('2d')?.drawImage(preview, 0, 0, canvas.width, canvas.height);
+      preview.srcObject = null;
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.75));
+      if (!blob) return;
+      const result = await uploadToAWS(new File([blob], `live-${streamId}.jpg`, { type: 'image/jpeg' }), `live/${user.id}`);
+      if (result?.cdnUrl) {
+        await supabase.from('live_streams').update({ thumbnail_url: result.cdnUrl }).eq('id', streamId).eq('user_id', user.id);
+      }
+    } catch (error) {
+      console.warn('Could not save live preview:', error);
+    }
+  };
 
   useEffect(() => {
     fetchStreamData();
@@ -247,6 +279,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       });
       
       await broadcasterConnectionRef.current.start(stream);
+      void saveThumbnail(stream);
       
       // Update stream status to live
       await supabase
