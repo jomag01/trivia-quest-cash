@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Eye, Users, Radio, Clock, Trash2 } from "lucide-react";
@@ -38,6 +37,27 @@ interface LiveStream {
 
 interface LiveStreamListProps {
   onSelectStream: (stream: LiveStream) => void;
+}
+
+function StreamPreview({ stream }: { stream: LiveStream }) {
+  const [source, setSource] = useState(stream.thumbnail_url || stream.profiles?.avatar_url || "");
+  useEffect(() => {
+    setSource(stream.thumbnail_url || stream.profiles?.avatar_url || "");
+  }, [stream.thumbnail_url, stream.profiles?.avatar_url]);
+  return source ? (
+    <img
+      src={source}
+      alt={`${stream.profiles?.full_name || "Seller"} stream preview`}
+      loading="lazy"
+      className="h-full w-full object-cover"
+      onError={() => setSource(source === stream.thumbnail_url ? stream.profiles?.avatar_url || "" : "")}
+    />
+  ) : (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted text-muted-foreground">
+      <Radio className="h-10 w-10" />
+      <span className="text-xs">{stream.profiles?.full_name || "Seller"}</span>
+    </div>
+  );
 }
 
 export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) {
@@ -172,9 +192,7 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
             >
               <CardContent className="p-0">
                 <div className="relative aspect-[9/16] overflow-hidden bg-muted">
-                  {stream.thumbnail_url || stream.profiles?.avatar_url ? (
-                    <img src={stream.thumbnail_url || stream.profiles?.avatar_url} alt={`${stream.profiles?.full_name || 'Seller'} live preview`} loading="lazy" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                  ) : <div className="flex h-full items-center justify-center"><Radio className="h-10 w-10 text-muted-foreground" /></div>}
+                  <StreamPreview stream={stream} />
                   <Badge variant="destructive" className="absolute left-2 top-2 text-[10px] animate-pulse">LIVE</Badge>
                   <span className="absolute right-2 top-2 flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-xs text-foreground"><Eye className="h-3 w-3" />{stream.viewer_count || 0}</span>
                 </div>
@@ -201,9 +219,7 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
                 >
                   <CardContent className="p-0">
                     <div className="relative aspect-[9/16] overflow-hidden bg-muted">
-                      {stream.thumbnail_url || stream.profiles?.avatar_url ? (
-                        <img src={stream.thumbnail_url || stream.profiles?.avatar_url} alt={`${stream.profiles?.full_name || 'Seller'} stream preview`} loading="lazy" className="h-full w-full object-cover opacity-80" />
-                      ) : <div className="flex h-full items-center justify-center"><Clock className="h-10 w-10 text-muted-foreground" /></div>}
+                      <StreamPreview stream={stream} />
                       <Badge variant="secondary" className="absolute left-2 top-2 text-[10px]">ENDED</Badge>
                       <span className="absolute right-2 top-2 flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-xs text-foreground"><Eye className="h-3 w-3" />{stream.total_views || stream.viewer_count || 0}</span>
                     </div>
