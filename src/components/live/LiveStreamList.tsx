@@ -2,10 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Eye, Users, PlayCircle, Clock, Trash2 } from "lucide-react";
+import { Eye, Users, Radio, Clock, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -38,6 +37,27 @@ interface LiveStream {
 
 interface LiveStreamListProps {
   onSelectStream: (stream: LiveStream) => void;
+}
+
+function StreamPreview({ stream }: { stream: LiveStream }) {
+  const [source, setSource] = useState(stream.thumbnail_url || stream.profiles?.avatar_url || "");
+  useEffect(() => {
+    setSource(stream.thumbnail_url || stream.profiles?.avatar_url || "");
+  }, [stream.thumbnail_url, stream.profiles?.avatar_url]);
+  return source ? (
+    <img
+      src={source}
+      alt={`${stream.profiles?.full_name || "Seller"} stream preview`}
+      loading="lazy"
+      className="h-full w-full object-cover"
+      onError={() => setSource(source === stream.thumbnail_url ? stream.profiles?.avatar_url || "" : "")}
+    />
+  ) : (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted text-muted-foreground">
+      <Radio className="h-10 w-10" />
+      <span className="text-xs">{stream.profiles?.full_name || "Seller"}</span>
+    </div>
+  );
 }
 
 export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) {
@@ -77,12 +97,10 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
       .eq('status', 'live')
       .order('created_at', { ascending: false });
 
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: ended } = await supabase
       .from('live_streams')
       .select('*')
       .eq('status', 'ended')
-      .gte('ended_at', twentyFourHoursAgo)
       .order('ended_at', { ascending: false })
       .limit(10);
 
@@ -109,6 +127,9 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
           profiles: profileMap.get(s.user_id)
         })));
       }
+    } else {
+      setLiveStreams([]);
+      setEndedStreams([]);
     }
     setLoading(false);
   };
@@ -157,37 +178,30 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
 
   return (
     <>
-      <ScrollArea className="h-[400px]">
-        <div className="space-y-3 p-2">
+      <ScrollArea className="max-h-[calc(100dvh-9rem)]">
+        <div className="space-y-6 p-2">
+          {liveStreams.length > 0 && <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Radio className="h-4 w-4 text-destructive" /> Live Now</h2>}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {liveStreams.map((stream) => (
             <Card 
               key={stream.id}
-              className="cursor-pointer hover:bg-accent/50 transition-colors"
+              className="group cursor-pointer overflow-hidden border-border bg-card transition-colors hover:border-destructive"
               onClick={() => onSelectStream(stream)}
             >
-              <CardContent className="p-3 flex items-center gap-3">
-                <div className="relative">
-                  <Avatar className="h-12 w-12 border-2 border-red-500">
-                    <AvatarImage src={stream.profiles?.avatar_url || ""} />
-                    <AvatarFallback>{stream.profiles?.full_name?.[0] || "?"}</AvatarFallback>
-                  </Avatar>
-                  <Badge variant="destructive" className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] px-1 animate-pulse">
-                    LIVE
-                  </Badge>
+              <CardContent className="p-0">
+                <div className="relative aspect-[9/16] overflow-hidden bg-muted">
+                  <StreamPreview stream={stream} />
+                  <Badge variant="destructive" className="absolute left-2 top-2 text-[10px] animate-pulse">LIVE</Badge>
+                  <span className="absolute right-2 top-2 flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-xs text-foreground"><Eye className="h-3 w-3" />{stream.viewer_count || 0}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{stream.title}</p>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {stream.profiles?.full_name || "Anonymous"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Eye className="w-4 h-4" />
-                  {stream.viewer_count}
+                <div className="min-w-0 p-2.5">
+                  <p className="truncate text-sm font-semibold">{stream.title}</p>
+                  <p className="truncate text-xs text-muted-foreground">{stream.profiles?.full_name || "Seller"}</p>
                 </div>
               </CardContent>
             </Card>
           ))}
+          </div>
 
           {endedStreams.length > 0 && (
             <>
@@ -195,46 +209,30 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
                 <Clock className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm font-medium text-muted-foreground">Recently Ended</span>
               </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {endedStreams.map((stream) => (
                 <Card 
                   key={stream.id}
-                  className="cursor-pointer hover:bg-accent/50 transition-colors opacity-80"
+                  className="overflow-hidden border-border bg-card"
                 >
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <div 
-                      className="flex items-center gap-3 flex-1 min-w-0"
-                      onClick={() => onSelectStream(stream)}
-                    >
-                      <div className="relative">
-                        <Avatar className="h-12 w-12 border-2 border-muted-foreground grayscale-[30%]">
-                          <AvatarImage src={stream.profiles?.avatar_url || ""} />
-                          <AvatarFallback>{stream.profiles?.full_name?.[0] || "?"}</AvatarFallback>
-                        </Avatar>
-                        <Badge variant="secondary" className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] px-1">
-                          <PlayCircle className="w-2.5 h-2.5 mr-0.5" />
-                          REPLAY
-                        </Badge>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{stream.title}</p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {stream.profiles?.full_name || "Anonymous"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Ended {stream.ended_at ? formatDistanceToNow(new Date(stream.ended_at), { addSuffix: true }) : 'recently'}
-                        </p>
-                      </div>
+                  <CardContent className="p-0">
+                    <div className="relative aspect-[9/16] overflow-hidden bg-muted">
+                      <StreamPreview stream={stream} />
+                      <Badge variant="secondary" className="absolute left-2 top-2 text-[10px]">ENDED</Badge>
+                      <span className="absolute right-2 top-2 flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-xs text-foreground"><Eye className="h-3 w-3" />{stream.total_views || stream.viewer_count || 0}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Eye className="w-4 h-4" />
-                        {stream.total_views || stream.viewer_count || 0}
+                    <div className="flex items-start gap-1 p-2.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{stream.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">{stream.profiles?.full_name || "Seller"}</p>
+                        <p className="text-xs text-muted-foreground">Ended {stream.ended_at ? formatDistanceToNow(new Date(stream.ended_at), { addSuffix: true }) : 'recently'}</p>
                       </div>
                       {user?.id === stream.user_id && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          aria-label={`Delete ${stream.title}`}
+                          className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
                           onClick={(e) => {
                             e.stopPropagation();
                             setStreamToDelete(stream);
@@ -247,6 +245,7 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
                   </CardContent>
                 </Card>
               ))}
+              </div>
             </>
           )}
         </div>

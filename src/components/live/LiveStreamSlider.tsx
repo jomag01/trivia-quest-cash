@@ -62,13 +62,11 @@ export default function LiveStreamSlider({ onSelectStream }: LiveStreamSliderPro
         .eq('status', 'live')
         .order('viewer_count', { ascending: false });
 
-      // Fetch recently ended streams (last 24 hours)
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      // Keep the latest finished streams visible with their actual ended status.
       const { data: endedStreams } = await supabase
         .from('live_streams')
         .select('*')
         .eq('status', 'ended')
-        .gte('ended_at', twentyFourHoursAgo)
         .order('ended_at', { ascending: false })
         .limit(5);
 
@@ -112,7 +110,7 @@ export default function LiveStreamSlider({ onSelectStream }: LiveStreamSliderPro
       <div className="flex items-center gap-2 mb-2 px-1">
         <Radio className="w-4 h-4 text-red-500 animate-pulse" />
         <span className="text-sm font-semibold text-gray-900">
-          {liveCount > 0 ? 'Live Now' : 'Was Live'}
+          {liveCount > 0 ? 'Live Now' : 'Recently Ended'}
         </span>
         {liveCount > 0 && (
           <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
@@ -129,8 +127,8 @@ export default function LiveStreamSlider({ onSelectStream }: LiveStreamSliderPro
             return (
               <div
                 key={stream.id}
-                className="flex-shrink-0 w-36 cursor-pointer group"
-                onClick={() => onSelectStream(stream)}
+                className={`flex-shrink-0 w-36 group ${isLive ? 'cursor-pointer' : ''}`}
+                onClick={() => { if (isLive) onSelectStream(stream); }}
               >
                 {/* Thumbnail */}
                 <div className={`relative aspect-[9/16] w-full rounded-xl overflow-hidden ${
@@ -174,7 +172,7 @@ export default function LiveStreamSlider({ onSelectStream }: LiveStreamSliderPro
                       className="absolute top-2 left-2 text-[9px] px-1.5 py-0 h-4 bg-gray-700 text-white"
                     >
                       <PlayCircle className="w-2.5 h-2.5 mr-0.5" />
-                      WAS LIVE
+                      ENDED
                     </Badge>
                   )}
                   
