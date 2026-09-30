@@ -111,6 +111,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (stream.status !== 'live') return;
     fetchComments();
     fetchProducts();
     checkFollowStatus();
