@@ -5,7 +5,7 @@
 - [x] Travel affiliate partners (/travel), admin-set platform fees, profit dashboard, investor page (/investors)
 
 ## Paid live plans (in progress)
-- [ ] Basic/Pro live plans, per-session pass (Cash Wallet + PayMongo), approved sellers get Basic free
-- [ ] Admin Live Plans settings
-- [ ] Pro: green screen, auto background removal, custom image/video background, stickers
-- [ ] Cross-platform live: restream to Facebook, YouTube, other RTMP (needs streaming server/keys)
+- [x] Basic/Pro live plans, per-session pass (Cash Wallet + PayMongo), approved sellers get Basic free
+- [x] Admin Live Plans settings
+- [x] Pro: green screen, auto background removal, custom image/video background, stickers
+- [ ] Cross-platform live to Faceb/YouTube — blocked: needs a restreaming service choice + account (RTMP relay)
