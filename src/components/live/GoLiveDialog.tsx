@@ -10,7 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Video, ShoppingBag, X, Plus, Loader2 } from "lucide-react";
+import { Video, ShoppingBag, Loader2, Crown, Check, Wallet, CreditCard } from "lucide-react";
+import { useLivePlans } from "@/hooks/useLivePlans";
 
 interface Product {
   id: string;
@@ -28,7 +29,32 @@ interface GoLiveDialogProps {
 
 export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDialogProps) {
   const { user } = useAuth();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
+  const [planCode, setPlanCode] = useState<"basic" | "pro">("basic");
+  const [paying, setPaying] = useState<string | null>(null);
+  const { plans, ent, refresh: refreshPlans, loading: plansLoading } = useLivePlans(open);
+
+  const hasAccess = (code: "basic" | "pro") =>
+    (code === "basic" && ent.approved) || (code === "basic" ? ent.basic_passes : ent.pro_passes) > 0;
+
+  const buyWithWallet = async (code: "basic" | "pro") => {
+    setPaying(code + "-wallet");
+    const { error } = await supabase.rpc("live_buy_pass_wallet", { _plan_code: code });
+    setPaying(null);
+    if (error) return toast.error(error.message);
+    toast.success("Pass purchased — you can go live now");
+    await refreshPlans();
+  };
+
+  const buyWithPaymongo = async (code: "basic" | "pro") => {
+    setPaying(code + "-paymongo");
+    const { data, error } = await supabase.functions.invoke("create-payment", {
+      body: { metadata: { purchase_type: "live_pass", plan_code: code } },
+    });
+    setPaying(null);
+    if (error || !data?.checkout_url) return toast.error("Could not start payment");
+    window.location.href = data.checkout_url;
+  };
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -88,19 +114,11 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
     setLoading(true);
     try {
       // Create the live stream
-      const { data: stream, error: streamError } = await supabase
-        .from('live_streams')
-        .insert({
-          user_id: user.id,
-          title: title.trim(),
-          description: description.trim(),
-          status: 'live',
-          started_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
+      const { data: streamId, error: streamError } = await supabase.rpc("live_start_session", {
+        _plan_code: planCode, _title: title.trim(), _description: description.trim(),
+      });
       if (streamError) throw streamError;
+      const stream = { id: streamId as string };
 
       // Add selected products to the stream with streamer_id for commission tracking
       if (selectedProducts.length > 0) {
@@ -129,7 +147,7 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
   };
 
   const resetForm = () => {
-    setStep(1);
+    setStep(0);
     setTitle("");
     setDescription("");
     setSelectedProducts([]);
@@ -150,6 +168,50 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
             Start streaming and showcase your products
           </DialogDescription>
         </DialogHeader>
+
+        {step === 0 && (
+          <div className="space-y-3">
+            {plansLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            ) : plans.filter((p) => p.is_active).map((p) => {
+              const owned = hasAccess(p.code);
+              const passes = p.code === "basic" ? ent.basic_passes : ent.pro_passes;
+              const selected = planCode === p.code;
+              return (
+                <Card key={p.code} className={`cursor-pointer ${selected ? "ring-2 ring-primary" : ""}`} onClick={() => setPlanCode(p.code)}>
+                  <CardContent className="space-y-2 p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="flex items-center gap-1 font-bold">{p.code === "pro" && <Crown className="h-4 w-4 text-primary" />}{p.name}</p>
+                      <p className="font-bold text-primary">₱{Number(p.price_per_session).toLocaleString()}<span className="text-xs text-muted-foreground"> / live</span></p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{p.description}</p>
+                    <ul className="grid grid-cols-2 gap-1 text-xs">
+                      {[["chroma_key", "Green screen"], ["auto_bg_removal", "Auto background removal"], ["custom_background", "Custom backgrounds"], ["stickers", "Stickers"]]
+                        .filter(([k]) => (p.features as any)?.[k]).map(([k, l]) => <li key={k} className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" />{l}</li>)}
+                    </ul>
+                    {owned ? (
+                      <p className="text-xs font-medium text-primary">
+                        {p.code === "basic" && ent.approved ? "Free for approved sellers" : `${passes} unused pass${passes === 1 ? "" : "es"}`}
+                      </p>
+                    ) : (
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button size="sm" variant="outline" className="flex-1" disabled={!!paying} onClick={() => buyWithWallet(p.code)}>
+                          {paying === p.code + "-wallet" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Wallet className="mr-1 h-3 w-3" />} Cash Wallet
+                        </Button>
+                        <Button size="sm" variant="outline" className="flex-1" disabled={!!paying} onClick={() => buyWithPaymongo(p.code)}>
+                          {paying === p.code + "-paymongo" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <CreditCard className="mr-1 h-3 w-3" />} GCash / Card
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+            <Button className="w-full" disabled={!hasAccess(planCode)} onClick={() => setStep(1)}>
+              {hasAccess(planCode) ? `Continue with ${planCode === "pro" ? "Pro" : "Basic"}` : "Buy a pass to continue"}
+            </Button>
+          </div>
+        )}
 
         {step === 1 && (
           <div className="space-y-4">
