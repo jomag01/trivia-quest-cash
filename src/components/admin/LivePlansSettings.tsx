@@ -16,6 +16,7 @@ const FEATURES: { key: keyof LivePlan["features"]; label: string }[] = [
   { key: "auto_bg_removal", label: "Auto background removal" },
   { key: "custom_background", label: "Custom image / video backgrounds" },
   { key: "stickers", label: "Stickers & foreground overlays" },
+  { key: "cross_platform", label: "Cross-platform live (Restream: Facebook, YouTube...)" },
 ];
 
 export default function LivePlansSettings() {

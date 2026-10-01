@@ -36,6 +36,8 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
   const [useRestream, setUseRestream] = useState(false);
   const [restreamId, setRestreamId] = useState<string | null>(null);
   const { plans, ent, refresh: refreshPlans, loading: plansLoading } = useLivePlans(open);
+  const crossAllowed = !!plans.find((p) => p.code === planCode)?.features?.cross_platform;
+  useEffect(() => { if (!crossAllowed && useRestream) setUseRestream(false); }, [crossAllowed, useRestream]);
 
   const hasAccess = (code: "basic" | "pro") =>
     (code === "basic" && ent.approved) || (code === "basic" ? ent.basic_passes : ent.pro_passes) > 0;
@@ -195,7 +197,7 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                     </div>
                     <p className="text-xs text-muted-foreground">{p.description}</p>
                     <ul className="grid grid-cols-2 gap-1 text-xs">
-                      {[["chroma_key", "Green screen"], ["auto_bg_removal", "Auto background removal"], ["custom_background", "Custom backgrounds"], ["stickers", "Stickers"]]
+                      {[["chroma_key", "Green screen"], ["auto_bg_removal", "Auto background removal"], ["custom_background", "Custom backgrounds"], ["stickers", "Stickers"], ["cross_platform", "Cross-platform live"]]
                         .filter(([k]) => (p.features as any)?.[k]).map(([k, l]) => <li key={k} className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" />{l}</li>)}
                     </ul>
                     {owned ? (
@@ -259,10 +261,12 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                 </button>
                 <button
                   type="button"
+                  disabled={!crossAllowed}
                   onClick={() => setUseRestream(true)}
-                  className={`rounded-lg border p-3 text-left transition-colors ${useRestream ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border"}`}
+                  className={`rounded-lg border p-3 text-left transition-colors disabled:opacity-50 ${useRestream ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border"}`}
                 >
                   <p className="text-sm font-medium">Cross-platform</p>
+                  {!crossAllowed && <p className="text-[10px] font-semibold text-primary mt-1">Upgrade to a higher plan to unlock</p>}
                   <p className="text-xs text-muted-foreground mt-1">Stream once in Restream and show on Facebook, YouTube and Triviabees at the same time.</p>
                 </button>
               </div>

@@ -245,9 +245,15 @@ serve(async (req) => {
         if (!authUser || !streamId) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
-        const { data: ls } = await supabase.from('live_streams').select('id, user_id, status').eq('id', streamId).maybeSingle();
+        const { data: ls } = await supabase.from('live_streams').select('id, user_id, status, plan_code').eq('id', streamId).maybeSingle();
         if (!ls || ls.user_id !== authUser.id) {
           return new Response(JSON.stringify({ error: 'Not your stream' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        if (action === 'restream-ingest') {
+          const { data: plan } = await supabase.from('live_plans').select('features').eq('code', ls.plan_code).maybeSingle();
+          if (!(plan?.features as Record<string, boolean> | null)?.cross_platform) {
+            return new Response(JSON.stringify({ error: 'Cross-platform live is not included in your plan' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
         }
         const { data: existing } = await supabase.from('live_stream_ingest').select('*').eq('stream_id', streamId).maybeSingle();
 
