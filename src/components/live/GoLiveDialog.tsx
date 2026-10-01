@@ -12,7 +12,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Video, ShoppingBag, Loader2, Crown, Check, Wallet, CreditCard } from "lucide-react";
 import { useLivePlans } from "@/hooks/useLivePlans";
-import { Switch } from "@/components/ui/switch";
 import RestreamLivePanel from "./RestreamLivePanel";
 
 interface Product {
