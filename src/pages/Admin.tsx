@@ -96,6 +96,8 @@ import CashDepositManagement from "@/components/admin/CashDepositManagement";
 import TransferFeeSettings from "@/components/admin/TransferFeeSettings";
 import LiveSellingAccessSettings from "@/components/admin/LiveSellingAccessSettings";
 import LivePlansSettings from "@/components/admin/LivePlansSettings";
+import LivePassPaymentsReview from "@/components/admin/LivePassPaymentsReview";
+import PaidFeatureCommissionsSettings from "@/components/admin/PaidFeatureCommissionsSettings";
 import BusinessGrowthAdmin from "@/components/admin/BusinessGrowthAdmin";
 import AdRevenueSettings from "@/components/admin/AdRevenueSettings";
 import PayoutAccountsManagement from "@/components/admin/PayoutAccountsManagement";
@@ -190,6 +192,8 @@ const Admin = () => {
         { id: "transfer-fees", label: "Transfer Fee Settings", icon: ArrowLeftRight },
         { id: "live-selling-access", label: "Live Selling Access", icon: Megaphone },
         { id: "live-plans", label: "Live Plans (Basic / Pro)", icon: Megaphone },
+        { id: "live-pass-payments", label: "Live Pass GCash Payments", icon: Megaphone },
+        { id: "paid-feature-commissions", label: "Paid Feature Commissions", icon: Megaphone },
         { id: "business-growth", label: "Profit, Fees & Investors", icon: Calculator },
       ],
     },
@@ -893,6 +897,8 @@ const Admin = () => {
           {activeTab === "transfer-fees" && <TransferFeeSettings />}
           {activeTab === "live-selling-access" && <LiveSellingAccessSettings />}
           {activeTab === "live-plans" && <LivePlansSettings />}
+          {activeTab === "live-pass-payments" && <LivePassPaymentsReview />}
+          {activeTab === "paid-feature-commissions" && <PaidFeatureCommissionsSettings />}
           {activeTab === "business-growth" && <BusinessGrowthAdmin />}
           {activeTab === "payout-accounts" && <PayoutAccountsManagement />}
           {activeTab === "member-activation" && <MemberActivationManagement />}

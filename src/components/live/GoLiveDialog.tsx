@@ -171,6 +171,10 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
 
   return (
     <>
+    {manualPlan && (
+      <ManualPassPaymentDialog open={!!manualPlan} onOpenChange={(o) => !o && setManualPlan(null)}
+        planCode={manualPlan.code} planName={manualPlan.name} amount={manualPlan.price} onSubmitted={refreshPlans} />
+    )}
     {restreamId && <RestreamLivePanel streamId={restreamId} onClose={() => { setRestreamId(null); setUseRestream(false); }} />}
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
