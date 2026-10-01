@@ -19,6 +19,9 @@ import type { ConnectionState } from "@/lib/streaming/SFUConnection";
 import LiveBasketManager from "./LiveBasketManager";
 import LiveDMOverlay from "./LiveDMOverlay";
 import { uploadToAWS } from "@/lib/awsMedia";
+import { EffectsPipeline, DEFAULT_EFFECTS, type EffectSettings } from "@/lib/live/effectsPipeline";
+import LiveEffectsPanel from "./LiveEffectsPanel";
+import type { LivePlan } from "@/hooks/useLivePlans";
 interface BroadcasterViewProps {
   streamId: string;
   onEndStream: () => void;
@@ -99,6 +102,58 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
     if (d && !d.moved) setMinimized(false);
   };
   const broadcasterConnectionRef = useRef<SFUBroadcaster | null>(null);
+  const pipelineRef = useRef<EffectsPipeline | null>(null);
+  const [planFeatures, setPlanFeatures] = useState<LivePlan["features"] | null>(null);
+  const [effects, setEffects] = useState<EffectSettings>(DEFAULT_EFFECTS);
+  const effectsRef = useRef(effects);
+  const [showEffects, setShowEffects] = useState(false);
+  const stickerDrag = useRef<string | null>(null);
+
+  const updateEffects = (p: Partial<EffectSettings>) => {
+    const next = { ...effectsRef.current, ...p };
+    effectsRef.current = next;
+    setEffects(next);
+    pipelineRef.current?.update(p).catch((e) => toast.error(e?.message || "Effect failed to load"));
+  };
+
+  const loadPlanFeatures = async () => {
+    const { data: s } = await supabase.from('live_streams').select('plan_code').eq('id', streamId).maybeSingle();
+    if ((s as any)?.plan_code !== 'pro') return null;
+    const { data: p } = await supabase.from('live_plans').select('features').eq('code', 'pro').maybeSingle();
+    const f = ((p as any)?.features || {}) as LivePlan["features"];
+    setPlanFeatures(f);
+    return f;
+  };
+
+  /** Maps a pointer on the preview (object-cover) to normalized canvas coords. */
+  const toCanvasPoint = (e: React.PointerEvent<HTMLVideoElement>) => {
+    const el = e.currentTarget, c = pipelineRef.current?.canvas;
+    if (!c) return null;
+    const rect = el.getBoundingClientRect();
+    const r = Math.max(rect.width / c.width, rect.height / c.height);
+    const w = c.width * r, h = c.height * r;
+    return { x: (e.clientX - rect.left - (rect.width - w) / 2) / w, y: (e.clientY - rect.top - (rect.height - h) / 2) / h };
+  };
+  const onVideoPointerDown = (e: React.PointerEvent<HTMLVideoElement>) => {
+    if (minimized || !effectsRef.current.stickers.length) return;
+    const pt = toCanvasPoint(e);
+    if (!pt) return;
+    let best: string | null = null, bd = 0.15;
+    for (const st of effectsRef.current.stickers) {
+      const d = Math.hypot(st.x - pt.x, st.y - pt.y);
+      if (d < Math.max(bd, st.size / 2)) { bd = d; best = st.id; }
+    }
+    if (best) { stickerDrag.current = best; e.currentTarget.setPointerCapture(e.pointerId); e.stopPropagation(); }
+  };
+  const onVideoPointerMove = (e: React.PointerEvent<HTMLVideoElement>) => {
+    const id = stickerDrag.current;
+    if (!id) return;
+    const pt = toCanvasPoint(e);
+    if (!pt) return;
+    const clamp = (v: number) => Math.min(1, Math.max(0, v));
+    updateEffects({ stickers: effectsRef.current.stickers.map((s) => s.id === id ? { ...s, x: clamp(pt.x), y: clamp(pt.y) } : s) });
+  };
+  const onVideoPointerUp = () => { stickerDrag.current = null; };
 
   const saveThumbnail = async (camera: MediaStream) => {
     const track = camera.getVideoTracks()[0];
@@ -255,9 +310,26 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setMediaStream(stream);
+
+      // Pro sessions route the camera through the effects compositor
+      pipelineRef.current?.stop();
+      pipelineRef.current = null;
+      const features = planFeatures ?? await loadPlanFeatures();
+      let publishStream = stream;
+      if (features) {
+        try {
+          pipelineRef.current = new EffectsPipeline(stream);
+          await pipelineRef.current.update(effectsRef.current);
+          publishStream = pipelineRef.current.stream;
+        } catch (err) {
+          console.warn('Effects unavailable, using raw camera:', err);
+          pipelineRef.current?.stop();
+          pipelineRef.current = null;
+        }
+      }
       
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+        videoRef.current.srcObject = publishStream;
         // Enable low-latency playback for local preview
         videoRef.current.playsInline = true;
       }
@@ -278,7 +350,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         }
       });
       
-      await broadcasterConnectionRef.current.start(stream);
+      await broadcasterConnectionRef.current.start(publishStream);
       void saveThumbnail(stream);
       
       // Update stream status to live
@@ -302,6 +374,8 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   };
 
   const stopCamera = () => {
+    pipelineRef.current?.stop();
+    pipelineRef.current = null;
     if (mediaStream) {
       mediaStream.getTracks().forEach(track => track.stop());
       setMediaStream(null);
@@ -446,7 +520,10 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           autoPlay
           muted
           playsInline
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover ${effects.stickers.length && !minimized ? "touch-none" : ""}`}
+          onPointerDown={onVideoPointerDown}
+          onPointerMove={onVideoPointerMove}
+          onPointerUp={onVideoPointerUp}
         />
 
         {!isVideoOn && (
@@ -524,6 +601,10 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           Basket
         </Button>
 
+        {showEffects && planFeatures && user && (
+          <LiveEffectsPanel userId={user.id} features={planFeatures} settings={effects} onChange={updateEffects} onClose={() => setShowEffects(false)} />
+        )}
+
         {showProducts && (
           <LiveBasketManager streamId={streamId} onClose={() => setShowProducts(false)} />
         )}
@@ -575,7 +656,8 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         >
           <SwitchCamera className="w-5 h-5" />
         </Button>
-        <Button variant="outline" size="icon" className="h-10 w-10">
+        <Button variant="outline" size="icon" className="h-10 w-10" aria-label="Camera effects"
+          onClick={() => planFeatures ? (setShowProducts(false), setShowEffects((v) => !v)) : toast.info("Backgrounds, green screen and stickers are Pro Live features. Choose Pro next time you go live.")}>
           <Settings className="w-5 h-5" />
         </Button>
       </div>

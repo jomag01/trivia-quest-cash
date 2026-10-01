@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCanGoLive } from "@/hooks/useCanGoLive";
 import LiveStreamList from "@/components/live/LiveStreamList";
 import LiveStreamViewer from "@/components/live/LiveStreamViewer";
 import GoLiveDialog from "@/components/live/GoLiveDialog";
@@ -10,10 +10,15 @@ import { useLiveBroadcast } from "@/contexts/LiveBroadcastContext";
 
 export default function Live() {
   const { user } = useAuth();
-  const { canGoLive } = useCanGoLive(user?.id);
   const [selected, setSelected] = useState<any>(null);
   const [showGoLive, setShowGoLive] = useState(false);
   const { startBroadcast } = useLiveBroadcast();
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("pass");
+    if (q === "success") { toast.success("Payment received — your live pass is ready"); setShowGoLive(true); }
+    if (q === "cancelled") toast.info("Live pass payment cancelled");
+  }, []);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -22,7 +27,7 @@ export default function Live() {
           <Radio className="h-5 w-5 text-destructive" />
           <h1 className="text-lg font-bold text-foreground">Live Selling</h1>
         </div>
-        {canGoLive && (
+        {user && (
           <Button size="sm" variant="destructive" className="animate-pulse" onClick={() => setShowGoLive(true)}>
             <Radio className="mr-1 h-4 w-4" /> Go Live
           </Button>

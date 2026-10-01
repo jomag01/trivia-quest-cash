@@ -8550,6 +8550,39 @@ export type Database = {
           },
         ]
       }
+      live_plans: {
+        Row: {
+          code: string
+          description: string
+          features: Json
+          is_active: boolean
+          name: string
+          price_per_session: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          description?: string
+          features?: Json
+          is_active?: boolean
+          name: string
+          price_per_session?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          description?: string
+          features?: Json
+          is_active?: boolean
+          name?: string
+          price_per_session?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       live_selling_access: {
         Row: {
           approved_by: string | null
@@ -8570,6 +8603,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      live_session_passes: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          paid_at: string | null
+          payment_method: string | null
+          plan_code: string
+          status: string
+          stream_id: string | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          plan_code: string
+          status?: string
+          stream_id?: string | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          plan_code?: string
+          status?: string
+          stream_id?: string | null
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_session_passes_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "live_plans"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       live_stream_comments: {
         Row: {
@@ -8719,6 +8799,7 @@ export type Database = {
           description: string | null
           ended_at: string | null
           id: string
+          plan_code: string
           started_at: string | null
           status: string
           stream_key: string
@@ -8734,6 +8815,7 @@ export type Database = {
           description?: string | null
           ended_at?: string | null
           id?: string
+          plan_code?: string
           started_at?: string | null
           status?: string
           stream_key?: string
@@ -8749,6 +8831,7 @@ export type Database = {
           description?: string | null
           ended_at?: string | null
           id?: string
+          plan_code?: string
           started_at?: string | null
           status?: string
           stream_key?: string
@@ -17618,6 +17701,7 @@ export type Database = {
         Returns: boolean
       }
       is_warehouse_staff: { Args: { _warehouse_id: string }; Returns: boolean }
+      live_buy_pass_wallet: { Args: { _plan_code: string }; Returns: string }
       live_create_order: {
         Args: {
           _address: string
@@ -17630,8 +17714,18 @@ export type Database = {
         }
         Returns: Json
       }
+      live_create_pending_pass: {
+        Args: { _plan_code: string }
+        Returns: string
+      }
       live_mark_order_paid: { Args: { _order_id: string }; Returns: undefined }
+      live_mark_pass_paid: { Args: { _pass_id: string }; Returns: undefined }
+      live_my_entitlements: { Args: never; Returns: Json }
       live_pay_with_wallet: { Args: { _order_id: string }; Returns: Json }
+      live_start_session: {
+        Args: { _description?: string; _plan_code: string; _title: string }
+        Returns: string
+      }
       place_user_in_binary_network: {
         Args: { _sponsor_user_id: string; _user_id: string }
         Returns: string
