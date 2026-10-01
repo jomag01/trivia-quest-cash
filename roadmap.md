@@ -2,3 +2,4 @@
 - [x] Seller sees viewer DMs overlaid on live video
 - [x] Make AI Services > Ads accessible and let users create social-media ad drafts from a short business brief or website
 - [x] Show seller thumbnails in Live previews and mark finished broadcasts ENDED instead of LIVE
+- [x] Travel affiliate partners (/travel), admin-set platform fees, profit dashboard, investor page (/investors)

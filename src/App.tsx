@@ -47,6 +47,8 @@ const BeesMate = lazy(() => import("./pages/ChatMates"));
 const LinkRedirect = lazy(() => import("./pages/LinkRedirect"));
 const BookService = lazy(() => import("./pages/BookService"));
 const Live = lazy(() => import("./pages/Live"));
+const Travel = lazy(() => import("./pages/Travel"));
+const Investors = lazy(() => import("./pages/Investors"));
 
 // Courier system pages
 const CourierAdmin = lazy(() => import("./components/courier/admin/CourierAdminDashboard"));
@@ -154,6 +156,8 @@ const App = () => (
               <Route path="/community" element={<Community />} />
               <Route path="/shop" element={<Shop />} />
               <Route path="/live" element={<Live />} />
+              <Route path="/travel" element={<Travel />} />
+              <Route path="/investors" element={<Investors />} />
               <Route path="/booking" element={<Booking />} />
               <Route path="/food" element={<Food />} />
               <Route path="/chess" element={<Chess />} />

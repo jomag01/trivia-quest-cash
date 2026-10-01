@@ -95,6 +95,7 @@ import ListingFeaturesManagement from "@/components/admin/ListingFeaturesManagem
 import CashDepositManagement from "@/components/admin/CashDepositManagement";
 import TransferFeeSettings from "@/components/admin/TransferFeeSettings";
 import LiveSellingAccessSettings from "@/components/admin/LiveSellingAccessSettings";
+import BusinessGrowthAdmin from "@/components/admin/BusinessGrowthAdmin";
 import AdRevenueSettings from "@/components/admin/AdRevenueSettings";
 import PayoutAccountsManagement from "@/components/admin/PayoutAccountsManagement";
 import BlogManagement from "@/components/admin/BlogManagement";
@@ -187,6 +188,7 @@ const Admin = () => {
         { id: "cash-deposits", label: "Cash Deposit Requests", icon: DollarSign },
         { id: "transfer-fees", label: "Transfer Fee Settings", icon: ArrowLeftRight },
         { id: "live-selling-access", label: "Live Selling Access", icon: Megaphone },
+        { id: "business-growth", label: "Profit, Fees & Investors", icon: Calculator },
       ],
     },
     {
@@ -888,6 +890,7 @@ const Admin = () => {
           {activeTab === "cash-deposits" && <CashDepositManagement />}
           {activeTab === "transfer-fees" && <TransferFeeSettings />}
           {activeTab === "live-selling-access" && <LiveSellingAccessSettings />}
+          {activeTab === "business-growth" && <BusinessGrowthAdmin />}
           {activeTab === "payout-accounts" && <PayoutAccountsManagement />}
           {activeTab === "member-activation" && <MemberActivationManagement />}
           {activeTab === "product-affiliate-exclusion" && <ProductAffiliateExclusion />}
