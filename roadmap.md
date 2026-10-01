@@ -8,4 +8,4 @@
 - [x] Basic/Pro live plans, per-session pass (Cash Wallet + PayMongo), approved sellers get Basic free
 - [x] Admin Live Plans settings
 - [x] Pro: green screen, auto background removal, custom image/video background, stickers
-- [ ] Cross-platform live to Faceb/YouTube — blocked: needs a restreaming service choice + account (RTMP relay)
+- [x] Cross-platform live via Restream (Restream → Triviabees custom RTMP)
