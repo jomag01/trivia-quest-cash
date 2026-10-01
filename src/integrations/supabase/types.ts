@@ -6643,6 +6643,80 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_commission_earnings: {
+        Row: {
+          amount: number
+          buyer_id: string
+          created_at: string
+          earner_id: string
+          feature_key: string
+          id: string
+          level: number
+          sale_id: string
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          created_at?: string
+          earner_id: string
+          feature_key: string
+          id?: string
+          level: number
+          sale_id: string
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          created_at?: string
+          earner_id?: string
+          feature_key?: string
+          id?: string
+          level?: number
+          sale_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_commission_earnings_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "feature_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_sales: {
+        Row: {
+          amount: number
+          commissions_paid: number
+          created_at: string
+          feature_key: string
+          id: string
+          payment_method: string | null
+          source_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          commissions_paid?: number
+          created_at?: string
+          feature_key: string
+          id?: string
+          payment_method?: string | null
+          source_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          commissions_paid?: number
+          created_at?: string
+          feature_key?: string
+          id?: string
+          payment_method?: string | null
+          source_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       file_uploads: {
         Row: {
           base64_data: string | null
@@ -8606,36 +8680,51 @@ export type Database = {
       }
       live_session_passes: {
         Row: {
+          admin_note: string | null
           amount: number
           created_at: string
           id: string
           paid_at: string | null
           payment_method: string | null
           plan_code: string
+          proof_url: string | null
+          reference_number: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: string
           stream_id: string | null
           used_at: string | null
           user_id: string
         }
         Insert: {
+          admin_note?: string | null
           amount?: number
           created_at?: string
           id?: string
           paid_at?: string | null
           payment_method?: string | null
           plan_code: string
+          proof_url?: string | null
+          reference_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           stream_id?: string | null
           used_at?: string | null
           user_id: string
         }
         Update: {
+          admin_note?: string | null
           amount?: number
           created_at?: string
           id?: string
           paid_at?: string | null
           payment_method?: string | null
           plan_code?: string
+          proof_url?: string | null
+          reference_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           stream_id?: string | null
           used_at?: string | null
@@ -10260,6 +10349,39 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
           visitor_id?: string
+        }
+        Relationships: []
+      }
+      paid_feature_commissions: {
+        Row: {
+          category: string
+          commission_type: string
+          feature_key: string
+          is_active: boolean
+          label: string
+          referrer_value: number
+          updated_at: string
+          upline_value: number
+        }
+        Insert: {
+          category?: string
+          commission_type?: string
+          feature_key: string
+          is_active?: boolean
+          label: string
+          referrer_value?: number
+          updated_at?: string
+          upline_value?: number
+        }
+        Update: {
+          category?: string
+          commission_type?: string
+          feature_key?: string
+          is_active?: boolean
+          label?: string
+          referrer_value?: number
+          updated_at?: string
+          upline_value?: number
         }
         Relationships: []
       }
@@ -17417,6 +17539,10 @@ export type Database = {
         Args: { p_credits: number; p_user_id: string }
         Returns: boolean
       }
+      admin_review_live_pass: {
+        Args: { _approve: boolean; _note?: string; _pass_id: string }
+        Returns: undefined
+      }
       approve_cash_deposit: {
         Args: { p_admin_id: string; p_request_id: string }
         Returns: boolean
@@ -17767,6 +17893,10 @@ export type Database = {
         Args: { _description?: string; _plan_code: string; _title: string }
         Returns: string
       }
+      live_submit_manual_pass: {
+        Args: { _plan_code: string; _proof_url: string; _reference: string }
+        Returns: string
+      }
       place_user_in_binary_network: {
         Args: { _sponsor_user_id: string; _user_id: string }
         Returns: string
@@ -17799,6 +17929,16 @@ export type Database = {
           p_product_id: string
           p_seller_id: string
           p_total_budget: number
+        }
+        Returns: string
+      }
+      record_feature_sale: {
+        Args: {
+          _amount: number
+          _feature_key: string
+          _method: string
+          _source_id: string
+          _user_id: string
         }
         Returns: string
       }
