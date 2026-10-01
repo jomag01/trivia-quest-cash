@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { Video, ShoppingBag, Loader2, Crown, Check, Wallet, CreditCard } from "lucide-react";
 import { useLivePlans } from "@/hooks/useLivePlans";
 import RestreamLivePanel from "./RestreamLivePanel";
+import ManualPassPaymentDialog from "./ManualPassPaymentDialog";
+import { Smartphone } from "lucide-react";
 
 interface Product {
   id: string;
@@ -41,6 +43,8 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
 
   const hasAccess = (code: "basic" | "pro") =>
     (code === "basic" && ent.approved) || (code === "basic" ? ent.basic_passes : ent.pro_passes) > 0;
+
+  const [manualPlan, setManualPlan] = useState<{ code: string; name: string; price: number } | null>(null);
 
   const buyWithWallet = async (code: "basic" | "pro") => {
     setPaying(code + "-wallet");
@@ -205,12 +209,15 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                         {p.code === "basic" && ent.approved ? "Free for approved sellers" : `${passes} unused pass${passes === 1 ? "" : "es"}`}
                       </p>
                     ) : (
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button size="sm" variant="outline" className="flex-1" disabled={!!paying} onClick={() => buyWithWallet(p.code)}>
                           {paying === p.code + "-wallet" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Wallet className="mr-1 h-3 w-3" />} Cash Wallet
                         </Button>
                         <Button size="sm" variant="outline" className="flex-1" disabled={!!paying} onClick={() => buyWithPaymongo(p.code)}>
                           {paying === p.code + "-paymongo" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <CreditCard className="mr-1 h-3 w-3" />} GCash / Card
+                        </Button>
+                        <Button size="sm" variant="outline" className="flex-1" disabled={!!paying} onClick={() => setManualPlan({ code: p.code, name: p.name, price: Number(p.price_per_session) })}>
+                          <Smartphone className="mr-1 h-3 w-3" /> Send & upload proof
                         </Button>
                       </div>
                     )}
