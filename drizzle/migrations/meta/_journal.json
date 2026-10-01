@@ -71,6 +71,13 @@
       "when": 1790897677043,
       "tag": "0009_live_restream_ingest",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790898727565,
+      "tag": "0010_feature_manual_payments_commissions",
+      "breakpoints": true
     }
   ]
 }
