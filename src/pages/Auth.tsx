@@ -18,6 +18,8 @@ import { getReferralCodeFromCookie, markConversion, parseAndTrackFromUrl } from 
 
 const Auth = () => {
   const navigate = useNavigate();
+  const rawNext = new URLSearchParams(window.location.search).get("next");
+  const nextPath = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : null;
   const { user } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -46,7 +48,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}${nextPath ?? "/dashboard"}`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -63,7 +65,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      if (nextPath) window.location.href = nextPath; else navigate("/dashboard");
     }
   }, [user, navigate]);
 
@@ -209,7 +211,7 @@ const Auth = () => {
 
         if (error) throw error;
         toast.success("Welcome back!");
-        navigate("/dashboard");
+        if (nextPath) window.location.href = nextPath; else navigate("/dashboard");
       } else {
         // Check terms acceptance
         if (!acceptedTerms) {
@@ -250,7 +252,7 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `${window.location.origin}${nextPath ?? "/"}`,
             data: userData,
           },
         });

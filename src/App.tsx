@@ -22,6 +22,7 @@ const Game = lazy(() => import("./pages/Game"));
 const MobaGame = lazy(() => import("./pages/MobaGame"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Auth = lazy(() => import("./pages/Auth"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Shop = lazy(() => import("./pages/Shop"));
 const TreasureHunt = lazy(() => import("./pages/TreasureHunt"));
@@ -181,6 +182,7 @@ const App = () => (
               <Route path="/track/:trackingNumber" element={<CourierTracking />} />
               <Route path="/installment-apply" element={<InstallmentApply />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
