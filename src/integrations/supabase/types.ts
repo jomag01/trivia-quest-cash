@@ -8739,6 +8739,41 @@ export type Database = {
           },
         ]
       }
+      live_stream_ingest: {
+        Row: {
+          channel_arn: string
+          created_at: string
+          ingest_server: string
+          stream_id: string
+          stream_key: string
+          user_id: string
+        }
+        Insert: {
+          channel_arn: string
+          created_at?: string
+          ingest_server: string
+          stream_id: string
+          stream_key: string
+          user_id: string
+        }
+        Update: {
+          channel_arn?: string
+          created_at?: string
+          ingest_server?: string
+          stream_id?: string
+          stream_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_ingest_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: true
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_stream_products: {
         Row: {
           basket_number: number | null
@@ -8800,6 +8835,8 @@ export type Database = {
           ended_at: string | null
           id: string
           plan_code: string
+          playback_url: string | null
+          source: string
           started_at: string | null
           status: string
           stream_key: string
@@ -8816,6 +8853,8 @@ export type Database = {
           ended_at?: string | null
           id?: string
           plan_code?: string
+          playback_url?: string | null
+          source?: string
           started_at?: string | null
           status?: string
           stream_key?: string
@@ -8832,6 +8871,8 @@ export type Database = {
           ended_at?: string | null
           id?: string
           plan_code?: string
+          playback_url?: string | null
+          source?: string
           started_at?: string | null
           status?: string
           stream_key?: string
