@@ -247,12 +247,26 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
               />
             </div>
 
-            <div className="flex items-start justify-between gap-3 rounded-lg border p-3">
-              <div>
-                <p className="text-sm font-medium">Go live from Restream</p>
-                <p className="text-xs text-muted-foreground">Stream once in Restream and show it on Facebook, YouTube and Triviabees at the same time.</p>
+            <div>
+              <Label className="mb-2 block">Where do you want to go live?</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUseRestream(false)}
+                  className={`rounded-lg border p-3 text-left transition-colors ${!useRestream ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border"}`}
+                >
+                  <p className="text-sm font-medium">Triviabees only</p>
+                  <p className="text-xs text-muted-foreground mt-1">Go live with your phone camera, only inside Triviabees.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUseRestream(true)}
+                  className={`rounded-lg border p-3 text-left transition-colors ${useRestream ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border"}`}
+                >
+                  <p className="text-sm font-medium">Cross-platform</p>
+                  <p className="text-xs text-muted-foreground mt-1">Stream once in Restream and show on Facebook, YouTube and Triviabees at the same time.</p>
+                </button>
               </div>
-              <Switch checked={useRestream} onCheckedChange={setUseRestream} />
             </div>
 
             <Button 
