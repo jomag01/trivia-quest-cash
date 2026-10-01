@@ -8219,6 +8219,42 @@ export type Database = {
           },
         ]
       }
+      investor_inquiries: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          investment_range: string | null
+          message: string | null
+          phone: string | null
+          status: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          investment_range?: string | null
+          message?: string | null
+          phone?: string | null
+          status?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          investment_range?: string | null
+          message?: string | null
+          phone?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       leadership_commissions: {
         Row: {
           amount: number
@@ -10184,6 +10220,39 @@ export type Database = {
           status?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      platform_fees: {
+        Row: {
+          applies_to: string
+          fee_key: string
+          fee_type: string
+          fee_value: number
+          id: string
+          is_active: boolean
+          label: string
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: string
+          fee_key: string
+          fee_type?: string
+          fee_value?: number
+          id?: string
+          is_active?: boolean
+          label: string
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: string
+          fee_key?: string
+          fee_type?: string
+          fee_value?: number
+          id?: string
+          is_active?: boolean
+          label?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -15171,6 +15240,41 @@ export type Database = {
         }
         Relationships: []
       }
+      travel_clicks: {
+        Row: {
+          created_at: string
+          id: string
+          partner_id: string
+          ref_code: string | null
+          search_query: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          partner_id: string
+          ref_code?: string | null
+          search_query?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          partner_id?: string
+          ref_code?: string | null
+          search_query?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_clicks_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "travel_partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       travel_packages: {
         Row: {
           address: string | null
@@ -15271,6 +15375,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      travel_partners: {
+        Row: {
+          category: string
+          commission_note: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          sort_order: number
+          url_template: string
+        }
+        Insert: {
+          category?: string
+          commission_note?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          sort_order?: number
+          url_template: string
+        }
+        Update: {
+          category?: string
+          commission_note?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          sort_order?: number
+          url_template?: string
+        }
+        Relationships: []
       }
       treasure_admin_settings: {
         Row: {
@@ -17424,6 +17567,8 @@ export type Database = {
       generate_referral_code: { Args: never; Returns: string }
       generate_tracking_number: { Args: never; Returns: string }
       get_ai_subscription_type: { Args: { p_user_id: string }; Returns: string }
+      get_platform_profit_summary: { Args: { _days?: number }; Returns: Json }
+      get_public_traction: { Args: never; Returns: Json }
       get_referral_count: { Args: { p_user_id: string }; Returns: number }
       get_sales_analytics_aggregated: { Args: never; Returns: Json }
       get_store_support_user_id: { Args: never; Returns: string }
