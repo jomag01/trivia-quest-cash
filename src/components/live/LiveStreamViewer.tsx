@@ -108,6 +108,8 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewerConnectionRef = useRef<SFUViewer | null>(null);
+  const hlsRef = useRef<{ destroy: () => void } | null>(null);
+  useEffect(() => () => { hlsRef.current?.destroy(); }, []);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -244,6 +246,27 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
 
     setIsConnecting(true);
     setConnectionState('connecting');
+
+    // Restream / RTMP lives play from an HLS playback URL
+    const { data: src } = await supabase.from('live_streams').select('playback_url').eq('id', stream.id).maybeSingle();
+    const playbackUrl = (src as any)?.playback_url as string | null;
+    if (playbackUrl && videoRef.current) {
+      const video = videoRef.current;
+      const onPlaying = () => { setHasVideo(true); setIsConnecting(false); setConnectionState('connected'); };
+      video.addEventListener('playing', onPlaying, { once: true });
+      const { default: Hls } = await import('hls.js');
+      if (Hls.isSupported()) {
+        const hls = new Hls({ lowLatencyMode: true, manifestLoadingMaxRetry: 30, manifestLoadingRetryDelay: 3000 });
+        hls.loadSource(playbackUrl);
+        hls.attachMedia(video);
+        hlsRef.current = hls;
+      } else {
+        video.src = playbackUrl;
+      }
+      video.muted = true;
+      video.play().catch(() => {});
+      return;
+    }
     
     // Clear any existing timeout
     if (connectionTimeoutRef.current) {
