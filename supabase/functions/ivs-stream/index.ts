@@ -235,6 +235,59 @@ serve(async (req) => {
     let result: Record<string, unknown> = {};
 
     switch (action) {
+      case 'restream-ingest':
+      case 'restream-status':
+      case 'restream-end': {
+        // Restream → Triviabees: seller's Restream sends RTMP to an IVS channel we own.
+        const token = (req.headers.get('Authorization') || '').replace('Bearer ', '');
+        const { data: authData } = await supabase.auth.getUser(token);
+        const authUser = authData?.user;
+        if (!authUser || !streamId) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        const { data: ls } = await supabase.from('live_streams').select('id, user_id, status').eq('id', streamId).maybeSingle();
+        if (!ls || ls.user_id !== authUser.id) {
+          return new Response(JSON.stringify({ error: 'Not your stream' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        const { data: existing } = await supabase.from('live_stream_ingest').select('*').eq('stream_id', streamId).maybeSingle();
+
+        if (action === 'restream-ingest') {
+          if (existing) {
+            result = { ingestServer: existing.ingest_server, streamKey: existing.stream_key };
+            break;
+          }
+          const channelData = await ivsRequest('CreateChannel', {
+            name: `restream-${streamId}`.slice(0, 128), type: 'STANDARD', latencyMode: 'LOW', authorized: false,
+            tags: { streamId, userId: authUser.id },
+          });
+          const channel = channelData.channel as Record<string, string>;
+          const key = channelData.streamKey as Record<string, string>;
+          const ingestServer = `rtmps://${channel.ingestEndpoint}:443/app/`;
+          await supabase.from('live_stream_ingest').insert({
+            stream_id: streamId, user_id: authUser.id, channel_arn: channel.arn, ingest_server: ingestServer, stream_key: key.value,
+          });
+          await supabase.from('live_streams').update({ source: 'restream', playback_url: channel.playbackUrl }).eq('id', streamId);
+          result = { ingestServer, streamKey: key.value };
+          break;
+        }
+        if (!existing) { result = { state: 'none' }; break; }
+        if (action === 'restream-status') {
+          try {
+            const s = (await ivsRequest('GetStream', { channelArn: existing.channel_arn })).stream as Record<string, unknown>;
+            if (s?.viewerCount !== undefined) await supabase.from('live_streams').update({ viewer_count: s.viewerCount as number }).eq('id', streamId);
+            result = { state: s?.state || 'OFFLINE', health: s?.health };
+          } catch { result = { state: 'OFFLINE' }; }
+          break;
+        }
+        // restream-end
+        try { await ivsRequest('StopStream', { channelArn: existing.channel_arn }); } catch { /* not streaming */ }
+        try { await ivsRequest('DeleteChannel', { arn: existing.channel_arn }); } catch (e) { console.warn('[IVS] delete failed', (e as Error).message); }
+        await supabase.from('live_streams').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', streamId);
+        await supabase.from('live_stream_ingest').delete().eq('stream_id', streamId);
+        result = { success: true };
+        break;
+      }
+
       case 'create-channel': {
         const channelName = `stream-${streamId}-${Date.now()}`;
         
