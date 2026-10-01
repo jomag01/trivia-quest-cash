@@ -12,6 +12,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Video, ShoppingBag, Loader2, Crown, Check, Wallet, CreditCard } from "lucide-react";
 import { useLivePlans } from "@/hooks/useLivePlans";
+import { Switch } from "@/components/ui/switch";
+import RestreamLivePanel from "./RestreamLivePanel";
 
 interface Product {
   id: string;
@@ -32,6 +34,8 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
   const [step, setStep] = useState(0);
   const [planCode, setPlanCode] = useState<"basic" | "pro">("basic");
   const [paying, setPaying] = useState<string | null>(null);
+  const [useRestream, setUseRestream] = useState(false);
+  const [restreamId, setRestreamId] = useState<string | null>(null);
   const { plans, ent, refresh: refreshPlans, loading: plansLoading } = useLivePlans(open);
 
   const hasAccess = (code: "basic" | "pro") =>
@@ -135,8 +139,12 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
           .insert(productInserts);
       }
 
-      toast.success("You're now live!");
-      onGoLive(stream.id);
+      if (useRestream) {
+        setRestreamId(stream.id);
+      } else {
+        toast.success("You're now live!");
+        onGoLive(stream.id);
+      }
       onOpenChange(false);
       resetForm();
     } catch (error: any) {
@@ -157,6 +165,8 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
   const displayProducts = productTab === 'my' ? myProducts : shopProducts;
 
   return (
+    <>
+    {restreamId && <RestreamLivePanel streamId={restreamId} onClose={() => { setRestreamId(null); setUseRestream(false); }} />}
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -235,6 +245,14 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                 placeholder="Tell viewers what to expect..."
                 rows={3}
               />
+            </div>
+
+            <div className="flex items-start justify-between gap-3 rounded-lg border p-3">
+              <div>
+                <p className="text-sm font-medium">Go live from Restream</p>
+                <p className="text-xs text-muted-foreground">Stream once in Restream and show it on Facebook, YouTube and Triviabees at the same time.</p>
+              </div>
+              <Switch checked={useRestream} onCheckedChange={setUseRestream} />
             </div>
 
             <Button 
@@ -347,5 +365,6 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
         )}
       </DialogContent>
     </Dialog>
+    </>
   );
 }

@@ -80,7 +80,7 @@ export default function RestreamLivePanel({ streamId, onClose }: Props) {
         )}
 
         <Button variant="outline" className="w-full" onClick={() => setShowBasket(!showBasket)}><ShoppingBag className="h-4 w-4 mr-2" /> {showBasket ? "Hide basket" : "Manage basket"}</Button>
-        {showBasket && <LiveBasketManager streamId={streamId} />}
+        {showBasket && <LiveBasketManager streamId={streamId} onClose={() => setShowBasket(false)} />}
 
         <Button variant="destructive" className="w-full" disabled={ending} onClick={end}>
           {ending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} End live
