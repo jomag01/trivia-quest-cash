@@ -71,6 +71,39 @@ serve(async (req) => {
       });
     }
 
+    // Paid live session pass: price comes from the server-side plan
+    if (metadata?.purchase_type === "live_pass") {
+      const planCode = String(metadata.plan_code || "");
+      if (!["basic", "pro"].includes(planCode)) throw new Error("Invalid plan");
+      const { data: plan } = await supabaseClient.from("live_plans")
+        .select("code, name, price_per_session, is_active").eq("code", planCode).maybeSingle();
+      if (!plan || !plan.is_active || Number(plan.price_per_session) <= 0) throw new Error("Plan not available");
+      const { data: passId, error: passErr } = await supabaseClient.rpc("live_create_pending_pass", { _plan_code: planCode });
+      if (passErr || !passId) throw new Error("Could not create pass");
+      const appUrl = Deno.env.get("APP_URL") || "https://triviabees.com";
+      const secret = Deno.env.get("PAYMONGO_SECRET_KEY");
+      if (!secret) throw new Error("Payment provider not configured");
+      const desc = `${plan.name} session pass`;
+      const res = await fetch("https://api.paymongo.com/v1/checkout_sessions", {
+        method: "POST",
+        headers: { Authorization: `Basic ${btoa(secret + ":")}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ data: { attributes: {
+          send_email_receipt: true, show_description: true, show_line_items: true, description: desc,
+          line_items: [{ currency: "PHP", amount: Math.round(Number(plan.price_per_session) * 100), name: desc, quantity: 1 }],
+          payment_method_types: ["gcash", "paymaya", "card", "grab_pay"],
+          success_url: `${appUrl}/live?pass=success`,
+          cancel_url: `${appUrl}/live?pass=cancelled`,
+          metadata: { user_id: user.id, purchase_type: "live_pass", pass_id: passId },
+        } } }),
+      });
+      const text = await res.text();
+      if (!res.ok) { console.error("PayMongo live pass error:", text); throw new Error("Could not start payment"); }
+      const session = JSON.parse(text);
+      return new Response(JSON.stringify({ success: true, checkout_url: session.data.attributes.checkout_url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
     if (!amount || amount <= 0) {
       throw new Error("Invalid amount");

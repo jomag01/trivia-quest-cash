@@ -95,6 +95,14 @@ serve(async (req) => {
       });
     }
 
+    if ((eventType === "checkout_session.payment.paid" || eventType === "payment.paid") && evMeta?.purchase_type === "live_pass") {
+      const { error } = await supabaseClient.rpc("live_mark_pass_paid", { _pass_id: evMeta.pass_id });
+      if (error) { console.error("live_mark_pass_paid failed:", error); throw error; }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (eventType === "payment.paid") {
       const paymentIntent = payload.data.attributes.data;
       const transactionId = paymentIntent.attributes.metadata?.transaction_id;
