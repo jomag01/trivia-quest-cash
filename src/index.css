@@ -34,6 +34,14 @@
     --border: 0 0% 90%;
     --input: 0 0% 90%;
     --ring: 0 0% 9%;
+    --storm-ocean: 199 54% 20%;
+    --storm-land: 151 21% 39%;
+    --storm-coast: 161 29% 62%;
+    --storm-grid: 194 28% 34%;
+    --storm-track: 45 96% 67%;
+    --storm-map-label: 0 0% 100%;
+    --storm-orange: 24 90% 44%;
+    --storm-green: 149 69% 31%;
 
     --radius: 0.75rem;
 
@@ -91,6 +99,14 @@
     --border: 0 0% 18%;
     --input: 0 0% 18%;
     --ring: 0 0% 100%;
+    --storm-ocean: 199 54% 12%;
+    --storm-land: 151 21% 29%;
+    --storm-coast: 161 29% 48%;
+    --storm-grid: 194 28% 25%;
+    --storm-track: 45 96% 67%;
+    --storm-map-label: 0 0% 100%;
+    --storm-orange: 24 95% 65%;
+    --storm-green: 149 69% 60%;
     --sidebar-background: 0 0% 8%;
     --sidebar-foreground: 0 0% 60%;
     --sidebar-primary: 0 0% 100%;

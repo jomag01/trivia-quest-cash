@@ -3,6 +3,7 @@
 - [x] Make AI Services > Ads accessible and let users create social-media ad drafts from a short business brief or website
 - [x] Show seller thumbnails in Live previews and mark finished broadcasts ENDED instead of LIVE
 - [x] Travel affiliate partners (/travel), admin-set platform fees, profit dashboard, investor page (/investors)
+- [x] AI Services Weather: worldwide cyclone alerts, mapped locations and paths, detailed alerts and weather patterns
 
 ## Paid live plans (in progress)
 - [x] Fit broadcaster controls and extra-hours payment within phone screens, clear of bottom navigation

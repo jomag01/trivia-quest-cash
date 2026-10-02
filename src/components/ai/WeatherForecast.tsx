@@ -10,6 +10,7 @@ import {
 import { format, addDays } from 'date-fns';
 import SocialShareMenu from '@/components/common/SocialShareMenu';
 import { useMetaTags } from '@/hooks/useMetaTags';
+import TyphoonTracker from '@/components/ai/TyphoonTracker';
 
 interface WeatherData {
   current: {
@@ -153,7 +154,7 @@ const WeatherForecast = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
+      <div className="space-y-6"><TyphoonTracker /><div className="flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
         <div className="text-center space-y-4">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full blur-xl opacity-50 animate-pulse" />
@@ -161,13 +162,13 @@ const WeatherForecast = () => {
           </div>
           <p className="text-muted-foreground text-sm sm:text-base">Loading GraphCast AI Weather...</p>
         </div>
-      </div>
+      </div></div>
     );
   }
 
   if (error || !weather) {
     return (
-      <div className="text-center py-8 sm:py-12">
+      <div className="space-y-6"><TyphoonTracker /><div className="text-center py-8 sm:py-12">
         <div className="p-4 rounded-full bg-gradient-to-br from-gray-500/20 to-slate-500/20 inline-block mb-4">
           <Cloud className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
         </div>
@@ -175,7 +176,7 @@ const WeatherForecast = () => {
         <Button onClick={() => fetchWeather(14.5995, 120.9842, 'Manila')} className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600">
           <RefreshCw className="h-4 w-4 mr-2" /> Try Again
         </Button>
-      </div>
+      </div></div>
     );
   }
 
@@ -215,6 +216,8 @@ const WeatherForecast = () => {
           </Button>
         </div>
       </div>
+
+      <TyphoonTracker />
 
       {/* Location */}
       <div className="flex flex-wrap items-center gap-2 text-muted-foreground">

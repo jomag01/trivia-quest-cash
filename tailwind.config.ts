@@ -63,6 +63,16 @@ export default {
           share: "hsl(var(--social-share))",
           save: "hsl(var(--social-save))",
         },
+        storm: {
+          ocean: "hsl(var(--storm-ocean))",
+          land: "hsl(var(--storm-land))",
+          coast: "hsl(var(--storm-coast))",
+          grid: "hsl(var(--storm-grid))",
+          track: "hsl(var(--storm-track))",
+          "map-label": "hsl(var(--storm-map-label))",
+          orange: "hsl(var(--storm-orange))",
+          green: "hsl(var(--storm-green))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
