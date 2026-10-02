@@ -10,6 +10,7 @@ import {
 import { format, addDays } from 'date-fns';
 import SocialShareMenu from '@/components/common/SocialShareMenu';
 import { useMetaTags } from '@/hooks/useMetaTags';
+import TyphoonTracker from '@/components/ai/TyphoonTracker';
 
 interface WeatherData {
   current: {
@@ -215,6 +216,8 @@ const WeatherForecast = () => {
           </Button>
         </div>
       </div>
+
+      <TyphoonTracker />
 
       {/* Location */}
       <div className="flex flex-wrap items-center gap-2 text-muted-foreground">

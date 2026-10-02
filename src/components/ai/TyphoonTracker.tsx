@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 type Alert = {
   eventid: number;
   episodeid: number;
+  eventname?: string;
   name: string;
   country: string;
   alertlevel: string;
@@ -127,7 +128,7 @@ export default function TyphoonTracker() {
           time, wind: hours.wind_speed_10m[index], rain: hours.precipitation_probability[index],
           pressure: hours.surface_pressure[index], temperature: current.temperature_2m,
           humidity: current.relative_humidity_2m, direction: current.wind_direction_10m, clouds: current.cloud_cover,
-        })).filter((_: WeatherPoint, index: number) => index % 3 === 0));
+        })).filter((point: WeatherPoint, index: number) => index % 3 === 0 && new Date(point.time + 'Z').getTime() >= Date.now() - 3 * 60 * 60 * 1000));
       }
       if (forecast.status === 'rejected') setDetailsError('Location forecast is unavailable right now.');
       setDetailsLoading(false);
