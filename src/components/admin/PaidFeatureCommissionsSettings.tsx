@@ -17,19 +17,51 @@ type Row = {
 };
 type Stat = { sales: number; revenue: number; commissions: number };
 
-const CATEGORY_LABEL: Record<string, string> = { live: "Live Selling", ai: "AI Hub", other: "Other" };
+const CATEGORY_LABEL: Record<string, string> = { live: "Live Selling", ai: "AI Hub", shop: "Shop", ads: "Ads", beesmate: "BeesMate", other: "Other" };
 
 /** Paid items that already have their own commission page. */
 const MANAGED_ELSEWHERE = [
-  ["Shop products", "Product Commission / Unilevel Network / Stair Step MLM"],
-  ["Food orders", "Food Commission settings"],
-  ["Book Services", "Service Commissions"],
+  ["Food orders", "Food Commission settings (separate owners)"],
+  ["Book Services", "Service Commissions (separate owners)"],
   ["Game credits", "Stair Step MLM (credit purchases)"],
-  ["Ads & sponsored listings", "Ads Platform Dashboard / Sponsored Listings"],
-  ["BeesMate Premium", "BeesMate Premium"],
   ["Website Builder plans", "Website Builder Subscriptions"],
   ["Teachers' Resources", "Teachers' Resources commission settings"],
 ];
+
+function ShopProductPicker() {
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState<{ id: string; name: string; base_price: number | null; final_price: number | null; network_commission_enabled: boolean }[]>([]);
+  const load = async () => {
+    let req = supabase.from("products").select("id,name,base_price,final_price,network_commission_enabled").eq("is_active", true).order("network_commission_enabled", { ascending: false }).order("name").limit(50);
+    if (q.trim()) req = req.ilike("name", `%${q.trim()}%`);
+    const { data } = await req;
+    setItems((data as any) || []);
+  };
+  useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t); }, [q]);
+  const toggle = async (id: string, v: boolean) => {
+    setItems((xs) => xs.map((x) => (x.id === id ? { ...x, network_commission_enabled: v } : x)));
+    const { error } = await supabase.from("products").update({ network_commission_enabled: v }).eq("id", id);
+    if (error) { toast.error(error.message); load(); }
+  };
+  return (
+    <div className="space-y-2 rounded-lg border p-4">
+      <p className="text-sm font-medium">Products that pay these commissions</p>
+      <Input placeholder="Search products" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="max-h-72 space-y-1 overflow-y-auto">
+        {items.map((p) => (
+          <div key={p.id} className="flex items-center justify-between gap-2 border-b py-1 text-sm last:border-0">
+            <span className="min-w-0 truncate">{p.name}</span>
+            <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+              profit ₱{Math.max(Number(p.final_price || 0) - Number(p.base_price || 0), 0).toFixed(2)}
+              <Switch checked={p.network_commission_enabled} onCheckedChange={(v) => toggle(p.id, v)} />
+            </span>
+          </div>
+        ))}
+        {!items.length && <p className="text-xs text-muted-foreground">No products found.</p>}
+      </div>
+    </div>
+  );
+}
 
 export default function PaidFeatureCommissionsSettings() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -47,7 +79,7 @@ export default function PaidFeatureCommissionsSettings() {
     // Add a row for any live plan or any sold feature that isn't itemized yet
     const missing: { feature_key: string; label: string; category: string }[] = [];
     (plans || []).forEach((p) => { const k = `live_pass_${p.code}`; if (!have.has(k)) { have.add(k); missing.push({ feature_key: k, label: `${p.name} Live pass`, category: "live" }); } });
-    (sales || []).forEach((s) => { if (!have.has(s.feature_key)) { have.add(s.feature_key); missing.push({ feature_key: s.feature_key, label: s.feature_key.replace(/_/g, " "), category: s.feature_key.startsWith("ai_") ? "ai" : s.feature_key.startsWith("live_") ? "live" : "other" }); } });
+    (sales || []).forEach((s) => { if (!have.has(s.feature_key)) { have.add(s.feature_key); missing.push({ feature_key: s.feature_key, label: s.feature_key.replace(/_/g, " "), category: s.feature_key.split("_")[0] in CATEGORY_LABEL ? s.feature_key.split("_")[0] : "other" }); } });
     if (missing.length) await supabase.from("paid_feature_commissions").insert(missing);
     const { data } = await supabase.from("paid_feature_commissions").select("*").order("category").order("feature_key");
 
@@ -165,6 +197,7 @@ export default function PaidFeatureCommissionsSettings() {
                 </div>
               );
             })}
+            {cat === "shop" && <ShopProductPicker />}
           </CardContent>
         </Card>
       ))}

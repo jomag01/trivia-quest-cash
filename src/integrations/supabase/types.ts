@@ -11299,6 +11299,7 @@ export type Database = {
           is_promotable: boolean | null
           leadership_percentage: number | null
           name: string
+          network_commission_enabled: boolean
           preferred_courier: string | null
           promo_active: boolean | null
           promo_price: number | null
@@ -11345,6 +11346,7 @@ export type Database = {
           is_promotable?: boolean | null
           leadership_percentage?: number | null
           name: string
+          network_commission_enabled?: boolean
           preferred_courier?: string | null
           promo_active?: boolean | null
           promo_price?: number | null
@@ -11391,6 +11393,7 @@ export type Database = {
           is_promotable?: boolean | null
           leadership_percentage?: number | null
           name?: string
+          network_commission_enabled?: boolean
           preferred_courier?: string | null
           promo_active?: boolean | null
           promo_price?: number | null
@@ -17637,6 +17640,7 @@ export type Database = {
         Args: { _approve: boolean; _note?: string; _pass_id: string }
         Returns: undefined
       }
+      ai_unlock_feature: { Args: { _feature_id: string }; Returns: number }
       approve_cash_deposit: {
         Args: { p_admin_id: string; p_request_id: string }
         Returns: boolean

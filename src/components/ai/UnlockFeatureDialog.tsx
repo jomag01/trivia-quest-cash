@@ -16,6 +16,7 @@ interface UnlockFeatureDialogProps {
   userCredits: number;
   onUnlock: () => void;
   onBuyCredits: () => void;
+  featureId?: string;
 }
 
 const UnlockFeatureDialog: React.FC<UnlockFeatureDialogProps> = ({
@@ -27,6 +28,7 @@ const UnlockFeatureDialog: React.FC<UnlockFeatureDialogProps> = ({
   userCredits,
   onUnlock,
   onBuyCredits,
+  featureId = "",
 }) => {
   const { user } = useAuth();
   const [isUnlocking, setIsUnlocking] = useState(false);
@@ -47,10 +49,7 @@ const UnlockFeatureDialog: React.FC<UnlockFeatureDialogProps> = ({
     setIsUnlocking(true);
     try {
       // Deduct credits from user
-      const { error } = await supabase
-        .from('profiles')
-        .update({ credits: userCredits - unlockCost })
-        .eq('id', user.id);
+      const { error } = await supabase.rpc('ai_unlock_feature', { _feature_id: featureId });
       
       if (error) throw error;
       
