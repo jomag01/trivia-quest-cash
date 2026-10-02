@@ -9,3 +9,4 @@
 - [x] Admin Live Plans settings
 - [x] Pro: green screen, auto background removal, custom image/video background, stickers
 - [x] Cross-platform live via Restream (Restream → Triviabees custom RTMP)
+- [x] Itemize ALL paid features in admin with per-feature referral / Unilevel / Stairstep / other commission settings and feed them into the sales system

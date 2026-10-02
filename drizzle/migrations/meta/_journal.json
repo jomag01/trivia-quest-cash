@@ -78,6 +78,41 @@
       "when": 1790898727565,
       "tag": "0010_feature_manual_payments_commissions",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790899126955,
+      "tag": "0011_live_time_limit_extensions",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790899160401,
+      "tag": "0012_live_extend_wallet_fix",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790899356198,
+      "tag": "0013_feature_commission_network",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790899380162,
+      "tag": "0014_feature_credit_type_fix",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790899404417,
+      "tag": "0015_ai_history_skip_topup",
+      "breakpoints": true
     }
   ]
 }

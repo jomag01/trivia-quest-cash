@@ -6,6 +6,8 @@ export interface LivePlan {
   name: string;
   description: string;
   price_per_session: number;
+  max_hours?: number;
+  extension_price_per_hour?: number;
   features: { chroma_key?: boolean; auto_bg_removal?: boolean; custom_background?: boolean; stickers?: boolean; cross_platform?: boolean };
   is_active: boolean;
   sort_order: number;

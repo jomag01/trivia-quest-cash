@@ -5,3 +5,4 @@
 - MCP server lives in `src/lib/mcp/` (bundled to `supabase/functions/mcp` by mcpPlugin) with Supabase OAuth so AI assistants act as the signed-in user under RLS.
 - Paid live sessions are started only via the live_start_session RPC (direct live_streams inserts are blocked) so pass payment is enforced server-side.
 - Restream lives: Restream pushes RTMP to a per-stream IVS channel; stream keys live only in owner-only live_stream_ingest, never in live_streams (publicly readable).
+- Live sessions end only via the End button or when live_streams.ends_at passes (server-set from live_plans.max_hours, extended only through live_extend_wallet) so signal loss never ends a live.

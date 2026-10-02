@@ -102,6 +102,16 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
     if (d && !d.moved) setMinimized(false);
   };
   const broadcasterConnectionRef = useRef<SFUBroadcaster | null>(null);
+  const publishStreamRef = useRef<MediaStream | null>(null);
+  const endingRef = useRef(false);
+  const [offline, setOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+  const [endsAt, setEndsAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const [showExtend, setShowExtend] = useState(false);
+  const [extPrice, setExtPrice] = useState(0);
+  const [extHours, setExtHours] = useState(1);
+  const [extending, setExtending] = useState(false);
+  const warnedRef = useRef(false);
   const pipelineRef = useRef<EffectsPipeline | null>(null);
   const [planFeatures, setPlanFeatures] = useState<LivePlan["features"] | null>(null);
   const [effects, setEffects] = useState<EffectSettings>(DEFAULT_EFFECTS);
@@ -259,6 +269,8 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         },
         (payload) => {
           setViewerCount(payload.new.viewer_count);
+          if (payload.new.ends_at) setEndsAt(new Date(payload.new.ends_at).getTime());
+          if (payload.new.status === 'ended' && !endingRef.current) { endingRef.current = true; stopCamera(); broadcasterConnectionRef.current?.stop(); onEndStream(); }
         }
       )
       .subscribe();
@@ -334,7 +346,26 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         videoRef.current.playsInline = true;
       }
       
-      // Initialize SFU broadcaster connection with callbacks
+      publishStreamRef.current = publishStream;
+      await connectBroadcaster(publishStream);
+      void saveThumbnail(stream);
+
+      // Mark live (started_at is set once by the server and kept on reconnect)
+      await supabase.from('live_streams').update({ status: 'live', stream_key: `live_${streamId}` }).eq('id', streamId);
+
+      setIsConnecting(false);
+      toast.success("You're live!");
+    } catch (error) {
+      console.error('Failed to access camera:', error);
+      toast.error("Failed to access camera. Please check permissions.");
+      setIsConnecting(false);
+      setConnectionState('failed');
+    }
+  };
+
+  const connectBroadcaster = async (publishStream: MediaStream) => {
+    if (!user) return;
+    broadcasterConnectionRef.current?.stop();
       broadcasterConnectionRef.current = new SFUBroadcaster(streamId, user.id, {
         onStatsUpdate: (stats) => {
           setStreamStats(stats);
@@ -351,26 +382,71 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       });
       
       await broadcasterConnectionRef.current.start(publishStream);
-      void saveThumbnail(stream);
-      
-      // Update stream status to live
-      await supabase
-        .from('live_streams')
-        .update({ 
-          status: 'live',
-          started_at: new Date().toISOString(),
-          stream_key: `live_${streamId}`
-        })
-        .eq('id', streamId);
-        
-      setIsConnecting(false);
-      toast.success("You're now live! Enterprise streaming enabled.");
-    } catch (error) {
-      console.error('Failed to access camera:', error);
-      toast.error("Failed to access camera. Please check permissions.");
-      setIsConnecting(false);
-      setConnectionState('failed');
+  };
+
+  /** Signal came back: re-open the connection with the same camera; the live never ends on its own. */
+  const reconnect = async () => {
+    if (endingRef.current || !publishStreamRef.current) return;
+    setConnectionState('reconnecting');
+    try {
+      await connectBroadcaster(publishStreamRef.current);
+      toast.success('Signal is back — your live continues');
+    } catch (e) {
+      console.warn('Reconnect failed, retrying', e);
+      setTimeout(() => { if (navigator.onLine) reconnect(); }, 5000);
     }
+  };
+
+  useEffect(() => {
+    const goOff = () => { setOffline(true); setConnectionState('reconnecting'); };
+    const goOn = () => { setOffline(false); reconnect(); };
+    window.addEventListener('offline', goOff);
+    window.addEventListener('online', goOn);
+    return () => { window.removeEventListener('offline', goOff); window.removeEventListener('online', goOn); };
+  }, [streamId, user]);
+
+  useEffect(() => {
+    if (connectionState !== 'failed' && connectionState !== 'disconnected') return;
+    if (endingRef.current || !publishStreamRef.current) return;
+    const t = setTimeout(() => { if (navigator.onLine) reconnect(); }, 3000);
+    return () => clearTimeout(t);
+  }, [connectionState]);
+
+  // Time limit
+  const loadLimits = async () => {
+    const { data } = await supabase.from('live_streams').select('ends_at, plan_code').eq('id', streamId).maybeSingle();
+    if ((data as any)?.ends_at) setEndsAt(new Date((data as any).ends_at).getTime());
+    const { data: p } = await supabase.from('live_plans').select('extension_price_per_hour').eq('code', (data as any)?.plan_code || 'basic').maybeSingle();
+    setExtPrice(Number((p as any)?.extension_price_per_hour || 0));
+  };
+  useEffect(() => { loadLimits(); const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, [streamId]);
+  const remaining = endsAt ? endsAt - now : null;
+  useEffect(() => {
+    if (remaining == null) return;
+    if (remaining <= 10 * 60 * 1000 && remaining > 0 && !warnedRef.current) {
+      warnedRef.current = true;
+      setShowExtend(true);
+    }
+    if (remaining > 10 * 60 * 1000) warnedRef.current = false;
+    if (remaining <= 0 && !endingRef.current) {
+      toast.info('Your live reached its time limit and has ended');
+      handleEndStream();
+    }
+  }, [remaining]);
+
+  const extend = async () => {
+    setExtending(true);
+    const { data, error } = await supabase.rpc('live_extend_wallet', { _stream_id: streamId, _hours: extHours });
+    setExtending(false);
+    if (error) return toast.error(error.message);
+    setEndsAt(new Date(data as string).getTime());
+    setShowExtend(false);
+    toast.success(`Added ${extHours} hour${extHours > 1 ? 's' : ''} to your live`);
+  };
+  const fmt = (ms: number) => {
+    const t = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60;
+    return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   };
 
   const stopCamera = () => {
@@ -469,6 +545,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   };
 
   const handleEndStream = async () => {
+    endingRef.current = true;
     stopCamera();
     
     if (broadcasterConnectionRef.current) {
@@ -569,16 +646,50 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
                 <WifiOff className="w-4 h-4 text-red-400" />
               )}
             </span>
+            {remaining != null && (
+              <button type="button" onClick={() => setShowExtend(true)}
+                className={`rounded-full px-2 py-0.5 text-xs font-mono ${remaining < 10 * 60 * 1000 ? 'bg-destructive text-destructive-foreground animate-pulse' : 'bg-black/50 text-white'}`}
+                aria-label="Time left — add more hours">
+                ⏱ {fmt(remaining)}
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={minimize} aria-label="Minimize live">
               <Minimize2 className="w-4 h-4 mr-1" /> Minimize
             </Button>
-            <Button variant="destructive" size="sm" onClick={handleEndStream}>
+            <Button variant="destructive" size="sm" onClick={() => { if (window.confirm('End your live now?')) handleEndStream(); }}>
               End
             </Button>
           </div>
         </div>
+
+        {(offline || connectionState === 'reconnecting') && (
+          <div className="absolute top-16 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/70 px-4 py-2 text-xs text-white flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin" /> Weak signal — reconnecting. Your live is still on.
+          </div>
+        )}
+
+        {showExtend && (
+          <div className="absolute inset-x-0 bottom-0 z-30 rounded-t-2xl bg-background p-4 text-foreground space-y-3" onPointerDown={(e) => e.stopPropagation()}>
+            <p className="font-semibold">Need more time?</p>
+            <p className="text-sm text-muted-foreground">
+              {remaining != null && remaining > 0 ? `Your live ends in ${fmt(remaining)}.` : 'Your live is about to end.'} Add extra hours for ₱{extPrice.toFixed(2)} per hour from your Cash Wallet.
+            </p>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4].map((h) => (
+                <Button key={h} size="sm" variant={extHours === h ? 'default' : 'outline'} onClick={() => setExtHours(h)}>+{h}h</Button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowExtend(false)}>Not now</Button>
+              <Button className="flex-1" disabled={extending} onClick={extend}>
+                {extending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Pay ₱{(extPrice * extHours).toFixed(2)}
+              </Button>
+            </div>
+          </div>
+        )}
+        
         
         {/* Stream stats overlay */}
         {streamStats && (

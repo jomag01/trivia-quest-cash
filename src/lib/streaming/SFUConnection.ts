@@ -415,7 +415,7 @@ export class SFUViewer {
   private iceCandidateQueue: RTCIceCandidateInit[] = [];
   private hasRemoteDescription = false;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
+  private maxReconnectAttempts = 60; // keep retrying ~10 min so a seller with weak signal can come back
   private reconnectDelay = 1000;
   private currentQuality: string = 'auto';
   private connectionTimeout: NodeJS.Timeout | null = null;
@@ -621,7 +621,7 @@ export class SFUViewer {
     }
 
     this.reconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+    const delay = Math.min(10000, this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1));
     
     console.log(`[SFU Viewer] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
     this.onStateChange?.('reconnecting');

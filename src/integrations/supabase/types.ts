@@ -8628,8 +8628,10 @@ export type Database = {
         Row: {
           code: string
           description: string
+          extension_price_per_hour: number
           features: Json
           is_active: boolean
+          max_hours: number
           name: string
           price_per_session: number
           sort_order: number
@@ -8638,8 +8640,10 @@ export type Database = {
         Insert: {
           code: string
           description?: string
+          extension_price_per_hour?: number
           features?: Json
           is_active?: boolean
+          max_hours?: number
           name: string
           price_per_session?: number
           sort_order?: number
@@ -8648,8 +8652,10 @@ export type Database = {
         Update: {
           code?: string
           description?: string
+          extension_price_per_hour?: number
           features?: Json
           is_active?: boolean
+          max_hours?: number
           name?: string
           price_per_session?: number
           sort_order?: number
@@ -8765,6 +8771,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "live_stream_comments_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_stream_extensions: {
+        Row: {
+          amount: number
+          created_at: string
+          hours: number
+          id: string
+          payment_method: string
+          stream_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          hours: number
+          id?: string
+          payment_method?: string
+          stream_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          hours?: number
+          id?: string
+          payment_method?: string
+          stream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_extensions_stream_id_fkey"
             columns: ["stream_id"]
             isOneToOne: false
             referencedRelation: "live_streams"
@@ -8922,6 +8966,8 @@ export type Database = {
           created_at: string
           description: string | null
           ended_at: string | null
+          ends_at: string | null
+          extra_hours: number
           id: string
           plan_code: string
           playback_url: string | null
@@ -8940,6 +8986,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           ended_at?: string | null
+          ends_at?: string | null
+          extra_hours?: number
           id?: string
           plan_code?: string
           playback_url?: string | null
@@ -8958,6 +9006,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           ended_at?: string | null
+          ends_at?: string | null
+          extra_hours?: number
           id?: string
           plan_code?: string
           playback_url?: string | null
@@ -10356,30 +10406,45 @@ export type Database = {
         Row: {
           category: string
           commission_type: string
+          description: string | null
           feature_key: string
           is_active: boolean
           label: string
+          leadership_pct: number
           referrer_value: number
+          stairstep_pct: number
+          unilevel_levels: number
+          unilevel_pct: number
           updated_at: string
           upline_value: number
         }
         Insert: {
           category?: string
           commission_type?: string
+          description?: string | null
           feature_key: string
           is_active?: boolean
           label: string
+          leadership_pct?: number
           referrer_value?: number
+          stairstep_pct?: number
+          unilevel_levels?: number
+          unilevel_pct?: number
           updated_at?: string
           upline_value?: number
         }
         Update: {
           category?: string
           commission_type?: string
+          description?: string | null
           feature_key?: string
           is_active?: boolean
           label?: string
+          leadership_pct?: number
           referrer_value?: number
+          stairstep_pct?: number
+          unilevel_levels?: number
+          unilevel_pct?: number
           updated_at?: string
           upline_value?: number
         }
@@ -17535,6 +17600,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _feature_credit: {
+        Args: {
+          _amt: number
+          _buyer: string
+          _earner: string
+          _key: string
+          _kind: string
+          _label: string
+          _level: number
+          _sale: string
+        }
+        Returns: undefined
+      }
       add_subscription_credits: {
         Args: { p_credits: number; p_user_id: string }
         Returns: boolean
@@ -17883,6 +17961,11 @@ export type Database = {
       }
       live_create_pending_pass: {
         Args: { _plan_code: string }
+        Returns: string
+      }
+      live_end_expired: { Args: never; Returns: number }
+      live_extend_wallet: {
+        Args: { _hours: number; _stream_id: string }
         Returns: string
       }
       live_mark_order_paid: { Args: { _order_id: string }; Returns: undefined }
