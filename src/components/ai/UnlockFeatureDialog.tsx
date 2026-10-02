@@ -16,6 +16,7 @@ interface UnlockFeatureDialogProps {
   userCredits: number;
   onUnlock: () => void;
   onBuyCredits: () => void;
+  featureId?: string;
 }
 
 const UnlockFeatureDialog: React.FC<UnlockFeatureDialogProps> = ({
@@ -27,6 +28,7 @@ const UnlockFeatureDialog: React.FC<UnlockFeatureDialogProps> = ({
   userCredits,
   onUnlock,
   onBuyCredits,
+  featureId = "",
 }) => {
   const { user } = useAuth();
   const [isUnlocking, setIsUnlocking] = useState(false);
