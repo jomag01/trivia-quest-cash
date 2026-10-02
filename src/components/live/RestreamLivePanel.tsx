@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Copy, Eye, EyeOff, Loader2, Radio, ShoppingBag } from "lucide-react";
 import LiveBasketManager from "./LiveBasketManager";
+import PromoteLiveDialog from "./PromoteLiveDialog";
 
 interface Props { streamId: string; onClose: () => void }
 

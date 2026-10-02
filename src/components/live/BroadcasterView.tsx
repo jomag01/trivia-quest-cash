@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Settings, Eye, ShoppingBag, Video, VideoOff, Mic, MicOff, Loader2, Wifi, WifiOff, Signal, SwitchCamera, Minimize2, Maximize2 } from "lucide-react";
+import PromoteLiveDialog from "./PromoteLiveDialog";
+import { Megaphone, Settings, Eye, ShoppingBag, Video, VideoOff, Mic, MicOff, Loader2, Wifi, WifiOff, Signal, SwitchCamera, Minimize2, Maximize2 } from "lucide-react";
 import { 
   SFUBroadcaster, 
   StreamStats,
@@ -73,6 +74,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [minimized, setMinimized] = useState(false);
+  const [showPromote, setShowPromote] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const dragRef = useRef<{ sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
   const MINI_W = 120, MINI_H = 200;
@@ -662,6 +664,9 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
             )}
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setShowPromote(true)} aria-label="Promote live">
+              <Megaphone className="w-4 h-4 mr-1" /> Promote
+            </Button>
             <Button variant="secondary" size="sm" onClick={minimize} aria-label="Minimize live">
               <Minimize2 className="w-4 h-4 mr-1" /> Minimize
             </Button>
