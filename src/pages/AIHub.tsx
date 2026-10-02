@@ -3108,6 +3108,7 @@ const AIHub = memo(() => {
           userCredits={userCredits}
           onUnlock={handleFeatureUnlocked}
           onBuyCredits={() => setShowBuyCredits(true)}
+          featureId={unlockFeatureInfo.id}
         />
       )}
 
