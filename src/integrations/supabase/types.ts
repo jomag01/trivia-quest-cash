@@ -8675,6 +8675,51 @@ export type Database = {
         }
         Relationships: []
       }
+      live_promotion_packages: {
+        Row: {
+          code: string
+          description: string | null
+          hours: number
+          is_active: boolean
+          name: string
+          placement: string
+          price_cash: number
+          price_credits: number
+          price_diamonds: number
+          priority: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          description?: string | null
+          hours?: number
+          is_active?: boolean
+          name: string
+          placement?: string
+          price_cash?: number
+          price_credits?: number
+          price_diamonds?: number
+          priority?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          description?: string | null
+          hours?: number
+          is_active?: boolean
+          name?: string
+          placement?: string
+          price_cash?: number
+          price_credits?: number
+          price_diamonds?: number
+          priority?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       live_selling_access: {
         Row: {
           approved_by: string | null
@@ -8973,6 +9018,63 @@ export type Database = {
           },
         ]
       }
+      live_stream_promotions: {
+        Row: {
+          amount: number
+          created_at: string
+          ends_at: string
+          id: string
+          package_code: string
+          payment_method: string
+          placement: string
+          priority: number
+          starts_at: string
+          stream_id: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          ends_at: string
+          id?: string
+          package_code: string
+          payment_method: string
+          placement: string
+          priority: number
+          starts_at?: string
+          stream_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          ends_at?: string
+          id?: string
+          package_code?: string
+          payment_method?: string
+          placement?: string
+          priority?: number
+          starts_at?: string
+          stream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_promotions_package_code_fkey"
+            columns: ["package_code"]
+            isOneToOne: false
+            referencedRelation: "live_promotion_packages"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "live_stream_promotions_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_streams: {
         Row: {
           created_at: string
@@ -8983,6 +9085,9 @@ export type Database = {
           id: string
           plan_code: string
           playback_url: string | null
+          promo_priority: number
+          promo_shop_front: boolean
+          promoted_until: string | null
           source: string
           started_at: string | null
           status: string
@@ -9003,6 +9108,9 @@ export type Database = {
           id?: string
           plan_code?: string
           playback_url?: string | null
+          promo_priority?: number
+          promo_shop_front?: boolean
+          promoted_until?: string | null
           source?: string
           started_at?: string | null
           status?: string
@@ -9023,6 +9131,9 @@ export type Database = {
           id?: string
           plan_code?: string
           playback_url?: string | null
+          promo_priority?: number
+          promo_shop_front?: boolean
+          promoted_until?: string | null
           source?: string
           started_at?: string | null
           status?: string
@@ -17972,6 +18083,7 @@ export type Database = {
         Returns: string
       }
       live_buy_pass_wallet: { Args: { _plan_code: string }; Returns: string }
+      live_clear_expired_promos: { Args: never; Returns: undefined }
       live_create_order: {
         Args: {
           _address: string
@@ -18001,6 +18113,10 @@ export type Database = {
       live_mark_pass_paid: { Args: { _pass_id: string }; Returns: undefined }
       live_my_entitlements: { Args: never; Returns: Json }
       live_pay_with_wallet: { Args: { _order_id: string }; Returns: Json }
+      live_promote: {
+        Args: { _method: string; _package_code: string; _stream_id: string }
+        Returns: string
+      }
       live_start_session: {
         Args: { _description?: string; _plan_code: string; _title: string }
         Returns: string
