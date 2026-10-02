@@ -17,6 +17,7 @@ import {
   QUALITY_PRESETS 
 } from "@/lib/streaming";
 import type { ConnectionState } from "@/lib/streaming/SFUConnection";
+import { IVSStageBroadcaster } from "@/lib/streaming/ivsStage";
 import LiveBasketManager from "./LiveBasketManager";
 import LiveDMOverlay from "./LiveDMOverlay";
 import { uploadToAWS } from "@/lib/awsMedia";
@@ -103,7 +104,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
     dragRef.current = null;
     if (d && !d.moved) setMinimized(false);
   };
-  const broadcasterConnectionRef = useRef<SFUBroadcaster | null>(null);
+  const broadcasterConnectionRef = useRef<{ stop: () => void } | null>(null);
   const publishStreamRef = useRef<MediaStream | null>(null);
   const endingRef = useRef(false);
   const [offline, setOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
@@ -371,22 +372,27 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   const connectBroadcaster = async (publishStream: MediaStream) => {
     if (!user) return;
     broadcasterConnectionRef.current?.stop();
-      broadcasterConnectionRef.current = new SFUBroadcaster(streamId, user.id, {
-        onStatsUpdate: (stats) => {
-          setStreamStats(stats);
-        },
-        onStateChange: (state) => {
-          setConnectionState(state);
-          if (state === 'connected') {
-            setIsConnecting(false);
-          }
-        },
-        onViewerCountChange: (count) => {
-          setViewerCount(count);
-        }
-      });
-      
-      await broadcasterConnectionRef.current.start(publishStream);
+    // Preferred: publish once to Amazon IVS, which delivers to any number of viewers.
+    const stage = new IVSStageBroadcaster(streamId, {
+      onStateChange: (state) => {
+        setConnectionState(state);
+        if (state === 'connected') setIsConnecting(false);
+      },
+    });
+    broadcasterConnectionRef.current = stage;
+    if (await stage.start(publishStream)) return;
+
+    // Fallback (Amazon unavailable): direct phone-to-viewer connection, fine for small audiences.
+    const sfu = new SFUBroadcaster(streamId, user.id, {
+      onStatsUpdate: (stats) => setStreamStats(stats),
+      onStateChange: (state) => {
+        setConnectionState(state);
+        if (state === 'connected') setIsConnecting(false);
+      },
+      onViewerCountChange: (count) => setViewerCount(count),
+    });
+    broadcasterConnectionRef.current = sfu;
+    await sfu.start(publishStream);
   };
 
   /** Signal came back: re-open the connection with the same camera; the live never ends on its own. */
