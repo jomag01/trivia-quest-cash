@@ -33,7 +33,11 @@ interface LiveStream {
     full_name: string;
     avatar_url: string;
   };
+  promoted_until?: string | null;
+  promo_priority?: number;
 }
+
+const isPromoted = (s: LiveStream) => (s.promo_priority || 0) > 0 && !!s.promoted_until && new Date(s.promoted_until) > new Date();
 
 interface LiveStreamListProps {
   onSelectStream: (stream: LiveStream) => void;
@@ -189,6 +193,7 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
                 <div className="relative aspect-[9/16] overflow-hidden bg-muted">
                   <StreamPreview stream={stream} />
                   <Badge variant="destructive" className="absolute left-2 top-2 text-[10px] animate-pulse">LIVE</Badge>
+                  {isPromoted(stream) && <Badge className="absolute bottom-2 left-2 text-[10px]">Promoted</Badge>}
                   <span className="absolute right-2 top-2 flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-xs text-foreground"><Eye className="h-3 w-3" />{stream.viewer_count || 0}</span>
                 </div>
                 <div className="min-w-0 p-2.5">
@@ -199,6 +204,9 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
             </Card>
           ))}
           </div>
+          {hasMore && (
+            <Button variant="outline" className="w-full" onClick={() => setLimit((l) => l + PAGE)}>Show more lives</Button>
+          )}
 
           {endedStreams.length > 0 && (
             <>
