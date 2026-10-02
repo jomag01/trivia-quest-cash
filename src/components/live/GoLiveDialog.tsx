@@ -55,6 +55,15 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
     await refreshPlans();
   };
 
+  const buyWithPoints = async (code: string, currency: "diamonds" | "credits") => {
+    setPaying(code + "-" + currency);
+    const { error } = await supabase.rpc("live_buy_pass_points", { _plan_code: code, _currency: currency });
+    setPaying(null);
+    if (error) return toast.error(error.message);
+    toast.success("Pass purchased — you can go live now");
+    await refreshPlans();
+  };
+
   const buyWithPaymongo = async (code: "basic" | "pro") => {
     setPaying(code + "-paymongo");
     const { data, error } = await supabase.functions.invoke("create-payment", {
@@ -223,6 +232,16 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                         <Button size="sm" variant="outline" className="flex-1" disabled={!!paying} onClick={() => setManualPlan({ code: p.code, name: p.name, price: Number(p.price_per_session) })}>
                           <Smartphone className="mr-1 h-3 w-3" /> Send & upload proof
                         </Button>
+                        {(p.price_diamonds ?? 0) > 0 && (
+                          <Button size="sm" variant="outline" className="flex-1" disabled={!!paying} onClick={() => buyWithPoints(p.code, "diamonds")}>
+                            {paying === p.code + "-diamonds" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : "💎"} {p.price_diamonds} diamonds
+                          </Button>
+                        )}
+                        {(p.price_credits ?? 0) > 0 && (
+                          <Button size="sm" variant="outline" className="flex-1" disabled={!!paying} onClick={() => buyWithPoints(p.code, "credits")}>
+                            {paying === p.code + "-credits" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : "🪙"} {p.price_credits} credits
+                          </Button>
+                        )}
                       </div>
                     )}
                   </CardContent>

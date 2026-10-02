@@ -36,7 +36,7 @@ export default function LivePlansSettings() {
     if (!(plan.price_per_session >= 0)) return toast.error("Enter a valid price");
     setSaving(plan.code);
     const { error } = await supabase.from("live_plans").update({
-      name: plan.name, description: plan.description, price_per_session: plan.price_per_session, max_hours: Math.min(24, Math.max(1, Math.round(plan.max_hours ?? 4))), extension_price_per_hour: Math.max(0, plan.extension_price_per_hour ?? 0),
+      name: plan.name, description: plan.description, price_per_session: plan.price_per_session, max_hours: Math.min(24, Math.max(1, Math.round(plan.max_hours ?? 4))), extension_price_per_hour: Math.max(0, plan.extension_price_per_hour ?? 0), price_diamonds: Math.max(0, Math.round(plan.price_diamonds ?? 0)), price_credits: Math.max(0, Math.round(plan.price_credits ?? 0)), extension_diamonds_per_hour: Math.max(0, Math.round(plan.extension_diamonds_per_hour ?? 0)), extension_credits_per_hour: Math.max(0, Math.round(plan.extension_credits_per_hour ?? 0)),
       features: plan.features, is_active: plan.is_active, updated_at: new Date().toISOString(),
     }).eq("code", plan.code);
     setSaving(null);
@@ -75,6 +75,17 @@ export default function LivePlansSettings() {
                 <div><Label>Price per extra hour (₱)</Label>
                   <Input type="number" min={0} value={plan.extension_price_per_hour ?? 0} onChange={(e) => patch(plan.code, { extension_price_per_hour: Number(e.target.value) })} /></div>
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Pass price in diamonds</Label>
+                  <Input type="number" min={0} value={plan.price_diamonds ?? 0} onChange={(e) => patch(plan.code, { price_diamonds: Number(e.target.value) })} /></div>
+                <div><Label>Pass price in credits</Label>
+                  <Input type="number" min={0} value={plan.price_credits ?? 0} onChange={(e) => patch(plan.code, { price_credits: Number(e.target.value) })} /></div>
+                <div><Label>Extra hour in diamonds</Label>
+                  <Input type="number" min={0} value={plan.extension_diamonds_per_hour ?? 0} onChange={(e) => patch(plan.code, { extension_diamonds_per_hour: Number(e.target.value) })} /></div>
+                <div><Label>Extra hour in credits</Label>
+                  <Input type="number" min={0} value={plan.extension_credits_per_hour ?? 0} onChange={(e) => patch(plan.code, { extension_credits_per_hour: Number(e.target.value) })} /></div>
+              </div>
+              <p className="text-xs text-muted-foreground">Set 0 to turn off paying with diamonds or credits.</p>
               <div className="space-y-2">
                 <Label>Features</Label>
                 {FEATURES.map((f) => (
