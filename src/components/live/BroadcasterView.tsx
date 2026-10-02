@@ -575,6 +575,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         stream_key: null
       })
       .eq('id', streamId);
+    IVSStageBroadcaster.end(streamId);
     
     toast.success("Stream ended");
     onEndStream();
