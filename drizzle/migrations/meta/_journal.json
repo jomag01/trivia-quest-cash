@@ -99,6 +99,13 @@
       "when": 1790899356198,
       "tag": "0013_feature_commission_network",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790899380162,
+      "tag": "0014_feature_credit_type_fix",
+      "breakpoints": true
     }
   ]
 }
