@@ -30,6 +30,23 @@ export default function LivePlansSettings() {
       setStats({ count: data?.length || 0, revenue: (data || []).reduce((s, r: any) => s + Number(r.amount), 0) }));
   }, []);
 
+  const [diamondPrice, setDiamondPrice] = useState("");
+  useEffect(() => {
+    void supabase.from("treasure_admin_settings").select("setting_key, setting_value").in("setting_key", ["earnings_to_diamond_price", "diamond_base_price"]).then(({ data }) => {
+      const m = Object.fromEntries((data || []).map((r: any) => [r.setting_key, r.setting_value]));
+      setDiamondPrice(m.earnings_to_diamond_price || m.diamond_base_price || "10");
+    });
+  }, []);
+  const saveDiamondPrice = async () => {
+    const v = Number(diamondPrice);
+    if (!(v > 0)) return toast.error("Enter a price above 0");
+    const { data: ex } = await supabase.from("treasure_admin_settings").select("setting_key").eq("setting_key", "earnings_to_diamond_price").maybeSingle();
+    const { error } = ex
+      ? await supabase.from("treasure_admin_settings").update({ setting_value: String(v) }).eq("setting_key", "earnings_to_diamond_price")
+      : await supabase.from("treasure_admin_settings").insert({ setting_key: "earnings_to_diamond_price", setting_value: String(v) } as any);
+    error ? toast.error(error.message) : toast.success("Diamond price saved");
+  };
+
   const patch = (code: string, p: Partial<LivePlan>) => setPlans((ps) => ps.map((x) => (x.code === code ? { ...x, ...p } : x)));
 
   const save = async (plan: LivePlan) => {
@@ -45,6 +62,13 @@ export default function LivePlansSettings() {
 
   return (
     <div className="space-y-4">
+      <Card>
+        <CardContent className="flex flex-wrap items-end gap-2 pt-6">
+          <div className="flex-1 min-w-[200px]"><Label>Referral earnings to diamonds: ₱ per 1 diamond</Label>
+            <Input type="number" min={0} step="0.01" value={diamondPrice} onChange={(e) => setDiamondPrice(e.target.value)} /></div>
+          <Button onClick={saveDiamondPrice}>Save</Button>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Radio className="h-5 w-5 text-destructive" /> Live Plans</CardTitle>
