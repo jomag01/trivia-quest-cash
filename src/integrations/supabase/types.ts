@@ -10406,30 +10406,45 @@ export type Database = {
         Row: {
           category: string
           commission_type: string
+          description: string | null
           feature_key: string
           is_active: boolean
           label: string
+          leadership_pct: number
           referrer_value: number
+          stairstep_pct: number
+          unilevel_levels: number
+          unilevel_pct: number
           updated_at: string
           upline_value: number
         }
         Insert: {
           category?: string
           commission_type?: string
+          description?: string | null
           feature_key: string
           is_active?: boolean
           label: string
+          leadership_pct?: number
           referrer_value?: number
+          stairstep_pct?: number
+          unilevel_levels?: number
+          unilevel_pct?: number
           updated_at?: string
           upline_value?: number
         }
         Update: {
           category?: string
           commission_type?: string
+          description?: string | null
           feature_key?: string
           is_active?: boolean
           label?: string
+          leadership_pct?: number
           referrer_value?: number
+          stairstep_pct?: number
+          unilevel_levels?: number
+          unilevel_pct?: number
           updated_at?: string
           upline_value?: number
         }
@@ -17585,6 +17600,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _feature_credit: {
+        Args: {
+          _amt: number
+          _buyer: string
+          _earner: string
+          _key: string
+          _kind: string
+          _label: string
+          _level: number
+          _sale: string
+        }
+        Returns: undefined
+      }
       add_subscription_credits: {
         Args: { p_credits: number; p_user_id: string }
         Returns: boolean

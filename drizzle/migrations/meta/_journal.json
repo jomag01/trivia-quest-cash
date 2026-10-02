@@ -92,6 +92,13 @@
       "when": 1790899160401,
       "tag": "0012_live_extend_wallet_fix",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790899356198,
+      "tag": "0013_feature_commission_network",
+      "breakpoints": true
     }
   ]
 }
