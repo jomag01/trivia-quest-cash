@@ -576,7 +576,6 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
 
   return (
     <div
-      {user && <PromoteLiveDialog streamId={streamId} open={showPromote} onOpenChange={setShowPromote} />}
       className={minimized
         ? "fixed z-[60] rounded-xl overflow-hidden shadow-2xl ring-2 ring-destructive bg-black touch-none select-none"
         : "fixed inset-0 bg-black z-50 flex flex-col"}
@@ -585,6 +584,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
+      {user && <PromoteLiveDialog streamId={streamId} open={showPromote} onOpenChange={setShowPromote} />}
       {minimized && (
         <div className="absolute top-1 left-1 right-1 z-30 flex items-center justify-between pointer-events-none">
           <Badge variant="destructive" className="text-[9px] px-1 py-0 animate-pulse">● LIVE</Badge>
