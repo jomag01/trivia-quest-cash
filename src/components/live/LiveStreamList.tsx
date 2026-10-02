@@ -91,6 +91,8 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
   }, []);
 
   const fetchStreams = async () => {
+    // Close any lives that passed their time limit
+    await supabase.rpc('live_end_expired');
     const { data: live } = await supabase
       .from('live_streams')
       .select('*')
