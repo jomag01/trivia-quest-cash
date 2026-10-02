@@ -89,6 +89,7 @@ export default function TyphoonTracker() {
         .sort((a: Storm, b: Storm) => new Date(b.alert.todate).getTime() - new Date(a.alert.todate).getTime());
       setStorms(list);
       setSelectedId(current => list.some((storm: Storm) => storm.id === current) ? current : list[0]?.id ?? null);
+      setPeriod(list.some((storm: Storm) => storm.alert.iscurrent === 'true' && new Date(storm.alert.todate).getTime() >= Date.now()) ? 'active' : 'recent');
       setUpdated(new Date());
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The worldwide cyclone feed is unavailable.');
@@ -176,11 +177,11 @@ export default function TyphoonTracker() {
           })}
         </svg>
       </div>
-      <p className="text-xs text-muted-foreground">Dots show GDACS alert centroids, not the live storm eye. Dashed lines show the selected storm’s published path; they are not a future forecast.</p>
+      <p className="text-xs text-muted-foreground">Map includes active and recently ended alerts. Dots show GDACS alert centroids, not the live storm eye. Dashed lines show the selected storm’s published path; they are not a future forecast.</p>
 
       <div className="flex gap-2 border-b border-border" role="tablist" aria-label="Cyclone status">
-        <Button role="tab" aria-selected={period === 'active'} variant="ghost" className={`rounded-none border-b-2 ${period === 'active' ? 'border-primary' : 'border-transparent'}`} onClick={() => setPeriod('active')}>Active ({activeCount})</Button>
-        <Button role="tab" aria-selected={period === 'recent'} variant="ghost" className={`rounded-none border-b-2 ${period === 'recent' ? 'border-primary' : 'border-transparent'}`} onClick={() => setPeriod('recent')}>Recently ended ({storms.length - activeCount})</Button>
+        <Button role="tab" aria-selected={period === 'active'} variant="ghost" className={`rounded-none border-b-2 ${period === 'active' ? 'border-primary' : 'border-transparent'}`} onClick={() => { setPeriod('active'); setSelectedId(storms.find(isActive)?.id ?? null); }}>Active ({activeCount})</Button>
+        <Button role="tab" aria-selected={period === 'recent'} variant="ghost" className={`rounded-none border-b-2 ${period === 'recent' ? 'border-primary' : 'border-transparent'}`} onClick={() => { setPeriod('recent'); setSelectedId(storms.find(storm => !isActive(storm))?.id ?? null); }}>Recently ended ({storms.length - activeCount})</Button>
       </div>
       {visible.length === 0 && <p className="py-4 text-sm text-muted-foreground">{loading ? 'Loading cyclone alerts…' : period === 'active' ? 'No active cyclones in this feed right now. Check official local warnings for your area.' : 'No ended cyclones in the last 30 days.'}</p>}
       {visible.length > 0 && <div className="flex gap-2 overflow-x-auto pb-2">
