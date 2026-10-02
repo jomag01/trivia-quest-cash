@@ -9,9 +9,9 @@ const corsHeaders = {
 };
 
 // AWS Configuration
-const AWS_REGION = Deno.env.get('AWS_REGION') || 'us-east-1';
-const AWS_ACCESS_KEY_ID = Deno.env.get('AWS_ACCESS_KEY_ID');
-const AWS_SECRET_ACCESS_KEY = Deno.env.get('AWS_SECRET_ACCESS_KEY');
+const AWS_REGION = (Deno.env.get('AWS_REGION') || 'us-east-1').trim();
+const AWS_ACCESS_KEY_ID = Deno.env.get('AWS_ACCESS_KEY_ID')?.trim();
+const AWS_SECRET_ACCESS_KEY = Deno.env.get('AWS_SECRET_ACCESS_KEY')?.trim();
 
 console.log(`[IVS] Function initialized. Region: ${AWS_REGION}, Has credentials: ${!!AWS_ACCESS_KEY_ID && !!AWS_SECRET_ACCESS_KEY}`);
 
@@ -120,7 +120,7 @@ async function signAWSRequest(
   const credential = `${AWS_ACCESS_KEY_ID}/${credentialScope}`;
   const authHeader = `${algorithm} Credential=${credential},SignedHeaders=${signedHeaders},Signature=${signature}`;
   
-  console.log(`[AWS Sign] Auth Header: ${authHeader.substring(0, 100)}...`);
+
   
   const headers = new Headers();
   headers.set('Content-Type', 'application/json');
