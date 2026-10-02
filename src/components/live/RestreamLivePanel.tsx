@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Copy, Eye, EyeOff, Loader2, Radio, ShoppingBag } from "lucide-react";
 import LiveBasketManager from "./LiveBasketManager";
+import PromoteLiveDialog from "./PromoteLiveDialog";
 
 interface Props { streamId: string; onClose: () => void }
 
@@ -14,6 +15,7 @@ export default function RestreamLivePanel({ streamId, onClose }: Props) {
   const [creds, setCreds] = useState<{ ingestServer: string; streamKey: string } | null>(null);
   const [state, setState] = useState("OFFLINE");
   const [showKey, setShowKey] = useState(false);
+  const [showPromote, setShowPromote] = useState(false);
   const [showBasket, setShowBasket] = useState(false);
   const [ending, setEnding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +84,8 @@ export default function RestreamLivePanel({ streamId, onClose }: Props) {
         <Button variant="outline" className="w-full" onClick={() => setShowBasket(!showBasket)}><ShoppingBag className="h-4 w-4 mr-2" /> {showBasket ? "Hide basket" : "Manage basket"}</Button>
         {showBasket && <LiveBasketManager streamId={streamId} onClose={() => setShowBasket(false)} />}
 
+        <Button variant="secondary" className="w-full" onClick={() => setShowPromote(true)}>Promote my live</Button>
+        <PromoteLiveDialog streamId={streamId} open={showPromote} onOpenChange={setShowPromote} />
         <Button variant="destructive" className="w-full" disabled={ending} onClick={end}>
           {ending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} End live
         </Button>

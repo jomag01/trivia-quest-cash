@@ -10,13 +10,13 @@ export default function LiveNowButton() {
 
   useEffect(() => {
     const load = async () => {
-      const { count: c } = await supabase.from("live_streams").select("id", { count: "exact", head: true }).eq("status", "live");
+      const { count: c } = await supabase.from("live_streams").select("id", { count: "estimated", head: true }).eq("status", "live");
       setCount(c || 0);
     };
     load();
-    const ch = supabase.channel("shop-live-count")
-      .on("postgres_changes", { event: "*", schema: "public", table: "live_streams" }, load).subscribe();
-    return () => { supabase.removeChannel(ch); };
+    // Poll rather than subscribing to every live_streams change (scales to huge numbers of lives)
+    const t = setInterval(() => { if (document.visibilityState === "visible") load(); }, 30000);
+    return () => clearInterval(t);
   }, []);
 
   return (

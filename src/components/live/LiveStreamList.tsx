@@ -33,7 +33,11 @@ interface LiveStream {
     full_name: string;
     avatar_url: string;
   };
+  promoted_until?: string | null;
+  promo_priority?: number;
 }
+
+const isPromoted = (s: LiveStream) => (s.promo_priority || 0) > 0 && !!s.promoted_until && new Date(s.promoted_until) > new Date();
 
 interface LiveStreamListProps {
   onSelectStream: (stream: LiveStream) => void;
@@ -60,48 +64,43 @@ function StreamPreview({ stream }: { stream: LiveStream }) {
   );
 }
 
+const PAGE = 60;
+const COLS = 'id,user_id,title,description,thumbnail_url,status,viewer_count,total_views,ended_at,created_at,promoted_until,promo_priority';
+
 export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) {
   const { user } = useAuth();
   const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
   const [endedStreams, setEndedStreams] = useState<LiveStream[]>([]);
   const [loading, setLoading] = useState(true);
   const [streamToDelete, setStreamToDelete] = useState<LiveStream | null>(null);
+  const [limit, setLimit] = useState(PAGE);
+  const [hasMore, setHasMore] = useState(false);
 
+  // Poll instead of listening to every row change: with many thousands of lives,
+  // per-change refetches would overwhelm both the browser and the database.
   useEffect(() => {
     fetchStreams();
-
-    const channel = supabase
-      .channel('live-streams-list')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'live_streams'
-        },
-        () => {
-          fetchStreams();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    const t = setInterval(() => { if (document.visibilityState === 'visible') fetchStreams(); }, 20000);
+    return () => clearInterval(t);
+  }, [limit]);
 
   const fetchStreams = async () => {
-    // Close any lives that passed their time limit
-    await supabase.rpc('live_end_expired');
+    // Close any lives that passed their time limit and expired promotions
+    await Promise.all([supabase.rpc('live_end_expired'), supabase.rpc('live_clear_expired_promos')]);
     const { data: live } = await supabase
       .from('live_streams')
-      .select('*')
+      .select(COLS)
       .eq('status', 'live')
-      .order('created_at', { ascending: false });
+      .order('promo_priority', { ascending: false })
+      .order('viewer_count', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit + 1);
+    setHasMore((live?.length || 0) > limit);
+    if (live && live.length > limit) live.length = limit;
 
     const { data: ended } = await supabase
       .from('live_streams')
-      .select('*')
+      .select(COLS)
       .eq('status', 'ended')
       .order('ended_at', { ascending: false })
       .limit(10);
@@ -194,6 +193,7 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
                 <div className="relative aspect-[9/16] overflow-hidden bg-muted">
                   <StreamPreview stream={stream} />
                   <Badge variant="destructive" className="absolute left-2 top-2 text-[10px] animate-pulse">LIVE</Badge>
+                  {isPromoted(stream) && <Badge className="absolute bottom-2 left-2 text-[10px]">Promoted</Badge>}
                   <span className="absolute right-2 top-2 flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-xs text-foreground"><Eye className="h-3 w-3" />{stream.viewer_count || 0}</span>
                 </div>
                 <div className="min-w-0 p-2.5">
@@ -204,6 +204,9 @@ export default function LiveStreamList({ onSelectStream }: LiveStreamListProps) 
             </Card>
           ))}
           </div>
+          {hasMore && (
+            <Button variant="outline" className="w-full" onClick={() => setLimit((l) => l + PAGE)}>Show more lives</Button>
+          )}
 
           {endedStreams.length > 0 && (
             <>

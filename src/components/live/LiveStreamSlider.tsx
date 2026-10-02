@@ -31,41 +31,28 @@ export default function LiveStreamSlider({ onSelectStream }: LiveStreamSliderPro
 
   useEffect(() => {
     fetchStreams();
-
-    // Subscribe to live stream updates
-    const channel = supabase
-      .channel('shop-live-streams')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'live_streams'
-        },
-        () => {
-          fetchStreams();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Poll instead of realtime on the whole table so this scales to very many lives
+    const t = setInterval(() => { if (document.visibilityState === 'visible') fetchStreams(); }, 20000);
+    return () => clearInterval(t);
   }, []);
 
   const fetchStreams = async () => {
     try {
-      // Fetch live streams
+      const cols = 'id,user_id,title,description,thumbnail_url,status,viewer_count,total_views,ended_at,promoted_until,promo_priority,promo_shop_front';
+      // Shop-front promoted lives first, then other promoted, then most watched
       const { data: liveStreams } = await supabase
         .from('live_streams')
-        .select('*')
+        .select(cols)
         .eq('status', 'live')
-        .order('viewer_count', { ascending: false });
+        .order('promo_shop_front', { ascending: false })
+        .order('promo_priority', { ascending: false })
+        .order('viewer_count', { ascending: false })
+        .limit(20);
 
       // Keep the latest finished streams visible with their actual ended status.
       const { data: endedStreams } = await supabase
         .from('live_streams')
-        .select('*')
+        .select(cols)
         .eq('status', 'ended')
         .order('ended_at', { ascending: false })
         .limit(5);
@@ -174,6 +161,9 @@ export default function LiveStreamSlider({ onSelectStream }: LiveStreamSliderPro
                       <PlayCircle className="w-2.5 h-2.5 mr-0.5" />
                       ENDED
                     </Badge>
+                  )}
+                  {isLive && (stream as any).promo_priority > 0 && (stream as any).promoted_until && new Date((stream as any).promoted_until) > new Date() && (
+                    <Badge className="absolute top-7 left-2 text-[9px] px-1.5 py-0 h-4">{(stream as any).promo_shop_front ? 'Featured' : 'Promoted'}</Badge>
                   )}
                   
                   {/* Viewer count */}

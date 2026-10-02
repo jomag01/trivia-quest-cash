@@ -127,6 +127,13 @@
       "when": 1790900794594,
       "tag": "0017_feature_commissions_shop_ads_beesmate_ai",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790901012266,
+      "tag": "0018_live_promotions_and_scale",
+      "breakpoints": true
     }
   ]
 }
