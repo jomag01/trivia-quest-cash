@@ -8329,6 +8329,27 @@ export type Database = {
         }
         Relationships: []
       }
+      ivs_stage_keys: {
+        Row: {
+          created_at: string
+          id: number
+          private_jwk: Json
+          public_key_arn: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          private_jwk: Json
+          public_key_arn: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          private_jwk?: Json
+          public_key_arn?: string
+        }
+        Relationships: []
+      }
       leadership_commissions: {
         Row: {
           amount: number
@@ -9070,6 +9091,41 @@ export type Database = {
             foreignKeyName: "live_stream_promotions_stream_id_fkey"
             columns: ["stream_id"]
             isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_stream_stages: {
+        Row: {
+          created_at: string
+          events_url: string
+          stage_arn: string
+          stream_id: string
+          user_id: string
+          whip_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          events_url: string
+          stage_arn: string
+          stream_id: string
+          user_id: string
+          whip_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          events_url?: string
+          stage_arn?: string
+          stream_id?: string
+          user_id?: string
+          whip_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_stages_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: true
             referencedRelation: "live_streams"
             referencedColumns: ["id"]
           },
@@ -18125,6 +18181,8 @@ export type Database = {
         Args: { _plan_code: string; _proof_url: string; _reference: string }
         Returns: string
       }
+      live_viewer_join: { Args: { _stream_id: string }; Returns: undefined }
+      live_viewer_leave: { Args: { _stream_id: string }; Returns: undefined }
       place_user_in_binary_network: {
         Args: { _sponsor_user_id: string; _user_id: string }
         Returns: string

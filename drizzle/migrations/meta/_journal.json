@@ -134,6 +134,13 @@
       "when": 1790901012266,
       "tag": "0018_live_promotions_and_scale",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790901572572,
+      "tag": "0019_ivs_stage_scale",
+      "breakpoints": true
     }
   ]
 }
