@@ -120,6 +120,13 @@
       "when": 1790899579056,
       "tag": "0016_live_pay_with_diamonds_credits",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790900794594,
+      "tag": "0017_feature_commissions_shop_ads_beesmate_ai",
+      "breakpoints": true
     }
   ]
 }
