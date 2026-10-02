@@ -646,16 +646,50 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
                 <WifiOff className="w-4 h-4 text-red-400" />
               )}
             </span>
+            {remaining != null && (
+              <button type="button" onClick={() => setShowExtend(true)}
+                className={`rounded-full px-2 py-0.5 text-xs font-mono ${remaining < 10 * 60 * 1000 ? 'bg-destructive text-destructive-foreground animate-pulse' : 'bg-black/50 text-white'}`}
+                aria-label="Time left — add more hours">
+                ⏱ {fmt(remaining)}
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={minimize} aria-label="Minimize live">
               <Minimize2 className="w-4 h-4 mr-1" /> Minimize
             </Button>
-            <Button variant="destructive" size="sm" onClick={handleEndStream}>
+            <Button variant="destructive" size="sm" onClick={() => { if (window.confirm('End your live now?')) handleEndStream(); }}>
               End
             </Button>
           </div>
         </div>
+
+        {(offline || connectionState === 'reconnecting') && (
+          <div className="absolute top-16 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/70 px-4 py-2 text-xs text-white flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin" /> Weak signal — reconnecting. Your live is still on.
+          </div>
+        )}
+
+        {showExtend && (
+          <div className="absolute inset-x-0 bottom-0 z-30 rounded-t-2xl bg-background p-4 text-foreground space-y-3" onPointerDown={(e) => e.stopPropagation()}>
+            <p className="font-semibold">Need more time?</p>
+            <p className="text-sm text-muted-foreground">
+              {remaining != null && remaining > 0 ? `Your live ends in ${fmt(remaining)}.` : 'Your live is about to end.'} Add extra hours for ₱{extPrice.toFixed(2)} per hour from your Cash Wallet.
+            </p>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4].map((h) => (
+                <Button key={h} size="sm" variant={extHours === h ? 'default' : 'outline'} onClick={() => setExtHours(h)}>+{h}h</Button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowExtend(false)}>Not now</Button>
+              <Button className="flex-1" disabled={extending} onClick={extend}>
+                {extending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Pay ₱{(extPrice * extHours).toFixed(2)}
+              </Button>
+            </div>
+          </div>
+        )}
+        
         
         {/* Stream stats overlay */}
         {streamStats && (
