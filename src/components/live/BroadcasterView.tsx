@@ -585,7 +585,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
     <div
       className={minimized
         ? "fixed z-[60] rounded-xl overflow-hidden shadow-2xl ring-2 ring-destructive bg-black touch-none select-none"
-        : "fixed inset-0 bg-black z-50 flex flex-col"}
+        : "fixed inset-x-0 top-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] bg-primary z-50 flex flex-col overflow-hidden"}
       style={minimized ? { left: pos.x, top: pos.y, width: MINI_W, height: MINI_H } : undefined}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -599,7 +599,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           <Maximize2 className="w-4 h-4 text-white" />
         </div>
       )}
-      <div className={minimized ? "relative w-full h-full" : "relative flex-1 bg-gray-900"}>
+      <div className={minimized ? "relative w-full h-full" : "relative min-h-0 flex-1 bg-primary"}>
         {isConnecting && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-20">
             <div className="text-center">
@@ -643,18 +643,18 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           ))}
         </div>
 
-        <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent z-10">
-          <div className="flex items-center gap-3">
+        <div className="absolute top-0 left-0 right-0 z-10 flex flex-col gap-2 bg-primary/70 p-2 text-primary-foreground sm:flex-row sm:items-center sm:justify-between sm:p-4">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
             <Badge variant="destructive" className="animate-pulse">● LIVE</Badge>
-            <span className="text-white flex items-center gap-1 text-sm">
+            <span className="flex shrink-0 items-center gap-1 text-sm">
               <Eye className="w-4 h-4" /> {viewerCount}
             </span>
             {/* Quality indicator */}
-            <span className="text-white flex items-center gap-1 text-xs bg-black/50 px-2 py-1 rounded">
+            <span className="flex shrink-0 items-center gap-1 rounded bg-primary/60 px-1.5 py-1 text-xs">
               <Signal className="w-3 h-3" /> {currentQuality.toUpperCase()}
             </span>
             {/* Connection status */}
-            <span className="flex items-center gap-1">
+            <span className="flex shrink-0 items-center gap-1">
               {connectionState === 'connected' ? (
                 <Wifi className="w-4 h-4 text-green-400" />
               ) : connectionState === 'connecting' ? (
@@ -664,22 +664,22 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
               )}
             </span>
             {remaining != null && (
-              <button type="button" onClick={() => setShowExtend(true)}
-                className={`rounded-full px-2 py-0.5 text-xs font-mono ${remaining < 10 * 60 * 1000 ? 'bg-destructive text-destructive-foreground animate-pulse' : 'bg-black/50 text-white'}`}
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowExtend(true)}
+                className={`ml-auto h-8 shrink-0 px-1.5 font-mono text-xs sm:ml-0 ${remaining < 10 * 60 * 1000 ? 'bg-destructive text-destructive-foreground animate-pulse' : 'bg-primary/60 text-primary-foreground'}`}
                 aria-label="Time left — add more hours">
                 ⏱ {fmt(remaining)}
-              </button>
+              </Button>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setShowPromote(true)} aria-label="Promote live">
-              <Megaphone className="w-4 h-4 mr-1" /> Promote
+          <div className="grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:gap-2">
+            <Button variant="secondary" size="sm" className="min-w-0 px-1.5 sm:px-3" onClick={() => setShowPromote(true)} aria-label="Promote live">
+              <Megaphone className="w-4 h-4" /> <span className="hidden min-[370px]:inline">Promote</span>
             </Button>
-            <Button variant="secondary" size="sm" onClick={minimize} aria-label="Minimize live">
-              <Minimize2 className="w-4 h-4 mr-1" /> Minimize
+            <Button variant="secondary" size="sm" className="min-w-0 px-1.5 sm:px-3" onClick={minimize} aria-label="Minimize live">
+              <Minimize2 className="w-4 h-4" /> <span className="hidden min-[370px]:inline">Minimize</span>
             </Button>
-            <Button variant="destructive" size="sm" onClick={() => { if (window.confirm('End your live now?')) handleEndStream(); }}>
-              End
+            <Button variant="destructive" size="sm" className="min-w-0 px-1.5 sm:px-3" onClick={() => { if (window.confirm('End your live now?')) handleEndStream(); }}>
+              End live
             </Button>
           </div>
         </div>
@@ -691,24 +691,24 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         )}
 
         {showExtend && (
-          <div className="absolute inset-x-0 bottom-0 z-30 rounded-t-2xl bg-background p-4 text-foreground space-y-3" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="absolute inset-x-0 bottom-0 z-30 flex max-h-full flex-col gap-3 overflow-y-auto rounded-t-lg bg-background p-3 text-foreground sm:p-4" onPointerDown={(e) => e.stopPropagation()}>
             <p className="font-semibold">Need more time?</p>
             <p className="text-sm text-muted-foreground">
               {remaining != null && remaining > 0 ? `Your live ends in ${fmt(remaining)}.` : 'Your live is about to end.'} Add extra hours and choose how to pay.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant={extCurrency === 'wallet' ? 'default' : 'outline'} onClick={() => setExtCurrency('wallet')}>Cash Wallet ₱{extPrice.toFixed(2)}/h</Button>
-              {extDiamonds > 0 && <Button size="sm" variant={extCurrency === 'diamonds' ? 'default' : 'outline'} onClick={() => setExtCurrency('diamonds')}>💎 {extDiamonds}/h</Button>}
-              {extCredits > 0 && <Button size="sm" variant={extCurrency === 'credits' ? 'default' : 'outline'} onClick={() => setExtCurrency('credits')}>🪙 {extCredits} credits/h</Button>}
+              <Button className="h-auto min-h-9 max-w-full whitespace-normal text-center" size="sm" variant={extCurrency === 'wallet' ? 'default' : 'outline'} onClick={() => setExtCurrency('wallet')}>Cash Wallet ₱{extPrice.toFixed(2)}/h</Button>
+              {extDiamonds > 0 && <Button className="h-auto min-h-9 max-w-full whitespace-normal" size="sm" variant={extCurrency === 'diamonds' ? 'default' : 'outline'} onClick={() => setExtCurrency('diamonds')}>💎 {extDiamonds}/h</Button>}
+              {extCredits > 0 && <Button className="h-auto min-h-9 max-w-full whitespace-normal" size="sm" variant={extCurrency === 'credits' ? 'default' : 'outline'} onClick={() => setExtCurrency('credits')}>🪙 {extCredits} credits/h</Button>}
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {[1, 2, 3, 4].map((h) => (
-                <Button key={h} size="sm" variant={extHours === h ? 'default' : 'outline'} onClick={() => setExtHours(h)}>+{h}h</Button>
+                <Button key={h} className="min-w-0 px-1" size="sm" variant={extHours === h ? 'default' : 'outline'} onClick={() => setExtHours(h)}>+{h}h</Button>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setShowExtend(false)}>Not now</Button>
-              <Button className="flex-1" disabled={extending} onClick={extend}>
+            <div className="sticky bottom-0 grid grid-cols-2 gap-2 bg-background pb-1">
+              <Button variant="outline" className="min-w-0 px-2" onClick={() => setShowExtend(false)}>Not now</Button>
+              <Button className="h-auto min-h-10 min-w-0 whitespace-normal px-2 text-center" disabled={extending} onClick={extend}>
                 {extending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Pay {extCurrency === 'wallet' ? `₱${(extPrice * extHours).toFixed(2)}` : extCurrency === 'diamonds' ? `💎 ${extDiamonds * extHours}` : `${extCredits * extHours} credits`}
               </Button>
             </div>
@@ -767,7 +767,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
         </>)}
       </div>
 
-      <div className={minimized ? "hidden" : "bg-black p-3 flex items-center justify-center gap-3"}>
+      <div className={minimized ? "hidden" : "flex shrink-0 items-center justify-center gap-3 bg-primary p-2 sm:p-3"}>
         <Button 
           variant={isVideoOn ? "outline" : "destructive"} 
           size="icon"
