@@ -47,10 +47,7 @@ const UnlockFeatureDialog: React.FC<UnlockFeatureDialogProps> = ({
     setIsUnlocking(true);
     try {
       // Deduct credits from user
-      const { error } = await supabase
-        .from('profiles')
-        .update({ credits: userCredits - unlockCost })
-        .eq('id', user.id);
+      const { error } = await supabase.rpc('ai_unlock_feature', { _feature_id: featureId });
       
       if (error) throw error;
       
