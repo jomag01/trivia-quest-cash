@@ -8628,11 +8628,15 @@ export type Database = {
         Row: {
           code: string
           description: string
+          extension_credits_per_hour: number
+          extension_diamonds_per_hour: number
           extension_price_per_hour: number
           features: Json
           is_active: boolean
           max_hours: number
           name: string
+          price_credits: number
+          price_diamonds: number
           price_per_session: number
           sort_order: number
           updated_at: string
@@ -8640,11 +8644,15 @@ export type Database = {
         Insert: {
           code: string
           description?: string
+          extension_credits_per_hour?: number
+          extension_diamonds_per_hour?: number
           extension_price_per_hour?: number
           features?: Json
           is_active?: boolean
           max_hours?: number
           name: string
+          price_credits?: number
+          price_diamonds?: number
           price_per_session?: number
           sort_order?: number
           updated_at?: string
@@ -8652,11 +8660,15 @@ export type Database = {
         Update: {
           code?: string
           description?: string
+          extension_credits_per_hour?: number
+          extension_diamonds_per_hour?: number
           extension_price_per_hour?: number
           features?: Json
           is_active?: boolean
           max_hours?: number
           name?: string
+          price_credits?: number
+          price_diamonds?: number
           price_per_session?: number
           sort_order?: number
           updated_at?: string
@@ -17613,6 +17625,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      _spend_points: {
+        Args: { _amount: number; _currency: string; _uid: string; _why: string }
+        Returns: undefined
+      }
       add_subscription_credits: {
         Args: { p_credits: number; p_user_id: string }
         Returns: boolean
@@ -17768,6 +17784,7 @@ export type Database = {
         }
         Returns: Json
       }
+      convert_earnings_to_diamonds: { Args: { _amount: number }; Returns: Json }
       convert_gems_to_diamonds: {
         Args: { p_gem_amount: number; p_user_id: string }
         Returns: Json
@@ -17946,6 +17963,10 @@ export type Database = {
         Returns: boolean
       }
       is_warehouse_staff: { Args: { _warehouse_id: string }; Returns: boolean }
+      live_buy_pass_points: {
+        Args: { _currency: string; _plan_code: string }
+        Returns: string
+      }
       live_buy_pass_wallet: { Args: { _plan_code: string }; Returns: string }
       live_create_order: {
         Args: {
@@ -17964,6 +17985,10 @@ export type Database = {
         Returns: string
       }
       live_end_expired: { Args: never; Returns: number }
+      live_extend_points: {
+        Args: { _currency: string; _hours: number; _stream_id: string }
+        Returns: string
+      }
       live_extend_wallet: {
         Args: { _hours: number; _stream_id: string }
         Returns: string

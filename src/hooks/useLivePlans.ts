@@ -8,6 +8,10 @@ export interface LivePlan {
   price_per_session: number;
   max_hours?: number;
   extension_price_per_hour?: number;
+  price_diamonds?: number;
+  price_credits?: number;
+  extension_diamonds_per_hour?: number;
+  extension_credits_per_hour?: number;
   features: { chroma_key?: boolean; auto_bg_removal?: boolean; custom_background?: boolean; stickers?: boolean; cross_platform?: boolean };
   is_active: boolean;
   sort_order: number;

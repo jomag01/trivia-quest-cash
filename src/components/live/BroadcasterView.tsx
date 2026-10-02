@@ -109,6 +109,9 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   const [now, setNow] = useState(Date.now());
   const [showExtend, setShowExtend] = useState(false);
   const [extPrice, setExtPrice] = useState(0);
+  const [extDiamonds, setExtDiamonds] = useState(0);
+  const [extCredits, setExtCredits] = useState(0);
+  const [extCurrency, setExtCurrency] = useState<'wallet' | 'diamonds' | 'credits'>('wallet');
   const [extHours, setExtHours] = useState(1);
   const [extending, setExtending] = useState(false);
   const warnedRef = useRef(false);
@@ -416,8 +419,10 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
   const loadLimits = async () => {
     const { data } = await supabase.from('live_streams').select('ends_at, plan_code').eq('id', streamId).maybeSingle();
     if ((data as any)?.ends_at) setEndsAt(new Date((data as any).ends_at).getTime());
-    const { data: p } = await supabase.from('live_plans').select('extension_price_per_hour').eq('code', (data as any)?.plan_code || 'basic').maybeSingle();
+    const { data: p } = await supabase.from('live_plans').select('extension_price_per_hour, extension_diamonds_per_hour, extension_credits_per_hour').eq('code', (data as any)?.plan_code || 'basic').maybeSingle();
     setExtPrice(Number((p as any)?.extension_price_per_hour || 0));
+    setExtDiamonds(Number((p as any)?.extension_diamonds_per_hour || 0));
+    setExtCredits(Number((p as any)?.extension_credits_per_hour || 0));
   };
   useEffect(() => { loadLimits(); const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, [streamId]);
   const remaining = endsAt ? endsAt - now : null;
@@ -436,7 +441,9 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
 
   const extend = async () => {
     setExtending(true);
-    const { data, error } = await supabase.rpc('live_extend_wallet', { _stream_id: streamId, _hours: extHours });
+    const { data, error } = extCurrency === 'wallet'
+      ? await supabase.rpc('live_extend_wallet', { _stream_id: streamId, _hours: extHours })
+      : await supabase.rpc('live_extend_points', { _stream_id: streamId, _hours: extHours, _currency: extCurrency });
     setExtending(false);
     if (error) return toast.error(error.message);
     setEndsAt(new Date(data as string).getTime());
@@ -674,8 +681,13 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
           <div className="absolute inset-x-0 bottom-0 z-30 rounded-t-2xl bg-background p-4 text-foreground space-y-3" onPointerDown={(e) => e.stopPropagation()}>
             <p className="font-semibold">Need more time?</p>
             <p className="text-sm text-muted-foreground">
-              {remaining != null && remaining > 0 ? `Your live ends in ${fmt(remaining)}.` : 'Your live is about to end.'} Add extra hours for ₱{extPrice.toFixed(2)} per hour from your Cash Wallet.
+              {remaining != null && remaining > 0 ? `Your live ends in ${fmt(remaining)}.` : 'Your live is about to end.'} Add extra hours and choose how to pay.
             </p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant={extCurrency === 'wallet' ? 'default' : 'outline'} onClick={() => setExtCurrency('wallet')}>Cash Wallet ₱{extPrice.toFixed(2)}/h</Button>
+              {extDiamonds > 0 && <Button size="sm" variant={extCurrency === 'diamonds' ? 'default' : 'outline'} onClick={() => setExtCurrency('diamonds')}>💎 {extDiamonds}/h</Button>}
+              {extCredits > 0 && <Button size="sm" variant={extCurrency === 'credits' ? 'default' : 'outline'} onClick={() => setExtCurrency('credits')}>🪙 {extCredits} credits/h</Button>}
+            </div>
             <div className="flex gap-2">
               {[1, 2, 3, 4].map((h) => (
                 <Button key={h} size="sm" variant={extHours === h ? 'default' : 'outline'} onClick={() => setExtHours(h)}>+{h}h</Button>
@@ -684,7 +696,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setShowExtend(false)}>Not now</Button>
               <Button className="flex-1" disabled={extending} onClick={extend}>
-                {extending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Pay ₱{(extPrice * extHours).toFixed(2)}
+                {extending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Pay {extCurrency === 'wallet' ? `₱${(extPrice * extHours).toFixed(2)}` : extCurrency === 'diamonds' ? `💎 ${extDiamonds * extHours}` : `${extCredits * extHours} credits`}
               </Button>
             </div>
           </div>

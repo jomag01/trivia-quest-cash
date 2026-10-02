@@ -51,6 +51,7 @@ import SellerOrderProcessing from "@/components/dashboard/SellerOrderProcessing"
 import InstallmentOffers from "@/components/dashboard/InstallmentOffers";
 import { CommissionEarningsCard } from "@/components/dashboard/CommissionEarningsCard";
 import { TeachersResourceEarningsCard } from "@/components/dashboard/TeachersResourceEarningsCard";
+import ConvertEarningsToDiamondsCard from "@/components/ConvertEarningsToDiamondsCard";
 import { CommissionNotificationsCard } from "@/components/dashboard/CommissionNotificationsCard";
 import { BlockedUserDialog } from "@/components/BlockedUserDialog";
 import RiderMobileApp from "@/components/courier/rider/RiderMobileApp";
@@ -565,6 +566,7 @@ const Dashboard = () => {
 
         {/* Teachers' Resources Referral Income */}
         <TeachersResourceEarningsCard />
+        <ConvertEarningsToDiamondsCard />
 
         {/* Installment Offers for Affiliates */}
         <InstallmentOffers />
