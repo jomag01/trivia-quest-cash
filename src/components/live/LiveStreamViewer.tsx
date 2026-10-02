@@ -18,6 +18,7 @@ import {
 import { LiveStreamShareButton } from "./LiveStreamShareButton";
 import { SFUViewer, QUALITY_PRESETS, detectOptimalQuality } from "@/lib/streaming";
 import type { ConnectionState } from "@/lib/streaming/SFUConnection";
+import { IVSStageViewer } from "@/lib/streaming/ivsStage";
 import { useLiveBasket } from "./useLiveBasket";
 import PinnedProductCard from "./PinnedProductCard";
 import ProviderChat from "@/components/chat/ProviderChat";
@@ -109,6 +110,8 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewerConnectionRef = useRef<SFUViewer | null>(null);
   const hlsRef = useRef<{ destroy: () => void } | null>(null);
+  const stageViewerRef = useRef<IVSStageViewer | null>(null);
+  useEffect(() => () => { stageViewerRef.current?.disconnect(); }, []);
   useEffect(() => () => { hlsRef.current?.destroy(); }, []);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -266,6 +269,34 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
       video.muted = true;
       video.play().catch(() => {});
       return;
+    }
+
+    // Preferred: watch through Amazon IVS (scales to thousands of viewers per live).
+    // Retry briefly in case the seller's stage is still starting.
+    stageViewerRef.current?.disconnect();
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const sv = new IVSStageViewer(stream.id, {
+        onRemoteStream: (remote) => {
+          const v = videoRef.current;
+          if (!v) return;
+          if (v.srcObject !== remote) v.srcObject = remote;
+          v.playsInline = true;
+          v.muted = true;
+          v.play().then(() => setTimeout(() => { if (videoRef.current) videoRef.current.muted = false; }, 500))
+            .catch(() => toast.info("Tap video to play"));
+          setHasVideo(true); setIsConnecting(false); setConnectionState('connected');
+        },
+        onStateChange: (state) => {
+          setConnectionState(state);
+          if (state === 'connected' || state === 'failed') setIsConnecting(false);
+          // Amazon dropped us (e.g. weak signal): rejoin after a short pause
+          if ((state === 'failed' || state === 'disconnected') && stageViewerRef.current === sv) {
+            setTimeout(() => { if (stageViewerRef.current === sv) connectToStream(); }, 4000);
+          }
+        },
+      });
+      if (await sv.connect()) { stageViewerRef.current = sv; return; }
+      await new Promise((r) => setTimeout(r, 3000));
     }
     
     // Clear any existing timeout
@@ -514,11 +545,14 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   };
 
   const incrementViewCount = async () => {
-    await supabase
-      .from('live_streams')
-      .update({ viewer_count: (viewerCount || 0) + 1 })
-      .eq('id', stream.id);
+    await supabase.rpc('live_viewer_join', { _stream_id: stream.id });
   };
+  useEffect(() => {
+    if (stream.status !== 'live') return;
+    const leave = () => { supabase.rpc('live_viewer_leave', { _stream_id: stream.id }); };
+    window.addEventListener('pagehide', leave);
+    return () => { window.removeEventListener('pagehide', leave); leave(); };
+  }, [stream.id]);
 
   const handleSendComment = async () => {
     if (!user) {
