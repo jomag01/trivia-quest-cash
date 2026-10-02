@@ -79,7 +79,7 @@ export default function PaidFeatureCommissionsSettings() {
     // Add a row for any live plan or any sold feature that isn't itemized yet
     const missing: { feature_key: string; label: string; category: string }[] = [];
     (plans || []).forEach((p) => { const k = `live_pass_${p.code}`; if (!have.has(k)) { have.add(k); missing.push({ feature_key: k, label: `${p.name} Live pass`, category: "live" }); } });
-    (sales || []).forEach((s) => { if (!have.has(s.feature_key)) { have.add(s.feature_key); missing.push({ feature_key: s.feature_key, label: s.feature_key.replace(/_/g, " "), category: s.feature_key.startsWith("ai_") ? "ai" : s.feature_key.startsWith("live_") ? "live" : "other" }); } });
+    (sales || []).forEach((s) => { if (!have.has(s.feature_key)) { have.add(s.feature_key); missing.push({ feature_key: s.feature_key, label: s.feature_key.replace(/_/g, " "), category: s.feature_key.split("_")[0] in CATEGORY_LABEL ? s.feature_key.split("_")[0] : "other" }); } });
     if (missing.length) await supabase.from("paid_feature_commissions").insert(missing);
     const { data } = await supabase.from("paid_feature_commissions").select("*").order("category").order("feature_key");
 
