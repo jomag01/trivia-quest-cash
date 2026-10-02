@@ -164,7 +164,7 @@ async function ivsRealtimeRequest(operation: string, body: Record<string, unknow
   
   console.log(`[IVS RT] ${operation} request to ${url}`);
   
-  const headers = await signAWSRequest('POST', url, payload, 'ivsrealtime');
+  const headers = await signAWSRequest('POST', url, payload, 'ivs');
   
   const response = await fetch(url, {
     method: 'POST',
