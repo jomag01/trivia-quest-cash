@@ -111,7 +111,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   const viewerConnectionRef = useRef<SFUViewer | null>(null);
   const hlsRef = useRef<{ destroy: () => void } | null>(null);
   const stageViewerRef = useRef<IVSStageViewer | null>(null);
-  useEffect(() => () => { stageViewerRef.current?.disconnect(); }, []);
+  useEffect(() => () => { const sv = stageViewerRef.current; stageViewerRef.current = null; sv?.disconnect(); }, []);
   useEffect(() => () => { hlsRef.current?.destroy(); }, []);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -273,7 +273,7 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
 
     // Preferred: watch through Amazon IVS (scales to thousands of viewers per live).
     // Retry briefly in case the seller's stage is still starting.
-    stageViewerRef.current?.disconnect();
+    { const old = stageViewerRef.current; stageViewerRef.current = null; old?.disconnect(); }
     for (let attempt = 0; attempt < 4; attempt++) {
       const sv = new IVSStageViewer(stream.id, {
         onRemoteStream: (remote) => {
@@ -549,7 +549,8 @@ export default function LiveStreamViewer({ stream, onClose, onMinimize }: LiveSt
   };
   useEffect(() => {
     if (stream.status !== 'live') return;
-    const leave = () => { supabase.rpc('live_viewer_leave', { _stream_id: stream.id }); };
+    let left = false;
+    const leave = () => { if (left) return; left = true; supabase.rpc('live_viewer_leave', { _stream_id: stream.id }); };
     window.addEventListener('pagehide', leave);
     return () => { window.removeEventListener('pagehide', leave); leave(); };
   }, [stream.id]);
