@@ -9,9 +9,9 @@ const corsHeaders = {
 };
 
 // AWS Configuration
-const AWS_REGION = Deno.env.get('AWS_REGION') || 'us-east-1';
-const AWS_ACCESS_KEY_ID = Deno.env.get('AWS_ACCESS_KEY_ID');
-const AWS_SECRET_ACCESS_KEY = Deno.env.get('AWS_SECRET_ACCESS_KEY');
+const AWS_REGION = (Deno.env.get('AWS_REGION') || 'us-east-1').trim();
+const AWS_ACCESS_KEY_ID = Deno.env.get('AWS_ACCESS_KEY_ID')?.trim();
+const AWS_SECRET_ACCESS_KEY = Deno.env.get('AWS_SECRET_ACCESS_KEY')?.trim();
 
 console.log(`[IVS] Function initialized. Region: ${AWS_REGION}, Has credentials: ${!!AWS_ACCESS_KEY_ID && !!AWS_SECRET_ACCESS_KEY}`);
 
@@ -120,7 +120,7 @@ async function signAWSRequest(
   const credential = `${AWS_ACCESS_KEY_ID}/${credentialScope}`;
   const authHeader = `${algorithm} Credential=${credential},SignedHeaders=${signedHeaders},Signature=${signature}`;
   
-  console.log(`[AWS Sign] Auth Header: ${authHeader.substring(0, 100)}...`);
+
   
   const headers = new Headers();
   headers.set('Content-Type', 'application/json');
@@ -164,7 +164,7 @@ async function ivsRealtimeRequest(operation: string, body: Record<string, unknow
   
   console.log(`[IVS RT] ${operation} request to ${url}`);
   
-  const headers = await signAWSRequest('POST', url, payload, 'ivsrealtime');
+  const headers = await signAWSRequest('POST', url, payload, 'ivs');
   
   const response = await fetch(url, {
     method: 'POST',
@@ -180,6 +180,63 @@ async function ivsRealtimeRequest(operation: string, body: Record<string, unknow
   }
   
   return responseText ? JSON.parse(responseText) : {};
+}
+
+
+// ==================== IVS Real-Time self-signed participant tokens ====================
+const b64url = (buf: ArrayBuffer | Uint8Array | string) => {
+  const bytes = typeof buf === 'string' ? new TextEncoder().encode(buf) : new Uint8Array(buf as ArrayBuffer);
+  let s = ''; bytes.forEach((b) => (s += String.fromCharCode(b)));
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+let cachedKey: { arn: string; key: CryptoKey } | null = null;
+
+// deno-lint-ignore no-explicit-any
+async function getStageSigningKey(supabase: any): Promise<{ arn: string; key: CryptoKey }> {
+  if (cachedKey) return cachedKey;
+  let { data: row } = await supabase.from('ivs_stage_keys').select('*').eq('id', 1).maybeSingle();
+  if (!row) {
+    // One-time setup: create an ES384 key pair and register the public half with IVS.
+    const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-384' }, true, ['sign', 'verify']) as CryptoKeyPair;
+    const spki = new Uint8Array(await crypto.subtle.exportKey('spki', pair.publicKey));
+    let b = ''; spki.forEach((x) => (b += String.fromCharCode(x)));
+    const pem = `-----BEGIN PUBLIC KEY-----\n${btoa(b).match(/.{1,64}/g)!.join('\n')}\n-----END PUBLIC KEY-----\n`;
+    const imported = await ivsRealtimeRequest('ImportPublicKey', { publicKeyMaterial: pem, name: `triviabees-${Date.now()}` });
+    const arn = (imported.publicKey as { arn: string }).arn;
+    const jwk = await crypto.subtle.exportKey('jwk', pair.privateKey);
+    await supabase.from('ivs_stage_keys').insert({ id: 1, public_key_arn: arn, private_jwk: jwk });
+    ({ data: row } = await supabase.from('ivs_stage_keys').select('*').eq('id', 1).single());
+  }
+  const key = await crypto.subtle.importKey('jwk', row.private_jwk, { name: 'ECDSA', namedCurve: 'P-384' }, false, ['sign']);
+  cachedKey = { arn: row.public_key_arn, key };
+  return cachedKey;
+}
+
+// deno-lint-ignore no-explicit-any
+async function signStageToken(supabase: any, stage: { stage_arn: string; events_url: string; whip_url?: string | null }, userId: string, publish: boolean): Promise<string> {
+  const { arn, key } = await getStageSigningKey(supabase);
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'ES384', typ: 'JWT', kid: arn };
+  const payload: Record<string, unknown> = {
+    exp: now + (publish ? 12 * 3600 : 4 * 3600), iat: now, jti: crypto.randomUUID(),
+    resource: stage.stage_arn, topic: stage.stage_arn.split('/').pop(),
+    events_url: stage.events_url, user_id: userId, attributes: {},
+    capabilities: { allow_publish: publish, allow_subscribe: !publish }, version: '1.0',
+  };
+  if (stage.whip_url) payload.whip_url = stage.whip_url;
+  const input = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`;
+  const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-384' }, key, new TextEncoder().encode(input));
+  return `${input}.${b64url(sig)}`;
+}
+
+/** Deletes stages whose live has ended (bounded batch) so the account stage quota never fills up. */
+// deno-lint-ignore no-explicit-any
+async function sweepStages(supabase: any) {
+  const { data } = await supabase.from('live_stream_stages').select('stream_id, stage_arn, live_streams!inner(status)').neq('live_streams.status', 'live').limit(10);
+  for (const r of data || []) {
+    try { await ivsRealtimeRequest('DeleteStage', { arn: r.stage_arn }); } catch { /* already gone */ }
+    await supabase.from('live_stream_stages').delete().eq('stream_id', r.stream_id);
+  }
 }
 
 serve(async (req) => {
@@ -431,7 +488,65 @@ serve(async (req) => {
         break;
       }
 
-      case 'create-stage': {
+      case 'stage-publish':
+      case 'stage-view':
+      case 'stage-end': {
+        // Scalable camera lives: each live is an IVS Real-Time stage (up to ~25k viewers),
+        // tokens are self-signed (no per-viewer AWS API call), so token issuing never hits AWS rate limits.
+        const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
+        const { data: authData } = await supabase.auth.getUser(jwt);
+        const authUser = authData?.user;
+        if (!authUser || !streamId || !/^[0-9a-f-]{36}$/i.test(streamId)) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        const { data: ls } = await supabase.from('live_streams').select('id, user_id, status, source').eq('id', streamId).maybeSingle();
+        if (!ls) return new Response(JSON.stringify({ error: 'Live not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        const isOwner = ls.user_id === authUser.id;
+        const { data: st } = await supabase.from('live_stream_stages').select('*').eq('stream_id', streamId).maybeSingle();
+
+        if (action === 'stage-end') {
+          if (!isOwner) return new Response(JSON.stringify({ error: 'Not your stream' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          if (st) {
+            try { await ivsRealtimeRequest('DeleteStage', { arn: st.stage_arn }); } catch (e) { console.warn('[IVS] delete stage', (e as Error).message); }
+            await supabase.from('live_stream_stages').delete().eq('stream_id', streamId);
+          }
+          await sweepStages(supabase);
+          result = { success: true };
+          break;
+        }
+        if (ls.status !== 'live' || ls.source === 'restream') { result = { token: null }; break; }
+
+        if (action === 'stage-view') {
+          if (!st) { result = { token: null }; break; }
+          result = { token: await signStageToken(supabase, st, authUser.id, false) };
+          break;
+        }
+        // stage-publish
+        if (!isOwner) return new Response(JSON.stringify({ error: 'Not your stream' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        let stage = st;
+        if (!stage) {
+          const created = await ivsRealtimeRequest('CreateStage', { name: `live-${streamId}`.slice(0, 128), tags: { streamId, userId: authUser.id } });
+          const s = created.stage as { arn: string; endpoints?: { events?: string; whip?: string } };
+          const row = { stream_id: streamId, user_id: authUser.id, stage_arn: s.arn, events_url: s.endpoints?.events || 'wss://global.events.live-video.net', whip_url: s.endpoints?.whip || null };
+          const { error: insErr } = await supabase.from('live_stream_stages').insert(row);
+          if (insErr) {
+            // Another tab created it first — keep theirs, drop ours
+            try { await ivsRealtimeRequest('DeleteStage', { arn: s.arn }); } catch { /* ignore */ }
+            const { data: again } = await supabase.from('live_stream_stages').select('*').eq('stream_id', streamId).single();
+            stage = again;
+          } else stage = row;
+          sweepStages(supabase).catch(() => {});
+        }
+        result = { token: await signStageToken(supabase, stage, authUser.id, true) };
+        break;
+      }
+
+      case 'create-stage':
+      case 'create-participant-token':
+      case 'delete-stage-legacy': {
+        return new Response(JSON.stringify({ error: 'Use stage-publish / stage-view' }), { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      case 'create-stage-legacy': {
         try {
           const stageData = await ivsRealtimeRequest('CreateStage', {
             name: `stage-${streamId}-${Date.now()}`,
@@ -469,7 +584,7 @@ serve(async (req) => {
         break;
       }
 
-      case 'create-participant-token': {
+      case 'create-participant-token-legacy': {
         try {
           const targetStageArn = stageArn || channelArn;
           if (!targetStageArn) {
@@ -501,7 +616,7 @@ serve(async (req) => {
         break;
       }
 
-      case 'delete-stage': {
+      case 'delete-stage-old': {
         try {
           if (!stageArn) {
             throw new Error('stageArn is required');
