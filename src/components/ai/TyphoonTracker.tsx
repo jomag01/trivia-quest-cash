@@ -141,7 +141,7 @@ export default function TyphoonTracker() {
   const currentWeather = weather[0];
 
   return (
-    <section className="space-y-4" aria-label="Worldwide typhoon tracker">
+    <section className="min-w-0 space-y-4" aria-label="Worldwide typhoon tracker">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-xl font-bold"><Activity className="h-5 w-5 text-storm-orange" /> Worldwide typhoon tracker</h2>
