@@ -576,6 +576,7 @@ export default function BroadcasterView({ streamId, onEndStream }: BroadcasterVi
 
   return (
     <div
+      {user && <PromoteLiveDialog streamId={streamId} open={showPromote} onOpenChange={setShowPromote} />}
       className={minimized
         ? "fixed z-[60] rounded-xl overflow-hidden shadow-2xl ring-2 ring-destructive bg-black touch-none select-none"
         : "fixed inset-0 bg-black z-50 flex flex-col"}
