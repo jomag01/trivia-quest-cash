@@ -8,3 +8,4 @@
 - Live sessions end only via the End button or when live_streams.ends_at passes (server-set from live_plans.max_hours, extended only through live_extend_wallet) so signal loss never ends a live.
 - Camera lives publish to a per-live AWS IVS Real-Time stage (self-signed ES384 tokens; stage info only in service-role-only live_stream_stages) and fall back to the peer-to-peer SFU only when the stage is unavailable, so audiences scale without per-viewer AWS calls.
 - Weather's worldwide cyclone tracker reads GDACS alerts and Open-Meteo point forecasts in the client, with a bundled world outline; separate alert history from model forecasts to avoid implying advisory-grade live tracking.
+- Keep weather-map zoom/pan in the maintained transform library and resolve clicked coordinates through the SVG screen transform so point selection remains accurate at any scale.

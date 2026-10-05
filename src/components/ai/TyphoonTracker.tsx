@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Activity, ArrowUpRight, CloudRain, Compass, MapPin, RefreshCw, Wind } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Activity, ArrowUpRight, CloudRain, Compass, Expand, MapPin, Minus, Plus, RefreshCw, RotateCcw, Wind } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 type Alert = {
   eventid: number;
@@ -20,6 +22,7 @@ type Alert = {
 type Storm = { id: number; lat: number; lon: number; alert: Alert };
 type Shape = { geometry: { type: string; coordinates: unknown } };
 type WeatherPoint = { time: string; wind: number; rain: number; pressure: number; temperature: number; humidity: number; direction: number; clouds: number };
+type MapLocation = { lat: number; lon: number; temperature: number; wind: number; rain: number; pressure: number; humidity: number };
 
 const project = (lon: number, lat: number) => [((lon + 180) / 360) * 900, ((90 - lat) / 180) * 450];
 
@@ -63,6 +66,12 @@ export default function TyphoonTracker() {
   const [detailsError, setDetailsError] = useState('');
   const [updated, setUpdated] = useState<Date | null>(null);
   const [period, setPeriod] = useState<'active' | 'recent'>('active');
+  const [expanded, setExpanded] = useState(false);
+  const [mapPoint, setMapPoint] = useState<{ lat: number; lon: number } | null>(null);
+  const [mapWeather, setMapWeather] = useState<MapLocation | null>(null);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapError, setMapError] = useState('');
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const selected = storms.find(storm => storm.id === selectedId);
   const isActive = (storm: Storm) => storm.alert.iscurrent === 'true' && new Date(storm.alert.todate).getTime() >= Date.now();
 
@@ -137,9 +146,75 @@ export default function TyphoonTracker() {
     return () => controller.abort();
   }, [selectedId, storms]);
 
+  useEffect(() => {
+    if (!mapPoint) return;
+    const controller = new AbortController();
+    setMapLoading(true);
+    setMapWeather(null);
+    setMapError('');
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${mapPoint.lat.toFixed(4)}&longitude=${mapPoint.lon.toFixed(4)}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,surface_pressure,precipitation&timezone=auto`, { signal: controller.signal })
+      .then(async response => { if (!response.ok) throw new Error('Weather is unavailable for this point.'); return response.json(); })
+      .then(data => {
+        if (controller.signal.aborted) return;
+        setMapWeather({ lat: mapPoint.lat, lon: mapPoint.lon, temperature: data.current.temperature_2m, humidity: data.current.relative_humidity_2m, wind: data.current.wind_speed_10m, pressure: data.current.surface_pressure, rain: data.current.precipitation });
+      })
+      .catch(() => { if (!controller.signal.aborted) setMapError('Weather is unavailable for this point.'); })
+      .finally(() => { if (!controller.signal.aborted) setMapLoading(false); });
+    return () => controller.abort();
+  }, [mapPoint]);
+
   const visible = storms.filter(storm => period === 'active' ? isActive(storm) : !isActive(storm));
   const activeCount = storms.filter(isActive).length;
   const currentWeather = weather[0];
+
+  const mapView = (large: boolean) => (
+    <TransformWrapper minScale={1} maxScale={8} centerOnInit limitToBounds initialScale={1} doubleClick={{ mode: 'zoomIn' }}>
+      {({ zoomIn, zoomOut, resetTransform }) => <div className="relative">
+        <div className={`overflow-hidden rounded-md border border-border bg-storm-ocean ${large ? 'h-[min(62vh,650px)]' : 'aspect-[2/1]'}`} aria-label="Interactive world map with cyclone alerts; drag to move and tap anywhere for weather">
+          <TransformComponent wrapperClass="!w-full !h-full" contentClass="!w-full !h-full">
+            <svg viewBox="0 0 900 450" preserveAspectRatio="xMidYMid meet" className="block h-full w-full cursor-crosshair touch-none" role="img" aria-label="World map; tap anywhere to inspect the weather at that location"
+              onPointerDown={event => { pointerStart.current = { x: event.clientX, y: event.clientY }; }}
+              onClick={event => {
+                if (pointerStart.current && Math.hypot(event.clientX - pointerStart.current.x, event.clientY - pointerStart.current.y) > 6) return;
+                const matrix = event.currentTarget.getScreenCTM();
+                if (!matrix) return;
+                const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+                if (point.x < 0 || point.x > 900 || point.y < 0 || point.y > 450) return;
+                setMapPoint({ lon: point.x / 900 * 360 - 180, lat: 90 - point.y / 450 * 180 });
+              }}>
+              <rect width="900" height="450" className="fill-storm-ocean" />
+              {[90, 180, 270, 360].map(y => <path key={y} d={`M0 ${y}H900`} className="stroke-storm-grid" strokeWidth="1" />)}
+              {[150, 300, 450, 600, 750].map(x => <path key={x} d={`M${x} 0V450`} className="stroke-storm-grid" strokeWidth="1" />)}
+              {world.flatMap((shape, index) => shapePaths(shape).map((path, i) => <path key={`${index}-${i}`} d={path} className="fill-storm-land stroke-storm-coast" strokeWidth="0.6" fillRule="evenodd" />))}
+              {track.map((path, index) => <path key={index} d={path} fill="none" className="stroke-storm-track" strokeWidth="2.5" strokeDasharray="5 3" />)}
+              {storms.map(storm => {
+                const [x, y] = project(storm.lon, storm.lat);
+                const picked = storm.id === selectedId;
+                return <g key={storm.id} transform={`translate(${x}, ${y})`} onClick={event => { event.stopPropagation(); setSelectedId(storm.id); setPeriod(isActive(storm) ? 'active' : 'recent'); }} className="cursor-pointer">
+                  {picked && <circle r="15" className="fill-storm-orange/20 stroke-storm-orange" strokeWidth="1.5" />}
+                  <circle r={picked ? 8 : 7} className={isActive(storm) ? 'fill-destructive stroke-background' : 'fill-storm-orange stroke-background'} strokeWidth="2" />
+                  <text y="-12" textAnchor="middle" className="pointer-events-none fill-storm-map-label text-[10px] font-bold" stroke="none">{storm.alert.eventname || storm.alert.name.replace('Tropical Cyclone ', '')}</text>
+                </g>;
+              })}
+              {mapPoint && <g transform={`translate(${project(mapPoint.lon, mapPoint.lat).join(',')})`} className="pointer-events-none"><circle r="9" className="fill-primary stroke-background" strokeWidth="3" /><circle r="3" className="fill-background" /></g>}
+            </svg>
+          </TransformComponent>
+        </div>
+        <div className="absolute bottom-2 right-2 flex gap-1 rounded-md border border-border bg-background/95 p-1 shadow-sm">
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Zoom in" aria-label="Zoom in" onClick={() => zoomIn()}><Plus className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Zoom out" aria-label="Zoom out" onClick={() => zoomOut()}><Minus className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Reset map" aria-label="Reset map" onClick={() => resetTransform()}><RotateCcw className="h-4 w-4" /></Button>
+        </div>
+      </div>}
+    </TransformWrapper>
+  );
+
+  const pointDetails = mapPoint && <div className="text-sm" aria-live="polite">
+    <p className="font-semibold"><MapPin className="mr-1 inline h-4 w-4" />{Math.abs(mapPoint.lat).toFixed(2)}°{mapPoint.lat >= 0 ? 'N' : 'S'}, {Math.abs(mapPoint.lon).toFixed(2)}°{mapPoint.lon >= 0 ? 'E' : 'W'}</p>
+    {mapLoading && <p className="text-muted-foreground">Loading weather at selected point…</p>}
+    {mapError && <p className="text-destructive">{mapError}</p>}
+    {mapWeather && <p className="text-muted-foreground">Model weather: {Math.round(mapWeather.temperature)}°C · Wind {Math.round(mapWeather.wind)} km/h · Rain {mapWeather.rain} mm · Pressure {Math.round(mapWeather.pressure)} hPa · Humidity {mapWeather.humidity}%</p>}
+  </div>;
 
   return (
     <section className="min-w-0 space-y-4" aria-label="Worldwide typhoon tracker">
@@ -159,24 +234,17 @@ export default function TyphoonTracker() {
         {updated && <span>· Checked {formatUTC(updated.toISOString())}</span>}
       </div>
 
-      <div className="overflow-hidden rounded-md border border-border bg-storm-ocean" role="img" aria-label="World map with cyclone alert locations and selected storm path">
-        <svg viewBox="0 0 900 450" className="block w-full" aria-hidden="true">
-          <rect width="900" height="450" className="fill-storm-ocean" />
-          {[90, 180, 270, 360].map(y => <path key={y} d={`M0 ${y}H900`} className="stroke-storm-grid" strokeWidth="1" />)}
-          {[150, 300, 450, 600, 750].map(x => <path key={x} d={`M${x} 0V450`} className="stroke-storm-grid" strokeWidth="1" />)}
-          {world.flatMap((shape, index) => shapePaths(shape).map((path, i) => <path key={`${index}-${i}`} d={path} className="fill-storm-land stroke-storm-coast" strokeWidth="0.6" fillRule="evenodd" />))}
-          {track.map((path, index) => <path key={index} d={path} fill="none" className="stroke-storm-track" strokeWidth="2.5" strokeDasharray="5 3" />)}
-          {storms.map(storm => {
-            const [x, y] = project(storm.lon, storm.lat);
-            const picked = storm.id === selectedId;
-            return <g key={storm.id} transform={`translate(${x}, ${y})`}>
-              {picked && <circle r="15" className="fill-storm-orange/20 stroke-storm-orange" strokeWidth="1.5" />}
-              <circle r={picked ? 6 : 4} className={isActive(storm) ? 'fill-destructive stroke-background' : 'fill-storm-orange stroke-background'} strokeWidth="2" />
-              <text y="-12" textAnchor="middle" className="fill-storm-map-label text-[10px] font-bold" stroke="none">{storm.alert.eventname || storm.alert.name.replace('Tropical Cyclone ', '')}</text>
-            </g>;
-          })}
-        </svg>
-      </div>
+      <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => setExpanded(true)}><Expand className="mr-2 h-4 w-4" /> Expand map</Button></div>
+      {mapView(false)}
+      {pointDetails}
+      <Dialog open={expanded} onOpenChange={setExpanded}>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-6xl max-h-[95dvh] overflow-y-auto p-3 sm:p-6">
+          <DialogHeader><DialogTitle>Worldwide weather map</DialogTitle></DialogHeader>
+          {mapView(true)}
+          {pointDetails}
+          <p className="text-xs text-muted-foreground">Tap any point for local model weather. Tap a cyclone dot for its alert details. Pinch or scroll to zoom; drag to move.</p>
+        </DialogContent>
+      </Dialog>
       <p className="text-xs text-muted-foreground">Map includes active and recently ended alerts. Dots show GDACS alert centroids, not the live storm eye. Dashed lines show the selected storm’s published path; they are not a future forecast.</p>
 
       <div className="flex gap-2 border-b border-border" role="tablist" aria-label="Cyclone status">

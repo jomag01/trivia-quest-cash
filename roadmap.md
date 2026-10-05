@@ -4,6 +4,7 @@
 - [x] Show seller thumbnails in Live previews and mark finished broadcasts ENDED instead of LIVE
 - [x] Travel affiliate partners (/travel), admin-set platform fees, profit dashboard, investor page (/investors)
 - [x] AI Services Weather: worldwide cyclone alerts, mapped locations and paths, detailed alerts and weather patterns
+- [x] AI Services Weather: expandable map with zoom, pan and point weather anywhere in the world
 
 ## Paid live plans (in progress)
 - [x] Fit broadcaster controls and extra-hours payment within phone screens, clear of bottom navigation
