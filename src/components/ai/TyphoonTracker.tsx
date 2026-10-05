@@ -170,7 +170,7 @@ export default function TyphoonTracker() {
   const mapView = (large: boolean) => (
     <TransformWrapper minScale={1} maxScale={8} centerOnInit limitToBounds initialScale={1} doubleClick={{ mode: 'zoomIn' }}>
       {({ zoomIn, zoomOut, resetTransform }) => <div className="relative">
-        <div className={`overflow-hidden rounded-md border border-border bg-storm-ocean ${large ? 'h-[min(62vh,650px)]' : 'aspect-[2/1]'}`} aria-label="Interactive world map with cyclone alerts; drag to move and tap anywhere for weather">
+        <div className={`overflow-hidden rounded-md border border-border bg-storm-ocean ${large ? 'aspect-[2/1] sm:aspect-auto sm:h-[min(62vh,650px)]' : 'aspect-[2/1]'}`} aria-label="Interactive world map with cyclone alerts; drag to move and tap anywhere for weather">
           <TransformComponent wrapperClass="!w-full !h-full" contentClass="!w-full !h-full">
             <svg viewBox="0 0 900 450" preserveAspectRatio="xMidYMid meet" className="block h-full w-full cursor-crosshair touch-none" role="img" aria-label="World map; tap anywhere to inspect the weather at that location"
               onPointerDown={event => { pointerStart.current = { x: event.clientX, y: event.clientY }; }}
