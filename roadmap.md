@@ -5,6 +5,7 @@
 - [x] Travel affiliate partners (/travel), admin-set platform fees, profit dashboard, investor page (/investors)
 - [x] AI Services Weather: worldwide cyclone alerts, mapped locations and paths, detailed alerts and weather patterns
 - [x] AI Services Weather: expandable map with zoom, pan and point weather anywhere in the world
+- [ ] Integrate Seedance 2.5 into AI video production — blocked: absent from the workspace model catalog; needs a confirmed provider offering this version
 
 ## Paid live plans (in progress)
 - [x] Fit broadcaster controls and extra-hours payment within phone screens, clear of bottom navigation
