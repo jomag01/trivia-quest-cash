@@ -112,7 +112,7 @@ function Partners() {
 function Inquiries() {
   const [rows, setRows] = useState<any[]>([]);
   useEffect(() => { supabase.from("investor_inquiries").select("*").order("created_at", { ascending: false }).then(({ data }) => setRows(data ?? [])); }, []);
-  if (!rows.length) return <p className="text-sm text-muted-foreground">No investor messages yet. Share triviabees.com/investors.</p>;
+  if (!rows.length) return <p className="text-sm text-muted-foreground">No investor messages yet. Share beesbuy.com/investors.</p>;
   return (
     <div className="space-y-3">{rows.map(r => (
       <Card key={r.id}><CardContent className="p-4 text-sm">

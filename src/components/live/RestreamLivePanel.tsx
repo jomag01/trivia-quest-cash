@@ -74,9 +74,9 @@ export default function RestreamLivePanel({ streamId, onClose }: Props) {
             </div>
             <ol className="text-sm space-y-1 list-decimal pl-5 text-muted-foreground">
               <li>In Restream, open <b>Channels → Add Channel → Custom RTMP</b>.</li>
-              <li>Paste the Server URL and Stream key above, name it "Triviabees", and save.</li>
-              <li>Turn on Facebook, YouTube and Triviabees, then start your live in Restream.</li>
-              <li>This screen shows <b>● LIVE</b> once Triviabees receives your video.</li>
+              <li>Paste the Server URL and Stream key above, name it "BeesBuy", and save.</li>
+              <li>Turn on Facebook, YouTube and BeesBuy, then start your live in Restream.</li>
+              <li>This screen shows <b>● LIVE</b> once BeesBuy receives your video.</li>
             </ol>
           </>
         )}

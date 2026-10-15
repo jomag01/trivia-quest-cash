@@ -9,7 +9,7 @@ interface Ctx {
   startBroadcast: (id: string) => void;
 }
 
-const KEY = "triviabees-active-live";
+const KEY = "beesbuy-active-live";
 const LiveBroadcastContext = createContext<Ctx>({ streamId: null, startBroadcast: () => {} });
 
 export const useLiveBroadcast = () => useContext(LiveBroadcastContext);

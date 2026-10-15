@@ -79,7 +79,7 @@ export const COURIERS = [
   { value: "shopee", label: "Shopee Xpress" },
   { value: "lazada", label: "Lazada Logistics" },
   { value: "flash", label: "Flash Express" },
-  { value: "triviabees", label: "Triviabees Courier" },
+  { value: "beesbuy", label: "BeesBuy Courier" },
   { value: "other", label: "Other" }
 ];
 

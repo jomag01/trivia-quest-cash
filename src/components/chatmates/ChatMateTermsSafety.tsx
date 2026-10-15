@@ -38,7 +38,7 @@ export function ChatMateTermsSafety() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
-              <strong>Triviabees BeesMate Finder</strong> is an <strong>interest-based social chat feature</strong>. 
+              <strong>BeesBuy BeesMate Finder</strong> is an <strong>interest-based social chat feature</strong>. 
               It is designed for:
             </p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
@@ -262,7 +262,7 @@ export function ChatMateTermsSafety() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Triviabees Chat Mate Finder complies with:
+              BeesBuy Chat Mate Finder complies with:
             </p>
             <div className="flex flex-wrap gap-2">
               <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">

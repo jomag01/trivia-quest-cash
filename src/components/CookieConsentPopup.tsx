@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Cookie, X, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const COOKIE_CONSENT_KEY = 'triviabees_cookie_consent';
+const COOKIE_CONSENT_KEY = 'beesbuy_cookie_consent';
 
 export const CookieConsentPopup = () => {
   const [showPopup, setShowPopup] = useState(false);

@@ -86,7 +86,7 @@ const AdsPromoPopup: React.FC<AdsPromoPopupProps> = ({ open, onOpenChange, prefi
                 <div>
                   <Badge className="bg-yellow-400 text-yellow-900 mb-1">NEW FEATURE</Badge>
                   <DialogTitle className="text-2xl font-bold text-white">
-                    TriviaBees AI Ads Maker
+                    BeesBuy AI Ads Maker
                   </DialogTitle>
                 </div>
               </div>

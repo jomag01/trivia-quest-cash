@@ -4,7 +4,7 @@ import { supabaseForUser } from "../supabase";
 export default defineTool({
   name: "get_my_profile",
   title: "Get my profile",
-  description: "Get the signed-in user's Triviabees profile, referral code and Cash Wallet balance.",
+  description: "Get the signed-in user's BeesBuy profile, referral code and Cash Wallet balance.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_args, ctx) => {

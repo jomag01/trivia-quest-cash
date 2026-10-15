@@ -48,7 +48,7 @@ serve(async (req) => {
       }
       amount = Number(order.total_amount);
       description = `Live order ${order.order_number}`;
-      const appUrl = Deno.env.get("APP_URL") || "https://triviabees.com";
+      const appUrl = Deno.env.get("APP_URL") || "https://beesbuy.com";
       const secret = Deno.env.get("PAYMONGO_SECRET_KEY");
       if (!secret) throw new Error("Payment provider not configured");
       const res = await fetch("https://api.paymongo.com/v1/checkout_sessions", {
@@ -80,7 +80,7 @@ serve(async (req) => {
       if (!plan || !plan.is_active || Number(plan.price_per_session) <= 0) throw new Error("Plan not available");
       const { data: passId, error: passErr } = await supabaseClient.rpc("live_create_pending_pass", { _plan_code: planCode });
       if (passErr || !passId) throw new Error("Could not create pass");
-      const appUrl = Deno.env.get("APP_URL") || "https://triviabees.com";
+      const appUrl = Deno.env.get("APP_URL") || "https://beesbuy.com";
       const secret = Deno.env.get("PAYMONGO_SECRET_KEY");
       if (!secret) throw new Error("Payment provider not configured");
       const desc = `${plan.name} session pass`;

@@ -463,7 +463,7 @@ const BusinessSolutions: React.FC<BusinessSolutionsProps> = ({ userCredits, onCr
       
       const pptx = new pptxgen();
       pptx.title = generatedPPT.title || 'Presentation';
-      pptx.author = 'TriviaBees AIhives';
+      pptx.author = 'BeesBuy AIhives';
       
       // Design configurations
       const designConfigs: Record<string, {

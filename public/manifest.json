@@ -1,6 +1,6 @@
 {
-  "name": "Triviabees - AI, Play, Win, Earn",
-  "short_name": "Triviabees",
+  "name": "BeesBuy - AI, Play, Win, Earn",
+  "short_name": "BeesBuy",
   "description": "Test your knowledge with our exciting trivia game. Earn while you play through our 7-level affiliate system and use our AI generative tools.",
   "start_url": "/",
   "scope": "/",
@@ -79,7 +79,7 @@
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Triviabees Home Screen"
+      "label": "BeesBuy Home Screen"
     }
   ],
   "shortcuts": [

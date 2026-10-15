@@ -27,7 +27,7 @@ export default function Travel() {
   const [cat, setCat] = useState("all");
 
   useEffect(() => {
-    document.title = "Travel – Flights, Hotels & Tours | Triviabees";
+    document.title = "Travel – Flights, Hotels & Tours | BeesBuy";
     supabase.from("travel_partners").select("id,name,category,description,logo_url,url_template")
       .eq("is_active", true).order("sort_order")
       .then(({ data }) => setPartners((data as Partner[]) ?? []));
@@ -84,7 +84,7 @@ export default function Travel() {
         ))}
         {shown.length === 0 && <p className="text-muted-foreground">No partners in this category yet.</p>}
       </section>
-      <p className="text-xs text-muted-foreground text-center mt-8 px-4">Bookings are completed on the partner's website. Triviabees may earn a commission.</p>
+      <p className="text-xs text-muted-foreground text-center mt-8 px-4">Bookings are completed on the partner's website. BeesBuy may earn a commission.</p>
     </main>
   );
 }

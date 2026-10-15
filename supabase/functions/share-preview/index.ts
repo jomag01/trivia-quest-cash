@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     );
 
     let meta: EntityMeta | null = null;
-    const baseUrl = Deno.env.get('SITE_URL') || 'https://triviabees.lovable.app';
+    const baseUrl = Deno.env.get('SITE_URL') || 'https://beesbuy.lovable.app';
     
     // Path mapping for different entity types
     const pathMap: Record<string, string> = {
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
           const price = data.price || data.base_price;
           meta = {
             title: data.name,
-            description: data.description?.substring(0, 160) || `Check out ${data.name} on Triviabees!`,
+            description: data.description?.substring(0, 160) || `Check out ${data.name} on BeesBuy!`,
             image: data.image_url || `${baseUrl}/og-image.png`,
             price: price ? `₱${price.toLocaleString()}` : undefined,
             type: 'product',
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
           const bid = data.current_bid || data.starting_bid;
           meta = {
             title: data.title,
-            description: data.description?.substring(0, 160) || `Bid on ${data.title} - Live Auction on Triviabees!`,
+            description: data.description?.substring(0, 160) || `Bid on ${data.title} - Live Auction on BeesBuy!`,
             image: data.images?.[0] || `${baseUrl}/og-image.png`,
             price: bid ? `₱${bid.toLocaleString()} current bid` : undefined,
             type: 'product',
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
         if (data) {
           meta = {
             title: data.name,
-            description: data.description?.substring(0, 160) || `Order from ${data.name} on Triviabees Food Delivery!`,
+            description: data.description?.substring(0, 160) || `Order from ${data.name} on BeesBuy Food Delivery!`,
             image: data.banner_url || data.image_url || `${baseUrl}/og-image.png`,
             type: 'restaurant.menu',
           };
@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
           const vendorName = (data as any).vendor?.name || 'Restaurant';
           meta = {
             title: data.name,
-            description: data.description?.substring(0, 160) || `Order ${data.name} from ${vendorName} on Triviabees!`,
+            description: data.description?.substring(0, 160) || `Order ${data.name} from ${vendorName} on BeesBuy!`,
             image: data.image_url || `${baseUrl}/og-image.png`,
             price: data.price ? `₱${data.price.toLocaleString()}` : undefined,
             type: 'product',
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
         if (data) {
           meta = {
             title: data.title,
-            description: data.description?.substring(0, 160) || `Check out ${data.title} on Triviabees Marketplace!`,
+            description: data.description?.substring(0, 160) || `Check out ${data.title} on BeesBuy Marketplace!`,
             image: data.thumbnail_url || data.images?.[0] || `${baseUrl}/og-image.png`,
             price: data.price ? `₱${data.price.toLocaleString()}` : undefined,
             type: 'product',
@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
         if (data) {
           meta = {
             title: data.name,
-            description: data.description?.substring(0, 160) || `Book ${data.name} on Triviabees!`,
+            description: data.description?.substring(0, 160) || `Book ${data.name} on BeesBuy!`,
             image: data.images?.[0] || `${baseUrl}/og-image.png`,
             price: data.price ? `From ₱${data.price.toLocaleString()}` : undefined,
             type: 'service',
@@ -183,8 +183,8 @@ Deno.serve(async (req) => {
     // Default fallback
     if (!meta) {
       meta = {
-        title: 'Triviabees - AI, Play, Win, Earn',
-        description: 'Discover amazing products, services, and auctions on Triviabees!',
+        title: 'BeesBuy - AI, Play, Win, Earn',
+        description: 'Discover amazing products, services, and auctions on BeesBuy!',
         image: `${baseUrl}/og-image.png`,
         type: 'website',
       };
@@ -222,10 +222,10 @@ Deno.serve(async (req) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(meta.title)} | Triviabees</title>
+  <title>${escapeHtml(meta.title)} | BeesBuy</title>
   
   <!-- Primary Meta Tags -->
-  <meta name="title" content="${escapeHtml(meta.title)} | Triviabees">
+  <meta name="title" content="${escapeHtml(meta.title)} | BeesBuy">
   <meta name="description" content="${escapeHtml(meta.description)}">
   
   <!-- Open Graph / Facebook -->
@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
   <meta property="og:image" content="${imageUrl}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:site_name" content="Triviabees">
+  <meta property="og:site_name" content="BeesBuy">
   ${meta.price ? `<meta property="product:price:amount" content="${meta.price}">` : ''}
   
   <!-- Twitter -->

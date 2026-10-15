@@ -24,12 +24,12 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground">1. Acceptance of Terms</h2>
-            <p>By accessing or using TriviaBees, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our platform.</p>
+            <p>By accessing or using BeesBuy, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our platform.</p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-foreground">2. Description of Service</h2>
-            <p>TriviaBees is a platform that provides gaming, marketplace, AI content creation, and affiliate marketing services. Users can earn diamonds and credits through various activities including games, referrals, and purchases.</p>
+            <p>BeesBuy is a platform that provides gaming, marketplace, AI content creation, and affiliate marketing services. Users can earn diamonds and credits through various activities including games, referrals, and purchases.</p>
           </section>
 
           <section>
@@ -90,12 +90,12 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground">8. Intellectual Property</h2>
-            <p>All content on TriviaBees, including but not limited to text, graphics, logos, and software, is the property of TriviaBees or its licensors and is protected by copyright and other intellectual property laws.</p>
+            <p>All content on BeesBuy, including but not limited to text, graphics, logos, and software, is the property of BeesBuy or its licensors and is protected by copyright and other intellectual property laws.</p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-foreground">9. Limitation of Liability</h2>
-            <p>TriviaBees shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the service.</p>
+            <p>BeesBuy shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the service.</p>
           </section>
 
           <section>
@@ -110,12 +110,12 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground">12. Governing Law</h2>
-            <p>These terms shall be governed by and construed in accordance with the laws of the jurisdiction in which TriviaBees operates.</p>
+            <p>These terms shall be governed by and construed in accordance with the laws of the jurisdiction in which BeesBuy operates.</p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-foreground">13. Contact</h2>
-            <p>For questions about these Terms of Service, contact us at support@triviabees.com</p>
+            <p>For questions about these Terms of Service, contact us at support@beesbuy.com</p>
           </section>
         </div>
       </div>

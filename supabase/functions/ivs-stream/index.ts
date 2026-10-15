@@ -201,7 +201,7 @@ async function getStageSigningKey(supabase: any): Promise<{ arn: string; key: Cr
     const spki = new Uint8Array(await crypto.subtle.exportKey('spki', pair.publicKey));
     let b = ''; spki.forEach((x) => (b += String.fromCharCode(x)));
     const pem = `-----BEGIN PUBLIC KEY-----\n${btoa(b).match(/.{1,64}/g)!.join('\n')}\n-----END PUBLIC KEY-----\n`;
-    const imported = await ivsRealtimeRequest('ImportPublicKey', { publicKeyMaterial: pem, name: `triviabees-${Date.now()}` });
+    const imported = await ivsRealtimeRequest('ImportPublicKey', { publicKeyMaterial: pem, name: `beesbuy-${Date.now()}` });
     const arn = (imported.publicKey as { arn: string }).arn;
     const jwk = await crypto.subtle.exportKey('jwk', pair.privateKey);
     await supabase.from('ivs_stage_keys').insert({ id: 1, public_key_arn: arn, private_jwk: jwk });
@@ -295,7 +295,7 @@ serve(async (req) => {
       case 'restream-ingest':
       case 'restream-status':
       case 'restream-end': {
-        // Restream → Triviabees: seller's Restream sends RTMP to an IVS channel we own.
+        // Restream → BeesBuy: seller's Restream sends RTMP to an IVS channel we own.
         const token = (req.headers.get('Authorization') || '').replace('Bearer ', '');
         const { data: authData } = await supabase.auth.getUser(token);
         const authUser = authData?.user;
