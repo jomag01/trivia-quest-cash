@@ -24,7 +24,7 @@ const generateFingerprint = (): string => {
   if (ctx) {
     ctx.textBaseline = 'top';
     ctx.font = '14px Arial';
-    ctx.fillText('triviabees', 2, 2);
+    ctx.fillText('beesbuy', 2, 2);
   }
   const canvasData = canvas.toDataURL();
   

@@ -13,13 +13,13 @@ export const AppPresentationGenerator = () => {
     
     try {
       const pptx = new pptxgen();
-      pptx.author = "Triviabees";
-      pptx.title = "Triviabees - Complete Platform Guide";
+      pptx.author = "BeesBuy";
+      pptx.title = "BeesBuy - Complete Platform Guide";
       pptx.subject = "Earning Opportunities & Features";
 
       // Slide 1: Title
       let slide = pptx.addSlide();
-      slide.addText("TRIVIABEES", {
+      slide.addText("BEESBUY", {
         x: 0.5, y: 1.5, w: 9, h: 1.5,
         fontSize: 48, bold: true, color: "F59E0B",
         align: "center"
@@ -394,7 +394,7 @@ export const AppPresentationGenerator = () => {
       });
 
       // Save the presentation
-      await pptx.writeFile({ fileName: "Triviabees_Complete_Guide.pptx" });
+      await pptx.writeFile({ fileName: "BeesBuy_Complete_Guide.pptx" });
       toast.success("Presentation downloaded successfully!");
     } catch (error) {
       console.error("Error generating presentation:", error);
@@ -409,7 +409,7 @@ export const AppPresentationGenerator = () => {
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
           <FileText className="h-5 w-5 text-amber-600" />
-          Learn About Triviabees
+          Learn About BeesBuy
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">

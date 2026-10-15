@@ -4,7 +4,7 @@ import { supabaseForUser } from "../supabase";
 export default defineTool({
   name: "list_live_streams",
   title: "List live selling streams",
-  description: "List sellers who are live selling on Triviabees right now.",
+  description: "List sellers who are live selling on BeesBuy right now.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_args, ctx) => {
@@ -18,7 +18,7 @@ export default defineTool({
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     const streams = (data ?? []).map((s: any) => ({
       id: String(s.id), title: String(s.title ?? ""), viewers: Number(s.viewer_count ?? 0),
-      url: `https://triviabees.com/live?id=${s.id}`,
+      url: `https://beesbuy.com/live?id=${s.id}`,
     }));
     return { content: [{ type: "text", text: JSON.stringify(streams) }], structuredContent: { streams } };
   },

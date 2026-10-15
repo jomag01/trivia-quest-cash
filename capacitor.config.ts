@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.lovable.c512181307b84e4689a38c4951e10c56',
-  appName: 'triviabees',
+  appName: 'beesbuy',
   webDir: 'dist',
   // Store builds bundle the app from /dist. For live-reload testing only, run with CAP_LIVE_RELOAD=1.
   ...(process.env.CAP_LIVE_RELOAD
@@ -35,7 +35,7 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: 'automatic',
     preferredContentMode: 'mobile',
-    scheme: 'triviabees',
+    scheme: 'beesbuy',
   },
   android: {
     allowMixedContent: false,

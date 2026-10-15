@@ -1,5 +1,5 @@
 -- =============================================
--- TRIVIABEES COURIER & PARCEL DELIVERY SYSTEM
+-- BEESBUY COURIER & PARCEL DELIVERY SYSTEM
 -- Full Database Schema for National-Scale Operations
 -- =============================================
 

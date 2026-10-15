@@ -227,7 +227,7 @@ export function ChatMateBusinessNetworking() {
               <div className="space-y-2">
                 <Label>Company / Organization</Label>
                 <Input
-                  placeholder="e.g., Triviabees Inc."
+                  placeholder="e.g., BeesBuy Inc."
                   value={businessProfile.company_name}
                   onChange={(e) => setBusinessProfile(prev => ({ 
                     ...prev, company_name: e.target.value 

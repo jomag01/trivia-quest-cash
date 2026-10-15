@@ -111,7 +111,7 @@ const AIHub = memo(() => {
   // Dynamic meta tags based on active tab
   const getTabMetaInfo = () => {
     const tabMeta: Record<string, { title: string; description: string }> = {
-      home: { title: 'AI Hub - AI-Powered Tools', description: 'Powerful AI tools for content creation, image generation, video editing, and more on Triviabees.' },
+      home: { title: 'AI Hub - AI-Powered Tools', description: 'Powerful AI tools for content creation, image generation, video editing, and more on BeesBuy.' },
       weather: { title: 'GraphCast AI Weather', description: '10-day AI-powered weather predictions with GraphCast technology.' },
       blog: { title: 'Tech Blog', description: 'Latest technology news, articles, and tutorials.' },
       image: { title: 'AI Image Generator', description: 'Create stunning images with AI technology.' },

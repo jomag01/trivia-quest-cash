@@ -35,7 +35,7 @@ export default function Investors() {
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    document.title = "Invest in Triviabees – Investor Relations";
+    document.title = "Invest in BeesBuy – Investor Relations";
     supabase.rpc("get_public_traction").then(({ data }) => setT(data as Record<string, number>));
   }, []);
 
@@ -59,7 +59,7 @@ export default function Investors() {
         <p className="text-sm uppercase tracking-widest text-primary font-semibold">Investor Relations</p>
         <h1 className="text-4xl md:text-5xl font-bold text-foreground mt-3">One app for shopping, live selling, AI and travel in the Philippines</h1>
         <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
-          Triviabees combines e-commerce, live commerce, AI tools, bookings and a referral community into a single super-app, with many revenue streams on one user base.
+          BeesBuy combines e-commerce, live commerce, AI tools, bookings and a referral community into a single super-app, with many revenue streams on one user base.
         </p>
         <Button className="mt-6" size="lg" onClick={() => document.getElementById("invest")?.scrollIntoView({ behavior: "smooth" })}>Talk to the founder</Button>
       </section>

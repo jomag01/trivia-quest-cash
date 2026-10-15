@@ -57,7 +57,7 @@ const Install = () => {
             </div>
             <CardTitle className="text-2xl">Already Installed!</CardTitle>
             <CardDescription>
-              Triviabees is installed on your device. Open it from your home screen.
+              BeesBuy is installed on your device. Open it from your home screen.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -72,7 +72,7 @@ const Install = () => {
           <div className="mx-auto w-20 h-20 bg-primary/20 rounded-2xl flex items-center justify-center mb-4">
             <Smartphone className="w-10 h-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Install Triviabees</CardTitle>
+          <CardTitle className="text-2xl">Install BeesBuy</CardTitle>
           <CardDescription>
             Get the full app experience with offline access and push notifications
           </CardDescription>

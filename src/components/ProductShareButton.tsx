@@ -58,7 +58,7 @@ export const ProductShareButton = ({
     <div onClick={(e) => e.stopPropagation()}>
       <SocialShareMenu
         title={`Check out ${productName}!`}
-        description={`I found this amazing product: ${productName}. Check it out on Triviabees! 🐝`}
+        description={`I found this amazing product: ${productName}. Check it out on BeesBuy! 🐝`}
         path="/shop"
         params={shareParams}
         variant={variant}

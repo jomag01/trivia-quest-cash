@@ -11,7 +11,7 @@ interface MetaTagsConfig {
 export const useMetaTags = (config: MetaTagsConfig) => {
   useEffect(() => {
     const { title, description, image, url, type = 'website' } = config;
-    const fullTitle = title ? `${title} | Triviabees` : 'Triviabees - AI, Play, Win, Earn shop and connect';
+    const fullTitle = title ? `${title} | BeesBuy` : 'BeesBuy - AI, Play, Win, Earn shop and connect';
     const baseUrl = window.location.origin;
     const fullUrl = url || window.location.href;
     const fullImage = image?.startsWith('http') ? image : `${baseUrl}${image || '/og-image.png'}`;
@@ -52,7 +52,7 @@ export const useMetaTags = (config: MetaTagsConfig) => {
 
     // Cleanup - restore defaults
     return () => {
-      document.title = 'Triviabees - AI, Play, Win, Earn shop and connect';
+      document.title = 'BeesBuy - AI, Play, Win, Earn shop and connect';
     };
   }, [config.title, config.description, config.image, config.url, config.type]);
 };

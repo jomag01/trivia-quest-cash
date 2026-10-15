@@ -286,8 +286,8 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                   onClick={() => setUseRestream(false)}
                   className={`rounded-lg border p-3 text-left transition-colors ${!useRestream ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border"}`}
                 >
-                  <p className="text-sm font-medium">Triviabees only</p>
-                  <p className="text-xs text-muted-foreground mt-1">Go live with your phone camera, only inside Triviabees.</p>
+                  <p className="text-sm font-medium">BeesBuy only</p>
+                  <p className="text-xs text-muted-foreground mt-1">Go live with your phone camera, only inside BeesBuy.</p>
                 </button>
                 <button
                   type="button"
@@ -297,7 +297,7 @@ export default function GoLiveDialog({ open, onOpenChange, onGoLive }: GoLiveDia
                 >
                   <p className="text-sm font-medium">Cross-platform</p>
                   {!crossAllowed && <p className="text-[10px] font-semibold text-primary mt-1">Upgrade to a higher plan to unlock</p>}
-                  <p className="text-xs text-muted-foreground mt-1">Stream once in Restream and show on Facebook, YouTube and Triviabees at the same time.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Stream once in Restream and show on Facebook, YouTube and BeesBuy at the same time.</p>
                 </button>
               </div>
             </div>

@@ -115,7 +115,7 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground">13. Contact</h2>
-            <p>For questions about these Terms of Service, contact us at support@triviabees.com</p>
+            <p>For questions about these Terms of Service, contact us at support@beesbuy.com</p>
           </section>
         </div>
       </div>

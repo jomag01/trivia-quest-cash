@@ -11,15 +11,15 @@
   },
   "mcp": {
     "server": {
-      "name": "triviabees",
+      "name": "beesbuy",
       "version": "0.1.0",
-      "title": "triviabees"
+      "title": "beesbuy"
     },
     "tools": [
       {
         "name": "get_my_profile",
         "title": "Get my profile",
-        "description": "Get the signed-in user's Triviabees profile, referral code and Cash Wallet balance.",
+        "description": "Get the signed-in user's BeesBuy profile, referral code and Cash Wallet balance.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -61,7 +61,7 @@
       {
         "name": "list_live_streams",
         "title": "List live selling streams",
-        "description": "List sellers who are live selling on Triviabees right now.",
+        "description": "List sellers who are live selling on BeesBuy right now.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,

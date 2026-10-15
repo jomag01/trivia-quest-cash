@@ -224,7 +224,7 @@ export default function SuggestedProductsToPromote() {
             </Button>
             <SocialShareMenu
               title={`Check out ${item.name}!`}
-              description={`Amazing ${item.type} on Triviabees!`}
+              description={`Amazing ${item.type} on BeesBuy!`}
               path={getSharePath(item.type)}
               params={{ [item.type]: item.id, ref: profile?.referral_code || '', src: 'share' }}
               variant="ghost"

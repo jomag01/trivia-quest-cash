@@ -97,7 +97,7 @@ const PrivacyPolicy = () => {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground">10. Contact Us</h2>
-            <p>If you have questions about this privacy policy, please contact us at support@triviabees.com</p>
+            <p>If you have questions about this privacy policy, please contact us at support@beesbuy.com</p>
           </section>
         </div>
       </div>

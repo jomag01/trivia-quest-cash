@@ -58,7 +58,7 @@ function supabaseForUser(ctx) {
 var get_my_profile_default = defineTool({
   name: "get_my_profile",
   title: "Get my profile",
-  description: "Get the signed-in user's Triviabees profile, referral code and Cash Wallet balance.",
+  description: "Get the signed-in user's BeesBuy profile, referral code and Cash Wallet balance.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_args, ctx) => {
@@ -107,7 +107,7 @@ import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@3.0.4";
 var list_live_streams_default = defineTool3({
   name: "list_live_streams",
   title: "List live selling streams",
-  description: "List sellers who are live selling on Triviabees right now.",
+  description: "List sellers who are live selling on BeesBuy right now.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_args, ctx) => {
@@ -118,7 +118,7 @@ var list_live_streams_default = defineTool3({
       id: String(s.id),
       title: String(s.title ?? ""),
       viewers: Number(s.viewer_count ?? 0),
-      url: `https://triviabees.com/live?id=${s.id}`
+      url: `https://beesbuy.com/live?id=${s.id}`
     }));
     return { content: [{ type: "text", text: JSON.stringify(streams) }], structuredContent: { streams } };
   }
@@ -127,10 +127,10 @@ var list_live_streams_default = defineTool3({
 // src/lib/mcp/index.ts
 var projectRef = "pcsancednuywpxvuruqb";
 var mcp_default = defineMcp({
-  name: "triviabees",
-  title: "triviabees",
+  name: "beesbuy",
+  title: "beesbuy",
   version: "0.1.0",
-  instructions: "Tools for Triviabees. Use get_my_profile for the user's profile and wallet, list_my_orders for their orders, and list_live_streams to see who is live selling now.",
+  instructions: "Tools for BeesBuy. Use get_my_profile for the user's profile and wallet, list_my_orders for their orders, and list_live_streams to see who is live selling now.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"

@@ -91,15 +91,15 @@ serve(async (req) => {
         .map((line: string) => `<p>${line}</p>`)
         .join('')}
       <p style="text-align: center;">
-        <a href="https://triviabees.com" class="cta-button">Visit TriviaBees →</a>
+        <a href="https://beesbuy.com" class="cta-button">Visit TriviaBees →</a>
       </p>
     </div>
     <div class="footer">
       <p>You're receiving this because you subscribed to TriviaBees updates.</p>
       <p>
-        <a href="mailto:support@triviabees.com?subject=Unsubscribe">Unsubscribe</a>
+        <a href="mailto:support@beesbuy.com?subject=Unsubscribe">Unsubscribe</a>
         |
-        <a href="https://triviabees.com">View in browser</a>
+        <a href="https://beesbuy.com">View in browser</a>
       </p>
     </div>
   </div>
@@ -107,8 +107,8 @@ serve(async (req) => {
 </html>`;
 
         const sendResult = await resend.emails.send({
-          from: "TriviaBees <no-reply@triviabees.com>",
-          reply_to: "support@triviabees.com",
+          from: "TriviaBees <no-reply@beesbuy.com>",
+          reply_to: "support@beesbuy.com",
           to: [subscriber.email],
           subject: newsletter.subject,
           html: emailHtml,
@@ -148,7 +148,7 @@ serve(async (req) => {
         // If domain isn't verified, continuing will never succeed.
         if (message.toLowerCase().includes("domain is not verified")) {
           fatalError =
-            "Email sending is blocked because the sending domain is not verified with the email provider. Please verify triviabees.com, then resend the campaign.";
+            "Email sending is blocked because the sending domain is not verified with the email provider. Please verify beesbuy.com, then resend the campaign.";
           break;
         }
       }

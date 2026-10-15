@@ -117,8 +117,8 @@ export default function VideoFeed({ videos, onClose }: VideoFeedProps) {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: `${currentVideo?.profiles?.full_name || 'Someone'} on Triviabees`,
-          text: currentVideo?.content?.substring(0, 100) || 'Check out this video on Triviabees!',
+          title: `${currentVideo?.profiles?.full_name || 'Someone'} on BeesBuy`,
+          text: currentVideo?.content?.substring(0, 100) || 'Check out this video on BeesBuy!',
           url: shareUrl
         });
       } else {

@@ -1,7 +1,7 @@
 // Ultra-optimized Service Worker for 100M+ concurrent users
 // Features: Aggressive caching, stale-while-revalidate, offline support, request coalescing
 
-const CACHE_VERSION = 'triviabees-v7';
+const CACHE_VERSION = 'beesbuy-v7';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -39,7 +39,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then(keys => 
       Promise.all(
         keys
-          .filter(key => key.startsWith('triviabees-') && 
+          .filter(key => key.startsWith('beesbuy-') && 
                         key !== STATIC_CACHE && 
                         key !== DYNAMIC_CACHE && 
                         key !== API_CACHE &&

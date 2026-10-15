@@ -11,17 +11,17 @@ export const MOBILE_CONFIG = {
   // App identifiers
   app: {
     id: 'app.lovable.c512181307b84e4689a38c4951e10c56',
-    name: 'Triviabees',
+    name: 'BeesBuy',
     version: '1.0.0',
     bundleVersion: 1,
   },
   
   // Deep linking configuration
   deepLinks: {
-    scheme: 'triviabees',
+    scheme: 'beesbuy',
     universalLinks: [
-      'https://triviabees.com',
-      'https://www.triviabees.com',
+      'https://beesbuy.com',
+      'https://www.beesbuy.com',
       'https://c5121813-07b8-4e46-89a3-8c4951e10c56.lovableproject.com',
     ],
     paths: [

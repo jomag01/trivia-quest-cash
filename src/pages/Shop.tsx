@@ -88,10 +88,10 @@ const Shop = () => {
   // Dynamic meta tags for shop
   const productIdFromUrl = searchParams.get('product');
   useMetaTags({
-    title: detailProduct ? detailProduct.name : 'Shop - Triviabees Marketplace',
+    title: detailProduct ? detailProduct.name : 'Shop - BeesBuy Marketplace',
     description: detailProduct 
-      ? `${detailProduct.description?.substring(0, 150) || detailProduct.name} - Shop now on Triviabees!`
-      : 'Discover amazing products, services, and auctions on Triviabees marketplace. Shop and earn rewards!',
+      ? `${detailProduct.description?.substring(0, 150) || detailProduct.name} - Shop now on BeesBuy!`
+      : 'Discover amazing products, services, and auctions on BeesBuy marketplace. Shop and earn rewards!',
     image: detailProduct?.image_url,
     url: productIdFromUrl 
       ? `${window.location.origin}/shop?product=${productIdFromUrl}`

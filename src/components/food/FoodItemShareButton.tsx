@@ -50,7 +50,7 @@ export const FoodItemShareButton = ({
     <div onClick={(e) => e.stopPropagation()}>
       <SocialShareMenu
         title={`Order ${foodItemName}!`}
-        description={`Check out ${foodItemName} on Triviabees Food Delivery! 🍔🐝`}
+        description={`Check out ${foodItemName} on BeesBuy Food Delivery! 🍔🐝`}
         path="/food"
         params={shareParams}
         variant={variant}

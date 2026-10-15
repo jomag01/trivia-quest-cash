@@ -109,8 +109,8 @@ export default function XPostCard({ post, onCommentsClick, onDelete }: XPostCard
     try {
       if (navigator.share) {
         await navigator.share({ 
-          title: `${post.profiles?.full_name || 'Someone'} on Triviabees`,
-          text: post.content?.substring(0, 100) || 'Check out this post on Triviabees!',
+          title: `${post.profiles?.full_name || 'Someone'} on BeesBuy`,
+          text: post.content?.substring(0, 100) || 'Check out this post on BeesBuy!',
           url: shareUrl 
         });
       } else {

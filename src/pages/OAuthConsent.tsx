@@ -55,14 +55,14 @@ export default function OAuthConsent() {
     <main className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>{error ? "Couldn't load this request" : details ? `Connect ${name} to Triviabees` : "Loading…"}</CardTitle>
+          <CardTitle>{error ? "Couldn't load this request" : details ? `Connect ${name} to BeesBuy` : "Loading…"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && <p className="text-sm text-destructive">{error}</p>}
           {details && !error && (
             <>
               <p className="text-sm text-muted-foreground">
-                {name} will be able to use Triviabees as you: see your profile, wallet balance, orders and live streams.
+                {name} will be able to use BeesBuy as you: see your profile, wallet balance, orders and live streams.
               </p>
               <div className="flex gap-2">
                 <Button className="flex-1" disabled={busy} onClick={() => decide(true)}>Approve</Button>

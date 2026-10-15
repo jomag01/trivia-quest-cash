@@ -344,7 +344,7 @@ const ChatsTabContent = ({
 
   return (
     <div className="divide-y">
-      {/* System Message - Triviabees Bot */}
+      {/* System Message - BeesBuy Bot */}
       <div className="bg-purple-50 dark:bg-purple-950/30">
         <div className="flex items-start gap-3 p-4">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">

@@ -35,8 +35,8 @@ export default function Feed() {
 
   // Dynamic meta tags for feed
   useMetaTags({
-    title: 'Social Feed - Triviabees',
-    description: 'Discover trending posts, videos, and content from the Triviabees community. Connect, share, and earn rewards!',
+    title: 'Social Feed - BeesBuy',
+    description: 'Discover trending posts, videos, and content from the BeesBuy community. Connect, share, and earn rewards!',
     url: `${window.location.origin}/feed`,
   });
 
