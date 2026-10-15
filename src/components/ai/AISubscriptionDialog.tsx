@@ -763,7 +763,7 @@ export default function AISubscriptionDialog({ open, onOpenChange, onPurchaseCom
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="h-4 w-4 text-green-500" />
-                        Promote your products/services inside TriviaBees
+                        Promote your products/services inside BeesBuy
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="h-4 w-4 text-green-500" />

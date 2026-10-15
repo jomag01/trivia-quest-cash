@@ -19,7 +19,7 @@ interface AIHubGalleryProps {
   userCredits: number;
 }
 
-// TriviaBees themed gallery items
+// BeesBuy themed gallery items
 const SAMPLE_GALLERY = [
   { id: '1', type: 'image', url: beeWorkingHive, category: 'Work', prompt: 'Adorable bees working together in a golden honeycomb hive, wearing hard hats and carrying honey jars' },
   { id: '2', type: 'image', url: beeShoppingOnline, category: 'Shopping', prompt: 'Cute bee shopping online with laptop and shopping cart, surrounded by gift boxes' },
@@ -32,7 +32,7 @@ const SAMPLE_GALLERY = [
   { id: '9', type: 'image', url: beeWorkingHive, category: 'Work', prompt: 'Team of worker bees collaborating in a beautiful amber-lit beehive' },
   { id: '10', type: 'video', url: beeShoppingOnline, category: 'Shopping', prompt: 'Buzzing bee adding products to cart in online honey store' },
   { id: '11', type: 'image', url: beeEarningMoney, category: 'Earning', prompt: 'Bee entrepreneur celebrating affiliate commissions and passive income' },
-  { id: '12', type: 'image', url: beeAiTech, category: 'AI', prompt: 'TriviaBees AI assistant helping create images and videos with magic' },
+  { id: '12', type: 'image', url: beeAiTech, category: 'AI', prompt: 'BeesBuy AI assistant helping create images and videos with magic' },
 ];
 
 const CATEGORIES = [
@@ -104,7 +104,7 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
 
   return (
     <div ref={galleryRef} className="relative min-h-screen pb-32 beehive-bg">
-      {/* Hero Section with TriviaBees branding and Flying Bees */}
+      {/* Hero Section with BeesBuy branding and Flying Bees */}
       <div className="relative px-4 py-8 md:py-14 overflow-hidden min-h-[280px] md:min-h-[320px]">
         {/* Animated honeycomb background */}
         <div className="absolute inset-0 honeycomb-pattern opacity-30" />
@@ -120,7 +120,7 @@ const AIHubGallery: React.FC<AIHubGalleryProps> = ({ onNavigate, userCredits }) 
             </div>
             <div className="animate-float">
               <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent drop-shadow-sm">
-                TriviaBees AIhives
+                BeesBuy AIhives
               </h1>
             </div>
             <div className="animate-bounce" style={{ animationDelay: '0.3s' }}>

@@ -83,7 +83,7 @@ serve(async (req) => {
 <body>
   <div class="container">
     <div class="header">
-      <h1>🐝 TriviaBees</h1>
+      <h1>🐝 BeesBuy</h1>
     </div>
     <div class="content">
       ${personalizedContent
@@ -91,11 +91,11 @@ serve(async (req) => {
         .map((line: string) => `<p>${line}</p>`)
         .join('')}
       <p style="text-align: center;">
-        <a href="https://beesbuy.com" class="cta-button">Visit TriviaBees →</a>
+        <a href="https://beesbuy.com" class="cta-button">Visit BeesBuy →</a>
       </p>
     </div>
     <div class="footer">
-      <p>You're receiving this because you subscribed to TriviaBees updates.</p>
+      <p>You're receiving this because you subscribed to BeesBuy updates.</p>
       <p>
         <a href="mailto:support@beesbuy.com?subject=Unsubscribe">Unsubscribe</a>
         |
@@ -107,7 +107,7 @@ serve(async (req) => {
 </html>`;
 
         const sendResult = await resend.emails.send({
-          from: "TriviaBees <no-reply@beesbuy.com>",
+          from: "BeesBuy <no-reply@beesbuy.com>",
           reply_to: "support@beesbuy.com",
           to: [subscriber.email],
           subject: newsletter.subject,

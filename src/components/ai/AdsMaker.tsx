@@ -510,7 +510,7 @@ const AdsMaker: React.FC<AdsMakerProps> = ({ userCredits, onCreditsChange }) => 
           </div>
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-          TriviaBees AI Ads Maker
+          BeesBuy AI Ads Maker
         </h1>
         <p className="text-white/90 max-w-2xl mx-auto text-sm md:text-base">
           Make ad drafts for Facebook, Instagram, TikTok, YouTube, LinkedIn and X.

@@ -142,7 +142,7 @@ const WeatherForecast = () => {
   const getShareDescription = () => {
     if (!weather) return 'GraphCast AI Weather - 10-day AI-powered predictions';
     const currentWeather = getWeatherInfo(weather.current.weatherCode);
-    return `🌤️ Weather in ${weather.location.name}: ${weather.current.temperature}°C - ${currentWeather.label}. 10-Day Forecast powered by GraphCast AI on TriviaBees! 🐝`;
+    return `🌤️ Weather in ${weather.location.name}: ${weather.current.temperature}°C - ${currentWeather.label}. 10-Day Forecast powered by GraphCast AI on BeesBuy! 🐝`;
   };
 
   // Set dynamic meta tags for sharing

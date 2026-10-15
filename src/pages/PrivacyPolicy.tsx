@@ -24,7 +24,7 @@ const PrivacyPolicy = () => {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground">1. Introduction</h2>
-            <p>Welcome to TriviaBees. We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our platform.</p>
+            <p>Welcome to BeesBuy. We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our platform.</p>
           </section>
 
           <section>
