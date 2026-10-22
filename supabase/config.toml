@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.youtube-search]
 verify_jwt = false
+
+[functions.security-analyzer]
+verify_jwt = false
