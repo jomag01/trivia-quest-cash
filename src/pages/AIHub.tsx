@@ -36,6 +36,8 @@ import BlogContentMaker from '@/components/ai/BlogContentMaker';
 import BlogPage from '@/components/blog/BlogPage';
 import MarketAnalysis from '@/components/ai/MarketAnalysis';
 import WeatherForecast from '@/components/ai/WeatherForecast';
+import CyberSecurityAnalyzer from '@/components/ai/CyberSecurityAnalyzer';
+import { ShieldCheck as ShieldCheckIcon } from 'lucide-react';
 import EmailMarketingHub from '@/components/ai/EmailMarketingHub';
 import UnlockFeatureDialog from '@/components/ai/UnlockFeatureDialog';
 import { ManualBrushEraser } from '@/components/ai/ManualBrushEraser';
@@ -313,6 +315,7 @@ const AIHub = memo(() => {
     { id: 'blog-maker', label: 'Blog', icon: Newspaper, gradient: 'from-orange-400 to-amber-500', iconColor: 'text-orange-500', premium: true, unlockCost: 20 },
     { id: 'blog', label: 'Read Blog', icon: BookOpen, gradient: 'from-teal-400 to-emerald-500', iconColor: 'text-teal-500' },
     { id: 'weather', label: 'Weather', icon: CloudSun, gradient: 'from-sky-400 to-blue-500', iconColor: 'text-sky-500' },
+    { id: 'cyber-security', label: 'Security', icon: ShieldCheckIcon, gradient: 'from-emerald-500 to-slate-600', iconColor: 'text-emerald-500' },
     { id: 'market-analysis', label: 'Markets', icon: TrendingUp, gradient: 'from-blue-500 to-indigo-600', iconColor: 'text-blue-500', premium: true, unlockCost: 30 },
     { id: 'email-marketing', label: 'Email', icon: Mail, gradient: 'from-rose-400 to-pink-500', iconColor: 'text-rose-500', premium: true, unlockCost: 25 },
     { id: 'link-shortener', label: 'Links', icon: Link2, gradient: 'from-blue-400 to-indigo-500', iconColor: 'text-blue-500' },
@@ -3017,6 +3020,12 @@ const AIHub = memo(() => {
           {activeTab === 'weather' && (
             <div className="p-4 md:p-6">
               <WeatherForecast />
+            </div>
+          )}
+
+          {activeTab === 'cyber-security' && (
+            <div className="p-4 md:p-6">
+              <CyberSecurityAnalyzer />
             </div>
           )}
 
