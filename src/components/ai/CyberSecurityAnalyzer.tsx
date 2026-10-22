@@ -14,7 +14,7 @@ type Mode = 'website' | 'device' | 'app';
 interface Finding { title: string; severity: string; category: string; detail: string; fix: string }
 interface Report { riskScore: number; riskLevel: string; summary: string; findings: Finding[]; recommendations: string[]; limitations: string }
 
-const sevVariant = (s: string) => (s === 'critical' || s === 'high' ? 'destructive' : s === 'medium' ? 'default' : 'secondary') as const;
+const sevVariant = (s: string): 'destructive' | 'default' | 'secondary' => (s === 'critical' || s === 'high' ? 'destructive' : s === 'medium' ? 'default' : 'secondary');
 
 const copy: Record<Mode, { label: string; placeholder: string; details?: string }> = {
   website: { label: 'Website address', placeholder: 'example.com' },
