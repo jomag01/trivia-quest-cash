@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { processSellerReferrerCommission } from "@/lib/sellerReferralCommission";
 import jsPDF from "jspdf";
+import { formatDeliveryDate } from "@/lib/preferredDelivery";
 
 import { 
   Package, 
@@ -54,6 +55,7 @@ interface Order {
   courier: string | null;
   notes: string | null;
   customer_notes: string | null;
+  preferred_delivery_date: string | null;
   referrer_code: string | null;
   commission_status: string | null;
   return_reason: string | null;
@@ -118,6 +120,10 @@ export default function SellerOrderProcessing() {
     queryKey: ["seller-orders", user?.id],
     queryFn: async () => {
       if (!user) return [];
+      const { data: sellerOrders, error: sellerOrdersError } = await supabase.rpc("get_shop_seller_order_ids");
+      if (sellerOrdersError) throw sellerOrdersError;
+      const ids = (sellerOrders || []).map(order => order.id);
+      if (!ids.length) return [];
 
       const { data: orderData, error } = await supabase
         .from("orders")
@@ -125,9 +131,9 @@ export default function SellerOrderProcessing() {
           id, order_number, status, total_amount, shipping_fee, created_at,
           shipping_address, customer_name, customer_email, customer_phone,
           tracking_number, courier, notes, customer_notes, referrer_code,
-          seller_id, commission_status, return_reason
+          seller_id, commission_status, return_reason, preferred_delivery_date
         `)
-        .eq("seller_id", user.id)
+        .in("id", ids)
         .order("created_at", { ascending: false });
       
       if (error) throw error;
@@ -537,6 +543,10 @@ export default function SellerOrderProcessing() {
                       </div>
                     </div>
 
+                    {order.customer_notes && (
+                      <div className="text-sm text-primary">{order.preferred_delivery_date && <>Preferred delivery: <strong>{formatDeliveryDate(order.preferred_delivery_date)}</strong> · requested, not guaranteed</>}</div>
+                    )}
+                    {!order.customer_notes && order.preferred_delivery_date && <p className="text-sm text-primary">Preferred delivery: <strong>{formatDeliveryDate(order.preferred_delivery_date)}</strong> · requested, not guaranteed</p>}
                     {order.customer_notes && (
                       <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                         <p className="text-xs font-medium text-yellow-800 dark:text-yellow-300 mb-1">📝 Customer Notes:</p>

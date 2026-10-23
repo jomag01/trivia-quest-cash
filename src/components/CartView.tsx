@@ -17,6 +17,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { GuestCheckoutDialog } from "@/components/GuestCheckoutDialog";
+import PreferredDeliveryField from "@/components/shop/PreferredDeliveryField";
+import { preferredDeliverySchema } from "@/lib/preferredDelivery";
 
 export const CartView = () => {
   const { user, profile } = useAuth();
@@ -28,6 +30,7 @@ export const CartView = () => {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
+  const [preferredDeliveryDate, setPreferredDeliveryDate] = useState("");
   const [shippingFee] = useState(50);
   const [paymentMethod, setPaymentMethod] = useState<string>("");
   const [userCredits, setUserCredits] = useState(0);
@@ -228,10 +231,12 @@ export const CartView = () => {
 
     try {
       const { data: orderNumberData, error: orderNumError } = await supabase.rpc(
+        // Validate the requested date before creating any order.
         "generate_order_number"
       );
 
       if (orderNumError) throw orderNumError;
+      const deliveryDate = preferredDeliverySchema().parse(preferredDeliveryDate);
 
       const subtotal = calculateTotal();
       const totalAmount = subtotal + shippingFee;
@@ -323,6 +328,8 @@ export const CartView = () => {
         customer_email: effectiveCustomerEmail,
         customer_phone: customerPhone,
         customer_notes: customerNotes || null,
+        preferred_delivery_date: deliveryDate || null,
+        seller_id: cartItems.every(item => item.products?.seller_id === cartItems[0]?.products?.seller_id) ? cartItems[0]?.products?.seller_id || null : null,
         referrer_code: referrerCode,
         status: "pending",
         payment_method: paymentMethod,
@@ -433,6 +440,7 @@ export const CartView = () => {
       setCustomerEmail("");
       setCustomerPhone("");
       setCustomerNotes("");
+      setPreferredDeliveryDate("");
       setPaymentMethod("");
     } catch (error: any) {
       console.error("Error creating order:", error);
@@ -623,7 +631,7 @@ export const CartView = () => {
 
       {/* Checkout Dialog */}
       <Dialog open={checkoutDialog} onOpenChange={setCheckoutDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Complete Your Order</DialogTitle>
             <p className="text-sm text-muted-foreground">
@@ -701,6 +709,9 @@ export const CartView = () => {
               />
             </div>
 
+            <div>
+              <PreferredDeliveryField value={preferredDeliveryDate} onChange={setPreferredDeliveryDate} />
+            </div>
             <div>
               <Label htmlFor="customerNotes">Notes to Seller (Optional)</Label>
               <Textarea

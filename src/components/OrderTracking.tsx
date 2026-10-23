@@ -5,6 +5,7 @@ import { Package, Truck, CheckCircle, Clock, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
+import OrderDeliveryDetails from "@/components/shop/OrderDeliveryDetails";
 
 export const OrderTracking = () => {
   const { user } = useAuth();
@@ -190,6 +191,7 @@ export const OrderTracking = () => {
             )}
 
             {/* Shipping Address */}
+            <OrderDeliveryDetails orderId={order.id} orderNumber={order.order_number} date={order.preferred_delivery_date} sellerId={order.seller_id} />
             <div className="p-3 bg-background/20 rounded-lg">
               <h4 className="font-semibold text-sm mb-1">Shipping Address</h4>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
