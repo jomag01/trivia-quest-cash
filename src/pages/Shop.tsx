@@ -23,6 +23,8 @@ import SwipeableCategorySlider from "@/components/shop/SwipeableCategorySlider";
 import InfiniteProductGrid from "@/components/shop/InfiniteProductGrid";
 import QuickTabs, { type QuickTabType } from "@/components/shop/QuickTabs";
 import LiveNowButton from "@/components/shop/LiveNowButton";
+import PreferredDeliveryField from "@/components/shop/PreferredDeliveryField";
+import { preferredDeliverySchema } from "@/lib/preferredDelivery";
 
 // Lazy load heavy components - not needed on initial render
 const SupplierApplication = lazy(() => import("@/components/shop/SupplierApplication"));
@@ -77,6 +79,7 @@ const Shop = () => {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
+  const [preferredDeliveryDate, setPreferredDeliveryDate] = useState("");
   const [shippingFee, setShippingFee] = useState(50);
   const [detailDialog, setDetailDialog] = useState(false);
   const [detailProduct, setDetailProduct] = useState<any>(null);
@@ -298,6 +301,8 @@ const Shop = () => {
     }
     try {
       // Calculate price with variant adjustment if applicable
+      const deliveryDate = preferredDeliverySchema().safeParse(preferredDeliveryDate);
+      if (!deliveryDate.success) { toast.error(deliveryDate.error.issues[0]?.message); return; }
       let basePrice = selectedProduct.promo_active && selectedProduct.promo_price ? selectedProduct.promo_price : selectedProduct.base_price;
       const variantAdjustment = selectedVariant?.price_adjustment || 0;
       const price = basePrice + variantAdjustment;
@@ -402,6 +407,7 @@ const Shop = () => {
         customer_email: effectiveCustomerEmail,
         customer_phone: customerPhone,
         customer_notes: customerNotes || null,
+        preferred_delivery_date: deliveryDate.data || null,
         status: "pending",
         product_referrer_id: referrerId,
         referrer_code: referrerCode,
@@ -463,13 +469,14 @@ const Shop = () => {
       setCustomerEmail("");
       setCustomerPhone("");
       setCustomerNotes("");
+      setPreferredDeliveryDate("");
     } catch (error: any) {
       console.error("Error creating order:", error);
       const message =
         error?.message || error?.error_description || error?.details || "Failed to place order";
       toast.error(message);
     }
-  }, [selectedProduct, selectedVariant, shippingAddress, customerName, customerEmail, customerPhone, customerNotes, quantity, shippingFee, user]);
+  }, [selectedProduct, selectedVariant, shippingAddress, customerName, customerEmail, customerPhone, customerNotes, preferredDeliveryDate, quantity, shippingFee, user, profile]);
 
   // Show skeleton immediately while loading
   if (loading) {
@@ -821,6 +828,7 @@ const Shop = () => {
                   </div>
 
                   {/* Compact Shipping Calculator */}
+                  <PreferredDeliveryField value={preferredDeliveryDate} onChange={setPreferredDeliveryDate} />
                   <ShippingCalculator 
                     productWeight={selectedProduct?.weight_kg || 1} 
                     subtotal={(getEffectivePrice(selectedProduct) + (selectedVariant?.price_adjustment || 0)) * quantity} 

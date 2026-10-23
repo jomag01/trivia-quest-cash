@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { OrderStatusCarousel } from "@/components/shop/OrderStatusCarousel";
 import { ReviewOrderDialog } from "@/components/shop/ReviewOrderDialog";
+import OrderDeliveryDetails from "@/components/shop/OrderDeliveryDetails";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +49,7 @@ interface Order {
   shipped_at?: string;
   delivered_at?: string;
   seller_id?: string;
+  preferred_delivery_date?: string | null;
   order_items: Array<{
     id: string;
     quantity: number;
@@ -115,7 +117,7 @@ export const MyOrdersPage = () => {
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
-          "id, order_number, total_amount, status, shipping_fee, tracking_number, created_at, shipped_at, delivered_at, seller_id",
+          "id, order_number, total_amount, status, shipping_fee, tracking_number, created_at, shipped_at, delivered_at, seller_id, preferred_delivery_date",
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -518,6 +520,7 @@ export const MyOrdersPage = () => {
               </div>
 
               {/* Order Status Info */}
+              <div className="px-4 pb-3"><OrderDeliveryDetails orderId={order.id} orderNumber={order.order_number} date={order.preferred_delivery_date} sellerId={order.seller_id} /></div>
               {order.status === "shipped" && (
                 <div className="px-4 py-2 bg-muted/40 border-t flex items-center gap-2">
                   <Truck className="w-4 h-4 text-foreground" />

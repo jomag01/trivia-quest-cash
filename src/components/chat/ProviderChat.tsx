@@ -22,6 +22,7 @@ interface ProviderChatProps {
   providerType: ProviderType;
   referenceId?: string;
   referenceTitle?: string;
+  initialMessage?: string;
   buttonVariant?: "default" | "outline" | "ghost" | "secondary";
   buttonSize?: "default" | "sm" | "lg" | "icon";
   buttonClassName?: string;
@@ -56,6 +57,7 @@ export default function ProviderChat({
   providerType,
   referenceId,
   referenceTitle,
+  initialMessage = "",
   buttonVariant = "outline",
   buttonSize = "sm",
   buttonClassName = "",
@@ -66,7 +68,7 @@ export default function ProviderChat({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [chatOpen, setChatOpen] = useState(false);
-  const [newMessage, setNewMessage] = useState("");
+  const [newMessage, setNewMessage] = useState(initialMessage);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [effectiveProviderId, setEffectiveProviderId] = useState<string>(providerId);
@@ -304,13 +306,13 @@ export default function ProviderChat({
 
   const handleSend = async () => {
     const content = newMessage.trim();
-    if (!content || sendMessageMutation.isPending) return;
+    if (!user || !content || sendMessageMutation.isPending) return;
 
     // Optimistic UI: show instantly
     const optimistic: Message = {
       id: `optimistic-${Date.now()}`,
       conversation_id: conversationId || 'pending',
-      sender_id: user!.id,
+      sender_id: user.id,
       content,
       is_read: false,
       created_at: new Date().toISOString()

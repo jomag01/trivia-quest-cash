@@ -10408,6 +10408,7 @@ export type Database = {
           notes: string | null
           order_number: string
           payment_method: string | null
+          preferred_delivery_date: string | null
           product_referrer_id: string | null
           referrer_code: string | null
           return_reason: string | null
@@ -10439,6 +10440,7 @@ export type Database = {
           notes?: string | null
           order_number: string
           payment_method?: string | null
+          preferred_delivery_date?: string | null
           product_referrer_id?: string | null
           referrer_code?: string | null
           return_reason?: string | null
@@ -10470,6 +10472,7 @@ export type Database = {
           notes?: string | null
           order_number?: string
           payment_method?: string | null
+          preferred_delivery_date?: string | null
           product_referrer_id?: string | null
           referrer_code?: string | null
           return_reason?: string | null
@@ -18087,6 +18090,12 @@ export type Database = {
       get_public_traction: { Args: never; Returns: Json }
       get_referral_count: { Args: { p_user_id: string }; Returns: number }
       get_sales_analytics_aggregated: { Args: never; Returns: Json }
+      get_shop_seller_order_ids: {
+        Args: never
+        Returns: {
+          id: string
+        }[]
+      }
       get_store_support_user_id: { Args: never; Returns: string }
       get_supplier_id: { Args: { _user_id: string }; Returns: string }
       get_unlocked_categories_count: {
