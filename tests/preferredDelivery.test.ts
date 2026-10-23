@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { manilaToday, preferredDeliverySchema } from "./preferredDelivery";
+import { manilaToday, preferredDeliverySchema } from "../src/lib/preferredDelivery";
 
 describe("preferred Shop delivery date", () => {
   const schema = preferredDeliverySchema("2026-10-23");
