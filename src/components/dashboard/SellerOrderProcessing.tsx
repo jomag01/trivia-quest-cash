@@ -543,10 +543,7 @@ export default function SellerOrderProcessing() {
                       </div>
                     </div>
 
-                    {order.customer_notes && (
-                      <div className="text-sm text-primary">{order.preferred_delivery_date && <>Preferred delivery: <strong>{formatDeliveryDate(order.preferred_delivery_date)}</strong> · requested, not guaranteed</>}</div>
-                    )}
-                    {!order.customer_notes && order.preferred_delivery_date && <p className="text-sm text-primary">Preferred delivery: <strong>{formatDeliveryDate(order.preferred_delivery_date)}</strong> · requested, not guaranteed</p>}
+                    {order.preferred_delivery_date && <p className="text-sm text-primary">Preferred delivery: <strong>{formatDeliveryDate(order.preferred_delivery_date)}</strong> · requested, not guaranteed</p>}
                     {order.customer_notes && (
                       <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                         <p className="text-xs font-medium text-yellow-800 dark:text-yellow-300 mb-1">📝 Customer Notes:</p>

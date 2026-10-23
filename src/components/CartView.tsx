@@ -230,13 +230,13 @@ export const CartView = () => {
     }
 
     try {
+      const deliveryDate = preferredDeliverySchema().safeParse(preferredDeliveryDate);
+      if (!deliveryDate.success) { toast.error(deliveryDate.error.issues[0]?.message); return; }
       const { data: orderNumberData, error: orderNumError } = await supabase.rpc(
-        // Validate the requested date before creating any order.
         "generate_order_number"
       );
 
       if (orderNumError) throw orderNumError;
-      const deliveryDate = preferredDeliverySchema().parse(preferredDeliveryDate);
 
       const subtotal = calculateTotal();
       const totalAmount = subtotal + shippingFee;
@@ -328,7 +328,7 @@ export const CartView = () => {
         customer_email: effectiveCustomerEmail,
         customer_phone: customerPhone,
         customer_notes: customerNotes || null,
-        preferred_delivery_date: deliveryDate || null,
+        preferred_delivery_date: deliveryDate.data || null,
         seller_id: cartItems.every(item => item.products?.seller_id === cartItems[0]?.products?.seller_id) ? cartItems[0]?.products?.seller_id || null : null,
         referrer_code: referrerCode,
         status: "pending",
