@@ -847,7 +847,7 @@ const Shop = () => {
                     </div>
                     <div className="flex justify-between items-center text-xs mb-2">
                       <span className="text-muted-foreground">Est. delivery:</span>
-                      <span className="text-primary font-medium">{formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).earliest)} – {formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).latest)}</span>
+                      <span className="text-primary font-medium">{preferredDeliveryDate ? `${formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).earliest)} – ${formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).latest)}` : "Seller's normal courier schedule"}</span>
                     </div>
                     <div className="flex justify-between items-center font-bold">
                       <span className="text-sm">Total:</span>
