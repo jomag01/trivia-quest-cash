@@ -148,6 +148,13 @@
       "when": 1792725319054,
       "tag": "0020_shop_preferred_delivery_dates",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792851969771,
+      "tag": "0021_shop_delivery_date_min_two_weeks",
+      "breakpoints": true
     }
   ]
 }
