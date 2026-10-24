@@ -769,7 +769,7 @@ export const CartView = () => {
               </div>
               <div className="flex justify-between text-sm">
                 <span>Estimated delivery:</span>
-                <span className="text-primary font-medium">{formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).earliest)} – {formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).latest)}</span>
+                <span className="text-primary font-medium">{preferredDeliveryDate ? `${formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).earliest)} – ${formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).latest)}` : "Seller's normal courier schedule"}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>Total:</span>
