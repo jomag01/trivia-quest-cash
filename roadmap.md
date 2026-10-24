@@ -1,4 +1,5 @@
 - [x] Shop checkout: preferred delivery date saved with orders and order-linked seller messaging (checkout and date validation checked; no real order or message sent)
+- [x] Shop checkout: delivery date requires at least 2 weeks advance (client + server); estimated delivery window shown at checkout from the picked date
 - [x] Shop: Live now icon/tab
 - [x] Seller sees viewer DMs overlaid on live video
 - [x] Make AI Services > Ads accessible and let users create social-media ad drafts from a short business brief or website

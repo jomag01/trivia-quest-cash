@@ -24,7 +24,7 @@ import InfiniteProductGrid from "@/components/shop/InfiniteProductGrid";
 import QuickTabs, { type QuickTabType } from "@/components/shop/QuickTabs";
 import LiveNowButton from "@/components/shop/LiveNowButton";
 import PreferredDeliveryField from "@/components/shop/PreferredDeliveryField";
-import { preferredDeliverySchema } from "@/lib/preferredDelivery";
+import { estimatedDeliveryRange, formatDeliveryDate, preferredDeliverySchema } from "@/lib/preferredDelivery";
 
 // Lazy load heavy components - not needed on initial render
 const SupplierApplication = lazy(() => import("@/components/shop/SupplierApplication"));
@@ -844,6 +844,10 @@ const Shop = () => {
                     <div className="flex justify-between items-center text-xs mb-2">
                       <span className="text-muted-foreground">Shipping:</span>
                       <span>₱{shippingFee.toFixed(0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs mb-2">
+                      <span className="text-muted-foreground">Est. delivery:</span>
+                      <span className="text-primary font-medium">{formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).earliest)} – {formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).latest)}</span>
                     </div>
                     <div className="flex justify-between items-center font-bold">
                       <span className="text-sm">Total:</span>

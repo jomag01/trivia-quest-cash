@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { GuestCheckoutDialog } from "@/components/GuestCheckoutDialog";
 import PreferredDeliveryField from "@/components/shop/PreferredDeliveryField";
-import { preferredDeliverySchema } from "@/lib/preferredDelivery";
+import { estimatedDeliveryRange, formatDeliveryDate, preferredDeliverySchema } from "@/lib/preferredDelivery";
 
 export const CartView = () => {
   const { user, profile } = useAuth();
@@ -766,6 +766,10 @@ export const CartView = () => {
               <div className="flex justify-between text-sm">
                 <span>Shipping Fee:</span>
                 <span>₱{shippingFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Estimated delivery:</span>
+                <span className="text-primary font-medium">{formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).earliest)} – {formatDeliveryDate(estimatedDeliveryRange(preferredDeliveryDate).latest)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>Total:</span>
