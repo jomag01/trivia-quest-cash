@@ -8,6 +8,8 @@
 - [x] AI Services Weather: worldwide cyclone alerts, mapped locations and paths, detailed alerts and weather patterns
 - [x] AI Services Weather: expandable map with zoom, pan and point weather anywhere in the world
 - [x] AI Services: Cyber Security Analyzer (website, device, app)
+- [ ] Switch AI services and AI Hub photo/video generation to Google Gemini
+- [ ] Let live sellers add text, banners, and saved/generated frames from AI Hub to their live video
 - [ ] Integrate Seedance 2.5 into AI video production — blocked: absent from the workspace model catalog; needs a confirmed provider offering this version
 
 ## Paid live plans (in progress)
